@@ -305,9 +305,13 @@ def compare(products: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {"basis": "per 100 g / 100 ml", "rows": rows, "nova": [p.get("novaGroup") for p in products], "micro": micro, "note": "Highlights are per-nutrient only; no product is declared the overall winner."}
 
 
-def prefilter(orig: Dict[str, Any], peers: List[Dict[str, Any]], allergens: List[str], diet: Optional[str], mode: str, n: int = 40) -> List[Dict[str, Any]]:
-    """Candidates that pass hard restrictions and similarity, best-matching category first. Used before pricing."""
-    cats = set(orig["categories"])
+def prefilter(orig: Dict[str, Any], peers: List[Dict[str, Any]], allergens: List[str], diet: Optional[str], mode: str,
+              n: int = 40, priorities: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """Candidates that pass hard restrictions and similarity, kept for the price comparison.
+
+    It is the union of the closest n products and the n products that are furthest ahead on the first priority: a product
+    that is clearly better on what the person cares about must not be dropped before prices are compared just because it
+    is a little less similar. Prices are attached to this list, so it is the only place where a good candidate can be lost."""
     out = []
     for c in peers:
         if c["barcode"] == orig["barcode"] or c.get("soldInFrance") is not True or restriction_status(c, allergens, diet) != "ok":
@@ -317,7 +321,21 @@ def prefilter(orig: Dict[str, Any], peers: List[Dict[str, Any]], allergens: List
             continue
         out.append((sim, c))
     out.sort(key=lambda x: -x[0])
-    return [c for _, c in out[:n]]
+    keep: List[Dict[str, Any]] = [c for _, c in out[:n]]
+    first = (priorities or [None])[0]
+    if first in PRIORITIES and len(out) > n:
+        ahead = []
+        for sim, c in out:
+            d = _diff(orig, c, first, None, None, priorities)
+            if d is not None and d > PRIORITIES[first][2]:
+                ahead.append((d, sim, c))
+        ahead.sort(key=lambda x: (-x[0], -x[1]))
+        seen = {c["barcode"] for c in keep}
+        for _, _, c in ahead[:n]:
+            if c["barcode"] not in seen:
+                seen.add(c["barcode"])
+                keep.append(c)
+    return keep
 
 
 def indicators(p: Dict[str, Any], price100: Optional[float]) -> Optional[Dict[str, Any]]:

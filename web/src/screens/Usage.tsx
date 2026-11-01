@@ -20,9 +20,12 @@ export default function Usage({ onBack }: { onBack: () => void }) {
 
   const load = useCallback(() => {
     setFailed(false);
-    Promise.all([fetchUsageStats(30), fetchUsageStats(7)])
-      .then(([m, w]) => { setMonth(m); setWeek(w); })
-      .catch(() => setFailed(true));
+    // Both windows are asked for separately: one failing must not blank the other.
+    Promise.allSettled([fetchUsageStats(30), fetchUsageStats(7)]).then(([m, w]) => {
+      if (m.status === 'fulfilled') setMonth(m.value);
+      if (w.status === 'fulfilled') setWeek(w.value);
+      setFailed(m.status === 'rejected' && w.status === 'rejected');
+    });
   }, []);
   useEffect(load, [load]);
 
@@ -45,7 +48,7 @@ export default function Usage({ onBack }: { onBack: () => void }) {
         <Big n={month?.app_visitors} k={t('usage.appPeople')} />
       </div>
 
-      {failed && <Card tint><h3>{t('usage.fail')}</h3><Muted>{t('common.retry')}</Muted></Card>}
+      {failed && <Card tint><h3>{t('usage.fail')}</h3><Muted>{t('usage.offline')}</Muted></Card>}
       {!failed && !month && <Card><Muted>{t('common.loading')}</Muted></Card>}
 
       {days.length > 0 && (

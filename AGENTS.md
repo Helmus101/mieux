@@ -47,6 +47,19 @@ DATABASE_URL=sqlite:///./foodiq.db python -m pytest
 
 All 9 tests should pass.
 
+## Open Food Facts local copy and alternative search
+
+The API reads products from `backend/off_local.db` (built by `scripts/import_off_dump.py`). Alternatives are chosen over
+whole categories through the compact side index `backend/off_quick.db`; rebuild it after importing a new dump:
+
+```bash
+cd backend
+. .venv/bin/activate
+python scripts/build_quick_index.py     # ~20 s for 1.1 M products
+```
+
+Without that file the API still works: it falls back to reading the most scanned products of each category.
+
 ## Database Migrations
 
 To create a new migration:

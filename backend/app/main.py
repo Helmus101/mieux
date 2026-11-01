@@ -479,7 +479,7 @@ def insights(request: Request, uid: str = Depends(user), s: Session = Depends(ge
         if not prio:
             skipped.append({"name": orig["name"], "reason": tr(lang, "skip_prio")})
             continue
-        res = engine.choose(orig, _peers(s, orig, "similar"), prio, pr.allergens, diet, "similar", 6, lang=lang)
+        res = engine.choose(orig, _peers(s, orig, "similar", prio, pr.allergens), prio, pr.allergens, diet, "similar", 6, lang=lang)
         o100 = value.per100(e["last"]["unit_price_cents"], qty)
         # DB access stays on this thread (sessions are not thread-safe); only the network calls fan out.
         prep = []
@@ -924,32 +924,129 @@ def _warm_stores(chains: List[str], lat: float, lon: float) -> None:
                 continue
 
 
-def _peers(s: Session, orig: Dict[str, Any], mode: str) -> List[Dict[str, Any]]:
-    """Candidate pool for the deep search: the product's own category first, then its parent, then (only if the pool is thin) its key words.
-    At most three Open Food Facts searches, and each answer is kept on disk, so a repeat is free and a rate limit does not empty the list.
-    The engine, not the retrieval, decides what is comparable."""
-    tags = orig["categories"]
-    skip = 2 if mode == "any" else 0
+# Category tags too broad to say anything about the product: they are not worth a query.
+_TOO_BROAD = {"en:foods", "en:plant-based-foods", "en:plant-based-foods-and-beverages", "en:groceries"}
+# Raw nutrient keys that must be present for the priority to be compared at all (a missing value is never treated as zero).
+_NEEDED = {"protein": ("proteins_100g",), "sugars": ("sugars_100g",), "fibre": ("fiber_100g",),
+           "salt": ("salt_100g", "sodium_100g"), "saturated_fat": ("saturated-fat_100g",)}
+# A priority read on the compact side index: column to order by, and whether lower is better.
+_QUICK_ORDER = {"sugars": ("sugar", True), "salt": ("salt", True), "saturated_fat": ("sat", True),
+                "protein": ("protein", False), "fibre": ("fibre", False), "overall": ("grade", True)}
+
+
+def _raw_candidate(r: Dict[str, Any], priorities: List[str], allergens: List[str], orig: Dict[str, Any]) -> bool:
+    """Cheap look at a raw Open Food Facts record, before the expensive normalisation and scoring.
+    Drops what cannot become an alternative whatever its score: no name, not sold in France, no category, no value for the
+    nutrient the person actually cares about, no ingredient list when an allergen has to be checked. A nutrient the scanned
+    product itself does not have is not required: nothing could be compared on it anyway."""
+    if not r.get("product_name"):
+        return False
+    countries = r.get("countries_tags")
+    if countries and "en:france" not in countries:
+        return False
+    if not (r.get("categories_tags") or []):
+        return False
+    nm, onm = r.get("nutriments") or {}, orig["nutriments"]
+    for p in priorities:
+        keys = _NEEDED.get(p)
+        field = engine.PRIORITIES.get(p, (None,))[0]
+        if keys and field and onm.get(field) is not None and all(nm.get(k) is None for k in keys):
+            return False
+    if allergens and not r.get("ingredients_text"):
+        return False
+    return True
+
+
+def _raw_relevance(orig: Dict[str, Any], words: set):
+    """Order raw candidates by how close they are to the scanned product, using only fields that are already in the record:
+    same leaf category first, then same parent, then more shared categories, then shared name words. Ties keep the
+    popular-first order of the database."""
+    cats = orig["categories"]
+    leaf = cats[-1] if cats else None
+    parent = cats[-2] if len(cats) > 1 else None
+    allc = set(cats)
+
+    def key(r: Dict[str, Any]):
+        rc = set(r.get("categories_tags") or [])
+        name = engine._tok(r.get("product_name") or "", r.get("brands"))
+        return (0 if leaf and leaf in rc else 1, 0 if parent and parent in rc else 1, -len(rc & allc), -len(name & words))
+    return key
+
+
+def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[List[str]] = None,
+           allergens: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """Candidate pool for the deep search, read from the whole local copy of Open Food Facts when it is there.
+
+    Every meaningful category level of the product is read, its own leaf category first then its parents, a few hundred
+    products per level, most scanned first (an indexed query per level). Those records are then filtered on cheap raw
+    fields — French availability, the nutrient the chosen priority needs, ingredients when an allergen must be checked —
+    and only the most relevant ones are normalised and scored, so thousands of products are looked at while the answer
+    still comes back in a few hundred milliseconds. Without the local copy, the same levels are searched online (at most
+    three cached requests). The engine, not the retrieval, decides what is comparable.
+    """
+    base = [t for t in orig["categories"] if t not in _TOO_BROAD]
+    if not base:
+        return []
+    tags = list(reversed(base))  # most specific first
+    if mode != "similar":
+        tags = tags[2:] or tags  # "any category": the leaf level is too narrow, start from the parent
+    prio, alg = priorities or [], allergens or []
+    local = getattr(getattr(app.state.off, "local", None), "available", lambda: False)()
+    raws: List[Dict[str, Any]] = []
+    # Whole categories, chosen in SQL: the best products on the chosen priority anywhere in the category, then the most
+    # scanned ones, so a good product is not missed just because few people scan it. Falls back to the scanned-first
+    # slices below when the compact index has not been built.
+    if local and getattr(app.state.off, "quick_available", lambda: False)():
+        spec = _QUICK_ORDER.get(prio[0]) if prio else None
+        required = []
+        for p in prio:
+            s = _QUICK_ORDER.get(p)
+            if not s:
+                continue
+            if s[0] == "grade":
+                if orig.get("nutriScore"):
+                    required.append("grade")
+            elif orig["nutriments"].get(engine.PRIORITIES[p][0]) is not None:
+                required.append(s[0])
+        codes = app.state.off.quick_candidates(tags[:3], spec[0] if spec else None, spec[1] if spec else True,
+                                               tuple(required), bool(alg), per_tag=200, total=260)
+        if codes:
+            raws = app.state.off.quick_products(codes)
+    if not raws:
+        try:
+            raw = app.state.off.categories(tags[:4], per_tag=350, total=700)
+        except Exception:  # a missing or unreadable local copy must never break a scan
+            raw = []
+        raws = sorted([r for r in raw if _raw_candidate(r, prio, alg, orig)], key=_raw_relevance(orig, engine._tok(orig["name"], orig["brand"])))[:220]
     pool: Dict[str, Dict[str, Any]] = {}
-    for i in range(len(tags) - 1 - skip, max(-1, len(tags) - 3 - skip), -1):  # specific level, then its parent
-        try:
-            for r in app.state.off.search_category(tags[i]):
-                if r.get("product_name"):
-                    p = normalize(r)
-                    pool.setdefault(p["barcode"], p)
-        except OFFError:
+    for r in raws:
+        if not _raw_candidate(r, prio, alg, orig):
             continue
-        if len(pool) >= 60:  # the specific level already gave enough: do not spend another search
-            break
-    words = sorted(engine._tok(orig["name"], orig["brand"]), key=len, reverse=True)[:3]
-    if words and len(pool) < 40:
-        try:
-            for r in app.state.off.search_name(" ".join(words)):
-                if r.get("product_name"):
-                    p = normalize(r)
-                    pool.setdefault(p["barcode"], p)
-        except (OFFError, AttributeError):
-            pass
+        p = normalize(r)
+        pool.setdefault(p["barcode"], p)
+    # Online searches only when there is no local copy: it covers the whole dataset, so a thin pool there means the
+    # product really has few neighbours, and going online would just wait out the search rate limit (7 s per level).
+    if len(pool) < 40 and not local:
+        for tag in tags[:3]:
+            try:
+                for r in app.state.off.search_category(tag):
+                    if r.get("product_name"):
+                        p = normalize(r)
+                        pool.setdefault(p["barcode"], p)
+            except OFFError:
+                continue
+            if len(pool) >= 60:
+                break
+    if len(pool) < 40:
+        words = sorted(engine._tok(orig["name"], orig["brand"]), key=len, reverse=True)[:3]
+        if words:
+            try:
+                for r in app.state.off.search_name(" ".join(words)):
+                    if r.get("product_name"):
+                        p = normalize(r)
+                        pool.setdefault(p["barcode"], p)
+            except (OFFError, AttributeError):
+                pass
     return list(pool.values())
 
 
@@ -1026,7 +1123,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     pr = prefs_of(s, uid)
     allergens = body.excluded_allergens if body.excluded_allergens is not None else pr.allergens
     diet = body.diet if body.diet is not None else (None if pr.diet == "omnivore" else pr.diet)
-    peers = [rescore(c, body.strict_additives) for c in _peers(s, orig, body.category_mode)]
+    peers = [rescore(c, body.strict_additives) for c in _peers(s, orig, body.category_mode, body.priorities, allergens)]
     # one batched Open Prices request for the whole pool: prices, and proof that a product is on French shelves
     getattr(app.state.prices, "prefetch", lambda *_: None)([orig["barcode"]] + [c["barcode"] for c in peers[:160]])
     seen_fr = getattr(app.state.prices, "seen_in_france", lambda _b: False)
@@ -1038,9 +1135,12 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         for c in peers:  # chains known to list each candidate (from Open Prices, France)
             q_ = c.get("quantity")
             c["chains"] = [retail.ID_OF[r["chain"]] for r in chain_of(c["barcode"], (q_["amount"], q_["unit"]) if q_ else None) if r["chain"] in retail.ID_OF]
-    if chain_of:  # only products known to be sold in the user's chains (or, with none picked, in any chain of the list)
-        want = set(body.chains) if body.chains else set(retail.NAME_OF)
-        peers = [c for c in peers if set(c.get("chains") or []) & want]
+    if chain_of and body.chains:  # the person picked chains: keep what those chains are known to list
+        # With no chain picked, a product is not dropped for lacking chain data: Open Prices covers a minority of products,
+        # and throwing the rest away would hide most good alternatives behind a dataset gap.
+        want = set(body.chains)
+        if any(c.get("chains") for c in peers):  # price service unreachable: no chain is known at all, keep the pool
+            peers = [c for c in peers if set(c.get("chains") or []) & want]
     if body.nearby_only and body.location and chain_of:
         # "only what I can buy near me": a product stays if one of its chains (among the user's chains, if any) has a branch within the radius. Exact distances from the full store list.
         loc0 = body.location
@@ -1069,7 +1169,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     note = None
     # The price comparison is always part of the answer. Pool = the engine's picks + the best-matching comparable products,
     # priced together (cached, threaded). Prices are never invented.
-    pool_src = engine.prefilter(orig, peers, allergens, diet, body.category_mode)
+    pool_src = engine.prefilter(orig, peers, allergens, diet, body.category_mode, priorities=body.priorities)
     if need_prices:
         peers = pool_src
         orig_price, prices, points, shops = _price_map(s, uid, orig, peers, body.location, body.approximate, sel_names)

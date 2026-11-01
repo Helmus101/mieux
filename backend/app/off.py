@@ -62,8 +62,10 @@ class _Local:
     The file is swapped atomically by the monthly import; this class notices the new file and reopens it."""
     def __init__(self, path: str):
         self.path = path
+        self.quick_path = os.environ.get("OFF_QUICK", os.path.join(os.path.dirname(path), "off_quick.db"))
         self._conn: Optional[sqlite3.Connection] = None
         self._sig = None
+        self._quick = False
         self._lock = threading.Lock()
 
     def _c(self) -> Optional[sqlite3.Connection]:
@@ -77,9 +79,73 @@ class _Local:
                 try:
                     self._conn = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True, check_same_thread=False)
                     self._sig = sig
+                    self._quick = False
+                    if os.path.exists(self.quick_path):
+                        try:  # compact side index (scripts/build_quick_index.py), read-only, joined by code
+                            self._conn.execute("attach database ? as quick", (f"file:{self.quick_path}?mode=ro",))
+                            self._quick = True
+                        except sqlite3.Error:
+                            self._quick = False
                 except sqlite3.Error:
                     self._conn = None
             return self._conn
+
+    # -- whole-category selection over the compact side index ---------------------------------------------------------
+    _QUICK_COLS = {"sugar", "salt", "protein", "fibre", "sat", "kcal", "grade"}
+
+    def quick_available(self) -> bool:
+        """True when the compact index is attached (built by scripts/build_quick_index.py)."""
+        return bool(self._c() is not None and self._quick)
+
+    def quick_candidates(self, tags: List[str], field: Optional[str] = None, low: bool = True,
+                         required: tuple = (), ingredients: bool = False,
+                         per_tag: int = 220, total: int = 260, window: int = 2000) -> List[str]:
+        """Codes of the best candidates across these categories, chosen in SQL over the compact side table.
+
+        For each category the `window` most scanned products are taken first (an index read, a few milliseconds even for
+        14 000 products), then ordered by the nutrient the person cares about; the pooled result is topped up with the
+        most scanned products, because the closest substitutes are usually the ones people actually buy. Ordering by the
+        nutrient directly against the whole category means walking a million-row join (0.2-2 s), which the window avoids
+        while still looking at two thousand products per category instead of one page. No product JSON is parsed here.
+        """
+        if not self.quick_available():
+            return []
+        field = field if field in self._QUICK_COLS else None
+        cond = "".join(f" and q.{c} is not null" for c in required if c in self._QUICK_COLS)
+        if ingredients:
+            cond += " and q.ing = 1"
+        order = ("q.grade is null, q.grade asc" if field == "grade" else f"q.{field} {'asc' if low else 'desc'}") if field else "c.scans desc"
+        win = f"select code, scans from off_cat where tag=? order by scans desc limit {int(window)}"
+        seen, out = set(), []
+
+        def run(sql: str, args: tuple) -> None:
+            for (code,) in self._q(sql, args) or []:
+                if code not in seen:
+                    seen.add(code)
+                    out.append(code)
+
+        for tag in tags:
+            run(f"select q.code from ({win}) c join quick.quick q on q.code=c.code where 1=1{cond} order by {order} limit ?", (tag, per_tag))
+            if len(out) >= total:
+                return out[:total]
+        for tag in tags:
+            run(f"select q.code from ({win}) c join quick.quick q on q.code=c.code where 1=1{cond} order by c.scans desc limit ?", (tag, max(20, per_tag // 2)))
+            if len(out) >= total:
+                break
+        return out[:total]
+
+    def quick_products(self, codes: List[str]) -> List[Dict[str, Any]]:
+        """Full records for these codes (only these are parsed): the expensive step happens on the final shortlist."""
+        out: List[Dict[str, Any]] = []
+        for i in range(0, len(codes), 400):
+            chunk = codes[i:i + 400]
+            rows = self._q("select data from off_products where code in (%s)" % ",".join("?" * len(chunk)), tuple(chunk))
+            for (data,) in rows or []:
+                try:
+                    out.append(json.loads(data))
+                except ValueError:
+                    continue
+        return out
 
     def _q(self, sql: str, args=()):
         c = self._c()
@@ -101,6 +167,22 @@ class _Local:
     def category(self, tag: str, limit: int = 100) -> List[Dict[str, Any]]:
         rows = self._q("select p.data from off_cat c join off_products p on p.code=c.code where c.tag=? order by c.scans desc limit ?", (tag, limit))
         return [json.loads(r[0]) for r in rows or []]
+
+    def categories(self, tags: List[str], per_tag: int = 400, total: int = 1200) -> List[Dict[str, Any]]:
+        """Raw records from several category tags (most specific first), most scanned first, without duplicates.
+        One indexed query per tag; codes are de-duplicated before the JSON is parsed, so a product listed in two tags costs one parse."""
+        seen: set = set()
+        out: List[Dict[str, Any]] = []
+        for tag in tags:
+            rows = self._q("select p.code, p.data from off_cat c join off_products p on p.code=c.code where c.tag=? order by c.scans desc limit ?", (tag, per_tag))
+            for code, data in rows or []:
+                if code in seen:
+                    continue
+                seen.add(code)
+                out.append(json.loads(data))
+                if len(out) >= total:
+                    return out
+        return out
 
     def name(self, q: str, limit: int = 15) -> List[Dict[str, Any]]:
         import re
@@ -196,6 +278,32 @@ class OFFClient:
             j = self._get(f"{self.base}/api/v2/search", {"categories_tags": tag, "countries_tags": "en:france", "sort_by": "unique_scans_n", "page_size": size, "fields": FIELDS}, 2, search=True)
             return j.get("products") or []
         return self._cached(f"cat|{tag}|{size}", go)
+
+    # -- whole-category selection (compact side index, see scripts/build_quick_index.py) --------------------------------
+    def quick_available(self) -> bool:
+        return self.local.quick_available()
+
+    def quick_candidates(self, tags: List[str], field: Optional[str] = None, low: bool = True, required: tuple = (),
+                         ingredients: bool = False, per_tag: int = 220, total: int = 260) -> List[str]:
+        """Codes chosen across whole categories in SQL; empty when the compact index has not been built."""
+        return self.local.quick_candidates(tags, field, low, required, ingredients, per_tag, total)
+
+    def quick_products(self, codes: List[str]) -> List[Dict[str, Any]]:
+        """Full records for the final shortlist only."""
+        return self.local.quick_products(codes)
+
+    def categories(self, tags: List[str], per_tag: int = 400, total: int = 1200) -> List[Dict[str, Any]]:
+        """Several category tags at once: the local copy first (whole dataset, no rate limit). Without it, the first tag that
+        answers over the network is used, so the caller still gets a pool."""
+        got = self.local.categories(tags, per_tag, total)
+        if got:
+            return got
+        for tag in tags:
+            try:
+                return self.search_category(tag, min(per_tag, 100))
+            except OFFError:
+                continue
+        return []
 
     def search_name(self, q: str) -> List[Dict[str, Any]]:
         local = self.local.name(q)
