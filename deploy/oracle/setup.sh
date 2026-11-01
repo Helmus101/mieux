@@ -2,7 +2,8 @@
 # Run once on a fresh Ubuntu VM (Oracle Always Free): installs Docker, builds the Mieux API from GitHub and serves it over HTTPS.
 # Usage: bash setup.sh            (the public IP is detected; the address will be https://<ip-with-dashes>.sslip.io)
 set -euo pipefail
-sudo apt-get update -y && sudo apt-get install -y docker.io docker-compose-plugin git curl
+sudo apt-get update -y && sudo apt-get install -y git curl
+curl -fsSL https://get.docker.com | sudo sh   # official Docker install (includes the compose plugin)
 sudo systemctl enable --now docker
 sudo mkdir -p /srv/mieux/data && sudo chown -R "$USER" /srv/mieux
 cd /srv/mieux
