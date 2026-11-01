@@ -44,6 +44,8 @@ export default function Alternatives() {
     const v = e.vs != null;
     return q || c || v || ps == null;  // no price of your own: products with a real price are listed by price, and the note says so
   };
+  const shown = entries.filter((e: any) => !hidden.includes(e.product.id) && better(e));
+  const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
   const diffOf = (e: any): { text: string; tone: string; sub?: string } | null => {
     const o = r?.original_price;
@@ -87,12 +89,12 @@ export default function Alternatives() {
       {r?.rankings?.no_baseline && rk !== 'match' && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('rank.byPriceOnly')}</p>}
       {busy && <><Skeleton h={150} /><Skeleton h={150} /></>}
       {err && <Card><Muted>{err}</Muted></Card>}
-      {r && !busy && !entries.filter((e: any) => !hidden.includes(e.product.id)).length && (hasHome
+      {r && !busy && !shown.length && (nothingNear
         ? <Card><b>{t('near.none', { r: radius })}</b></Card>
         : sameSize
         ? <Card><b>{t('size.noneSame')}</b><Button small onPress={() => setSameSize(false)}>{t('size.all')}</Button></Card>
         : <Card><b>{t(rk === 'match' ? 'rank.noBetterQuality' : r?.rankings?.no_baseline ? 'rank.noBaseline' : rk === 'budget' ? 'rank.noCheaper' : 'rank.noBetterValue')}</b></Card>)}
-      {r && !busy && entries.filter((e: any) => !hidden.includes(e.product.id) && better(e)).map((e: any, i: number) => {
+      {r && !busy && shown.map((e: any, i: number) => {
         return (
           <Card key={e.product.id}>
             <Row>{e.product.imageUrl && <img src={e.product.imageUrl} alt="" width={56} height={56} style={{ objectFit: 'contain', borderRadius: 12, background: '#fff' }} />}
