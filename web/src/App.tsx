@@ -5,6 +5,7 @@ import { t } from '@shared/i18n';
 import { useProfile, apiPrefs } from '@shared/stores';
 import { Skeleton, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
+import InstallPrompt from './InstallPrompt';
 
 const Onboarding = lazy(() => import('./screens/Onboarding'));
 const Home = lazy(() => import('./screens/Home'));
@@ -41,6 +42,7 @@ function TabBar() {
 
 function Shell() {
   const profile = useProfile();
+  const { pathname } = useLocation();
   const { onboarded, priorities, diet, allergens } = profile;
   // Keep the (local) server in sync so fit checks and price-aware ranking use the saved profile.
   useEffect(() => { if (onboarded) api.updatePreferences(apiPrefs({ priorities, diet, allergens }) as never).catch(() => undefined); }, [onboarded, priorities, diet, allergens]);
@@ -58,6 +60,7 @@ function Shell() {
           <Route path="/history" element={<History />} />
         </Routes>
       </Suspense>
+      <InstallPrompt hidden={pathname === '/scan'} />
       <TabBar />
     </div>
   );

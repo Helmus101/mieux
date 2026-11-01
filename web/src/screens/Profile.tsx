@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Screen, NavBar, LargeTitle, Card, Button, ChainLogo, Collapsible, Muted, Section, Chips, Chip, Group, Cell, Row, Pill } from '../ui';
 import { CHAIN_LIST } from '@shared/chains';
 import { hapticsEnabled, setHapticsEnabled } from '../haptics';
+import { isInstalled, openInstall, platform } from '../install';
 import { findCity, searchAddress, type Home } from '../place';
 
 export default function Profile() {
@@ -42,6 +43,7 @@ export default function Profile() {
       <Section title={t('strict.title')}>
         <Group><Cell onPress={() => p.setStrictAdditives(!(p.strictAdditives !== false))}><Row spread><span><b>{p.strictAdditives !== false ? t('strict.on') : t('strict.off')}</b><Muted>{p.strictAdditives !== false ? t('strict.onSub') : t('strict.offSub')}</Muted></span><Pill tone={p.strictAdditives !== false ? undefined : 'g'}>{p.strictAdditives !== false ? 'On' : 'Off'}</Pill></Row></Cell></Group>
       </Section>
+      {platform() !== 'other' && !isInstalled() && <Section title={t('pwa.title')}><Group><Cell onPress={openInstall}><Row spread><span>{t('pwa.profile')}</span><span className="chev">›</span></Row></Cell></Group></Section>}
       <Section title={t('haptics.title')}>
         <Group><Cell onPress={() => { setHapticsEnabled(!hapticsEnabled()); setTick((n) => n + 1); }}><Row spread><span>{t('haptics.label')}</span><Pill tone={hapticsEnabled() ? undefined : 'g'}>{hapticsEnabled() ? 'On' : 'Off'}</Pill></Row></Cell></Group>
       </Section>
