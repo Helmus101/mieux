@@ -1,0 +1,90 @@
+// Camera + barcode detection (web). Expo replacement: expo-camera <CameraView onBarcodeScanned>.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import { validBarcode } from '@shared/barcode';
+export { validBarcode };
+
+export class Cancelled extends Error { constructor() { super('cancelled'); this.name = 'Cancelled'; } }
+
+/** isCurrent lets a caller abandon a start that was superseded (React StrictMode mounts twice; fast navigation) before it touches the video. */
+export async function openCamera(video: HTMLVideoElement, isCurrent: () => boolean = () => true): Promise<MediaStream> {
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 }, advanced: [{ focusMode: 'continuous' } as any] },
+  });
+  if (!isCurrent()) { stream.getTracks().forEach((t) => t.stop()); throw new Cancelled(); }
+  video.srcObject = stream; video.setAttribute('playsinline', ''); video.muted = true;
+  try { await video.play(); } catch (e) {
+    if ((e as Error).name === 'AbortError') { if (!isCurrent()) { stream.getTracks().forEach((t) => t.stop()); throw new Cancelled(); } await video.play(); } // interrupted by a reload: retry once
+    else throw e;
+  }
+  if (!isCurrent()) { stream.getTracks().forEach((t) => t.stop()); throw new Cancelled(); }
+  return stream;
+}
+export const closeCamera = (s: MediaStream | null) => s?.getTracks().forEach((t) => t.stop());
+
+/** Starts scanning an already-playing video. Returns a stop function. Uses the native detector when present (fast), else ZXing on a small centre crop. */
+export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: string) => void): Promise<() => void> {
+  let stopped = false, last = 0;
+  const done = (c: string) => { if (stopped || !validBarcode(c)) return false; stopped = true; try { navigator.vibrate?.(30); } catch { /* ignore */ } onCode(c); return true; };
+  if ('BarcodeDetector' in window) {
+    const det = new (window as any).BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+    const loop = async (t: number) => {
+      if (stopped) return;
+      if (t - last > 60 && video.readyState >= 2) { last = t; try { const r = await det.detect(video); for (const b of r) if (done(b.rawValue)) return; } catch { /* keep going */ } }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  } else {
+    const Z = await import('@zxing/library');
+    const reader = new Z.MultiFormatReader(), hints = new Map<any, any>();
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]);
+    reader.setHints(hints);
+    const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true })!;
+    const loop = (t: number) => {
+      if (stopped) return;
+      if (t - last > 70 && video.videoWidth) {
+        last = t;
+        // decode only the centre band, downscaled: ~5x faster than the full frame and where the user aims anyway
+        const sw = video.videoWidth * 0.8, sh = video.videoHeight * 0.45, sx = (video.videoWidth - sw) / 2, sy = (video.videoHeight - sh) / 2;
+        const k = Math.min(1, 720 / sw); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
+        cx.drawImage(video, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+        try { const r = reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cv)))); if (done(r.getText())) return; } catch { /* no code in this frame */ }
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+  return () => { stopped = true; };
+}
+
+/** Grabs a full-resolution, contrast-boosted frame for OCR. */
+export function captureFrame(video: HTMLVideoElement): Promise<Blob> {
+  const cv = document.createElement('canvas'); cv.width = video.videoWidth; cv.height = video.videoHeight;
+  const cx = cv.getContext('2d')!; cx.filter = 'grayscale(1) contrast(1.4)'; cx.drawImage(video, 0, 0);
+  return new Promise((ok, no) => cv.toBlob((b) => (b ? ok(b) : no(new Error('capture'))), 'image/jpeg', 0.92));
+}
+
+/** Torch (flash) toggle where the camera supports it; resolves to whether it is now on. */
+export async function setTorch(stream: MediaStream | null, on: boolean): Promise<boolean> {
+  const track = stream?.getVideoTracks()[0];
+  if (!track) return false;
+  try { await track.applyConstraints({ advanced: [{ torch: on } as any] }); return on; } catch { return false; }
+}
+export const torchSupported = (stream: MediaStream | null) => !!(stream?.getVideoTracks()[0]?.getCapabilities?.() as any)?.torch;
+
+/** Decode a barcode from a photo (gallery). Returns the code or null. */
+export async function decodeImage(file: Blob): Promise<string | null> {
+  const bmp = await createImageBitmap(file);
+  const cv = document.createElement('canvas'); const k = Math.min(1, 1600 / bmp.width);
+  cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+  cv.getContext('2d')!.drawImage(bmp, 0, 0, cv.width, cv.height);
+  if ('BarcodeDetector' in window) {
+    try { const r = await new (window as any).BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] }).detect(cv); for (const b of r) if (validBarcode(b.rawValue)) return b.rawValue; } catch { /* fall through */ }
+  }
+  const Z = await import('@zxing/library');
+  const reader = new Z.MultiFormatReader(), hints = new Map<any, any>();
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]);
+  hints.set(Z.DecodeHintType.TRY_HARDER, true); reader.setHints(hints);
+  try { const c = reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cv)))).getText(); return validBarcode(c) ? c : null; } catch { return null; }
+}

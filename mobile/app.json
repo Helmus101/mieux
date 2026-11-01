@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "FoodIQ",
+    "slug": "foodiq",
+    "scheme": "foodiq",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.foodiq.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "FoodIQ utilise la caméra pour lire les codes-barres et photographier vos tickets. Les images restent sur votre appareil.",
+        "NSLocationWhenInUseUsageDescription": "FoodIQ utilise votre position approximative pour connaître votre ville. Les coordonnées ne sont pas conservées."
+      }
+    },
+    "android": {
+      "package": "app.foodiq.mobile",
+      "permissions": [
+        "CAMERA"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "FoodIQ utilise la caméra pour lire les codes-barres et photographier vos tickets."
+        }
+      ],
+      "expo-status-bar",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "FoodIQ utilise votre position approximative pour connaître votre ville. Les coordonnées ne sont pas conservées."
+        }
+      ]
+    ],
+    "experiments": {
+      "tsconfigPaths": true
+    }
+  }
+}

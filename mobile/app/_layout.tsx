@@ -1,0 +1,30 @@
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { api } from '@shared/api/client';
+import { setApiBase } from '@shared/config';
+import { hydrateStores } from '@shared/hydrate';
+import { useProfile } from '@shared/stores';
+import Onboarding from '../src/Onboarding';
+import { initStorage } from '../src/storage';
+import { initHaptics } from '../src/haptics';
+import { Platform } from 'react-native';
+
+// EXPO_PUBLIC_API_URL must point at the FoodIQ backend. On a physical phone use your computer's LAN address (the backend must listen on it).
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (Platform.OS === 'android' ? 'http://10.0.2.2:8010/v1' : 'http://localhost:8010/v1');
+
+export default function RootLayout() {
+  const [ready, setReady] = useState(false);
+  const { onboarded, priorities, diet, allergens } = useProfile();
+  useEffect(() => { setApiBase(API_URL); initStorage().then(() => { hydrateStores(); initHaptics(); setReady(true); }); }, []);
+  useEffect(() => { if (ready && onboarded) api.updatePreferences({ diet, priorities, allergens } as never).catch(() => undefined); }, [ready, onboarded, priorities, diet, allergens]);
+  if (!ready) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator /></View>;
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="auto" />
+      {onboarded ? <Stack screenOptions={{ headerShown: false }} /> : <Onboarding />}
+    </SafeAreaProvider>
+  );
+}

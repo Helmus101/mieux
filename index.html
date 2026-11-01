@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mieux</title>
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mieux"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="theme-color" content="#1f9d55">
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js" async></script>
+<style>
+:root{--bg:#fff;--ink:#16221a;--mut:#667;--line:#e4e9e5;--g:#1f9d55;--gl:#e8f6ee;--warn:#c47a00;--bad:#c0392b;--card:#f7faf8}
+@media(prefers-color-scheme:dark){:root{--bg:#101612;--ink:#e8efe9;--mut:#9aa7a0;--line:#26302a;--card:#18211b;--gl:#163524}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,system-ui,sans-serif;padding-bottom:84px}
+main{max-width:640px;margin:0 auto;padding:16px}h1{font-size:22px;margin:0 0 12px}h2{font-size:17px;margin:20px 0 8px}h3{font-size:15px;margin:12px 0 4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+.row{display:flex;gap:10px;align-items:center}.sp{justify-content:space-between}.mut{color:var(--mut);font-size:13px}
+button,input,select{font:inherit;color:inherit}button{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 13px;cursor:pointer}
+button.p{background:var(--g);border-color:var(--g);color:#fff;font-weight:600}input[type=text],input[type=number],select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+nav button{border:0;background:none;font-size:12px;color:var(--mut);padding:6px 8px}nav button.on{color:var(--g);font-weight:700}
+nav button.scan{background:var(--g);color:#fff;border-radius:999px;width:56px;height:56px;margin-top:-22px;font-size:22px;box-shadow:0 3px 10px #0004}
+.score{display:flex;gap:10px}.score>div{flex:1;border-radius:14px;padding:12px;text-align:center;background:var(--bg);border:1px solid var(--line)}
+.score b{font-size:34px;display:block;line-height:1.1}.score small{color:var(--mut)}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;margin:2px 4px 2px 0;background:var(--gl);color:var(--g);border:0}.pill.w{background:#fff1d6;color:var(--warn)}.pill.b{background:#fde4e1;color:var(--bad)}
+.prod{display:flex;gap:10px;align-items:center;cursor:pointer}.prod img{width:52px;height:52px;object-fit:contain;border-radius:8px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:6px;border-bottom:1px solid var(--line);text-align:left}td.best{background:var(--gl);font-weight:600}
+video{width:100%;border-radius:14px;background:#000;max-height:300px}.chips button{margin:3px 4px 3px 0;padding:6px 11px}.chips button.on{background:var(--g);color:#fff;border-color:var(--g)}
+.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:var(--g)}
+a{color:var(--g)}details summary{cursor:pointer}
+</style></head><body>
+<main id="v"></main>
+<nav><button data-t="home">Home</button><button data-t="compare">Compare</button><button class="scan" data-t="scan">▣</button><button data-t="purchases">Purchases</button><button data-t="profile">Profile</button></nav>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LS={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+const FIELDS='nutriscore_grade,nutriscore_version,last_modified_t,traces_tags,code,product_name,brands,image_front_small_url,nutriments,ingredients_text,additives_tags,allergens_tags,categories_tags,quantity,ingredients_analysis_tags,labels_tags';
+const UA={headers:{}};
+async function jget(u,tries=3){let e;for(let i=0;i<tries;i++){try{const r=await fetch(u);if(r.ok){const t=await r.text();if(t[0]==='{')return JSON.parse(t)}}catch(x){e=x}await new Promise(r=>setTimeout(r,700*(i+1)))}throw new Error('Open Food Facts is not responding right now. Try again in a moment.')}
+async function getProduct(code){const j=await jget('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields='+FIELDS);if(j.status===0||!j.product)throw new Error('Product '+code+' is not in Open Food Facts.');return j.product}
+async function searchName(q){const j=await jget('https://world.openfoodfacts.org/cgi/search.pl?search_simple=1&action=process&json=1&page_size=15&fields='+FIELDS+'&search_terms='+encodeURIComponent(q));return j.products||[]}
+async function catPeers(p,up=0){const tags=(p.categories_tags||[]).filter(t=>/^en:/.test(t)&&!/[A-Z]/.test(t));
+  for(let i=tags.length-1-up;i>=Math.max(0,tags.length-4-up);i--){try{const j=await jget('https://world.openfoodfacts.org/api/v2/search?categories_tags='+encodeURIComponent(tags[i])+'&sort_by=unique_scans_n&page_size=60&fields='+FIELDS,2);const L=(j.products||[]).filter(x=>x.code!==p.code&&x.product_name&&x.nutriments);if(L.length>=5)return L}catch(e){}}return[]}
+async function getPrice(code){try{const j=await jget('https://prices.openfoodfacts.org/api/v1/prices?product_code='+code+'&order_by=-date&size=5',1);return(j.items||[]).filter(x=>x.currency==='EUR'||x.currency)[0]||null}catch(e){return null}}
+
+
+// ---------- state ----------
+let prof=LS.get('fiq2_prof',{diet:'omni',allergens:[],prios:['protein','sugars']}),hist=LS.get('fiq2_hist',[]),favs=LS.get('fiq2_favs',[]),cmp=LS.get('fiq2_cmp',[]),rcp=LS.get('fiq2_rcp',[]);
+const CACHE={};hist.forEach(p=>CACHE[p.code]=p);
+const save=()=>{if(typeof syncPrefs==='function')syncPrefs();LS.set('fiq2_prof',prof);LS.set('fiq2_hist',hist);LS.set('fiq2_favs',favs);LS.set('fiq2_cmp',cmp);LS.set('fiq2_rcp',rcp)};
+const EUALL=[['gluten','Gluten'],['crustaceans','Crustaceans'],['eggs','Eggs'],['fish','Fish'],['peanuts','Peanuts'],['soybeans','Soy'],['milk','Milk'],['nuts','Tree nuts'],['celery','Celery'],['mustard','Mustard'],['sesame-seeds','Sesame'],['sulphur-dioxide-and-sulphites','Sulphites'],['lupin','Lupin'],['molluscs','Molluscs']];
+// ---------- nutrition ----------
+const NV=(p,k)=>{const v=p.nutriments?.[k+'_100g'];return v==null||v===''||isNaN(+v)?null:+v};
+function nutr(p){const kcal=NV(p,'energy-kcal')??(NV(p,'energy-kj')!=null?NV(p,'energy-kj')/4.184:null),salt=NV(p,'salt')??(NV(p,'sodium')!=null?NV(p,'sodium')*2.5:null);
+  return{kcal,fat:NV(p,'fat'),sat:NV(p,'saturated-fat'),carbs:NV(p,'carbohydrates'),sugars:NV(p,'sugars'),prot:NV(p,'proteins'),fibre:NV(p,'fiber'),salt}}
+const NSN={a:5,b:4,c:3,d:2,e:1};
+const nsGrade=p=>{const g=(p.nutriscore_grade||'').toLowerCase();return NSN[g]?g:null};
+function quality(p){const n=nutr(p),core=['kcal','fat','sat','carbs','sugars','prot','salt'],miss=core.filter(k=>n[k]==null);
+  return{nutritionComplete:!miss.length,missing:miss,ingredients:!!p.ingredients_text,nutriScore:!!nsGrade(p),source:'Open Food Facts',updated:p.last_modified_t?new Date(p.last_modified_t*1000).toISOString().slice(0,10):null}}
+const NAMES={kcal:'energy',fat:'fat',sat:'saturated fat',carbs:'carbohydrates',sugars:'sugars',prot:'protein',salt:'salt',fibre:'fibre'};
+// ---------- priorities ----------
+const PR={protein:{l:'More protein',k:'prot',dir:1,u:'g',tol:1,match:10,part:5,note:'10 g/100 g or more'},
+ sugars:{l:'Less total sugars',k:'sugars',dir:-1,u:'g',tol:1,match:5,part:10,note:'5 g/100 g or less (total sugars, not added sugars)'},
+ fibre:{l:'More fibre',k:'fibre',dir:1,u:'g',tol:.5,match:6,part:3,note:'6 g/100 g or more (EU “high fibre” claim level)'},
+ salt:{l:'Less salt',k:'salt',dir:-1,u:'g',tol:.1,match:.3,part:1,note:'0.3 g/100 g or less (EU “low salt” level)'},
+ sat:{l:'Less saturated fat',k:'sat',dir:-1,u:'g',tol:.5,match:1.5,part:5,note:'1.5 g/100 g or less (EU “low saturated fat” level)'},
+ overall:{l:'Better Nutri-Score',k:null,dir:1,tol:0}};
+function fit(p){const n=nutr(p),out=[];
+  prof.prios.filter(k=>k!=='overall'&&PR[k]).forEach(k=>{const d=PR[k],v=n[d.k];let st,txt;
+    if(v==null){st='unk';txt='No '+NAMES[d.k]+' figure in the database.'}
+    else{const good=d.dir>0?v>=d.match:v<=d.match,part=d.dir>0?v>=d.part:v<=d.part;st=good?'ok':part?'part':'no';txt=(+v.toFixed(1))+' g per 100 g. Threshold: '+d.note+'.'}
+    out.push({l:d.l,st,txt})});
+  const A=p.allergens_tags||[],an=p.ingredients_analysis_tags||[],has=!!p.ingredients_text;
+  prof.allergens.forEach(a=>{const nm=(EUALL.find(x=>x[0]===a)||[a,a])[1];
+    if(A.includes('en:'+a))out.push({l:nm+' allergy',st:'bad',txt:'Declared in the allergen list. Do not buy.'});
+    else if((p.traces_tags||[]).includes('en:'+a))out.push({l:nm+' allergy',st:'bad',txt:'May contain traces (precautionary label).'});
+    else if(!has)out.push({l:nm+' allergy',st:'unk',txt:'Ingredients missing, so suitability cannot be verified.'});
+    else out.push({l:nm+' allergy',st:'ok',txt:'Not declared in the database. Always check the pack.'})});
+  if(prof.diet==='vegan'||prof.diet==='vegetarian'){const V=prof.diet==='vegan';
+    const bad=an.includes(V?'en:non-vegan':'en:non-vegetarian'),ok=V?an.includes('en:vegan'):(an.includes('en:vegetarian')||an.includes('en:vegan'));
+    out.push(bad?{l:prof.diet,st:'bad',txt:'Contains ingredients not compatible with a '+prof.diet+' diet.'}:ok?{l:prof.diet,st:'ok',txt:'Compatible based on the available ingredient information. Cross-contamination is not verified.'}:{l:prof.diet,st:'unk',txt:'Cannot be confirmed from the available data.'})}
+  return out}
+const ICON={ok:'✓ Matches',part:'~ Partly',no:'✕ Does not match',bad:'✕ Conflict',unk:'? Cannot verify'};
+const PCOL={ok:'',part:'w',no:'b',bad:'b',unk:'w'};
+// ---------- Choice Engine ----------
+function pass(p,why){const A=p.allergens_tags||[],T=p.traces_tags||[],an=p.ingredients_analysis_tags||[];
+  for(const a of prof.allergens){if(A.includes('en:'+a)||T.includes('en:'+a))return'conflict';if(!p.ingredients_text)return'unverified'}
+  if(prof.diet==='vegan'){if(an.includes('en:non-vegan'))return'conflict';if(!an.includes('en:vegan'))return'unverified'}
+  if(prof.diet==='vegetarian'){if(an.includes('en:non-vegetarian'))return'conflict';if(!(an.includes('en:vegetarian')||an.includes('en:vegan')))return'unverified'}
+  return'ok'}
+function choose(orig,peers,o){const n0=nutr(orig),ex={conflict:0,unverified:0,incomplete:0,notBetter:0},res=[];const cats=new Set(orig.categories_tags||[]);
+  for(const c of peers){if(c.code===orig.code||!c.product_name)continue;
+    const r=pass(c);if(r!=='ok'){ex[r]++;continue}
+    const n1=nutr(c);let bad=false,d={};
+    for(const k of o.prios){if(k==='overall'){const a=nsGrade(orig),b=nsGrade(c);if(!a||!b){bad=true;break}d.overall=NSN[b]-NSN[a]}
+      else{const f=PR[k].k;if(n0[f]==null||n1[f]==null){bad=true;break}d[k]=(n1[f]-n0[f])*PR[k].dir}}
+    if(bad){ex.incomplete++;continue}
+    const first=o.prios[0],tol=PR[first].tol||0;if(!(d[first]>tol)){ex.notBetter++;continue}
+    const t=c.categories_tags||[];let ov=0;t.forEach(x=>cats.has(x)&&ov++);const sim=ov/Math.max(cats.size,t.length,1);
+    if(o.mode==='similar'&&sim<.5){continue}
+    res.push({p:c,d,n:n1,sim,rank:o.prios.map(k=>Math.round(d[k]/(PR[k].tol||1)))})}
+  res.sort((a,b)=>{for(let i=0;i<a.rank.length;i++)if(b.rank[i]!==a.rank[i])return b.rank[i]-a.rank[i];return b.sim-a.sim});
+  const out=res.slice(0,5).map(r=>({...r,improve:explainImprove(orig,r,o),trade:explainTrade(n0,r)}));
+  return{alts:out,ex,reason:out.length?null:'Nothing sufficiently comparable was found.'}}
+const f1=v=>+(+v).toFixed(1);
+function explainImprove(orig,r,o){const n0=nutr(orig),L=[];o.prios.forEach(k=>{if(k==='overall'){if(r.d.overall>0)L.push('Nutri-Score '+nsGrade(orig).toUpperCase()+' → '+nsGrade(r.p).toUpperCase());return}
+  const d=PR[k],a=n0[d.k],b=r.n[d.k];if(r.d[k]>(d.tol||0))L.push(f1(Math.abs(b-a))+' g '+(d.dir>0?'more ':'less ')+NAMES[d.k]+' per 100 g ('+f1(a)+' → '+f1(b)+')')});return L}
+function explainTrade(n0,r){const n=r.n,T=[];
+  if(n.sugars!=null&&n0.sugars!=null&&n.sugars-n0.sugars>=3)T.push(f1(n.sugars-n0.sugars)+' g more total sugars');
+  if(n.sat!=null&&n0.sat!=null&&n.sat-n0.sat>=1.5)T.push(f1(n.sat-n0.sat)+' g more saturated fat');
+  if(n.salt!=null&&n0.salt!=null&&n.salt-n0.salt>=.3)T.push(f1(n.salt-n0.salt)+' g more salt');
+  if(n.prot!=null&&n0.prot!=null&&n0.prot-n.prot>=2)T.push(f1(n0.prot-n.prot)+' g less protein');
+  if(n.fibre!=null&&n0.fibre!=null&&n0.fibre-n.fibre>=1.5)T.push(f1(n0.fibre-n.fibre)+' g less fibre');
+  if(n.kcal!=null&&n0.kcal!=null&&n.kcal-n0.kcal>=50)T.push(Math.round(n.kcal-n0.kcal)+' kcal more per 100 g');
+  if(r.sim<.8)T.push('A different type of product, so taste and texture will differ');else T.push('Possibly a different flavour or recipe');return T}
+// ---------- receipts ----------
+const STORES=['carrefour','monoprix','leclerc','auchan','lidl','aldi','intermarch','franprix','casino','picard','super u','u express','hyper u','biocoop','naturalia','grand frais','cora','match'];
+const toCents=s=>Math.round(parseFloat(String(s).replace(',','.'))*100);
+const eur=c=>c==null?'–':(c/100).toFixed(2).replace('.',',')+' €';
+function parseReceipt(text){const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean),items=[];let total=null,date=null,store=null;
+  const low=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  for(const l of lines.slice(0,8)){const k=STORES.find(s=>low(l).includes(s));if(k){store=l.replace(/[^\p{L}\p{N}' .-]/gu,'').trim();break}}
+  if(!store){const l=lines.find(x=>/[A-Za-z]{4,}/.test(x));store=l?l.slice(0,30):null}
+  for(const l of lines){const m=l.match(/(\d{2})[\/.-](\d{2})[\/.-](\d{4}|\d{2})/);if(m){let y=m[3].length===2?'20'+m[3]:m[3];date=y+'-'+m[2]+'-'+m[1];break}}
+  const skip=/\b(cb|carte|esp[eè]ces?|rendu|visa|mastercard|tva|monnaie|bancaire|ticket|sans contact|merci|caisse|siret|tel|fid[eé]lit[eé]|cumul|articles?|nb\b|net a payer|paiement)/i;
+  for(const l of lines){const m=l.match(/(-?\d{1,4}[.,]\d{2})\s*(?:€|eur|[A-Z]{1,2})?\s*$/i);if(!m)continue;const c=toCents(m[1]);const body=l.slice(0,m.index).trim();
+    if(/sous[- ]?total/i.test(l))continue;if(/(total|a payer|à payer|montant)/i.test(l)){total=Math.max(total??0,c);continue}
+    if(skip.test(l)||!/[A-Za-zÀ-ÿ]{2,}/.test(body))continue;
+    let qty=1,unit=null;const q=body.match(/(\d+)\s*[xX]\s*(\d+[.,]\d{2})\s*$/);if(q){qty=+q[1];unit=toCents(q[2])}
+    const disc=c<0||/remise|r[eé]duc|promo/i.test(body);
+    items.push({raw:body.replace(/(\d+)\s*[xX]\s*(\d+[.,]\d{2})\s*$/,'').trim()||body,qty,unitCents:unit??(qty?Math.round(c/qty):c),lineCents:c,disc,conf:disc?.7:.85})}
+  return{store,date,total,items}}
+function tok(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/yaourt|yogourt|yog\b/g,'yaourt').split(/[^a-z0-9]+/).filter(t=>t.length>2)}
+function matchProd(raw){const T=tok(raw);if(!T.length)return null;let best=null;
+  for(const p of hist){const P=new Set(tok((p.product_name||'')+' '+(p.brands||'')));const hit=T.filter(t=>P.has(t)||[...P].some(x=>x.startsWith(t)&&t.length>=4)).length;const sc=hit/T.length;if(hit&&(!best||sc>best.sc))best={p,sc}}
+  return best&&best.sc>=.5?{code:best.p.code,name:best.p.product_name,sc:best.sc}:null}
+function dupe(r){return rcp.find(x=>x.retailer===r.retailer&&x.date===r.date&&x.totalCents===r.totalCents)}
+function lastPaid(code){let best=null;rcp.forEach(r=>r.items.forEach(i=>{if(i.matched===code&&(!best||r.date>=best.date))best={date:r.date,store:r.retailer,cents:i.unitCents}}));return best}
+
+// ---------- additives ----------
+const ADD={e330:['Citric acid','Acidity regulator, preservative aid, sour taste.','Naturally present in citrus fruit; widely used.','EFSA and EU authorise it for general use (quantum satis).','No general reason to avoid it.','https://www.efsa.europa.eu/en/topics/topic/food-additives'],
+ e322:['Lecithins','Emulsifier that keeps oil and water mixed (often from soy or sunflower).','Natural component of egg and soy; reassessed by EFSA in 2017.','Authorised; EFSA saw no safety concern at current uses.','Only relevant if you avoid soy or sunflower.','https://www.efsa.europa.eu/en/efsajournal/pub/4742'],
+ e300:['Ascorbic acid (vitamin C)','Antioxidant that slows spoilage and browning.','Vitamin C itself.','Authorised; EFSA 2015 re-evaluation found no safety concern.','No reason to avoid it.','https://www.efsa.europa.eu/en/efsajournal/pub/4087'],
+ e471:['Mono- and diglycerides of fatty acids','Emulsifier giving a smooth texture.','Made from fats; also formed during digestion.','Authorised; EFSA 2017 re-evaluation: no safety concern. Newer observational research on emulsifiers and health is still preliminary.','Not a reason to avoid by itself. It often signals an ultra-processed product.','https://www.efsa.europa.eu/en/efsajournal/pub/5045'],
+ e202:['Potassium sorbate','Preservative against mould and yeast.','Commonly used for decades.','Authorised; EFSA 2015 re-evaluation: safe at authorised levels.','No general reason to avoid it.','https://www.efsa.europa.eu/en/efsajournal/pub/4144'],
+ e211:['Sodium benzoate','Preservative, mostly in acidic drinks and sauces.','Can form benzene with vitamin C under heat or light (rare, monitored).','Authorised with maximum levels; EFSA 2016 re-evaluation: safe at authorised levels. Some studies on hyperactivity in children (combined with certain colours) exist.','Optional to limit if you drink lots of soft drinks.','https://www.efsa.europa.eu/en/efsajournal/pub/4433'],
+ e250:['Sodium nitrite','Preservative in cured meats; prevents botulism.','Processed meat is classed as carcinogenic by IARC; nitrite contributes to nitrosamine formation.','EFSA 2017 lowered the safe level; authorised under strict limits.','Reasonable to limit cured meat, a diet-level choice rather than a single-additive one.','https://www.efsa.europa.eu/en/efsajournal/pub/4786'],
+ e407:['Carrageenan','Thickener from seaweed.','Animal studies on degraded carrageenan are not representative of the food additive.','EFSA 2018 re-evaluation: no safety concern but data gaps on some forms.','No firm reason to avoid.','https://www.efsa.europa.eu/en/efsajournal/pub/5238'],
+ e415:['Xanthan gum','Thickener and stabiliser.','Produced by fermentation.','EFSA 2017: no safety concern.','No reason to avoid; large amounts can cause digestive discomfort.','https://www.efsa.europa.eu/en/efsajournal/pub/4909'],
+ e950:['Acesulfame K','Intense sweetener.','Long-term effects are under study.','Authorised; EFSA considers it safe within the ADI.','Personal choice; no strong evidence of harm at normal intake.','https://www.efsa.europa.eu/en/topics/topic/sweeteners'],
+ e951:['Aspartame','Intense sweetener.','WHO/IARC 2023 classed it "possibly carcinogenic" (Group 2B, limited evidence); JECFA kept the ADI at 40 mg/kg.','EFSA 2013: safe at the ADI.','Fine within the ADI (about 9–14 cans of diet soda a day for an adult). Avoid if you have phenylketonuria.','https://www.efsa.europa.eu/en/topics/topic/aspartame'],
+ e955:['Sucralose','Intense sweetener.','Some research on gut effects is preliminary.','Authorised; EFSA considers it safe within the ADI.','Personal choice.','https://www.efsa.europa.eu/en/topics/topic/sweeteners'],
+ e171:['Titanium dioxide','White colouring.','Genotoxicity could not be excluded for nanoparticles.','No longer authorised as a food additive in the EU since 2022 (EFSA 2021 opinion).','Worth avoiding where still present (e.g. imported products).','https://www.efsa.europa.eu/en/news/titanium-dioxide-e171-no-longer-considered-safe-when-used-food-additive'],
+ e150d:['Caramel colour (sulphite ammonia)','Brown colouring in colas and sauces.','Contains small amounts of 4-MEI, monitored.','EFSA 2011: safe at authorised levels.','No strong reason to avoid.','https://www.efsa.europa.eu/en/efsajournal/pub/2004'],
+ e160a:['Carotenes','Orange colouring.','Related to vitamin A precursors.','Authorised; no concerns at food-use levels.','No reason to avoid.','https://www.efsa.europa.eu/en/topics/topic/food-additives'],
+ e500:['Sodium carbonates','Raising agent, acidity regulator (baking soda).','Common kitchen ingredient.','Authorised for general use.','No reason to avoid.','https://www.efsa.europa.eu/en/topics/topic/food-additives'],
+ e440:['Pectins','Gelling agent from fruit.','Natural fibre.','Authorised for general use.','No reason to avoid.','https://www.efsa.europa.eu/en/topics/topic/food-additives'],
+ e202b:['','','','','','']};
+function addInfo(tag){const k=tag.replace('en:','').toLowerCase(),I=ADD[k];const code=k.toUpperCase();
+  if(!I)return`<details><summary><b>${code}</b> — no local explanation yet</summary><p class="mut">We have no curated explanation for this additive. Check the <a target="_blank" href="https://food.ec.europa.eu/food-safety/food-improvement-agents/additives/database_en">EU Food Additives Database</a> for its authorisation, and <a target="_blank" href="https://www.efsa.europa.eu/en/topics/topic/food-additives">EFSA</a> for evaluations. Absence of an entry here is not a safety verdict.</p></details>`;
+  return`<details><summary><b>${code}</b> — ${I[0]}</summary><h3>Why is it used?</h3><p>${I[1]}</p><h3>What is established</h3><p>${I[2]}</p><h3>Regulatory assessment</h3><p>${I[3]}</p><h3>Should you avoid it?</h3><p>${I[4]}</p><p class="mut">Source: <a target="_blank" href="${I[5]}">EFSA / EU</a>. Curated summary, may be out of date; check the source.</p></details>`}
+
+
+async function startCam(){const m=$('camMsg'),v=$('cam');
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});v.srcObject=stream;v.setAttribute('playsinline','');v.hidden=false;await v.play();m.textContent='Point at a barcode…'}catch(e){m.textContent='Camera unavailable (needs https and permission): '+e.message;return}
+  if('BarcodeDetector'in window){const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});const loop=async()=>{if(!stream)return;try{const r=await det.detect(v);if(r.length){const c=r[0].rawValue;stopCam();openCode(c);return}}catch(e){}setTimeout(loop,250)};loop()}
+  else if(window.ZXing){const rd=new ZXing.MultiFormatReader(),hints=new Map();hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E]);hints.set(ZXing.DecodeHintType.TRY_HARDER,true);rd.setHints(hints);
+    const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});const loop=()=>{if(!stream)return;if(v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);try{const lum=new ZXing.HTMLCanvasElementLuminanceSource(cv),bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));const r=rd.decode(bmp);const c=r.getText();stopCam();openCode(c);return}catch(e){}}setTimeout(loop,200)};loop()}
+  else m.textContent='Scanner library not loaded (offline?). Type the code instead.'}
+function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
+
+// ---------- views ----------
+let tab='home',stream=null,CUR=null,RV=null,ptab='overview';
+let API=null;const SID=(()=>{let v=LS.get('fiq2_sid',null);if(!v){v='s'+Math.random().toString(36).slice(2)+Date.now().toString(36);LS.set('fiq2_sid',v)}return v})();
+(async()=>{try{if(location.protocol.startsWith('http')){const r=await fetch('/v1/health');if(r.ok&&(await r.json()).ok){API='';syncPrefs()}}}catch(e){}})();
+const api=async(m,u,b)=>{const r=await fetch(API+u,{method:m,headers:{'X-Session-Id':SID,'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});if(!r.ok)throw Object.assign(new Error((await r.json().catch(()=>({}))).detail||r.status),{status:r.status});return r.json()};
+const syncPrefs=()=>{if(API!==null)api('PUT','/v1/me/preferences',{diet:prof.diet==='omni'?'omnivore':prof.diet,priorities:prof.prios,allergens:prof.allergens}).catch(()=>{})};
+function setTab(t){tab=t;if(t!=='scan')stopCam();document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({home,scan,compare,purchases,profile}[t]||home)()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+const nsBadge=p=>{const g=nsGrade(p);return g?`<span class="pill" style="background:${{a:'#038141',b:'#85bb2f',c:'#fecb02',d:'#ee8100',e:'#e63e11'}[g]};color:#fff;font-weight:700">Nutri-Score ${g.toUpperCase()}</span>`:'<span class="pill w">No Nutri-Score available</span>'};
+const pcard=(p,extra='')=>`<div class="card prod" onclick="openCode('${p.code}')"><img src="${esc(p.image_front_small_url||'')}" alt=""><div style="flex:1"><b>${esc(p.product_name||'Unnamed')}</b><div class="mut">${esc(p.brands||'')}</div>${extra}</div><div>${nsGrade(p)?nsBadge(p).replace('Nutri-Score ',''):''}</div></div>`;
+function home(){const m=new Date().toISOString().slice(0,7),mr=rcp.filter(r=>(r.date||'').startsWith(m)),sp=mr.reduce((a,r)=>a+r.totalCents,0);
+  $('v').innerHTML=`<div class="mut" style="letter-spacing:.08em;font-size:12px">YOUR FOOD DECISIONS, MADE CLEARER</div><h1 style="font-size:28px;margin:4px 0">What are you buying today?</h1>
+<p class="mut">Scan a product to understand it and compare your options.</p>
+<button class="p" style="width:100%;padding:16px;font-size:18px" onclick="setTab('scan')">Scan a product</button>
+<button style="width:100%;padding:14px;margin-top:10px" onclick="setTab('purchases');receiptStart()">Scan a shopping receipt<div class="mut">Track purchases and the prices you pay</div></button>
+<div class="card" style="margin-top:14px"><div class="mut">This month</div><b style="font-size:28px">${eur(sp)}</b><div class="mut">Recorded grocery spending · ${mr.length} confirmed receipt${mr.length===1?'':'s'}</div></div>
+<h2>Recent scans</h2>${hist.slice(0,10).map(p=>pcard(p)).join('')||'<p class="mut">Nothing scanned yet. Try 3017620422003.</p>'}
+${favs.length?'<h2>Favourites</h2>'+favs.map(c=>CACHE[c]).filter(Boolean).map(p=>pcard(p)).join(''):''}`}
+function scan(){$('v').innerHTML=`<h1>Scan</h1><div class="card"><video id="cam" playsinline muted hidden></video><div class="row" style="margin-top:8px"><button class="p" id="camBtn">Open camera</button><span class="mut" id="camMsg"></span></div><p class="mut">Supports EAN-13, EAN-8, UPC. If permission is denied, enable camera access for this site in your browser settings, or type the digits below.</p></div>
+<div class="card"><b>Enter barcode digits</b><div class="row" style="margin-top:6px"><input type="text" id="code" inputmode="numeric" placeholder="3017620422003"><button class="p" id="go">Go</button></div>
+<b style="display:block;margin-top:12px">…or search by product name</b><div class="row" style="margin-top:6px"><input type="text" id="q" placeholder="e.g. yaourt grec"><button class="p" id="sq">Search</button></div></div><div id="res"></div>`;
+  $('go').onclick=()=>openCode($('code').value.trim());$('code').onkeydown=e=>{if(e.key==='Enter')$('go').click()};
+  $('sq').onclick=async()=>{const q=$('q').value.trim();if(!q)return;$('res').innerHTML='<p class="mut">Searching…</p>';try{const L=(await searchName(q)).filter(p=>p.product_name);L.forEach(p=>CACHE[p.code]=p);$('res').innerHTML=L.length?L.map(p=>pcard(p)).join(''):'<p class="mut">No results.</p>'}catch(e){$('res').innerHTML='<p class="mut">'+esc(e.message)+'</p>'}};
+  $('q').onkeydown=e=>{if(e.key==='Enter')$('sq').click()};$('camBtn').onclick=startCam}
+let busy=false;
+async function openCode(code){if(!code||busy)return;busy=true;$('v').innerHTML='<p class="mut">Loading '+esc(code)+'…</p>';
+  try{const p=await getProduct(code);CACHE[p.code]=p;hist=[p,...hist.filter(h=>h.code!==p.code)].slice(0,60);save();detail(p)}
+  catch(e){const c=CACHE[code];if(c&&/not responding/.test(e.message)){detail(c,'Showing saved data (last updated '+(quality(c).updated||'unknown')+'): the database cannot be reached right now.')}
+    else $('v').innerHTML=`<h1>Product not found</h1><p>${esc(e.message)}</p><div class="row"><button class="p" onclick="setTab('scan')">Try again</button><button onclick="setTab('scan')">Enter product name</button></div>`}
+  busy=false}
+function detail(p,banner){CUR=p;const n=nutr(p),q=quality(p),F=fit(p),lp=lastPaid(p.code);const f=(v,u)=>v==null?'<span class="mut">missing</span>':f1(v)+' '+u;
+  const ad=p.additives_tags||[],al=(p.allergens_tags||[]).map(a=>a.replace('en:','')),tr=(p.traces_tags||[]).map(a=>a.replace('en:',''));
+  const cat=(p.categories_tags||[]).filter(t=>/^en:/.test(t)&&!/[A-Z]/.test(t)).slice(-1)[0];
+  $('v').innerHTML=`${banner?'<div class="card"><span class="pill w">Offline</span> '+esc(banner)+'</div>':''}<button onclick="setTab('${CUR&&tab==='scan'?'scan':'home'}')">← Back</button>
+<div class="row" style="margin:12px 0"><img src="${esc(p.image_front_small_url||'')}" width="80" height="80" style="object-fit:contain;border-radius:10px;background:#fff" alt=""><div style="flex:1"><div class="mut">${esc(p.brands||'')}</div><h1 style="margin:0">${esc(p.product_name||'Unnamed product')}</h1><div class="mut">${esc((cat||'').replace('en:','').replace(/-/g,' '))} · ${esc(p.quantity||'size unknown')} · ${esc(p.code)}</div></div><button onclick="fav('${p.code}')">${favs.includes(p.code)?'★':'☆'}</button></div>
+<div class="mut">Source: ${q.source}${q.updated?' · updated '+q.updated:''}</div>
+<div style="margin:10px 0">${nsBadge(p)} <span class="mut">${nsGrade(p)?'As recorded in the database'+(p.nutriscore_version?' (algorithm '+esc(p.nutriscore_version)+')':', algorithm version not stated')+'. Not recalculated by Mieux.':''}</span></div>
+${lp?`<div class="card"><b>You last paid ${eur(lp.cents)}</b> <span class="mut">at ${esc(lp.store||'a shop')} on ${esc(lp.date||'?')} (from your receipts)</span></div>`:''}
+<h2>Nutrition per 100 g / 100 ml</h2><table><tr><td>Energy</td><td>${f(n.kcal,'kcal')}</td><td>Protein</td><td>${f(n.prot,'g')}</td></tr><tr><td>Fat</td><td>${f(n.fat,'g')}</td><td>Carbohydrates</td><td>${f(n.carbs,'g')}</td></tr><tr><td>Saturated fat</td><td>${f(n.sat,'g')}</td><td>Total sugars</td><td>${f(n.sugars,'g')}</td></tr><tr><td>Salt</td><td>${f(n.salt,'g')}</td><td>Fibre</td><td>${f(n.fibre,'g')}</td></tr></table>
+${!q.nutritionComplete?`<p><span class="pill w">Incomplete data</span> <span class="mut">Missing: ${q.missing.map(k=>NAMES[k]).join(', ')}. Missing values are never treated as zero.</span></p>`:''}
+<h2>How this matches your priorities</h2>${F.length?F.map(x=>`<div class="card" style="margin:6px 0"><span class="pill ${PCOL[x.st]}">${ICON[x.st]}</span> <b>${esc(x.l)}</b><div class="mut">${esc(x.txt)}</div></div>`).join(''):'<p class="mut">No priorities set. Add some in Profile, or choose them when you look for alternatives.</p>'}
+${!q.nutritionComplete||!q.ingredients?'<p class="mut">Because data is incomplete, some priorities cannot be checked.</p>':''}
+<button class="p" style="width:100%;padding:15px;font-size:17px;margin-top:10px" onclick="objective()">Find better alternatives</button>
+<button style="width:100%;margin-top:8px" onclick="toCmp('${p.code}')">Compare with another product</button>
+<h2>Details</h2>
+<details><summary><b>Ingredients</b></summary><p class="mut">${esc(p.ingredients_text||'Not available')}</p></details>
+<details><summary><b>Allergens</b></summary>${al.length?al.map(a=>'<span class="pill w">'+esc(a)+'</span>').join(''):'<p class="mut">'+(p.ingredients_text?'None declared in the database. This is not a guarantee. Check the pack.':'Allergen information is missing, so the product cannot be called allergen-free.')+'</p>'}${tr.length?'<p class="mut">Traces: '+tr.map(esc).join(', ')+'</p>':''}</details>
+<details><summary><b>Additives (${ad.length})</b></summary>${ad.length?ad.map(addInfo).join(''):'<p class="mut">None listed.</p>'}</details>
+<details><summary><b>Data sources and completeness</b></summary><table><tr><td>Nutrition (energy, fat, sat. fat, carbs, sugars, protein, salt)</td><td>${q.nutritionComplete?'complete':'incomplete'}</td></tr><tr><td>Ingredients</td><td>${q.ingredients?'available':'missing'}</td></tr><tr><td>Nutri-Score</td><td>${q.nutriScore?'available':'missing'}</td></tr><tr><td>Image</td><td>${p.image_front_small_url?'available':'missing'}</td></tr></table><p class="mut">Open Food Facts is community-edited and can contain errors. <a target="_blank" href="https://world.openfoodfacts.org/product/${esc(p.code)}">View or correct this record</a>.</p></details>`}
+function fav(c){favs=favs.includes(c)?favs.filter(x=>x!==c):[...favs,c];save();detail(CUR)}
+// ----- choice engine UI -----
+let OBJ={prios:[],mode:'similar'};
+function objective(){OBJ.prios=OBJ.prios.length?OBJ.prios:[...prof.prios];drawObj()}
+function drawObj(){$('v').innerHTML=`<button onclick="detail(CUR)">← ${esc((CUR.product_name||'').slice(0,28))}</button><h1 style="margin-top:12px">What would you like to improve?</h1><p class="mut">Choose what matters most for this purchase. Tap in order of importance: first tap = most important.</p>
+<div class="chips">${Object.entries(PR).map(([k,d])=>{const i=OBJ.prios.indexOf(k);return`<button class="${i>=0?'on':''}" onclick="togObj('${k}')">${i>=0?(i+1)+'. ':''}${d.l}</button>`}).join('')}</div>
+<h3>What kind of alternatives?</h3><div class="chips"><button class="${OBJ.mode==='similar'?'on':''}" onclick="OBJ.mode='similar';drawObj()">As similar as possible</button><button class="${OBJ.mode==='any'?'on':''}" onclick="OBJ.mode='any';drawObj()">Any product in the same category</button></div>
+<h3>Price</h3><div class="chips"><button class="on">No price preference</button></div><p class="mut">“Cheaper” is not offered yet: reliable, comparable prices are not available, and Mieux will not claim savings it cannot verify.</p>
+<button class="p" style="width:100%;padding:14px;margin-top:10px" onclick="runChoice()">Show recommendations</button><div id="alts"></div>`}
+function togObj(k){const i=OBJ.prios.indexOf(k);if(i>=0)OBJ.prios.splice(i,1);else OBJ.prios.push(k);drawObj()}
+async function runChoice(){if(!OBJ.prios.length){$('alts').innerHTML='<p class="mut">Pick at least one priority.</p>';return}
+  $('alts').innerHTML='<p class="mut">Finding comparable products…</p>';
+  try{let peers,R;
+    if(API!==null){const m={sat:'saturated_fat'};const br=await api('POST','/v1/products/'+CUR.code+'/alternatives',{priorities:OBJ.prios.map(k=>m[k]||k),category_mode:OBJ.mode,excluded_allergens:prof.allergens,diet:prof.diet==='omni'?null:prof.diet,limit:5});
+      const toRaw=a=>({code:a.product.barcode,product_name:a.product.name,brands:a.product.brand,image_front_small_url:a.product.imageUrl,quantity:a.product.quantityText,nutriscore_grade:a.product.nutriScore,nutriments:Object.fromEntries(Object.entries({'proteins':a.product.nutriments.protein100g,'sugars':a.product.nutriments.sugars100g,'saturated-fat':a.product.nutriments.saturatedFat100g,'salt':a.product.nutriments.salt100g,'fiber':a.product.nutriments.fiber100g,'energy-kcal':a.product.nutriments.energyKcal100g}).filter(([k,v])=>v!=null).map(([k,v])=>[k+'_100g',v]))});
+      peers=Array(br.candidates_considered);R={alts:br.alternatives.map(a=>{const p=toRaw(a);CACHE[p.code]=p;return{p,n:nutr(p),sim:a.similarity,d:Object.fromEntries(OBJ.prios.map(k=>[k,1])),improve:a.improvements,trade:a.tradeoffs}}),ex:{conflict:br.excluded.conflict,unverified:br.excluded.unverified,incomplete:br.excluded.incomplete,notBetter:br.excluded.not_better},reason:br.no_recommendation_reason}}
+    else{peers=await catPeers(CUR,OBJ.mode==='any'?2:0);peers.forEach(p=>CACHE[p.code]=p);R=choose(CUR,peers,OBJ)}
+    const n0=nutr(CUR);let h=`<h2>Results</h2><p class="mut">Compared per 100 g / 100 ml, among ${peers.length} products in the category. Excluded: ${R.ex.conflict} conflicting with your restrictions, ${R.ex.unverified} that cannot be verified, ${R.ex.incomplete} with missing figures, ${R.ex.notBetter} not better on your first priority.</p>`;
+    if(!R.alts.length)h+=`<div class="card"><b>${R.reason}</b><div class="row" style="margin-top:8px;flex-wrap:wrap"><button onclick="OBJ.mode='any';runChoice()">Expand to the wider category</button><button onclick="drawObj()">Change priority</button><button onclick="toCmp('${CUR.code}')">Compare manually</button></div></div>`;
+    R.alts.forEach(a=>{const lp=lastPaid(a.p.code);h+=`<div class="card"><div class="prod" onclick="openCode('${a.p.code}')"><img src="${esc(a.p.image_front_small_url||'')}" alt=""><div style="flex:1"><b>${esc(a.p.product_name)}</b><div class="mut">${esc(a.p.brands||'')} ${esc(a.p.quantity||'')}</div></div>${nsGrade(a.p)?nsBadge(a.p).replace('Nutri-Score ',''):''}</div>
+<table style="margin-top:8px"><tr><th></th><th>Original</th><th>Alternative</th></tr>${['protein','sugars','sat','salt','fibre'].map(k=>{const d=PR[k],x=n0[d.k],y=a.n[d.k];return`<tr><td>${d.l.replace('More ','').replace('Less ','')}</td><td>${x==null?'–':f1(x)+' g'}</td><td class="${OBJ.prios.includes(k)&&a.d[k]>0?'best':''}">${y==null?'–':f1(y)+' g'}</td></tr>`}).join('')}${lp?`<tr><td>Last paid</td><td></td><td>${eur(lp.cents)}</td></tr>`:''}</table>
+<p><b>Why we recommend it:</b> ${a.improve.join('; ')}.</p><p><b>Trade-off:</b> ${a.trade.join('; ')}.</p><p class="mut">Reliability: all figures used are present for both products (per 100 g). Similarity to original: ${Math.round(a.sim*100)}%.</p><button onclick="toCmp('${a.p.code}')">+ Compare</button></div>`});
+    $('alts').innerHTML=h}catch(e){$('alts').innerHTML='<p class="mut">'+esc(e.message)+'</p>'}}
+// ----- compare -----
+function toCmp(c){if(CACHE[c]&&!hist.find(h=>h.code===c)){hist=[CACHE[c],...hist]}if(!cmp.includes(c))cmp=[...cmp,c].slice(-4);save();setTab('compare')}
+function compare(){const P=cmp.map(c=>CACHE[c]).filter(Boolean);
+  const pick=`<h2>Add a product</h2>${[...hist.slice(0,12)].filter(p=>!cmp.includes(p.code)).map(p=>`<div class="row sp card"><span>${esc(p.product_name||p.code)}</span><button onclick="toCmp('${p.code}')">+ Add</button></div>`).join('')||'<p class="mut">Scan products to add them here.</p>'}`;
+  if(P.length<2){$('v').innerHTML=`<h1>Compare</h1><p class="mut">Add at least two products. All figures use the same basis: per 100 g / 100 ml.</p>${P.map(p=>pcard(p)).join('')}${pick}`;return}
+  const rows=[['Nutri-Score',p=>nsGrade(p)?nsGrade(p).toUpperCase():null,p=>nsGrade(p)?NSN[nsGrade(p)]:null,1],['Energy kcal','kcal',null,0],['Protein g','prot',null,1],['Total sugars g','sugars',null,-1],['Saturated fat g','sat',null,-1],['Salt g','salt',null,-1],['Fibre g','fibre',null,1]];
+  const cols=P.map(nutr);
+  $('v').innerHTML=`<h1>Compare</h1><div style="overflow:auto"><table><tr><th></th>${P.map(p=>`<th>${esc((p.product_name||'').slice(0,20))}</th>`).join('')}</tr>${rows.map(([l,k,sc,dir])=>{const vals=P.map((p,i)=>typeof k==='function'?k(p):cols[i][k]),cmpv=P.map((p,i)=>sc?sc(p):cols[i][k]),ok=cmpv.filter(v=>v!=null),b=dir>0?Math.max(...ok):dir<0?Math.min(...ok):null;return`<tr><td>${l}</td>${vals.map((v,i)=>`<td class="${dir&&cmpv[i]===b&&new Set(ok).size>1?'best':''}">${v==null?'–':typeof v==='number'?f1(v):v}</td>`).join('')}</tr>`}).join('')}</table></div>
+<p>${summ(P,cols)}</p><p class="mut">Highlighted cells are the more favourable value for that nutrient only. No product is declared the overall winner.</p><button onclick="cmp=[];save();compare()">Clear</button>${pick}`}
+function summ(P,c){if(P.length!==2)return'';const[a,b]=c,nm=i=>esc((P[i].product_name||'').slice(0,24)),S=[];
+  const cp=(k,w,dir)=>{if(a[k]==null||b[k]==null||Math.abs(a[k]-b[k])<.5)return;const hi=a[k]>b[k]?0:1;S.push([nm(dir>0?hi:1-hi)+' has '+(dir>0?'more ':'less ')+w])};
+  cp('prot','protein',1);cp('sugars','total sugars',-1);cp('fibre','fibre',1);cp('sat','saturated fat',-1);cp('salt','salt',-1);return S.length?S.map(x=>x[0]).join('. ')+'. They may also differ in taste and type.':'The two products are nutritionally close on these figures.'}
+// ----- purchases & receipts -----
+function purchases(){const tabs=['overview','receipts','purchases','prices'];
+  $('v').innerHTML=`<h1>Purchases</h1><div class="chips">${tabs.map(t=>`<button class="${ptab===t?'on':''}" onclick="ptab='${t}';purchases()">${t[0].toUpperCase()+t.slice(1)}</button>`).join('')}</div><button class="p" style="width:100%;margin:8px 0" onclick="receiptStart()">Scan a receipt</button><div id="pb"></div><p class="mut">Mieux tracks what you bought, not what you ate.</p>`;
+  const all=rcp.flatMap(r=>r.items.map(i=>({...i,store:r.retailer,date:r.date}))).filter(i=>!i.disc),pb=$('pb');
+  if(ptab==='overview'){const by={},mon={};rcp.forEach(r=>{by[r.retailer||'?']=(by[r.retailer||'?']||0)+r.totalCents;const m=(r.date||'').slice(0,7);mon[m]=(mon[m]||0)+r.totalCents});const tot=rcp.reduce((a,r)=>a+r.totalCents,0);
+    pb.innerHTML=rcp.length?`<div class="card"><div class="mut">Total recorded</div><b style="font-size:26px">${eur(tot)}</b><div class="mut">${rcp.length} receipts · average basket ${eur(Math.round(tot/rcp.length))}</div></div><h3>By month</h3><table>${Object.entries(mon).sort().reverse().map(([m,c])=>`<tr><td>${m}</td><td>${eur(c)}</td></tr>`).join('')}</table><h3>By retailer</h3><table>${Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([s,c])=>`<tr><td>${esc(s)}</td><td>${eur(c)}</td></tr>`).join('')}</table><button onclick="exportRcp()">Export my data (JSON)</button>`:'<p class="mut">No confirmed receipts yet.</p>'}
+  if(ptab==='receipts')pb.innerHTML=rcp.map(r=>`<div class="card"><div class="row sp"><b>${esc(r.retailer||'Unknown shop')}</b><b>${eur(r.totalCents)}</b></div><div class="mut">${esc(r.date||'no date')} · ${r.items.length} lines</div><button onclick="delRcp('${r.id}')">Delete receipt and its purchases</button></div>`).join('')||'<p class="mut">None yet.</p>';
+  if(ptab==='purchases'){const g={};all.forEach(i=>{const k=i.matched||i.raw.toLowerCase();(g[k]=g[k]||{name:i.matched&&CACHE[i.matched]?CACHE[i.matched].product_name:i.raw,m:i.matched,n:0,last:i})[g[k]?'n':'n']++;if(i.date>=g[k].last.date)g[k].last=i});
+    pb.innerHTML=Object.values(g).sort((a,b)=>b.n-a.n).map(x=>`<div class="card ${x.m?'prod':''}" ${x.m?`onclick="openCode('${x.m}')"`:''}><div style="flex:1"><b>${esc(x.name)}</b>${x.m?'':' <span class="pill w">unmatched</span>'}<div class="mut">bought ${x.n}× · last ${eur(x.last.unitCents)} at ${esc(x.last.store||'?')} on ${esc(x.last.date||'?')}</div></div></div>`).join('')||'<p class="mut">None yet.</p>'}
+  if(ptab==='prices'){const g={};all.forEach(i=>{const k=i.matched||i.raw.toLowerCase();(g[k]=g[k]||{name:i.matched&&CACHE[i.matched]?CACHE[i.matched].product_name:i.raw,L:[]}).L.push(i)});
+    const rep=Object.values(g).filter(x=>x.L.length>1);pb.innerHTML=rep.map(x=>`<div class="card"><b>${esc(x.name)}</b><table>${x.L.sort((a,b)=>b.date>a.date?1:-1).map(i=>`<tr><td>${esc(i.date||'?')}</td><td>${esc(i.store||'?')}</td><td>${eur(i.unitCents)}</td></tr>`).join('')}</table></div>`).join('')||'<p class="mut">Price history appears when you buy the same product more than once. These are prices you paid, not current shop prices.</p>'}}
+function delRcp(id){if(confirm('Delete this receipt and its purchase records?')){rcp=rcp.filter(r=>r.id!==id);save();purchases()}}
+function exportRcp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(rcp,null,1)],{type:'application/json'}));a.download='foodiq-purchases.json';a.click()}
+function receiptStart(){RV=null;$('v').innerHTML=`<h1>Scan a receipt</h1><div class="card"><b>Photograph or upload a receipt</b><p class="mut">The text is read on your device and the image is never uploaded or stored. You review everything before saving.</p><input type="file" accept="image/*" capture="environment" id="rimg"><div class="mut" id="rst" style="margin-top:6px"></div></div>
+<div class="card"><b>Or paste receipt text</b><textarea id="rtxt" rows="6" style="width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)" placeholder="MONOPRIX&#10;28/10/2026&#10;YAOURT GREC 1,59&#10;BANANES 2,10&#10;TOTAL 3,69"></textarea><button class="p" style="margin-top:6px" id="rpar">Read text</button></div>`;
+  $('rpar').onclick=()=>reviewFrom($('rtxt').value);
+  $('rimg').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('rst').textContent='Loading text reader…';
+    try{if(!window.Tesseract)await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=ok;s.onerror=()=>no(new Error('Text reader could not be loaded (offline?). Paste the text instead.'));document.head.appendChild(s)});
+      const r=await Tesseract.recognize(f,'fra',{logger:m=>{if(m.status==='recognizing text')$('rst').textContent='Reading… '+Math.round(m.progress*100)+'%'}});reviewFrom(r.data.text)}catch(x){$('rst').textContent=x.message}}}
+async function reviewFrom(text){if(!text.trim())return;let R=parseReceipt(text);
+  if(API!==null){try{const pv=await api('POST','/v1/receipts/preview',{lines:text.split(/\r?\n/).map((t,i)=>({text:t,confidence:.9,position:i}))});R={store:pv.retailer,date:pv.purchase_date,total:pv.total_cents,items:pv.items.map(i=>({raw:i.raw,qty:i.quantity,unitCents:i.unit_price_cents,lineCents:i.line_total_cents,disc:i.is_discount,conf:i.extraction_confidence}))}}catch(e){}}
+  RV={retailer:R.store,date:R.date,total:R.total,items:R.items.map(i=>{const m=matchProd(i.raw);return{...i,cand:m,link:false,keep:true}})};drawReview()}
+function drawReview(){const R=RV,sum=R.items.filter(i=>i.keep).reduce((a,i)=>a+i.lineCents,0),dup=dupe({retailer:R.retailer,date:R.date,totalCents:R.total??sum}),mis=R.total!=null&&R.total!==sum;
+  $('v').innerHTML=`<h1>Review your receipt</h1><span class="pill w">Needs confirmation</span>
+<div class="row" style="margin:10px 0"><input type="text" value="${esc(R.retailer||'')}" placeholder="Shop" oninput="RV.retailer=this.value"><input type="text" value="${esc(R.date||'')}" placeholder="YYYY-MM-DD" oninput="RV.date=this.value"></div>
+<table>${R.items.map((i,x)=>`<tr style="${i.keep?'':'opacity:.4'}"><td style="width:24px"><input type="checkbox" ${i.keep?'checked':''} onchange="RV.items[${x}].keep=this.checked;drawReview()"></td><td><input type="text" value="${esc(i.raw)}" oninput="RV.items[${x}].raw=this.value">${i.conf<.8?'<div class="mut">low confidence, please check</div>':''}${i.cand?`<label class="mut"><input type="checkbox" ${i.link?'checked':''} onchange="RV.items[${x}].link=this.checked"> Link to “${esc((i.cand.name||'').slice(0,30))}” (probable match)</label>`:''}</td><td style="width:84px"><input type="text" inputmode="decimal" value="${(i.lineCents/100).toFixed(2)}" onchange="const c=toCents(this.value);RV.items[${x}].lineCents=c;RV.items[${x}].unitCents=Math.round(c/(RV.items[${x}].qty||1));drawReview()"></td></tr>`).join('')}</table>
+<div class="card"><div class="row sp"><span>Items sum</span><b>${eur(sum)}</b></div><div class="row sp"><span>Receipt total</span><input type="text" style="width:100px" value="${R.total!=null?(R.total/100).toFixed(2):''}" placeholder="total" onchange="RV.total=this.value?toCents(this.value):null;drawReview()"></div>
+${mis?`<p><span class="pill b">Mismatch</span> The items sum differs from the total by ${eur(Math.abs(R.total-sum))}. Check for missing or extra lines or discounts.</p>`:R.total!=null?'<span class="pill">Total matches</span>':''}${dup?'<p><span class="pill b">Possible duplicate</span> A receipt with the same shop, date and total is already saved.</p>':''}</div>
+<p class="mut">Unrecognised products can stay unmatched. A receipt line is evidence of a purchase, not of the exact product variant.</p>
+<div class="row"><button class="p" onclick="confirmRcp()">Save receipt</button><button onclick="setTab('home')">Cancel</button></div>`}
+function confirmRcp(){const R=RV,items=R.items.filter(i=>i.keep);if(!items.length)return alert('No lines selected.');const sum=items.reduce((a,i)=>a+i.lineCents,0);
+  const rec={id:'r'+Date.now(),retailer:R.retailer||null,date:R.date||new Date().toISOString().slice(0,10),currency:'EUR',totalCents:R.total??sum,status:'confirmed',createdAt:new Date().toISOString(),items:items.map(i=>({raw:i.raw,qty:i.qty,unitCents:i.unitCents,lineCents:i.lineCents,disc:!!i.disc,matched:i.link&&i.cand?i.cand.code:null,conf:i.conf,userConfirmed:true}))};
+  if(dupe({retailer:rec.retailer,date:rec.date,totalCents:rec.totalCents})&&!confirm('This looks like a duplicate. Save anyway?'))return;
+  rcp=[rec,...rcp];save();ptab='receipts';setTab('purchases')}
+// ----- profile -----
+function profile(){$('v').innerHTML=`<h1>Profile</h1><p class="mut">Everything is optional and stays on this device. No account is needed.</p>
+<h3>Diet</h3><div class="chips">${[['omni','No preference'],['vegetarian','Vegetarian'],['vegan','Vegan']].map(([v,l])=>`<button class="${prof.diet===v?'on':''}" data-d="${v}">${l}</button>`).join('')}</div>
+<h3>My priorities (you can change them at every scan)</h3><div class="chips">${Object.entries(PR).map(([k,d])=>`<button class="${prof.prios.includes(k)?'on':''}" data-p="${k}">${d.l}</button>`).join('')}</div>
+<h3>Allergies and intolerances (treated as hard exclusions)</h3><div class="chips">${EUALL.map(([k,l])=>`<button class="${prof.allergens.includes(k)?'on':''}" data-a="${k}">${l}</button>`).join('')}</div>
+<p class="mut">If a product’s data is missing, Mieux says it cannot verify suitability instead of treating it as safe. Declared allergens and precautionary traces are shown separately.</p>
+<h2>Data</h2><div class="row"><button id="clr">Delete scans, receipts and favourites</button></div>
+<details style="margin-top:14px"><summary>How Mieux works</summary><p class="mut">No hidden score. Nutri-Score is shown only as recorded by the database, with its version when given. Alternatives come from the same category, pass your restrictions, must have the figures needed for your priorities, and are ranked by your priorities in the order you chose, using real differences per 100 g. Total sugars are not added sugars. Data: Open Food Facts (community-edited). Additive notes are curated summaries with EFSA/EU links. Receipts are read on-device; images are not stored.</p></details>`;
+  const tg=(arr,v)=>arr.includes(v)?arr.filter(x=>x!==v):[...arr,v];
+  document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{prof.diet=b.dataset.d;save();profile()});
+  document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{prof.prios=tg(prof.prios,b.dataset.p);save();profile()});
+  document.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{prof.allergens=tg(prof.allergens,b.dataset.a);save();profile()});
+  $('clr').onclick=()=>{if(confirm('Delete all local data?')){hist=[];favs=[];cmp=[];rcp=[];save();profile()}}}
+setTab('home');
+
+</script></body></html>

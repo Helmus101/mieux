@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mieux</title>
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mieux"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="theme-color" content="#1f9d55">
+<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js" async></script>
+<style>
+:root{--bg:#fff;--ink:#16221a;--mut:#667;--line:#e4e9e5;--g:#1f9d55;--gl:#e8f6ee;--warn:#c47a00;--bad:#c0392b;--card:#f7faf8}
+@media(prefers-color-scheme:dark){:root{--bg:#101612;--ink:#e8efe9;--mut:#9aa7a0;--line:#26302a;--card:#18211b;--gl:#163524}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,system-ui,sans-serif;padding-bottom:84px}
+main{max-width:640px;margin:0 auto;padding:16px}h1{font-size:22px;margin:0 0 12px}h2{font-size:17px;margin:20px 0 8px}h3{font-size:15px;margin:12px 0 4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0}
+.row{display:flex;gap:10px;align-items:center}.sp{justify-content:space-between}.mut{color:var(--mut);font-size:13px}
+button,input,select{font:inherit;color:inherit}button{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 13px;cursor:pointer}
+button.p{background:var(--g);border-color:var(--g);color:#fff;font-weight:600}input[type=text],input[type=number],select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+nav button{border:0;background:none;font-size:12px;color:var(--mut);padding:6px 8px}nav button.on{color:var(--g);font-weight:700}
+nav button.scan{background:var(--g);color:#fff;border-radius:999px;width:56px;height:56px;margin-top:-22px;font-size:22px;box-shadow:0 3px 10px #0004}
+.score{display:flex;gap:10px}.score>div{flex:1;border-radius:14px;padding:12px;text-align:center;background:var(--bg);border:1px solid var(--line)}
+.score b{font-size:34px;display:block;line-height:1.1}.score small{color:var(--mut)}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;margin:2px 4px 2px 0;background:var(--gl);color:var(--g);border:0}.pill.w{background:#fff1d6;color:var(--warn)}.pill.b{background:#fde4e1;color:var(--bad)}
+.prod{display:flex;gap:10px;align-items:center;cursor:pointer}.prod img{width:52px;height:52px;object-fit:contain;border-radius:8px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:6px;border-bottom:1px solid var(--line);text-align:left}td.best{background:var(--gl);font-weight:600}
+video{width:100%;border-radius:14px;background:#000;max-height:300px}.chips button{margin:3px 4px 3px 0;padding:6px 11px}.chips button.on{background:var(--g);color:#fff;border-color:var(--g)}
+.bar{height:8px;background:var(--line);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:var(--g)}
+a{color:var(--g)}details summary{cursor:pointer}
+</style></head><body>
+<main id="v"></main>
+<nav><button data-t="home">Home</button><button data-t="compare">Compare</button><button class="scan" data-t="scan">▣</button><button data-t="diary">Nutrition</button><button data-t="profile">Profile</button></nav>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LS={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let prof=LS.get('fiq_prof',{diet:'omni',prefs:[],restr:[],weights:{n:.4,p:.3,s:.3}}),hist=LS.get('fiq_hist',[]),diary=LS.get('fiq_diary',[]),cmp=LS.get('fiq_cmp',[]);
+let stream=null,tab='home';
+const FIELDS='code,product_name,brands,image_front_small_url,nutriments,ingredients_text,additives_tags,allergens_tags,categories_tags,quantity,ingredients_analysis_tags,labels_tags';
+const UA={headers:{}};
+async function jget(u,tries=3){let e;for(let i=0;i<tries;i++){try{const r=await fetch(u);if(r.ok){const t=await r.text();if(t[0]==='{')return JSON.parse(t)}}catch(x){e=x}await new Promise(r=>setTimeout(r,700*(i+1)))}throw new Error('Open Food Facts is not responding right now. Try again in a moment.')}
+async function getProduct(code){const j=await jget('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields='+FIELDS);if(j.status===0||!j.product)throw new Error('Product '+code+' is not in Open Food Facts.');return j.product}
+async function searchName(q){const j=await jget('https://world.openfoodfacts.org/cgi/search.pl?search_simple=1&action=process&json=1&page_size=15&fields='+FIELDS+'&search_terms='+encodeURIComponent(q));return j.products||[]}
+async function catPeers(p){const tags=(p.categories_tags||[]).filter(t=>/^en:/.test(t)&&!/[A-ZÀ-ÿ]/.test(t));
+  for(let i=tags.length-1;i>=Math.max(0,tags.length-4);i--){try{const j=await jget('https://world.openfoodfacts.org/api/v2/search?categories_tags='+encodeURIComponent(tags[i])+'&sort_by=unique_scans_n&page_size=40&fields='+FIELDS,2);const L=(j.products||[]).filter(x=>x.code!==p.code&&x.product_name&&x.nutriments);if(L.length>=5)return L}catch(e){}}return[]}
+async function getPrice(code){try{const j=await jget('https://prices.openfoodfacts.org/api/v1/prices?product_code='+code+'&order_by=-date&size=5',1);return(j.items||[]).filter(x=>x.currency==='EUR'||x.currency)[0]||null}catch(e){return null}}
+
+// ---------- scoring ----------
+const N=(p,k)=>{const v=p.nutriments?.[k+'_100g'];return v==null||v===''?null:+v};
+function nutr(p){const kj=N(p,'energy-kj')??(N(p,'energy-kcal')!=null?N(p,'energy-kcal')*4.184:null),na=N(p,'sodium')??(N(p,'salt')!=null?N(p,'salt')/2.5:null);
+  return{kj,sugar:N(p,'sugars'),sat:N(p,'saturated-fat'),fat:N(p,'fat'),na,salt:N(p,'salt')??(na!=null?na*2.5:null),fibre:N(p,'fiber'),prot:N(p,'proteins'),kcal:N(p,'energy-kcal')??(kj!=null?kj/4.184:null)}}
+const pts=(v,t)=>{let n=0;for(const x of t)if(v>x)n++;return n};
+function general(p){const n=nutr(p),miss=['kj','sugar','sat','na','fibre','prot'].filter(k=>n[k]==null);
+  if(miss.length>2)return{score:null,miss,n};
+  const neg=pts(n.kj??0,[335,670,1005,1340,1675,2010,2345,2680,3015,3350])+pts(n.sugar??0,[4.5,9,13.5,18,22.5,27,31,36,40,45])+pts(n.sat??0,[1,2,3,4,5,6,7,8,9,10])+pts((n.na??0)*1000,[90,180,270,360,450,540,630,720,810,900]);
+  const fib=pts(n.fibre??0,[.9,1.9,2.8,3.7,4.7]),pro=pts(n.prot??0,[1.6,3.2,4.8,6.4,8]);
+  const s=neg>=11?neg-fib:neg-fib-pro;const sc=Math.max(0,Math.min(100,Math.round(100-(s+15)/55*100)));
+  return{score:sc,miss,n,pts:s}}
+const band=s=>s==null?'?':s>=75?'Very good':s>=55?'Good':s>=40?'Average':s>=25?'Poor':'Bad';
+const col=s=>s==null?'var(--mut)':s>=55?'var(--g)':s>=40?'var(--warn)':'var(--bad)';
+function personal(p,g){const A=p.allergens_tags||[],an=p.ingredients_analysis_tags||[],ing=(p.ingredients_text||'').toLowerCase(),n=g.n||nutr(p);
+  const why=[],bad=[],unk=[];let s=g.score??50,hard=false;const has=!!ing;
+  const D=prof.diet;
+  if(D==='vegan'){if(an.includes('en:non-vegan')){bad.push('Contains animal-derived ingredients (you chose vegan)');hard=true}else if(an.includes('en:vegan'))why.push('Vegan according to its ingredients');else unk.push('Cannot confirm it is vegan')}
+  if(D==='vegetarian'){if(an.includes('en:non-vegetarian')){bad.push('Not vegetarian');hard=true}else if(an.includes('en:vegetarian')||an.includes('en:vegan'))why.push('Vegetarian according to its ingredients');else unk.push('Cannot confirm it is vegetarian')}
+  if(prof.restr.includes('gluten')){if(A.includes('en:gluten')){bad.push('Contains gluten');hard=true}else if(has)why.push('No gluten declared');else unk.push('Ingredients missing: gluten not verifiable')}
+  if(prof.restr.includes('lactose')){if(A.includes('en:milk')){bad.push('Contains milk');hard=true}else if(has)why.push('No milk declared');else unk.push('Ingredients missing: milk not verifiable')}
+  const pr=prof.prefs;
+  if(pr.includes('protein')&&n.prot!=null){if(n.prot>=10){s+=10;why.push('High in protein ('+n.prot+' g/100 g)')}else if(n.prot<4){s-=8;why.push('Low in protein ('+n.prot+' g/100 g)')}}
+  if(pr.includes('fibre')&&n.fibre!=null){if(n.fibre>=6){s+=10;why.push('High in fibre ('+n.fibre+' g/100 g)')}else if(n.fibre<2){s-=8;why.push('Low in fibre ('+n.fibre+' g/100 g)')}}
+  if(pr.includes('sugar')&&n.sugar!=null){if(n.sugar<=5){s+=10;why.push('Low in sugar ('+n.sugar+' g/100 g)')}else if(n.sugar>15){s-=15;why.push('High in sugar ('+n.sugar+' g/100 g)')}}
+  if(pr.includes('salt')&&n.salt!=null){if(n.salt<=0.3){s+=6;why.push('Low in salt')}else if(n.salt>1.5){s-=10;why.push('High in salt ('+n.salt.toFixed(1)+' g/100 g)')}}
+  s=Math.max(0,Math.min(100,Math.round(s)));
+  return{score:hard?0:s,conflict:hard,why,bad,unk}}
+function full(p){const g=general(p),u=personal(p,g);return{p,g,u}}
+
+// ---------- additives ----------
+const ADD={e330:['Citric acid','Acidity regulator, preservative aid, sour taste.','Naturally present in citrus fruit; widely used.','EFSA and EU authorise it for general use (quantum satis).','No general reason to avoid it.','https://www.efsa.europa.eu/en/topics/topic/food-additives'],
+ e322:['Lecithins','Emulsifier that keeps oil and water mixed (often from soy or sunflower).','Natural component of egg and soy; reassessed by EFSA in 2017.','Authorised; EFSA saw no safety concern at current uses.','Only relevant if you avoid soy or sunflower.','https://www.efsa.europa.eu/en/efsajournal/pub/4742'],
+ e300:['Ascorbic acid (vitamin C)','Antioxidant that slows spoilage and browning.','Vitamin C itself.','Authorised; EFSA 2015 re-evaluation found no safety concern.','No reason to avoid it.','https://www.efsa.europa.eu/en/efsajournal/pub/4087'],
+ e471:['Mono- and diglycerides of fatty acids','Emulsifier giving a smooth texture.','Made from fats; also formed during digestion.','Authorised; EFSA 2017 re-evaluation: no safety concern. Newer observational research on emulsifiers and health is still preliminary.','Not a reason to avoid by itself. It often signals an ultra-processed product.','https://www.efsa.europa.eu/en/efsajournal/pub/5045'],
+ e202:['Potassium sorbate','Preservative against mould and yeast.','Commonly used for decades.','Authorised; EFSA 2015 re-evaluation: safe at authorised levels.','No general reason to avoid it.','https://www.efsa.europa.eu/en/efsajournal/pub/4144'],
+ e211:['Sodium benzoate','Preservative, mostly in acidic drinks and sauces.','Can form benzene with vitamin C under heat or light (rare, monitored).','Authorised with maximum levels; EFSA 2016 re-evaluation: safe at authorised levels. Some studies on hyperactivity in children (combined with certain colours) exist.','Optional to limit if you drink lots of soft drinks.','https://www.efsa.europa.eu/en/efsajournal/pub/4433'],
+ e250:['Sodium nitrite','Preservative in cured meats; prevents botulism.','Processed meat is classed as carcinogenic by IARC; nitrite contributes to nitrosamine formation.','EFSA 2017 lowered the safe level; authorised under strict limits.','Reasonable to limit cured meat, a diet-level choice rather than a single-additive one.','https://www.efsa.europa.eu/en/efsajournal/pub/4786'],
+ e407:['Carrageenan','Thickener from seaweed.','Animal studies on degraded carrageenan are not representative of the food additive.','EFSA 2018 re-evaluation: no safety concern but data gaps on some forms.','No firm reason to avoid.','https://www.efsa.europa.eu/en/efsajournal/pub/5238'],
+ e415:['Xanthan gum','Thickener and stabiliser.','Produced by fermentation.','EFSA 2017: no safety concern.','No reason to avoid; large amounts can cause digestive discomfort.','https://www.efsa.europa.eu/en/efsajournal/pub/4909'],
+ e950:['Acesulfame K','Intense sweetener.','Long-term effects are under study.','Authorised; EFSA considers it safe within the ADI.','Personal choice; no strong evidence of harm at normal intake.','https://www.efsa.europa.eu/en/topics/topic/sweeteners'],
+ e951:['Aspartame','Intense sweetener.','WHO/IARC 2023 classed it "possibly carcinogenic" (Group 2B, limited evidence); JECFA kept the ADI at 40 mg/kg.','EFSA 2013: safe at the ADI.','Fine within the ADI (about 9–14 cans of diet soda a day for an adult). Avoid if you have phenylketonuria.','https://www.efsa.europa.eu/en/topics/topic/aspartame'],
+ e955:['Sucralose','Intense sweetener.','Some research on gut effects is preliminary.','Authorised; EFSA considers it safe within the ADI.','Personal choice.','https://www.efsa.europa.eu/en/topics/topic/sweeteners'],
+ e171:['Titanium dioxide','White colouring.','Genotoxicity could not be excluded for nanoparticles.','No longer authorised as a food additive in the EU since 2022 (EFSA 2021 opinion).','Worth avoiding where still present (e.g. imported products).','https://www.efsa.europa.eu/en/news/titanium-dioxide-e171-no-longer-considered-safe-when-used-food-additive'],
+ e150d:['Caramel colour (sulphite ammonia)','Brown colouring in colas and sauces.','Contains small amounts of 4-MEI, monitored.','EFSA 2011: safe at authorised levels.','No strong reason to avoid.','https://www.efsa.europa.eu/en/efsajournal/pub/2004'],
+ e160a:['Carotenes','Orange colouring.','Related to vitamin A precursors.','Authorised; no concerns at food-use levels.','No reason to avoid.','https://www.efsa.europa.eu/en/topics/topic/food-additives'],
+ e500:['Sodium carbonates','Raising agent, acidity regulator (baking soda).','Common kitchen ingredient.','Authorised for general use.','No reason to avoid.','https://www.efsa.europa.eu/en/topics/topic/food-additives'],
+ e440:['Pectins','Gelling agent from fruit.','Natural fibre.','Authorised for general use.','No reason to avoid.','https://www.efsa.europa.eu/en/topics/topic/food-additives'],
+ e202b:['','','','','','']};
+function addInfo(tag){const k=tag.replace('en:','').toLowerCase(),I=ADD[k];const code=k.toUpperCase();
+  if(!I)return`<details><summary><b>${code}</b> — no local explanation yet</summary><p class="mut">We have no curated explanation for this additive. Check the <a target="_blank" href="https://food.ec.europa.eu/food-safety/food-improvement-agents/additives/database_en">EU Food Additives Database</a> for its authorisation, and <a target="_blank" href="https://www.efsa.europa.eu/en/topics/topic/food-additives">EFSA</a> for evaluations. Absence of an entry here is not a safety verdict.</p></details>`;
+  return`<details><summary><b>${code}</b> — ${I[0]}</summary><h3>Why is it used?</h3><p>${I[1]}</p><h3>What is established</h3><p>${I[2]}</p><h3>Regulatory assessment</h3><p>${I[3]}</p><h3>Should you avoid it?</h3><p>${I[4]}</p><p class="mut">Source: <a target="_blank" href="${I[5]}">EFSA / EU</a>. Curated summary, may be out of date; check the source.</p></details>`}
+
+// ---------- views ----------
+function setTab(t){tab=t;if(t!=='scan')stopCam();document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({home,scan,compare,diary:diaryV,profile}[t]||home)()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+const pcard=(r,extra='')=>`<div class="card prod" onclick="openCode('${r.p.code}')"><img src="${esc(r.p.image_front_small_url||'')}" alt=""><div style="flex:1"><b>${esc(r.p.product_name||'Unnamed')}</b><div class="mut">${esc(r.p.brands||'')}</div>${extra}</div><div style="text-align:right"><b style="color:${col(r.g.score)};font-size:20px">${r.g.score??'–'}</b><div class="mut">you ${r.u.conflict?'✕':r.u.score}</div></div></div>`;
+function home(){$('v').innerHTML=`<h1>Mieux</h1><p class="mut">Scan a product, see how it scores for everyone and for you, then find a better one.</p><div class="row"><button class="p" style="flex:1" onclick="setTab('scan')">Scan a product</button></div>
+<h2>Recent scans</h2>${hist.length?hist.slice(0,15).map(h=>pcard(full(h))).join(''):'<p class="mut">Nothing scanned yet. Try code 3017620422003 in Scan.</p>'}`}
+function scan(){$('v').innerHTML=`<h1>Scan</h1><div class="card"><video id="cam" playsinline muted hidden></video><div class="row" style="margin-top:8px"><button class="p" id="camBtn">Open camera</button><span class="mut" id="camMsg"></span></div></div>
+<div class="card"><b>Enter a barcode</b><div class="row" style="margin-top:6px"><input type="text" id="code" inputmode="numeric" placeholder="e.g. 3017620422003"><button class="p" id="go">Go</button></div>
+<b style="display:block;margin-top:12px">…or search by name</b><div class="row" style="margin-top:6px"><input type="text" id="q" placeholder="e.g. muesli"><button class="p" id="sq">Search</button></div></div><div id="res"></div>`;
+  $('go').onclick=()=>openCode($('code').value.trim());$('code').onkeydown=e=>{if(e.key==='Enter')$('go').click()};
+  $('sq').onclick=async()=>{const q=$('q').value.trim();if(!q)return;$('res').innerHTML='<p class="mut">Searching…</p>';try{const L=(await searchName(q)).filter(p=>p.product_name);$('res').innerHTML=L.length?L.map(p=>pcard(full(p))).join(''):'<p class="mut">No results.</p>'}catch(e){$('res').innerHTML='<p class="mut">'+esc(e.message)+'</p>'}};
+  $('q').onkeydown=e=>{if(e.key==='Enter')$('sq').click()};$('camBtn').onclick=startCam}
+async function startCam(){const m=$('camMsg'),v=$('cam');
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});v.srcObject=stream;v.setAttribute('playsinline','');v.hidden=false;await v.play();m.textContent='Point at a barcode…'}catch(e){m.textContent='Camera unavailable (needs https and permission): '+e.message;return}
+  if('BarcodeDetector'in window){const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});const loop=async()=>{if(!stream)return;try{const r=await det.detect(v);if(r.length){const c=r[0].rawValue;stopCam();openCode(c);return}}catch(e){}setTimeout(loop,250)};loop()}
+  else if(window.ZXing){const rd=new ZXing.MultiFormatReader(),hints=new Map();hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E]);hints.set(ZXing.DecodeHintType.TRY_HARDER,true);rd.setHints(hints);
+    const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});const loop=()=>{if(!stream)return;if(v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);try{const lum=new ZXing.HTMLCanvasElementLuminanceSource(cv),bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));const r=rd.decode(bmp);const c=r.getText();stopCam();openCode(c);return}catch(e){}}setTimeout(loop,200)};loop()}
+  else m.textContent='Scanner library not loaded (offline?). Type the code instead.'}
+function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
+async function openCode(code){if(!code)return;$('v').innerHTML='<p class="mut">Loading '+esc(code)+'…</p>';
+  try{const p=await getProduct(code);hist=[p,...hist.filter(h=>h.code!==p.code)].slice(0,50);LS.set('fiq_hist',hist);detail(p)}catch(e){$('v').innerHTML=`<p>${esc(e.message)}</p><button onclick="setTab('scan')">Back</button>`}}
+function detail(p){const r=full(p),{g,u}=r,n=g.n;const f=(v,s='')=>v==null?'<span class="mut">n/a</span>':(+v.toFixed(1))+s;
+  const ad=p.additives_tags||[],al=(p.allergens_tags||[]).map(a=>a.replace('en:',''));
+  $('v').innerHTML=`<button onclick="history.length&&setTab('${tab==='scan'?'scan':'home'}')">← Back</button>
+<div class="row" style="margin:12px 0"><img src="${esc(p.image_front_small_url||'')}" width="72" height="72" style="object-fit:contain;border-radius:10px;background:#fff" alt=""><div><h1 style="margin:0">${esc(p.product_name||'Unnamed product')}</h1><div class="mut">${esc(p.brands||'')} ${esc(p.quantity||'')}</div></div></div>
+<div class="score"><div><small>General nutrition</small><b style="color:${col(g.score)}">${g.score??'–'}</b><small>${g.score==null?'Not enough data':band(g.score)}</small></div><div><small>Your suitability</small><b style="color:${u.conflict?'var(--bad)':col(u.score)}">${u.conflict?'✕':u.score}</b><small>${u.conflict?'Conflicts with your profile':band(u.score)}</small></div></div>
+<p class="mut">General nutrition is the same for everyone (Nutri-Score-style points per 100 g, rescaled to 0–100). Suitability only reflects the preferences you declared.</p>
+<div class="card"><h3 style="margin-top:0">Why for you</h3>${[...u.bad.map(x=>'<span class="pill b">'+esc(x)+'</span>'),...u.why.map(x=>'<span class="pill">'+esc(x)+'</span>'),...u.unk.map(x=>'<span class="pill w">'+esc(x)+'</span>')].join('')||'<span class="mut">No preferences set. Add some in Profile.</span>'}</div>
+${g.miss.length?`<div class="card"><span class="pill w">Incomplete data</span> Missing: ${g.miss.join(', ')}. ${g.score==null?'No general score was computed.':'Score computed with missing values treated as 0, so it may be too generous.'}</div>`:''}
+<h2>Per 100 g</h2><table><tr><td>Energy</td><td>${f(n.kcal,' kcal')}</td><td>Fibre</td><td>${f(n.fibre,' g')}</td></tr><tr><td>Sugar</td><td>${f(n.sugar,' g')}</td><td>Protein</td><td>${f(n.prot,' g')}</td></tr><tr><td>Saturated fat</td><td>${f(n.sat,' g')}</td><td>Salt</td><td>${f(n.salt,' g')}</td></tr></table>
+<h2>Allergens</h2>${al.length?al.map(a=>'<span class="pill w">'+esc(a)+'</span>').join(''):'<span class="mut">None declared (check the pack).</span>'}
+<h2>Additives</h2>${ad.length?ad.map(addInfo).join(''):'<span class="mut">No additives listed.</span>'}
+<h2>Ingredients</h2><p class="mut">${esc(p.ingredients_text||'Not available')}</p>
+<div class="row"><button onclick="toCmp('${p.code}')">+ Compare</button><button onclick="logIt('${p.code}')">+ Diary</button></div><div id="price"></div>
+<h2>Better alternatives</h2><div id="alts"><p class="mut">Finding comparable products…</p></div>`;
+  getPrice(p.code).then(x=>{if(x&&$('price'))$('price').innerHTML=`<p class="mut">Last community-reported price: ${x.price} ${x.currency}${x.location?' at '+esc(x.location.osm_name||''):''} (${esc(x.date)}) · Open Prices</p>`});
+  catPeers(p).then(L=>alts(r,L)).catch(()=>{$('alts').innerHTML='<p class="mut">Could not load alternatives.</p>'})}
+let ALT={};
+function alts(r,L){const base=r.g.score??0,cats=new Set(r.p.categories_tags||[]);
+  const C=L.map(x=>{const q=full(x);const sim=(()=>{const t=x.categories_tags||[];let c=0;t.forEach(k=>cats.has(k)&&c++);return c/Math.max(cats.size,t.length,1)})();return{...q,sim}}).filter(c=>c.g.score!=null&&!c.u.conflict&&c.u.unk.length===0);
+  const w=prof.weights,rank=c=>w.n*(c.g.score-base)/50+w.p*c.u.score/100+w.s*c.sim;
+  const modes={'Healthier':[...C].sort((a,b)=>b.g.score-a.g.score),'Closest equivalent':[...C].filter(c=>c.g.score>=base).sort((a,b)=>b.sim-a.sim),'Best for my preferences':[...C].sort((a,b)=>b.u.score-a.u.score),'Balanced (your weights)':[...C].sort((a,b)=>rank(b)-rank(a))};
+  ALT=modes;const names=Object.keys(modes);
+  const show=m=>{$('alist').innerHTML=(modes[m].filter(c=>c.g.score>=base||m==='Closest equivalent').slice(0,5).map(c=>pcard(c,'<div class="mut">similarity '+Math.round(c.sim*100)+'%'+(c.g.score>base?' · +'+(c.g.score-base)+' nutrition':'')+'</div>')).join(''))||'<p class="mut">No better comparable product found in this category.</p>';document.querySelectorAll('#achips button').forEach(b=>b.classList.toggle('on',b.textContent===m))};
+  $('alts').innerHTML=`<div class="chips" id="achips">${names.map(n=>'<button>'+n+'</button>').join('')}</div><div id="alist"></div><p class="mut">Alternatives never conflict with your declared restrictions, and products with unverifiable ingredients are excluded. Price ranking needs reliable retailer prices, which the open data does not provide yet.</p>`;
+  document.querySelectorAll('#achips button').forEach(b=>b.onclick=()=>show(b.textContent));show(names[0])}
+function toCmp(c){if(!cmp.includes(c))cmp=[...cmp,c].slice(-4);LS.set('fiq_cmp',cmp);setTab('compare')}
+function logIt(c){const p=hist.find(h=>h.code===c);if(!p)return;const g=prompt('How many grams did you eat?','100');if(!g)return;diary.push({d:new Date().toISOString().slice(0,10),code:c,g:+g});LS.set('fiq_diary',diary);setTab('diary')}
+function compare(){const P=cmp.map(c=>hist.find(h=>h.code===c)).filter(Boolean).map(full);
+  if(P.length<2){$('v').innerHTML=`<h1>Compare</h1><p class="mut">Open a product and press “+ Compare” on at least two products (up to 4).</p>${P.map(r=>pcard(r)).join('')}`;return}
+  const rows=[['General score',r=>r.g.score,1],['Your suitability',r=>r.u.conflict?0:r.u.score,1],['Calories /100 g',r=>r.g.n.kcal,0],['Sugar g',r=>r.g.n.sugar,-1],['Sat. fat g',r=>r.g.n.sat,-1],['Protein g',r=>r.g.n.prot,1],['Fibre g',r=>r.g.n.fibre,1],['Salt g',r=>r.g.n.salt,-1],['Additives',r=>(r.p.additives_tags||[]).length,-1]];
+  $('v').innerHTML=`<h1>Compare</h1><div style="overflow:auto"><table><tr><th></th>${P.map(r=>`<th>${esc((r.p.product_name||'').slice(0,22))}</th>`).join('')}</tr>${rows.map(([l,fn,dir])=>{const vs=P.map(fn),ok=vs.filter(v=>v!=null),b=dir>0?Math.max(...ok):dir<0?Math.min(...ok):null;return`<tr><td>${l}</td>${vs.map(v=>`<td class="${dir&&v===b&&ok.length>1&&new Set(ok).size>1?'best':''}">${v==null?'n/a':+(+v).toFixed(1)}</td>`).join('')}</tr>`}).join('')}<tr><td>Allergens</td>${P.map(r=>'<td>'+esc((r.p.allergens_tags||[]).map(a=>a.replace('en:','')).join(', ')||'–')+'</td>').join('')}</tr></table></div>
+<p class="mut">Green marks the best value per row, only as a difference, not a verdict. Lower calories are not automatically healthier.</p><button onclick="cmp=[];LS.set('fiq_cmp',cmp);compare()">Clear</button>`}
+const TARGET={prot:50,fibre:30,sugar:50,sat:20,salt:6};
+function diaryV(){const today=new Date().toISOString().slice(0,10),week=[...Array(7)].map((_,i)=>new Date(Date.now()-i*864e5).toISOString().slice(0,10));
+  const tot=days=>{const t={kcal:0,prot:0,fibre:0,sugar:0,sat:0,salt:0,n:0};diary.filter(e=>days.includes(e.d)).forEach(e=>{const p=hist.find(h=>h.code===e.code);if(!p)return;const n=nutr(p),k=e.g/100;t.n++;for(const[a,b]of[['kcal','kcal'],['prot','prot'],['fibre','fibre'],['sugar','sugar'],['sat','sat'],['salt','salt']])t[a]+=(n[b]||0)*k});return t};
+  const T=tot([today]),W=tot(week);const bar=(l,k,v)=>`<div style="margin:8px 0"><div class="row sp"><span>${l}</span><span class="mut">${v.toFixed(0)} / ${TARGET[k]} g</span></div><div class="bar"><i style="width:${Math.min(100,v/TARGET[k]*100)}%"></i></div></div>`;
+  const ins=[];if(W.n>=3){if(W.fibre/7<TARGET.fibre*.6)ins.push('Your recorded fibre intake is relatively low this week.');if(W.salt/7>TARGET.salt)ins.push('Your recorded salt intake is above the usual 6 g guideline.');if(W.prot/7>=TARGET.prot)ins.push('You are consistently meeting the generic protein reference in recorded intake.')}
+  $('v').innerHTML=`<h1>Nutrition</h1><div class="card"><b>Today (${T.n} items logged, ${T.kcal.toFixed(0)} kcal)</b>${bar('Protein','prot',T.prot)}${bar('Fibre','fibre',T.fibre)}${bar('Sugar','sugar',T.sugar)}${bar('Saturated fat','sat',T.sat)}${bar('Salt','salt',T.salt)}</div>
+<p class="mut">Only scanned and logged items are counted, so this is recorded intake, not your actual diet. Targets are generic adult references, not personal or medical goals.</p>
+<h2>This week</h2>${ins.length?ins.map(x=>'<div class="card">'+x+'</div>').join(''):'<p class="mut">Log at least 3 items to see insights.</p>'}
+<h2>Log</h2>${diary.slice(-10).reverse().map(e=>{const p=hist.find(h=>h.code===e.code);return`<div class="row sp card"><span>${esc(p?.product_name||e.code)} · ${e.g} g</span><span class="mut">${e.d}</span></div>`}).join('')||'<p class="mut">Nothing yet.</p>'}`}
+function profile(){const ch=(k,arr,sel)=>arr.map(([v,l])=>`<button class="${sel(v)?'on':''}" data-k="${k}" data-v="${v}">${l}</button>`).join('');
+  $('v').innerHTML=`<h1>Profile</h1><p class="mut">Everything is optional and stays on this device. These are preferences; we never infer medical conditions.</p>
+<h3>Diet</h3><div class="chips">${ch('diet',[['omni','Omnivore'],['vegetarian','Vegetarian'],['vegan','Vegan']],v=>prof.diet===v)}</div>
+<h3>Preferences</h3><div class="chips">${ch('prefs',[['protein','High protein'],['fibre','High fibre'],['sugar','Lower sugar'],['salt','Lower salt']],v=>prof.prefs.includes(v))}</div>
+<h3>Restrictions (treated as hard)</h3><div class="chips">${ch('restr',[['gluten','Gluten-free'],['lactose','Lactose-free']],v=>prof.restr.includes(v))}</div>
+<h3>Alternatives: what matters most</h3>${[['n','Nutrition improvement'],['p','My preferences'],['s','Similarity to the original']].map(([k,l])=>`<div class="row sp"><span>${l}</span><input type="range" min="0" max="100" value="${prof.weights[k]*100}" data-w="${k}" style="width:50%"></div>`).join('')}
+<h2>Data</h2><div class="row"><button id="clr">Delete scans &amp; diary</button></div>
+<details style="margin-top:14px"><summary>Methodology</summary><p class="mut">General score: Nutri-Score (2017) points from energy, sugars, saturated fat and sodium (negative) versus fibre and protein (positive), per 100 g, rescaled to 0–100. Fruit/vegetable content and additives are not scored. Suitability: starts from the general score, adjusted by your declared preferences; a declared restriction or diet conflict sets it to 0. Missing data is never treated as safe: it is flagged. Data: Open Food Facts (community-edited, may contain errors) and Open Prices. Additive notes are a curated summary with EFSA/EU links.</p></details>`;
+  document.querySelectorAll('.chips button').forEach(b=>b.onclick=()=>{const k=b.dataset.k,v=b.dataset.v;if(k==='diet')prof.diet=v;else prof[k]=prof[k].includes(v)?prof[k].filter(x=>x!==v):[...prof[k],v];LS.set('fiq_prof',prof);profile()});
+  document.querySelectorAll('[data-w]').forEach(i=>i.oninput=()=>{prof.weights[i.dataset.w]=i.value/100;LS.set('fiq_prof',prof)});
+  $('clr').onclick=()=>{if(confirm('Delete all scans and diary entries?')){hist=[];diary=[];cmp=[];LS.set('fiq_hist',[]);LS.set('fiq_diary',[]);LS.set('fiq_cmp',[]);profile()}}}
+setTab('home');
+</script></body></html>

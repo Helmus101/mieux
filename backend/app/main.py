@@ -1,0 +1,1294 @@
+import re
+from sqlalchemy.exc import IntegrityError
+import json
+import logging
+import os
+from typing import Any, Dict, Iterator, List, Optional
+
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
+from sqlalchemy import delete
+from sqlalchemy.orm import Session
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+def _load_dotenv() -> None:
+    """Tiny .env reader (KEY=value lines) so secrets like LLM_API_KEY live in backend/.env, never in client code. Real env vars win."""
+    path = os.path.join(os.path.dirname(__file__), "..", ".env")
+    if not os.path.exists(path):
+        return
+    for line in open(path, encoding="utf-8"):
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+_load_dotenv()
+from . import budget as bud, db, engine, estimate, explain as exp, receipts, retail, score, taxonomy, value
+from .i18n import tr
+from concurrent.futures import ThreadPoolExecutor
+from .off import OFFClient, OFFError
+from .products import normalize, SCHEMA_VERSION
+from .auth import get_user_or_anonymous, create_access_token
+
+# Structured logging (basic setup for now)
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Rate limiting
+limiter = Limiter(key_func=get_remote_address)
+app = FastAPI(title="Mieux API", version="0.2")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS configuration
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8010").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.state.off = OFFClient()
+app.state.prices = value.OpenPricesClient()
+app.state.llm = exp.llm_from_env()  # optional: only set when LLM_API_KEY is configured; the explanation then falls back to a deterministic template
+app.state.sessions = db.make_session_factory()
+with app.state.sessions() as _s:
+    retail.seed(_s)
+WEB = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "index.html"))
+
+
+def lang_of(x_lang: Optional[str] = Header(None)) -> str:
+    return "en" if (x_lang or "fr").lower().startswith("en") else "fr"
+
+
+def get_db() -> Iterator[Session]:
+    s = app.state.sessions()
+    try:
+        yield s
+    finally:
+        s.close()
+
+
+def user(
+    authorization: Optional[str] = Header(None),
+    x_session_id: Optional[str] = Header(None),
+    s: Session = Depends(get_db)
+) -> str:
+    """Get user ID from JWT token or anonymous session.
+
+    Supports both authenticated users (via JWT) and anonymous sessions (via X-Session-Id).
+    Accounts are optional so scanning is never blocked.
+    """
+    try:
+        user_obj, session_id = get_user_or_anonymous(authorization, x_session_id)
+    except HTTPException:
+        # If neither auth nor session provided, fall back to session-only
+        if x_session_id and len(x_session_id) >= 8:
+            user_obj, session_id = None, x_session_id
+        else:
+            raise
+
+    if user_obj:
+        user_id = user_obj["id"]
+        # Create or update user record with supabase_id if present
+        if not s.get(db.User, user_id):
+            try:
+                s.add(db.User(id=user_id, supabase_id=user_obj.get("supabase_id")))
+                s.commit()
+            except IntegrityError:  # a parallel first request created it
+                s.rollback()
+        return user_id
+    else:
+        # Anonymous session
+        if not s.get(db.User, session_id):
+            try:
+                s.add(db.User(id=session_id))
+                s.commit()
+            except IntegrityError:  # a parallel first request created it
+                s.rollback()
+        return session_id
+
+
+# ---- models
+class Prefs(BaseModel):
+    diet: str = "omnivore"
+    priorities: List[str] = []
+    allergens: List[str] = []
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+
+
+class Loc(BaseModel):
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+    radius_km: float = Field(15, gt=0, le=100)
+
+
+class GeoReq(BaseModel):
+    postcode: Optional[str] = None
+    query: Optional[str] = None
+
+
+class AltReq(BaseModel):
+    approximate: bool = False  # opt-in: fill missing prices with clearly-labelled estimates (default: real data only)
+    location: Optional[Loc] = None
+    priorities: List[str] = Field(min_length=1)
+    category_mode: str = "similar"  # similar | any
+    price_constraint: str = "any"
+    excluded_allergens: Optional[List[str]] = None
+    diet: Optional[str] = None
+    limit: int = Field(5, ge=1, le=10)
+    chains: List[str] = []  # chain ids the user shops at (empty = all)
+    nearby_only: bool = False  # with a location: keep only products listed at a chain that has a branch within the radius (and within the user's chains)
+    strict_additives: bool = False  # Yuka-like additive mode (60 % nutrition + 30 % additives, every concern one level higher)
+    same_size: bool = False  # only products whose pack size is within half to double of the scanned one
+    substitution_max: int = Field(3, ge=1, le=4)  # 1 almost identical ... 4 broader alternative
+
+
+class CmpReq(BaseModel):
+    approximate: bool = False
+    product_ids: List[str] = Field(min_length=2, max_length=4)
+
+
+class OcrLine(BaseModel):
+    text: str
+    confidence: float = 0.9
+    position: int = 0
+
+
+class PreviewReq(BaseModel):
+    locale: str = "fr-FR"
+    lines: List[OcrLine]
+
+
+class ConfItem(BaseModel):
+    raw_description: str
+    quantity: int = 1
+    unit_price_cents: int
+    line_total_cents: int
+    is_discount: bool = False
+    matched_product_id: Optional[str] = None
+    match_confidence: Optional[float] = None
+    extraction_confidence: float = 1.0
+
+
+class ConfirmReq(BaseModel):
+    retailer: Optional[str] = None
+    purchase_date: Optional[str] = None
+    total_cents: Optional[int] = None
+    items: List[ConfItem] = Field(min_length=1)
+    allow_duplicate: bool = False
+
+
+# ---- helpers
+def load_product(s: Session, barcode: str, refresh: bool = False) -> Dict[str, Any]:
+    if not re.fullmatch(r"\d{1,14}", barcode or ""):
+        raise HTTPException(400, "Invalid barcode: digits only")
+    row = s.get(db.Product, barcode)
+    cached = json.loads(row.data) if row else None
+    if cached and cached.get('_v') != SCHEMA_VERSION:
+        refresh = True  # cached with an older shape: refetch
+    if row and not refresh:
+        return cached
+    try:
+        raw = app.state.off.get_product(barcode)
+    except OFFError as e:
+        if row:  # offline: serve cache with its date
+            d = cached
+            d["served_from_cache"] = True
+            return d
+        if getattr(getattr(app.state.off, "local", None), "available", lambda: False)():
+            raise HTTPException(404, "Product not found")  # not in our copy of the French database, and the live service cannot be asked right now
+        raise HTTPException(503, str(e))
+    if raw is None:
+        raise HTTPException(404, "Product not found")
+    p = normalize(raw)
+    if row:
+        row.data, row.name, row.brand, row.category, row.fetched_at = json.dumps(p), p["name"], p["brand"], p["category"], db.now()
+    else:
+        s.add(db.Product(id=p["id"], name=p["name"], brand=p["brand"], category=p["category"], data=json.dumps(p)))
+    s.add(db.ProductSnapshot(product_id=p["id"], source_updated_at=p["dataQuality"]["lastUpdatedAt"], raw=json.dumps(raw)[:200000]))
+    s.commit()
+    return p
+
+
+def prefs_of(s: Session, uid: str) -> Prefs:
+    r = s.get(db.Preference, uid)
+    return Prefs(diet=r.diet, priorities=json.loads(r.priorities), allergens=json.loads(r.allergens)) if r else Prefs()
+
+
+# ---- endpoints
+@app.get("/v1/health")
+def health():
+    return {"ok": True}
+
+
+OVERRIDE_FIELDS = {"ingredients_text": str, "fvn_pct": float, "protein_100g": float, "fiber_100g": float, "sugars_100g": float, "salt_100g": float, "fat_100g": float,
+                   "saturated_fat_100g": float, "energy_kcal_100g": float}
+
+
+def rescore(p: Dict[str, Any], strict: bool) -> Dict[str, Any]:
+    """Same product, score recomputed in strict (Yuka-like) additive mode."""
+    if not strict:
+        return p
+    q = {**p}
+    q["score"] = score.quality(q, False, {**(p.get("scoreInputs") or {}), "strict": True})
+    return q
+
+
+def with_user_data(s: Session, uid: str, p: Dict[str, Any], strict: bool = False) -> Dict[str, Any]:
+    """The product as this user completed it: their own values replace missing ones, the score is recomputed, and what came from them is listed."""
+    row = s.query(db.ProductOverride).filter_by(user_id=uid, product_id=p["id"]).first()
+    if not row:
+        return rescore(p, strict)
+    ov = json.loads(row.data)
+    q = {**p, "nutriments": dict(p["nutriments"])}
+    m = {"protein_100g": "protein100g", "fiber_100g": "fiber100g", "sugars_100g": "sugars100g", "salt_100g": "salt100g", "fat_100g": "fat100g", "saturated_fat_100g": "saturatedFat100g", "energy_kcal_100g": "energyKcal100g"}
+    for k, nk in m.items():
+        if ov.get(k) is not None:
+            q["nutriments"][nk] = ov[k]
+    if ov.get("ingredients_text"):
+        q["ingredientsText"] = ov["ingredients_text"]
+        q["dataQuality"] = {**q.get("dataQuality", {}), "ingredientsAvailable": True}
+    q["score"] = score.quality(q, False, {**(p.get("scoreInputs") or {}), "fvn": ov.get("fvn_pct") if ov.get("fvn_pct") is not None else (p.get("scoreInputs") or {}).get("fvn"), "strict": strict})
+    q["userData"] = sorted(ov)
+    return q
+
+
+class ContributeReq(BaseModel):
+    ingredients_text: Optional[str] = Field(None, max_length=3000)
+    fvn_pct: Optional[float] = Field(None, ge=0, le=100)
+    protein_100g: Optional[float] = Field(None, ge=0, le=100)
+    fiber_100g: Optional[float] = Field(None, ge=0, le=100)
+    sugars_100g: Optional[float] = Field(None, ge=0, le=100)
+    salt_100g: Optional[float] = Field(None, ge=0, le=100)
+    fat_100g: Optional[float] = Field(None, ge=0, le=100)
+    saturated_fat_100g: Optional[float] = Field(None, ge=0, le=100)
+    energy_kcal_100g: Optional[float] = Field(None, ge=0, le=1000)
+
+
+@app.post("/v1/products/{barcode}/contribute")
+@limiter.limit("30/minute")
+def contribute(request: Request, barcode: str, body: ContributeReq, uid: str = Depends(user), s: Session = Depends(get_db)):
+    """Complete a product's missing data yourself. Saved for you only; the score is recomputed from your values (shown as 'added by you')."""
+    p = load_product(s, barcode)
+    row = s.query(db.ProductOverride).filter_by(user_id=uid, product_id=p["id"]).first() or db.ProductOverride(user_id=uid, product_id=p["id"], data="{}")
+    cur = json.loads(row.data)
+    cur.update({k: v for k, v in body.dict().items() if v is not None and v != ""})
+    row.data, row.updated_at = json.dumps(cur), db.now()
+    s.add(row)
+    s.commit()
+    return {"product": with_user_data(s, uid, p)}
+
+
+@app.delete("/v1/products/{barcode}/contribute")
+def contribute_clear(barcode: str, uid: str = Depends(user), s: Session = Depends(get_db)):
+    s.query(db.ProductOverride).filter_by(user_id=uid, product_id=barcode).delete()
+    s.commit()
+    return {"cleared": True}
+
+
+@app.get("/v1/products/{barcode}")
+def product(barcode: str, approximate: bool = False, strict: bool = False, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
+    logger.info({"event": "product_lookup", "barcode": barcode, "user_id": uid})
+    p = with_user_data(s, uid, load_product(s, barcode), strict)
+    pr = prefs_of(s, uid)
+    return {"product": p, "fit": engine.fit(p, pr.priorities, pr.allergens, None if pr.diet == "omnivore" else pr.diet, lang),
+            "price_context": _price_context(s, uid, p, lang, approximate)}
+
+
+def _record_price(s: Session, product_id: str, user_id: Optional[str], source: str, observed_on: Optional[str], pack_cents: Optional[int],
+                  per100: Optional[float], qty: Optional[Dict[str, Any]], receipt_id: Optional[int] = None, confidence: str = "verified",
+                  native: Optional[Dict[str, Any]] = None) -> None:
+    """Store one observation for the product (deduplicated by product/source/date/user)."""
+    if observed_on is None or (pack_cents is None and per100 is None):
+        return
+    q = s.query(db.ProductPrice).filter_by(product_id=product_id, source=source, observed_on=observed_on, user_id=user_id, receipt_id=receipt_id)
+    if source != "receipt" and q.first():
+        return
+    s.add(db.ProductPrice(product_id=product_id, user_id=user_id, source=source, observed_on=observed_on, pack_cents=pack_cents, per100_cents=per100,
+                          qty_amount=qty["amount"] if qty else None, qty_unit=qty["unit"] if qty else None, receipt_id=receipt_id, confidence=confidence,
+                          currency=(native or {}).get("currency", "EUR"), price_native=(native or {}).get("price_native"), fx=(native or {}).get("fx"), stale=bool((native or {}).get("stale"))))
+
+
+def _price_history(s: Session, uid: str, product_id: str, limit: int = 12) -> List[Dict[str, Any]]:
+    """The product's price observations (your receipts/entries and stored community observations), newest first. No shops."""
+    rows = (s.query(db.ProductPrice).filter(db.ProductPrice.product_id == product_id)
+            .filter((db.ProductPrice.user_id == uid) | (db.ProductPrice.user_id.is_(None)))
+            .order_by(db.ProductPrice.observed_on.desc(), db.ProductPrice.id.desc()).limit(limit).all())
+    return [{"id": r.id, "date": r.observed_on, "source": r.source, "pack_cents": r.pack_cents, "per100_cents": r.per100_cents, "confidence": r.confidence, "mine": r.user_id == uid,
+             "currency": r.currency or "EUR", "price_native": r.price_native, "fx": r.fx, "stale": bool(r.stale)} for r in rows]
+
+
+def _own_price(s: Session, uid: str, product_id: str) -> Optional[Dict[str, Any]]:
+    """Most recent price this user actually paid (from a confirmed receipt)."""
+    pp = (s.query(db.ProductPrice).filter(db.ProductPrice.user_id == uid, db.ProductPrice.product_id == product_id, db.ProductPrice.source.in_(["receipt", "manual"]),
+                                          db.ProductPrice.pack_cents.isnot(None)).order_by(db.ProductPrice.observed_on.desc(), db.ProductPrice.id.desc()).first())
+    if pp:
+        return {"unit_price_cents": pp.pack_cents, "date": pp.observed_on, "retailer": None}
+    row = (s.query(db.PriceObservation).filter_by(user_id=uid, product_id=product_id)
+           .order_by(db.PriceObservation.observed_on.desc(), db.PriceObservation.id.desc()).first())
+    return None if not row else {"unit_price_cents": row.unit_price_cents, "date": row.observed_on, "retailer": row.retailer}
+
+
+def _price_context(s: Session, uid: str, p: Dict[str, Any], lang: str = "fr", approximate: bool = False) -> Dict[str, Any]:
+    own = _own_price(s, uid, p["id"])
+    q = (p["quantity"]["amount"], p["quantity"]["unit"]) if p.get("quantity") else None
+    comm = app.state.prices.latest(p["barcode"], q)
+    base = (value.per100(own["unit_price_cents"], q) if (own and q) else None) or (comm["per100_cents"] if comm else None)
+    if base is None and approximate:
+        e0 = estimate.estimate_per100(p, [])
+        base = e0[0] if (e0 and q) else None
+    est = None
+    if approximate and not own and not comm:
+        e = estimate.estimate_per100(p, [])
+        if e:
+            est = {"per100_cents": e[0], "basis": e[1], "chains": estimate.chain_prices(e[0], q[0] if q else None)}
+    hist = _price_history(s, uid, p["id"])
+    vals = sorted(h["per100_cents"] for h in hist if h["per100_cents"] is not None and value.fresh(h["date"]))
+    summary = {"n": len(hist), "median_per100_cents": vals[len(vals) // 2] if vals else None, "latest": hist[0] if hist else None}
+    return {"history": hist, "summary": summary, "estimate": est, "your_last": own and {**own, "per100_cents": value.per100(own["unit_price_cents"], q) if q else None},
+            "community": comm, "indicators": engine.indicators(p, base), "pack_size": p.get("quantity"),
+            "note": tr(lang, "pc_note")}
+
+
+def _month() -> str:
+    from datetime import date
+    return date.today().strftime("%Y-%m")
+
+
+@app.get("/v1/insights")
+@limiter.limit("10/minute")
+def insights(request: Request, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
+    """Grocery intelligence: where the money goes and verified-comparable ways to pay less."""
+    rows = s.query(db.ReceiptItem, db.Receipt).join(db.Receipt).filter(db.Receipt.user_id == uid, db.ReceiptItem.is_discount == False).all()  # noqa: E712
+    month = _month()
+    receipts_all = s.query(db.Receipt).filter_by(user_id=uid).all()
+    month_total = sum(r.total_cents or 0 for r in receipts_all if (r.purchase_date or "").startswith(month))
+    month_n = sum(1 for r in receipts_all if (r.purchase_date or "").startswith(month))
+    spend: Dict[str, Dict[str, Any]] = {}
+    cat_spend: Dict[str, int] = {}
+    for it, r in rows:
+        k = it.matched_product_id or "raw:" + it.raw_description.lower()
+        e = spend.setdefault(k, {"key": k, "name": it.raw_description, "product_id": it.matched_product_id, "spend_cents": 0, "times": 0, "last": None})
+        e["spend_cents"] += it.line_total_cents or 0
+        e["times"] += 1
+        if not e["last"] or (r.purchase_date or "") >= (e["last"]["date"] or ""):
+            e["last"] = {"date": r.purchase_date, "retailer": r.retailer, "unit_price_cents": it.unit_price_cents}
+        cat = tr(lang, "other_cat")
+        if it.matched_product_id:
+            row = s.get(db.Product, it.matched_product_id)
+            if row and row.category:
+                cat = row.category.replace("en:", "").replace("-", " ")
+        cat_spend[cat] = cat_spend.get(cat, 0) + (it.line_total_cents or 0)
+    total_items = sum(cat_spend.values()) or 1
+    top = sorted(spend.values(), key=lambda e: -e["spend_cents"])
+    pr = prefs_of(s, uid)
+    diet = None if pr.diet == "omnivore" else pr.diet
+    opps, skipped = [], []
+    for e in [x for x in top if x["product_id"]][:4]:
+        orig = load_product(s, e["product_id"])
+        q = orig.get("quantity")
+        if not q:
+            skipped.append({"name": orig["name"], "reason": tr(lang, "skip_size")})
+            continue
+        qty = (q["amount"], q["unit"])
+        prio = pr.priorities or (["overall"] if orig["nutriScore"] else [])
+        prio = [p for p in prio if p in engine.PRIORITIES]
+        if not prio:
+            skipped.append({"name": orig["name"], "reason": tr(lang, "skip_prio")})
+            continue
+        res = engine.choose(orig, _peers(s, orig, "similar"), prio, pr.allergens, diet, "similar", 6, lang=lang)
+        o100 = value.per100(e["last"]["unit_price_cents"], qty)
+        # DB access stays on this thread (sessions are not thread-safe); only the network calls fan out.
+        prep = []
+        for a in res["alternatives"]:
+            alt = a["product"]
+            aq = alt.get("quantity")
+            own = _own_price(s, uid, alt["id"]) if aq else None
+            prep.append((alt, aq, own, aq is not None and not (own and value.fresh(own["date"]))))
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            comms = list(ex.map(lambda t: app.state.prices.latest(t[0]["barcode"], (t[1]["amount"], t[1]["unit"]), value.FRESH_DAYS) if t[3] else None, prep))
+        pts = [value.price_point(alt, own, comm) if aq else None for (alt, aq, own, _), comm in zip(prep, comms)]
+        best = None
+        for a, pt in zip(res["alternatives"], pts):
+            if not pt or a["product"]["quantity"]["unit"] != q["unit"] or pt["per100_cents"] >= o100 * 0.95:
+                continue
+            sav = (o100 - pt["per100_cents"]) * qty[0] / 100
+            if not best or sav > best["saving_per_purchase_cents"]:
+                alt = a["product"]
+                def pe(prod, p100):
+                    prot = prod["nutriments"].get("protein100g")
+                    return None if prot is None or p100 <= 0 else round(prot / (p100 / 100), 1)
+                best = {"saving_per_purchase_cents": round(sav), "alternative": {"id": alt["id"], "name": alt["name"], "brand": alt["brand"], "imageUrl": alt["imageUrl"], "quantityText": alt["quantityText"]},
+                        "alt_price": {"per100_cents": round(pt["per100_cents"], 1), "source": pt["source"], "date": pt["date"], "where": pt["where"]},
+                        "protein_g_per_euro": {"yours": pe(orig, o100), "alternative": pe(alt, pt["per100_cents"])},
+                        "improvements": a["improvements"], "tradeoffs": a["tradeoffs"], "similarity": a["similarity"]}
+        if best:
+            opps.append({"product": {"id": orig["id"], "name": orig["name"], "brand": orig["brand"], "imageUrl": orig["imageUrl"]}, "times_bought": e["times"],
+                         "your_price": {"pack_cents": e["last"]["unit_price_cents"], "per100_cents": round(o100, 1), "date": e["last"]["date"], "retailer": e["last"]["retailer"]},
+                         **best, "caveats": [tr(lang, "cav_per100"),
+                                             tr(lang, "cav_community") if best["alt_price"]["source"] == "open_prices" else tr(lang, "cav_yours"),
+                                             tr(lang, "cav_cheaper")]})
+    opps.sort(key=lambda o: -o["saving_per_purchase_cents"])
+    return {"month": month, "month_spend_cents": month_total, "month_receipts": month_n,
+            "top_products": [{**{k: v for k, v in e.items() if k != "key"}, "share": round(e["spend_cents"] / total_items, 3)} for e in top[:5]],
+            "categories": sorted([{"category": c, "spend_cents": v, "share": round(v / total_items, 3)} for c, v in cat_spend.items()], key=lambda x: -x["spend_cents"])[:5],
+            "opportunities": opps, "not_assessed": skipped,
+            "total_potential_saving_per_purchase_cents": sum(o["saving_per_purchase_cents"] for o in opps),
+            "limits": [tr(lang, "lim1"), tr(lang, "lim2"), tr(lang, "lim3")]}
+
+
+class BudgetIn(BaseModel):
+    period: str = Field("weekly", pattern="^(weekly|monthly|per_trip)$")
+    amount_cents: int = Field(gt=0, lt=10_000_000)
+    style: str = Field("balanced", pattern="^(stay|balanced|nutrition)$")
+    savings_goal_cents: Optional[int] = Field(None, ge=0, lt=10_000_000)
+    categories: Optional[Dict[str, int]] = None  # optional per-group budgets in cents
+
+
+class ChooseIn(BaseModel):
+    original_id: str
+    alt_id: str
+    expected_saving_cents: int = Field(ge=0, lt=1_000_000)
+    original_per100_cents: Optional[float] = None
+
+
+def _receipt_rows(s: Session, uid: str) -> List[Dict[str, Any]]:
+    return [{"id": r.id, "date": r.purchase_date, "total_cents": r.total_cents} for r in s.query(db.Receipt).filter_by(user_id=uid)]
+
+
+def _category_spend(s: Session, uid: str, start, end) -> Dict[str, int]:
+    out: Dict[str, int] = {}
+    q = s.query(db.ReceiptItem, db.Receipt).join(db.Receipt).filter(db.Receipt.user_id == uid, db.ReceiptItem.is_discount == False)  # noqa: E712
+    for it, r in q:
+        d = bud._d(r.purchase_date)
+        if not d or not (start <= d <= end) or not it.matched_product_id:
+            continue
+        row = s.get(db.Product, it.matched_product_id)
+        cat = (row.category or "").replace("en:", "").replace("-", " ") if row else ""
+        if cat:
+            out[cat] = out.get(cat, 0) + (it.line_total_cents or 0)
+    return out
+
+
+def _budget_state(s: Session, uid: str, today=None) -> Optional[Dict[str, Any]]:
+    from datetime import date as _d
+    today = today or _d.today()
+    cfg = s.get(db.BudgetConfig, uid)
+    if not cfg or not cfg.amount_cents:
+        return None
+    st = bud.status(cfg.period, cfg.amount_cents, _receipt_rows(s, uid), today)
+    press = bud.pressure(st)
+    changes = []
+    if cfg.period != "per_trip":
+        a, b = bud.window(cfg.period, today), bud.window(cfg.period, today, 1)
+        changes = bud.category_changes(_category_spend(s, uid, *a), _category_spend(s, uid, *b))
+    cat_budgets = json.loads(cfg.categories) if cfg.categories else {}
+    groups: Dict[str, int] = {}
+    if cat_budgets and cfg.period != "per_trip":
+        a_, b_ = bud.window(cfg.period, today)
+        q = s.query(db.ReceiptItem, db.Receipt).join(db.Receipt).filter(db.Receipt.user_id == uid, db.ReceiptItem.is_discount == False)  # noqa: E712
+        for it, r in q:
+            d_ = bud._d(r.purchase_date)
+            if d_ and a_ <= d_ <= b_:
+                row = s.get(db.Product, it.matched_product_id) if it.matched_product_id else None
+                g = bud.category_group(json.loads(row.data).get("categories", [])) if row else "other"
+                groups[g] = groups.get(g, 0) + (it.line_total_cents or 0)
+    cat_status = [{"group": g, "budget_cents": v, "spent_cents": groups.get(g, 0), "used_pct": round(groups.get(g, 0) / v * 100, 1)} for g, v in cat_budgets.items()]
+    return {"config": {"period": cfg.period, "amount_cents": cfg.amount_cents, "style": cfg.style, "savings_goal_cents": cfg.savings_goal_cents, "categories": cat_budgets},
+            "category_status": cat_status,
+            "status": st, "pressure": press, "recommended_ranking": bud.recommended_ranking(cfg.style, press), "category_changes": changes}
+
+
+def _savings_state(s: Session, uid: str, today=None) -> Dict[str, Any]:
+    from datetime import date as _d
+    today = today or _d.today()
+    first = today.replace(day=1).isoformat()
+    cfg = s.get(db.BudgetConfig, uid)
+    ev = s.query(db.SavingsEvent).filter_by(user_id=uid).all()
+    realized = sum(e.realized_cents or 0 for e in ev if e.status == "realized" and (e.realized_at or "") >= first)
+    chosen = [e for e in ev if e.status == "chosen"]
+    return {"goal_cents": cfg.savings_goal_cents if cfg else None, "realized_cents": realized, "chosen_cents": sum(e.expected_saving_cents for e in chosen),
+            "chosen_count": len(chosen), "realized_count": sum(1 for e in ev if e.status == "realized"), "chosen": len(chosen),
+            "acceptance_pct": round(100 * sum(1 for e in ev if e.status == "realized") / len(ev)) if ev else None}
+
+
+@app.put("/v1/me/budget")
+def put_budget(body: BudgetIn, uid: str = Depends(user), s: Session = Depends(get_db)):
+    cfg = s.get(db.BudgetConfig, uid) or db.BudgetConfig(user_id=uid)
+    cfg.period, cfg.amount_cents, cfg.style, cfg.savings_goal_cents = body.period, body.amount_cents, body.style, body.savings_goal_cents
+    cfg.categories = json.dumps({k: v for k, v in (body.categories or {}).items() if v > 0 and k in [g for g, _ in bud.GROUPS] + ['other']})
+    s.merge(cfg)
+    s.commit()
+    return {"ok": True}
+
+
+@app.delete("/v1/me/budget")
+def delete_budget(uid: str = Depends(user), s: Session = Depends(get_db)):
+    s.execute(delete(db.BudgetConfig).where(db.BudgetConfig.user_id == uid))
+    s.commit()
+    return {"ok": True}
+
+
+@app.get("/v1/budget")
+def get_budget(uid: str = Depends(user), s: Session = Depends(get_db)):
+    """Budget status (updates as soon as a receipt is confirmed) + savings goal progress (potential is added by /v1/insights)."""
+    return {"budget": _budget_state(s, uid), "savings": _savings_state(s, uid)}
+
+
+@app.get("/v1/budget/summary")
+def budget_summary(uid: str = Depends(user), s: Session = Depends(get_db)):
+    return _budget_state(s, uid)
+
+
+@app.get("/v1/budget/forecast")
+def budget_forecast(uid: str = Depends(user), s: Session = Depends(get_db)):
+    st = _budget_state(s, uid)
+    return {"forecast": st["status"]["forecast"] if st else None, "note": "Estimation à partir de vos tickets confirmés ; pas une certitude." if st else None}
+
+
+@app.get("/v1/savings")
+def savings_summary(uid: str = Depends(user), s: Session = Depends(get_db)):
+    return _savings_state(s, uid)
+
+
+@app.get("/v1/prices")
+def prices_search(product: str, uid: str = Depends(user), s: Session = Depends(get_db)):
+    return {"history": _price_history(s, uid, product, 50)}
+
+
+@app.post("/v1/savings/choose")
+def choose_saving(body: ChooseIn, uid: str = Depends(user), s: Session = Depends(get_db)):
+    """'I will buy this instead.' Counts as chosen (estimated), never as realized until a confirmed receipt shows the purchase."""
+    s.add(db.SavingsEvent(user_id=uid, original_id=body.original_id, alt_id=body.alt_id, expected_saving_cents=body.expected_saving_cents,
+                          original_per100_cents=body.original_per100_cents, status="chosen"))
+    s.commit()
+    return {"ok": True, "savings": _savings_state(s, uid)}
+
+
+def _realize_savings(s: Session, uid: str, product_id: str, paid_pack_cents: int, receipt_id: int, day: Optional[str]) -> None:
+    ev = s.query(db.SavingsEvent).filter_by(user_id=uid, alt_id=product_id, status="chosen").order_by(db.SavingsEvent.id).first()
+    row = s.get(db.Product, product_id)
+    q = json.loads(row.data).get("quantity") if row else None
+    if not ev or not q or ev.original_per100_cents is None:
+        return  # cannot compute honestly -> stays 'chosen'
+    paid100 = value.per100(paid_pack_cents, (q["amount"], q["unit"]))
+    ev.realized_cents = round((ev.original_per100_cents - paid100) * q["amount"] / 100)
+    ev.status, ev.receipt_id, ev.realized_at = "realized", receipt_id, day or ""
+
+
+class ExplainIn(BaseModel):
+    original_id: str
+    alt_id: str
+
+
+@app.post("/v1/explain")
+@limiter.limit("20/minute")
+def explain_comparison(request: Request, body: ExplainIn, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
+    """Plain-language explanation of original vs alternative. Numbers are computed here; a model can only rephrase them."""
+    o, a = load_product(s, body.original_id), load_product(s, body.alt_id)
+    o100, ap, pts, _ = _price_map(s, uid, o, [a])
+    facts = exp.make_facts(o, a, o100, ap.get(a["barcode"]))
+    return exp.explain(facts, lang, app.state.llm)
+
+
+class ManualPrice(BaseModel):
+    price_cents: int = Field(gt=0, lt=100000)
+    date: Optional[str] = None
+
+
+@app.post("/v1/products/{barcode}/prices")
+@limiter.limit("30/minute")
+def add_price(request: Request, barcode: str, body: ManualPrice, uid: str = Depends(user), s: Session = Depends(get_db)):
+    """Enter the pack price you saw or paid. Stored against the product, not a shop."""
+    from datetime import date as _d
+    p = load_product(s, barcode)
+    q = p.get("quantity")
+    day = body.date or _d.today().isoformat()
+    _record_price(s, p["id"], uid, "manual", day, body.price_cents, value.per100(body.price_cents, (q["amount"], q["unit"])) if q else None, q)
+    s.commit()
+    return {"ok": True, "history": _price_history(s, uid, p["id"])}
+
+
+@app.get("/v1/products/{barcode}/prices")
+def price_history(barcode: str, uid: str = Depends(user), s: Session = Depends(get_db)):
+    return {"history": _price_history(s, uid, barcode)}
+
+
+@app.delete("/v1/prices/{pid}")
+def delete_price(pid: int, uid: str = Depends(user), s: Session = Depends(get_db)):
+    r = s.get(db.ProductPrice, pid)
+    if not r or r.user_id != uid:
+        raise HTTPException(404, "Not found")
+    s.delete(r)
+    s.commit()
+    return {"deleted": pid}
+
+
+@app.post("/v1/geocode")
+@limiter.limit("20/minute")
+def geocode(request: Request, body: GeoReq, uid: str = Depends(user)):
+    """Postcode/town -> coordinates via the French public geo API. Only the postcode or town name leaves the device."""
+    import httpx
+    params = {"fields": "nom,centre,codesPostaux", "limit": 1}
+    if body.postcode:
+        params["codePostal"] = body.postcode.strip()
+    elif body.query:
+        params["nom"] = body.query.strip()
+    else:
+        raise HTTPException(422, "postcode or query required")
+    try:
+        r = httpx.get("https://geo.api.gouv.fr/communes", params=params, timeout=8).json()
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(503, "Geocoding service unavailable")
+    if not r:
+        raise HTTPException(404, "Place not found")
+    lon, lat = r[0]["centre"]["coordinates"]
+    return {"lat": lat, "lon": lon, "label": r[0]["nom"]}
+
+
+class RetailersReq(Loc):
+    chains: List[str] = []  # restrict to these chain ids (empty = all)
+
+
+@app.post("/v1/products/{barcode}/retailers")
+@limiter.limit("20/minute")
+def retailers(request: Request, barcode: str, body: RetailersReq, uid: str = Depends(user), s: Session = Depends(get_db)):
+    """Where to buy: the chains that list the product (chain discovery), each with its nearest branches to the position (geographic discovery)."""
+    body.chains = [c for c in body.chains if c in retail.NAME_OF]
+    p = load_product(s, barcode)
+    q = p.get("quantity")
+    app.state.prices.prefetch([barcode])
+    sightings = app.state.prices.chain_summary(barcode, (q["amount"], q["unit"]) if q else None)  # every chain seen in France under this EAN, with its average price
+    listings = retail.discover(s, p, sightings)
+    pack_by = {retail.ID_OF[r["chain"]]: r.get("pack_cents") for r in sightings if r.get("chain") in retail.ID_OF}
+    rows = []
+    far_chains = 0
+    for ls in listings:
+        if ls.listing_status not in ("listed", "unverified") or (body.chains and ls.chain_id not in body.chains):
+            continue
+        near = retail.nearest(s, ls.chain_id, body.lat, body.lon, max(1.0, min(body.radius_km, 50.0)), k=3, refresh=False, widen=False)  # the full store list is loaded: exact, only inside the radius
+        if not near:
+            far_chains += 1
+            continue
+        rows.append({"chain": retail.NAME_OF.get(ls.chain_id, ls.chain_id), "chain_id": ls.chain_id, "listing_status": ls.listing_status, "match_type": ls.match_type, "confidence": ls.match_confidence,
+                     "source": ls.source, "note": ls.note, "price_per100_cents": ls.price_per100_cents, "pack_cents": pack_by.get(ls.chain_id), "last_checked": ls.last_checked.date().isoformat() if ls.last_checked else None, "source_url": ls.source_url,
+                     "nearest_store": near[0] if near else None, "second_store": near[1] if len(near) > 1 else None, "stores": near})
+    rows.sort(key=lambda r: (r["nearest_store"] is None, (r["nearest_store"] or {}).get("distance_m", 0)))
+    return {"barcode": barcode, "product": p["name"], "size": q, "retailers": rows, "radius_km": body.radius_km,
+            "other_chains": [{"chain": n, "chain_id": i} for n, i in retail.ID_OF.items() if i not in {r["chain_id"] for r in rows}],
+            "far_chains": far_chains, "filtered_out": len([ls for ls in listings if body.chains and ls.chain_id not in body.chains and ls.listing_status in ("listed", "unverified")]),
+            "note": "A chain listing does not guarantee that the nearest branch has the product in stock."}
+
+
+class SubReq(BaseModel):
+    alt_id: str
+    verdict: str = Field(pattern="^(ok|not_comparable)$")
+
+
+@app.post("/v1/products/{barcode}/substitutions")
+@limiter.limit("60/minute")
+def substitution_verdict(request: Request, barcode: str, body: SubReq, uid: str = Depends(user), s: Session = Depends(get_db)):
+    """The user's verdict on an alternative. 'not_comparable' hides it from this user's future results for that product."""
+    o, a = load_product(s, barcode), load_product(s, body.alt_id)
+    sub = taxonomy.substitution(o, a)
+    row = s.query(db.ProductSubstitution).filter_by(user_id=uid, original_id=o["id"], alt_id=a["id"]).first() or db.ProductSubstitution(user_id=uid, original_id=o["id"], alt_id=a["id"])
+    row.verdict, row.level = body.verdict, (sub or {}).get("level")
+    s.add(row)
+    s.commit()
+    return {"original": o["id"], "alt": a["id"], "verdict": row.verdict}
+
+
+class ListingReq(BaseModel):
+    chain_id: str
+    url: Optional[str] = Field(None, max_length=500)
+
+
+@app.post("/v1/products/{barcode}/listings")
+@limiter.limit("30/minute")
+def confirm_listing(request: Request, barcode: str, body: ListingReq, uid: str = Depends(user), s: Session = Depends(get_db)):
+    """User correction: 'I found this product at <chain>'. Saved as evidence with its source."""
+    if body.chain_id not in retail.NAME_OF:
+        raise HTTPException(422, "Unknown chain")
+    p = load_product(s, barcode)
+    r = retail.confirm(s, p["id"], body.chain_id, body.url)
+    return {"chain_id": r.chain_id, "listing_status": r.listing_status, "match_type": r.match_type}
+
+
+@app.post("/v1/products/{barcode}/store-prices")
+@limiter.limit("30/minute")
+def store_prices(request: Request, barcode: str, body: Loc, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
+    """Price per shop near a location (community observations + your own receipts), cheapest first."""
+    p = load_product(s, barcode)
+    q = p.get("quantity")
+    stores = app.state.prices.stores(barcode, (q["amount"], q["unit"]) if q else None, body.lat, body.lon, body.radius_km)
+    own = _own_price(s, uid, p["id"])
+    if own and q and value.fresh(own["date"]):
+        stores.append({"store": own["retailer"] or "?", "name": own["retailer"], "city": None, "per100_cents": round(value.per100(own["unit_price_cents"], (q["amount"], q["unit"])), 1),
+                       "pack_cents": own["unit_price_cents"], "date": own["date"], "distance_km": None, "source": "your_receipt"})
+        stores.sort(key=lambda x: x["per100_cents"])
+    est = None
+    if not stores:
+        e = estimate.estimate_per100(p, [])
+        if e:
+            est = {"basis": e[1], "per100_cents": e[0], "chains": estimate.chain_prices(e[0], q["amount"] if q else None)}
+    return {"stores": stores, "estimated": est, "pack_size": q, "radius_km": body.radius_km,
+            "note": tr(lang, "stores_note")}
+
+
+@app.get("/v1/search")
+def search(q: str, uid: str = Depends(user)):
+    try:
+        return {"products": [normalize(r) for r in app.state.off.search_name(q) if r.get("product_name")]}
+    except OFFError as e:
+        raise HTTPException(503, str(e))
+
+
+@app.post("/v1/scans")
+@limiter.limit("30/minute")
+def add_scan(request: Request, body: Dict[str, str], uid: str = Depends(user), s: Session = Depends(get_db)):
+    logger.info({"event": "scan_added", "barcode": body.get("barcode"), "user_id": uid})
+    p = load_product(s, body["barcode"])
+    s.add(db.Scan(user_id=uid, product_id=p["id"]))
+    s.commit()
+    return {"ok": True, "product_id": p["id"]}
+
+
+@app.get("/v1/scans")
+def scans(uid: str = Depends(user), s: Session = Depends(get_db)):
+    rows = s.query(db.Scan).filter_by(user_id=uid).order_by(db.Scan.id.desc()).limit(50).all()
+    return {"scans": [{"id": r.id, "created_at": r.created_at.isoformat(), "product": json.loads(s.get(db.Product, r.product_id).data)} for r in rows]}
+
+
+@app.get("/v1/me/preferences")
+def get_prefs(uid: str = Depends(user), s: Session = Depends(get_db)):
+    return prefs_of(s, uid)
+
+
+@app.put("/v1/me/preferences")
+def put_prefs(body: Prefs, uid: str = Depends(user), s: Session = Depends(get_db)):
+    r = s.get(db.Preference, uid) or db.Preference(user_id=uid)
+    r.diet, r.priorities, r.allergens = body.diet, json.dumps(body.priorities), json.dumps(body.allergens)
+    s.merge(r)
+    s.commit()
+    return body
+
+
+def _warm_stores(chains: List[str], lat: float, lon: float) -> None:
+    """Background job: look up and store the nearest branches of these chains (OpenStreetMap, one request per second), so the next search is instant."""
+    with app.state.sessions() as s2:
+        for c in chains:
+            try:
+                retail.nearest(s2, c, lat, lon, 15, k=1)
+            except Exception:
+                continue
+
+
+def _peers(s: Session, orig: Dict[str, Any], mode: str) -> List[Dict[str, Any]]:
+    """Candidate pool for the deep search: the product's own category first, then its parent, then (only if the pool is thin) its key words.
+    At most three Open Food Facts searches, and each answer is kept on disk, so a repeat is free and a rate limit does not empty the list.
+    The engine, not the retrieval, decides what is comparable."""
+    tags = orig["categories"]
+    skip = 2 if mode == "any" else 0
+    pool: Dict[str, Dict[str, Any]] = {}
+    for i in range(len(tags) - 1 - skip, max(-1, len(tags) - 3 - skip), -1):  # specific level, then its parent
+        try:
+            for r in app.state.off.search_category(tags[i]):
+                if r.get("product_name"):
+                    p = normalize(r)
+                    pool.setdefault(p["barcode"], p)
+        except OFFError:
+            continue
+        if len(pool) >= 60:  # the specific level already gave enough: do not spend another search
+            break
+    words = sorted(engine._tok(orig["name"], orig["brand"]), key=len, reverse=True)[:3]
+    if words and len(pool) < 40:
+        try:
+            for r in app.state.off.search_name(" ".join(words)):
+                if r.get("product_name"):
+                    p = normalize(r)
+                    pool.setdefault(p["barcode"], p)
+        except (OFFError, AttributeError):
+            pass
+    return list(pool.values())
+
+
+def _community(p: Dict[str, Any], loc: Optional[Loc] = None, max_age: int = 730, only: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
+    """Community price for the product: the newest real observation (any currency, converted at the ECB rate; the original is kept)."""
+    q = p.get("quantity")
+    if not q:
+        return None
+    pt = app.state.prices.latest(p["barcode"], (q["amount"], q["unit"]), 730, "FR", only) if only else app.state.prices.latest(p["barcode"], (q["amount"], q["unit"]))
+    return None if not pt else {**pt, "where": None, "scope": "anywhere"}
+
+
+def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str, Any]], loc: Optional[Loc] = None, approximate: bool = False, only: Optional[List[str]] = None):
+    """Price per 100 g/ml for the original and a list of products: your own recent receipt/entry first, else a real community observation.
+    DB access stays on this thread (sessions are not thread-safe); only the network calls fan out. Estimates only when approximate=True."""
+    oq = orig.get("quantity")
+    points: Dict[str, Any] = {}
+    shops: Dict[str, List[Dict[str, Any]]] = {}
+    prices: Dict[str, float] = {}
+    orig_price = None
+    if oq:
+        own = _own_price(s, uid, orig["id"])
+        comm = None if (own and value.fresh(own["date"])) else _community(orig, loc, 730, only)
+        pt = value.price_point(orig, own, comm)
+        if pt:
+            orig_price, points[orig["barcode"]] = pt["per100_cents"], pt
+    prep = []
+    for c in prods:
+        cq = c.get("quantity")
+        ok = cq is not None and (not oq or cq["unit"] == oq["unit"])
+        ownc = _own_price(s, uid, c["id"]) if ok else None
+        prep.append((c, cq, ownc, ok and not (ownc and value.fresh(ownc["date"]))))
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        comms = list(ex.map(lambda t: _community(t[0], loc, 730, only) if t[3] else None, prep))
+    for (c, cq, ownc, _), comm in zip(prep, comms):
+        pt = value.price_point(c, ownc, comm) if cq else None
+        if pt and (not oq or cq["unit"] == oq["unit"]):
+            prices[c["barcode"]] = pt["per100_cents"]
+            points[c["barcode"]] = {k: pt[k] for k in ("source", "date", "where")}
+            points[c["barcode"]].update({k: pt[k] for k in ("currency", "price_native", "fx", "stale", "pack_cents") if k in pt})
+    if orig_price is not None:
+        points[orig["barcode"]] = {k: points[orig["barcode"]][k] for k in ("source", "date", "where", "currency", "price_native", "fx", "stale", "pack_cents") if k in points[orig["barcode"]]}
+    if approximate:
+        # Estimates only where nothing was observed, always tagged source='estimate' (never a verified price).
+        observed = [v for k, v in prices.items() if k != orig["barcode"]]
+        for c in [orig] + list(prods):
+            q = c.get("quantity")
+            if not q or (c["barcode"] in prices) or (c["barcode"] == orig["barcode"] and orig_price is not None) or (oq and q["unit"] != oq["unit"]):
+                continue
+            est = estimate.estimate_per100(c, observed)
+            if est:
+                if c["barcode"] == orig["barcode"]:
+                    orig_price = est[0]
+                else:
+                    prices[c["barcode"]] = est[0]
+                points[c["barcode"]] = {"source": "estimate", "date": None, "where": est[1]}
+    # Keep community observations in the product price database so history accumulates (one row per product/date).
+    for c in [orig] + list(prods):
+        pt, q = points.get(c["barcode"]), c.get("quantity")
+        p100 = orig_price if c["barcode"] == orig["barcode"] else prices.get(c["barcode"])
+        if pt and pt.get("source") == "open_prices" and pt.get("date") and p100 is not None:
+            _record_price(s, c["barcode"], None, "open_prices", pt["date"], round(p100 * q["amount"] / 100) if q else None, p100, q, native=pt)
+    s.commit()
+    return orig_price, prices, points, shops
+
+
+@app.post("/v1/products/{barcode}/alternatives")
+@limiter.limit("20/minute")
+def alternatives(request: Request, background: BackgroundTasks, barcode: str, body: AltReq, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
+    bad = [p for p in body.priorities if p not in engine.PRIORITIES]
+    if bad:
+        raise HTTPException(422, f"Unknown priorities: {bad}")
+    orig = with_user_data(s, uid, load_product(s, barcode), body.strict_additives)
+    pr = prefs_of(s, uid)
+    allergens = body.excluded_allergens if body.excluded_allergens is not None else pr.allergens
+    diet = body.diet if body.diet is not None else (None if pr.diet == "omnivore" else pr.diet)
+    peers = [rescore(c, body.strict_additives) for c in _peers(s, orig, body.category_mode)]
+    # one batched Open Prices request for the whole pool: prices, and proof that a product is on French shelves
+    getattr(app.state.prices, "prefetch", lambda *_: None)([orig["barcode"]] + [c["barcode"] for c in peers[:160]])
+    seen_fr = getattr(app.state.prices, "seen_in_france", lambda _b: False)
+    peers = [({**c, "soldInFrance": True, "frEvidence": "open_prices"} if seen_fr(c["barcode"]) else c) for c in peers]
+    body.chains = [c for c in body.chains if c in retail.NAME_OF]  # ids of chains that no longer exist (saved on the device) are ignored
+    sel_names = [retail.NAME_OF[c] for c in body.chains]
+    chain_of = getattr(app.state.prices, "chain_summary", None)
+    if chain_of:
+        for c in peers:  # chains known to list each candidate (from Open Prices, France)
+            q_ = c.get("quantity")
+            c["chains"] = [retail.ID_OF[r["chain"]] for r in chain_of(c["barcode"], (q_["amount"], q_["unit"]) if q_ else None) if r["chain"] in retail.ID_OF]
+    if chain_of:  # only products known to be sold in the user's chains (or, with none picked, in any chain of the list)
+        want = set(body.chains) if body.chains else set(retail.NAME_OF)
+        peers = [c for c in peers if set(c.get("chains") or []) & want]
+    if body.nearby_only and body.location and chain_of:
+        # "only what I can buy near me": a product stays if one of its chains (among the user's chains, if any) has a branch within the radius. Exact distances from the full store list.
+        loc0 = body.location
+        close = {cid for cid in retail.NAME_OF if retail._near(s, cid, loc0.lat, loc0.lon, loc0.radius_km)}
+        allowed = close & set(body.chains) if body.chains else close
+        peers = [c for c in peers if set(c.get("chains") or []) & allowed]
+        res_filter = {"radius_km": loc0.radius_km, "chains_near": sorted(retail.NAME_OF[c] for c in allowed)}
+    else:
+        res_filter = None
+    if body.same_size and (orig.get("quantity") or {}).get("amount"):
+        oq_ = orig["quantity"]
+        peers = [c for c in peers if (c.get("quantity") or {}).get("unit") == oq_["unit"] and 0.5 <= c["quantity"]["amount"] / oq_["amount"] <= 2.0]
+    if body.category_mode == "similar":
+        # hard substitution filter first (type / form / use), then the user's own "not comparable" verdicts; similarity and quality only rank what survives
+        rejected = {r.alt_id for r in s.query(db.ProductSubstitution).filter_by(user_id=uid, original_id=orig["id"], verdict="not_comparable").all()}
+        kept = []
+        for c in peers:
+            sub = taxonomy.substitution(orig, c)
+            if sub is None or sub["level"] > body.substitution_max or c["id"] in rejected:
+                continue
+            kept.append({**c, "substitution": sub})
+        peers = kept
+    need_prices = bool({"budget", "value"} & set(body.priorities))
+    note = None
+    # The price comparison is always part of the answer. Pool = the engine's picks + the best-matching comparable products,
+    # priced together (cached, threaded). Prices are never invented.
+    pool_src = engine.prefilter(orig, peers, allergens, diet, body.category_mode)
+    if need_prices:
+        peers = pool_src
+        orig_price, prices, points, shops = _price_map(s, uid, orig, peers, body.location, body.approximate, sel_names)
+        res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, body.limit, prices, orig_price, lang)
+        pool = peers
+    else:
+        res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, body.limit, None, None, lang)
+        pool = list({c["barcode"]: c for c in [a["product"] for a in res["alternatives"]] + pool_src}.values())
+        orig_price, prices, points, shops = _price_map(s, uid, orig, pool, body.location, body.approximate, sel_names)
+        for a in res["alternatives"]:
+            a["price_per_100_cents"] = prices.get(a["product"]["barcode"])
+            a["value"] = engine.value_card(orig, a["product"], orig_price, a["price_per_100_cents"])
+    for a in res["alternatives"]:
+        a["indicators"] = engine.indicators(a["product"], prices.get(a["product"]["barcode"]))
+    res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"])
+    for key in ("budget", "value"):
+        for r in res["rankings"][key]:
+            r["price_source"] = points.get(r["product"]["barcode"])
+            r["stores"] = shops.get(r["product"]["barcode"], [])
+    if body.category_mode == "similar":  # "closest": the most interchangeable products first, whatever their price or score
+        close = sorted(pool_src, key=lambda c: ((c.get("substitution") or {}).get("level", 9), -engine.deep_similarity(orig, c)))[:10]
+        res["rankings"]["closest"] = [{"product": c, "why": tr(lang, "closest_" + (c.get("substitution") or {}).get("label", "broader")), "tradeoffs": engine._tradeoffs(orig, c, engine.deep_similarity(orig, c), lang),
+                                       "price_per_100_cents": prices.get(c["barcode"]), "similarity": round(engine.deep_similarity(orig, c), 2), "estimated": False} for c in close]
+    # "quality": your priorities' picks first (products that beat yours), then the other same-type products by quality score, so the tab is never empty when comparable products exist
+    def _qrow(c, why, trade, better):
+        pt_ = points.get(c["barcode"]) or {}
+        return {"product": c, "why": why, "tradeoffs": trade, "price_per_100_cents": prices.get(c["barcode"]), "price_date": pt_.get("date"), "price_stale": bool(pt_.get("stale")), "estimated": False, "better": better, "similarity": round(engine.deep_similarity(orig, c), 2)}
+    imp = {a["product"]["id"]: ("; ".join(a["improvements"]), a["tradeoffs"]) for a in res["alternatives"]}
+    o_sc = (orig.get("score") or {}).get("total")
+    scored = sorted([c for c in pool_src if (c.get("score") or {}).get("total") is not None and (o_sc is None or c["score"]["total"] > o_sc)], key=lambda c: (-c["score"]["total"], -engine.deep_similarity(orig, c)))  # only products of better quality than yours
+    qrows = []
+    for c in scored[:10]:  # strictly by quality score, highest first (price plays no part here)
+        why, trade = imp.get(c["id"]) or (tr(lang, "quality_note", s=c["score"]["total"], o=o_sc if o_sc is not None else "?"), engine._tradeoffs(orig, c, engine.deep_similarity(orig, c), lang))
+        if c["id"] in imp:
+            why = tr(lang, "quality_note", s=c["score"]["total"], o=o_sc if o_sc is not None else "?") + " · " + imp[c["id"]][0]
+        qrows.append(_qrow(c, why, trade, c["score"]["total"] > (o_sc or 0)))
+    res["rankings"]["quality"] = qrows[:10]
+    if body.location:
+        # A product counts for a chain if it was seen at that chain anywhere in France; what matters here is the closest branch of that chain to the user's reference point.
+        loc_, sel = body.location, set(body.chains)
+        lists = [res["alternatives"]] + [res["rankings"].get(k_, []) for k_ in ("budget", "value", "quality", "closest")]
+        prods = {x["product"]["barcode"]: x["product"] for lst in lists for x in lst}
+        from collections import Counter
+        cnt = Counter(c for pr_ in prods.values() for c in (pr_.get("chains") or []) if not sel or c in sel)
+        wanted = [c for c, _ in cnt.most_common(10)]
+        best = {}
+        for i, c in enumerate(wanted):  # branches already stored come back instantly; at most two missing chains are fetched now, the rest in the background
+            hit = retail.nearest(s, c, loc_.lat, loc_.lon, 15, k=1, refresh=(i < 2 and retail._near(s, c, loc_.lat, loc_.lon, 15) == []))
+            best[c] = hit[0] if hit else None
+        missing = [c for c in wanted if best.get(c) is None]
+        if missing:
+            background.add_task(_warm_stores, missing, loc_.lat, loc_.lon)
+        def near_of(pr_):
+            opts = [(best[c], c) for c in (pr_.get("chains") or []) if best.get(c) and (not sel or c in sel)]
+            if not opts:
+                return None
+            bst, c = min(opts, key=lambda o: o[0]["distance_m"])
+            return {"store": retail.NAME_OF[c], "chain_id": c, "name": bst["name"], "distance_km": round(bst["distance_m"] / 1000, 1), "lat": bst["lat"], "lon": bst["lon"]}
+        nmap = {bc: near_of(pr_) for bc, pr_ in prods.items()}
+        for lst in lists:
+            for x in lst:
+                x["nearby"] = nmap.get(x["product"]["barcode"])
+            lst.sort(key=lambda x: x["nearby"] is None)  # stable: products with a branch known nearby first, rank order kept inside each group
+        res["location_used"] = True
+    oq2 = orig.get("quantity")
+    res["original_size"] = oq2
+    res["nearby_filter"] = res_filter
+    res["same_size_applied"] = bool(body.same_size and (oq2 or {}).get("amount"))
+    for lst in [res["alternatives"]] + [res["rankings"].get(k_, []) for k_ in ("budget", "value", "quality", "closest")]:
+        for x in lst:  # every price is shown with its pack size, so unit prices of different formats are never mistaken for the same thing
+            q3 = x["product"].get("quantity")
+            p100 = x.get("price_per_100_cents") if x.get("price_per_100_cents") is not None else prices.get(x["product"]["barcode"])
+            x["size"] = q3
+            x["pack_cents"] = round(p100 * q3["amount"] / 100) if (p100 is not None and q3) else None
+            x["size_ratio"] = round(q3["amount"] / oq2["amount"], 2) if (q3 and oq2 and q3.get("unit") == oq2.get("unit") and oq2.get("amount")) else None
+    res["original_taxonomy"] = taxonomy.classify(orig)
+    res["original_indicators"] = engine.indicators(orig, orig_price)
+    res["original_sold_in_france"] = orig.get("soldInFrance")
+    if engine.is_liquid(orig):  # liquids: say 100 ml and litre, not 100 g and kilo
+        liq = lambda t_: t_.replace("pour 100 g", "pour 100 ml").replace("per 100 g", "per 100 ml").replace("le kilo", "le litre").replace("EUR/kg", "EUR/L")
+        for a_ in res["alternatives"]:
+            a_["improvements"] = [liq(x) for x in a_["improvements"]]
+            a_["tradeoffs"] = [liq(x) for x in a_["tradeoffs"]]
+        for k_ in ("budget", "value"):
+            for r_ in res["rankings"][k_]:
+                r_["why"] = liq(r_["why"]); r_["tradeoffs"] = [liq(x) for x in r_["tradeoffs"]]
+    bs = _budget_state(s, uid)
+    if bs:
+        oq_ = orig.get("quantity")
+        pack = round(orig_price * oq_["amount"] / 100) if (orig_price is not None and oq_) else None
+        res["budget"] = {"pressure": bs["pressure"], "recommended_ranking": bs["recommended_ranking"], "remaining_cents": bs["status"]["remaining_cents"],
+                         "label": bs["status"]["label"], "pack_share_of_remaining_pct": round(pack / bs["status"]["remaining_cents"] * 100) if (pack and bs["status"]["remaining_cents"] > 0) else None}
+    for r_ in res["rankings"]["budget"] + res["rankings"]["value"]:
+        r_["estimated"] = (points.get(r_["product"]["barcode"]) or {}).get("source") == "estimate"
+    for a_ in res["alternatives"]:
+        a_["estimated"] = (points.get(a_["product"]["barcode"]) or {}).get("source") == "estimate"
+    res["original_estimated"] = (points.get(orig["barcode"]) or {}).get("source") == "estimate"
+    if body.price_constraint in ("cheaper", "same_or_cheaper") and orig_price is not None:
+        # keep only alternatives with a known price that is lower (or not higher) per 100 g; unknown price never passes
+        ok = (lambda p: p is not None and (p < orig_price if body.price_constraint == "cheaper" else p <= orig_price))
+        res["alternatives"] = [a for a in res["alternatives"] if ok(prices.get(a["product"]["barcode"]))]
+        if not res["alternatives"]:
+            res["no_recommendation_reason"] = tr(lang, "no_alt")
+    elif body.price_constraint != "any" and orig_price is None:
+        res["price_constraint_ignored"] = True
+    if orig_price is not None:
+        res["paris_estimate"] = estimate.chain_prices(orig_price, (orig.get("quantity") or {}).get("amount"))
+    for a in res["alternatives"]:
+        a["price_source"] = points.get(a["product"]["barcode"])
+        a["stores"] = shops.get(a["product"]["barcode"], [])
+    oq = orig.get("quantity")
+    res["original_price"] = None if orig_price is None else {"per100_cents": round(orig_price, 1), "pack_cents": round(orig_price * oq["amount"] / 100) if oq else None, "source": points.get(orig["barcode"])}
+    if orig_price is None:
+        note = tr(lang, "price_note_none")
+    res["original_stores"] = shops.get(orig["barcode"], [])
+    res["original"] = {"id": orig["id"], "name": orig["name"], "novaGroup": orig.get("novaGroup"), "nutriScore": orig["nutriScore"], "score": orig.get("score")}
+    res["price_note"] = note or tr(lang, "price_note")
+    s.add(db.AlternativeResult(user_id=uid, original_product_id=barcode, request=body.model_dump_json(), response=json.dumps(res)[:200000]))
+    s.commit()
+    return res
+
+
+@app.post("/v1/comparisons")
+@limiter.limit("20/minute")
+def comparisons(request: Request, body: CmpReq, uid: str = Depends(user), s: Session = Depends(get_db)):
+    P = [load_product(s, b) for b in body.product_ids]
+    s.add(db.Comparison(user_id=uid, product_ids=json.dumps(body.product_ids)))
+    s.commit()
+    prices = {}
+    for p in P:
+        q = p.get("quantity")
+        own = _own_price(s, uid, p["id"])
+        hist = _price_history(s, uid, p["id"], 1)
+        if own and q:
+            prices[p["id"]] = {"per100_cents": round(value.per100(own["unit_price_cents"], (q["amount"], q["unit"])), 1), "pack_cents": own["unit_price_cents"], "source": "your_receipt", "date": own["date"]}
+        elif hist and hist[0]["per100_cents"] is not None:
+            prices[p["id"]] = {"per100_cents": hist[0]["per100_cents"], "pack_cents": hist[0]["pack_cents"], "source": hist[0]["source"], "date": hist[0]["date"]}
+        else:
+            e = estimate.estimate_per100(p, []) if body.approximate else None
+            prices[p["id"]] = {"per100_cents": e[0], "pack_cents": round(e[0] * q["amount"] / 100) if q else None, "source": "estimate", "date": None} if e else None
+    return {"products": [{"id": p["id"], "name": p["name"], "nutriScore": p["nutriScore"], "price": prices[p["id"]]} for p in P], **engine.compare(P)}
+
+
+def _known(s: Session, uid: str) -> List[Dict[str, Any]]:
+    ids = {r.product_id for r in s.query(db.Scan).filter_by(user_id=uid).all()}
+    return [json.loads(s.get(db.Product, i).data) for i in ids]
+
+
+def _dupe(s: Session, uid: str, retailer, date, total) -> Optional[db.Receipt]:
+    return s.query(db.Receipt).filter_by(user_id=uid, retailer=retailer, purchase_date=date, total_cents=total).first()
+
+
+@app.post("/v1/receipts/preview")
+@limiter.limit("10/minute")
+def receipts_preview(request: Request, body: PreviewReq, uid: str = Depends(user), s: Session = Depends(get_db)):
+    r = receipts.parse([l.model_dump() for l in body.lines])
+    known = _known(s, uid)
+    for i in r["items"]:
+        i["match_candidate"] = None if i["is_discount"] else receipts.match(i["raw"], known)
+    # Unmatched lines: look the description up by name in Open Food Facts. Candidates only; the user must confirm each one.
+    todo = [i for i in r["items"] if not i["is_discount"] and not i["match_candidate"]][:8]
+    def lookup(i):
+        try:
+            return receipts.best_name_match(i["raw"], app.state.off.search_name(i["raw"]))
+        except OFFError:
+            return None
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        found = list(ex.map(lookup, todo))
+    for i, raw_p in zip(todo, found):
+        if raw_p:
+            p = normalize(raw_p)
+            if not s.get(db.Product, p["id"]):
+                s.add(db.Product(id=p["id"], name=p["name"], brand=p["brand"], category=p["category"], data=json.dumps(p)))
+            i["match_candidate"] = {"product_id": p["id"], "name": p["name"], "score": raw_p["_score"], "source": "search"}
+    s.commit()
+    for i in r["items"]:  # explicit status per line; nothing is 'confirmed' until the user confirms it
+        i["match_status"] = "probable" if i["match_candidate"] else "unidentified"
+    for i in r["items"]:  # explicit status per line; nothing counts as confirmed until the user confirms it
+        i["match_status"] = "probable" if i["match_candidate"] else "unidentified"
+    r["possible_duplicate"] = bool(r["total_cents"] and _dupe(s, uid, r["retailer"], r["purchase_date"], r["total_cents"]))
+    r["status"] = "review"
+    return r
+
+
+@app.post("/v1/receipts/confirm")
+@limiter.limit("10/minute")
+def receipts_confirm(request: Request, body: ConfirmReq, uid: str = Depends(user), s: Session = Depends(get_db)):
+    total = body.total_cents if body.total_cents is not None else sum(i.line_total_cents for i in body.items)
+    if _dupe(s, uid, body.retailer, body.purchase_date, total) and not body.allow_duplicate:
+        raise HTTPException(409, "Possible duplicate receipt")
+    r = db.Receipt(user_id=uid, retailer=body.retailer, purchase_date=body.purchase_date, total_cents=total)
+    for i in body.items:
+        r.items.append(db.ReceiptItem(raw_description=i.raw_description, matched_product_id=i.matched_product_id, quantity=i.quantity,
+                                      unit_price_cents=i.unit_price_cents, line_total_cents=i.line_total_cents, is_discount=i.is_discount,
+                                      extraction_confidence=i.extraction_confidence, match_confidence=i.match_confidence,
+                                      match_status="confirmed" if i.matched_product_id else "unidentified"))
+    s.add(r)
+    s.flush()
+    for i in body.items:
+        if i.matched_product_id and not i.is_discount:
+            s.add(db.PriceObservation(user_id=uid, receipt_id=r.id, product_id=i.matched_product_id, retailer=body.retailer,
+                                      observed_on=body.purchase_date, unit_price_cents=i.unit_price_cents))
+            _realize_savings(s, uid, i.matched_product_id, i.unit_price_cents, r.id, body.purchase_date)
+            row_ = s.get(db.Product, i.matched_product_id)
+            q_ = (json.loads(row_.data).get("quantity") if row_ else None)
+            _record_price(s, i.matched_product_id, uid, "receipt", body.purchase_date, i.unit_price_cents,
+                          value.per100(i.unit_price_cents, (q_["amount"], q_["unit"])) if q_ else None, q_, receipt_id=r.id)
+    s.commit()
+    return {"id": r.id, "total_cents": total}
+
+
+@app.get("/v1/receipts")
+def list_receipts(uid: str = Depends(user), s: Session = Depends(get_db)):
+    rows = s.query(db.Receipt).filter_by(user_id=uid).order_by(db.Receipt.purchase_date.desc()).all()
+    return {"receipts": [{"id": r.id, "retailer": r.retailer, "purchase_date": r.purchase_date, "total_cents": r.total_cents, "lines": len(r.items)} for r in rows]}
+
+
+@app.get("/v1/purchases")
+def purchases(uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
+    rows = s.query(db.ReceiptItem, db.Receipt).join(db.Receipt).filter(db.Receipt.user_id == uid, db.ReceiptItem.is_discount == False).all()  # noqa: E712
+    g: Dict[str, Dict[str, Any]] = {}
+    for it, r in rows:
+        k = it.matched_product_id or it.raw_description.lower()
+        e = g.setdefault(k, {"key": k, "name": it.raw_description, "product_id": it.matched_product_id, "times": 0, "history": []})
+        e["times"] += 1
+        e["history"].append({"date": r.purchase_date, "retailer": r.retailer, "unit_price_cents": it.unit_price_cents})
+    for e in g.values():
+        e["history"].sort(key=lambda h: h["date"] or "", reverse=True)
+        e["last_price_cents"] = e["history"][0]["unit_price_cents"]
+    total = sum(r.total_cents or 0 for r in s.query(db.Receipt).filter_by(user_id=uid))
+    return {"purchases": sorted(g.values(), key=lambda e: -e["times"]), "recorded_spending_cents": total,
+            "note": tr(lang, "purch_note")}
+
+
+@app.delete("/v1/receipts/{rid}")
+@limiter.limit("30/minute")
+def del_receipt(request: Request, rid: int, uid: str = Depends(user), s: Session = Depends(get_db)):
+    r = s.get(db.Receipt, rid)
+    if not r or r.user_id != uid:
+        raise HTTPException(404, "Receipt not found")
+    s.execute(delete(db.PriceObservation).where(db.PriceObservation.receipt_id == rid))
+    s.execute(delete(db.ProductPrice).where(db.ProductPrice.receipt_id == rid))
+    s.delete(r)
+    s.commit()
+    return {"deleted": rid}
+
+
+@app.get("/v1/me/export")
+def export(uid: str = Depends(user), s: Session = Depends(get_db)):
+    return {"preferences": prefs_of(s, uid), "receipts": [{"id": r.id, "retailer": r.retailer, "date": r.purchase_date, "total_cents": r.total_cents,
+            "items": [{"raw": i.raw_description, "matched": i.matched_product_id, "line_total_cents": i.line_total_cents} for i in r.items]}
+            for r in s.query(db.Receipt).filter_by(user_id=uid)], "scans": [x.product_id for x in s.query(db.Scan).filter_by(user_id=uid)]}
+
+
+@app.delete("/v1/me")
+def erase(uid: str = Depends(user), s: Session = Depends(get_db)):
+    for m in (db.SavingsEvent, db.BudgetConfig, db.PriceObservation, db.ProductPrice, db.Scan, db.Comparison, db.AlternativeResult, db.Preference):
+        s.execute(delete(m).where(m.user_id == uid))
+    for r in s.query(db.Receipt).filter_by(user_id=uid).all():
+        s.delete(r)
+    s.execute(delete(db.User).where(db.User.id == uid))
+    s.commit()
+    return {"deleted": True}
+
+
+# ---- auth endpoints
+@app.post("/v1/auth/login")
+@limiter.limit("10/minute")
+def login(request: Request, body: LoginRequest, s: Session = Depends(get_db)):
+    """Login with email and password (placeholder for local auth).
+
+    In a real implementation, you would hash passwords and verify them.
+    For now, this creates/returns a user and generates a JWT token.
+    """
+    # Simple implementation: use email as user_id
+    user_id = body.email
+    user = s.get(db.User, user_id)
+    if not user:
+        user = db.User(id=user_id)
+        s.add(user)
+        s.commit()
+
+    token = create_access_token({"sub": user_id})
+    return {"access_token": token, "token_type": "bearer", "user_id": user_id}
+
+
+@app.post("/v1/auth/register")
+@limiter.limit("5/minute")
+def register(request: Request, body: RegisterRequest, s: Session = Depends(get_db)):
+    """Register a new user (placeholder for local auth).
+
+    In a real implementation, you would hash the password before storing.
+    """
+    user_id = body.email
+    if s.get(db.User, user_id):
+        raise HTTPException(400, "User already exists")
+
+    user = db.User(id=user_id)
+    s.add(user)
+    s.commit()
+
+    token = create_access_token({"sub": user_id})
+    return {"access_token": token, "token_type": "bearer", "user_id": user_id}
+
+
+# ---- health endpoints
+@app.get("/health")
+@limiter.limit("60/minute")
+def health_check(request: Request):
+    """Health check endpoint for monitoring."""
+    return {"status": "healthy", "version": "0.2"}
+
+
+@app.get("/health/ready")
+@limiter.limit("60/minute")
+def readiness_check(request: Request):
+    """Readiness check - verifies database connectivity."""
+    try:
+        # Try to create a session
+        s = app.state.sessions()
+        s.execute("SELECT 1")
+        s.close()
+        return {"status": "ready", "database": "connected"}
+    except Exception as e:
+        raise HTTPException(503, f"Not ready: {str(e)}")
+
+
+DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "web", "dist"))  # the built web app (npm run build): one server, one address, any device
+
+
+@app.get("/{path:path}", include_in_schema=False)
+def web_app(path: str):
+    """Serves the built web app and its files; unknown paths return index.html so client-side routes (/product/123) work on refresh. API and docs are matched before this."""
+    if path.startswith(("v1/", "docs", "openapi", "redoc")):
+        raise HTTPException(404)
+    index = os.path.join(DIST, "index.html")
+    if os.path.exists(index):
+        f = os.path.realpath(os.path.join(DIST, path))
+        if path and os.path.isfile(f) and f.startswith(os.path.realpath(DIST) + os.sep):
+            return FileResponse(f)
+        return FileResponse(index)
+    p = os.path.join(os.path.dirname(WEB), path)  # no build yet: the old single-file page and its icons
+    if path in ("manifest.json", "icon-180.png", "icon-512.png") and os.path.exists(p):
+        return FileResponse(p)
+    if path == "" and os.path.exists(WEB):
+        return FileResponse(WEB)
+    raise HTTPException(404)

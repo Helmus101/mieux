@@ -1,0 +1,10 @@
+fastapi==0.128.8
+uvicorn==0.39.0
+sqlalchemy==2.0.55
+psycopg2-binary==2.9.12
+alembic==1.16.5
+httpx==0.28.1
+pydantic==2.13.5
+python-jose[cryptography]==3.5.0
+pytest==8.4.2
+slowapi==0.1.10

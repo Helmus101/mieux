@@ -1,0 +1,7 @@
+# Master prompt for Claude Code: continue Mieux
+
+You are working in the `foodiq/` repo. First read `ARCHITECTURE.md`, `backend/app/*.py`, `backend/tests/test_all.py` and `index.html`. Run `cd backend && .venv/bin/python -m pytest` and keep it green after every change.
+
+Principles (never violate): no hidden composite score; Nutri-Score shown only as recorded with its version; unknown values stay null; allergens/diet are hard exclusions and missing data means "cannot verify"; alternatives must be same-category and compared per 100 g; never claim cheaper without verified prices; purchases are not consumption; backend (not client) computes differences and enforces restrictions; deterministic receipt parsing, no LLM for money; integer cents.
+
+Tasks in order, each with tests: (1) Alembic migrations + PostgreSQL via DATABASE_URL; (2) Expo/TypeScript client consuming the existing /v1 API (scanner via expo-camera, the five screens, offline cache); (3) ML Kit/Vision OCR sending line text + confidence to /v1/receipts/preview; retailer-specific rules for Carrefour, Monoprix, Leclerc, Auchan, Lidl from real anonymised receipts; (4) Open Prices integration kept separate from receipt-derived prices; (5) auth (Supabase) mapping onto `users`; rate limiting and CORS; (6) CI running pytest. Verify the full flow (scan → result → alternatives → compare → receipt → purchases → delete) works before declaring done, and report anything not verified.
