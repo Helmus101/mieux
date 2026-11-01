@@ -21,3 +21,18 @@ export const hideHint = () => { try { localStorage.setItem(KEY, String(Date.now(
 
 export const OPEN_EVENT = 'mieux:install';
 export const openInstall = () => window.dispatchEvent(new Event(OPEN_EVENT));
+
+/** A phone (not a tablet): phones go straight into the app, computers and iPads get the landing page first. */
+export const isPhone = () => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /iPhone|iPod/.test(ua) || (/Android/i.test(ua) && /Mobile/i.test(ua));
+};
+
+const IN_APP = 'mieux_in_app';
+export const wantsLanding = () => {
+  if (typeof window === 'undefined' || isPhone() || isInstalled()) return false;
+  if (window.location.pathname !== '/' || new URLSearchParams(window.location.search).has('app')) return false;  // deep links and ?app go straight to the app
+  try { return sessionStorage.getItem(IN_APP) !== '1'; } catch { return true; }
+};
+export const enterApp = () => { try { sessionStorage.setItem(IN_APP, '1'); } catch { /* storage unavailable */ } };

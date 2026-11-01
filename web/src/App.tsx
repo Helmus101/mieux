@@ -1,12 +1,14 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useProfile, apiPrefs } from '@shared/stores';
 import { Skeleton, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
 import InstallPrompt from './InstallPrompt';
+import { enterApp, wantsLanding } from './install';
 
+const Landing = lazy(() => import('./screens/Landing'));
 const Onboarding = lazy(() => import('./screens/Onboarding'));
 const Home = lazy(() => import('./screens/Home'));
 const Scan = lazy(() => import('./screens/Scan'));
@@ -66,4 +68,9 @@ function Shell() {
   );
 }
 
-export default function App() { return <BrowserRouter><Shell /></BrowserRouter>; }
+// Computers and iPads see the landing page first; phones (and the installed app, and deep links) go straight to the app.
+export default function App() {
+  const [landing, setLanding] = useState(wantsLanding);
+  if (landing) return <Suspense fallback={null}><Landing onEnter={() => { enterApp(); setLanding(false); }} /></Suspense>;
+  return <BrowserRouter><Shell /></BrowserRouter>;
+}
