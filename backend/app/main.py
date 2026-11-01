@@ -1,4 +1,6 @@
+import hashlib
 import re
+from datetime import date, timedelta
 from sqlalchemy.exc import IntegrityError
 import json
 import logging
@@ -238,6 +240,67 @@ def prefs_of(s: Session, uid: str) -> Prefs:
 @app.get("/v1/health")
 def health():
     return {"ok": True}
+
+
+# ---- usage: how many people actually use Mieux (anonymous, cookie-free)
+class VisitIn(BaseModel):
+    surface: str = Field(pattern="^(landing|app)$")
+
+
+def _visitor(request: Request) -> str:
+    """Daily-rotating hash of IP + browser. Raw values are never stored, so nobody can be followed across days."""
+    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() or (request.client.host if request.client else "")
+    ua = request.headers.get("user-agent", "")[:400]
+    salt = os.getenv("USAGE_SALT") or os.getenv("JWT_SECRET_KEY") or "mieux-usage"
+    return hashlib.sha256(f"{date.today().isoformat()}|{ip}|{ua}|{salt}".encode()).hexdigest()[:32]
+
+
+def _referrer(request: Request) -> str:
+    ref = request.headers.get("referer") or ""
+    if not ref:
+        return "direct"
+    return "internal" if ref.startswith(str(request.base_url).rstrip("/")) else "external"
+
+
+@app.post("/v1/usage/visit")
+@limiter.limit("60/minute")
+def usage_visit(request: Request, body: VisitIn, s: Session = Depends(get_db)):
+    """Counts people, not refreshes: one row per visitor, per surface, per day."""
+    day, visitor = date.today().isoformat(), _visitor(request)
+    if not s.query(db.Visit).filter_by(day=day, surface=body.surface, visitor=visitor).first():
+        try:
+            s.add(db.Visit(day=day, surface=body.surface, visitor=visitor, referrer=_referrer(request)))
+            s.commit()
+        except IntegrityError:  # the same person in two tabs at once
+            s.rollback()
+    return {"ok": True}
+
+
+@app.get("/v1/usage/stats")
+@limiter.limit("60/minute")
+def usage_stats(request: Request, days: int = 30, s: Session = Depends(get_db)):
+    """Visitors and opens per day, landing page vs app. Aggregates only, no individual records."""
+    days = max(1, min(days, 365))
+    since = (date.today() - timedelta(days=days - 1)).isoformat()
+    rows = s.query(db.Visit).filter(db.Visit.day >= since).all()
+    per: Dict[str, Dict[str, Any]] = {}
+    for r in rows:
+        d = per.setdefault(r.day, {"visitors": set(), "views": 0, "landing": 0, "app": 0})
+        d["visitors"].add(r.visitor)
+        d["views"] += 1
+        d["landing" if r.surface == "landing" else "app"] += 1
+    daily = [{"day": day, "visitors": len(d["visitors"]), "views": d["views"], "landing_views": d["landing"], "app_opens": d["app"]}
+             for day, d in sorted(per.items())]
+    today = date.today().isoformat()
+    return {"since": since, "days": days,
+            "visitors": len({r.visitor for r in rows}),
+            "app_visitors": len({r.visitor for r in rows if r.surface == "app"}),
+            "views": len(rows),
+            "landing_views": sum(1 for r in rows if r.surface == "landing"),
+            "app_opens": sum(1 for r in rows if r.surface == "app"),
+            "today": next((d for d in daily if d["day"] == today), {"day": today, "visitors": 0, "views": 0, "landing_views": 0, "app_opens": 0}),
+            "daily": daily,
+            "note": "Visiteurs = hachage quotidien de l'IP et du navigateur, jamais conservé. Aucun cookie, aucun profil."}
 
 
 OVERRIDE_FIELDS = {"ingredients_text": str, "fvn_pct": float, "protein_100g": float, "fiber_100g": float, "sugars_100g": float, "salt_100g": float, "fat_100g": float,

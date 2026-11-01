@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import Iterator
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, Boolean, create_engine
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, Boolean, UniqueConstraint, create_engine
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 Base = declarative_base()
@@ -113,6 +113,19 @@ class PriceObservation(Base):  # confirmed prices *paid by the user*; not shop s
     observed_on = Column(String)
     unit_price_cents = Column(Integer)
     source = Column(String, default="user_receipt")
+
+
+class Visit(Base):
+    """One anonymous visit per person, per surface, per day. No cookie, no user id: only a daily-rotating hash of
+    IP + browser is stored, so people can be counted without being followed from one day to the next."""
+    __tablename__ = "visits"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    day = Column(String, index=True, nullable=False)  # YYYY-MM-DD
+    surface = Column(String, nullable=False)  # landing | app
+    visitor = Column(String, index=True, nullable=False)  # daily hash, never a raw IP or user agent
+    referrer = Column(String, nullable=True)  # direct | internal | external (coarse on purpose)
+    created_at = Column(DateTime, default=now)
+    __table_args__ = (UniqueConstraint("day", "surface", "visitor", name="uq_visit_day_surface_visitor"),)
 
 
 def _add_missing_columns(eng) -> None:

@@ -1,5 +1,6 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { APP_PATH, enterApp, wantsLanding } from './install';
+import { trackVisit } from './usage';
 
 // Loaded separately on purpose: the landing page must not download the app's router, API client and stores.
 const App = lazy(() => import('./App'));
@@ -19,6 +20,8 @@ function start(): boolean {
 
 export default function Root() {
   const [landing, setLanding] = useState(start);
+  // One anonymous count per person per day for the landing page and for the app; the server does the deduplicating.
+  useEffect(() => { trackVisit(landing ? 'landing' : 'app'); }, [landing]);
   if (landing) return (
     <Suspense fallback={null}>
       <Landing onEnter={() => { enterApp(); window.history.pushState(null, '', APP_PATH); setLanding(false); }} />
