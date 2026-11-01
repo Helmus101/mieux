@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Mieux - Start backend server (only - web app requires npm/node)
+# Mieux - Start backend server
 
 echo "🚀 Starting Mieux Backend..."
 echo "===================="
@@ -28,7 +28,7 @@ fi
 
 # Start the server
 echo "Starting server on http://localhost:8010"
-DATABASE_URL=sqlite:///./foodiq.db uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload
+DATABASE_URL=sqlite:///./foodiq.db uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload &
 
 echo ""
 echo "✓ Backend started!"
@@ -36,7 +36,8 @@ echo ""
 echo "API:        http://localhost:8010"
 echo "API Docs:   http://localhost:8010/docs"
 echo "Health:     http://localhost:8010/v1/health"
-echo "PWA:        http://localhost:8010/index.html"
 echo ""
 echo "Press Ctrl+C to stop"
 echo "===================="
+
+wait

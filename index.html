@@ -30,51 +30,6 @@ a{color:var(--g)}details summary{cursor:pointer}
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LS={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
-// Haptics for PWA (Web Vibration API)
-function haptic(type='tap'){
-  if(!navigator.vibrate)return;
-  switch(type){
-    case 'success':navigator.vibrate([50,30,50]);break;
-    case 'error':navigator.vibrate([100,50,100,50,100]);break;
-    case 'tap':navigator.vibrate(10);break;
-    case 'scan':navigator.vibrate(30);break;
-  }
-}
-
-// Sound effects for PWA
-const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-function playSound(type='success'){
-  if(audioCtx.state==='suspended')audioCtx.resume();
-  const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
-  osc.connect(gain);gain.connect(audioCtx.destination);
-  const now=audioCtx.currentTime;
-  switch(type){
-    case 'success':
-      osc.frequency.setValueAtTime(523.25,now);
-      osc.frequency.exponentialRampToValueAtTime(659.25,now+0.1);
-      osc.frequency.exponentialRampToValueAtTime(783.99,now+0.2);
-      gain.gain.setValueAtTime(0.3,now);
-      gain.gain.exponentialRampToValueAtTime(0.01,now+0.3);
-      osc.start(now);osc.stop(now+0.3);break;
-    case 'error':
-      osc.frequency.setValueAtTime(200,now);
-      osc.frequency.exponentialRampToValueAtTime(100,now+0.2);
-      gain.gain.setValueAtTime(0.3,now);
-      gain.gain.exponentialRampToValueAtTime(0.01,now+0.2);
-      osc.start(now);osc.stop(now+0.2);break;
-    case 'tap':
-      osc.frequency.setValueAtTime(800,now);
-      gain.gain.setValueAtTime(0.15,now);
-      gain.gain.exponentialRampToValueAtTime(0.01,now+0.05);
-      osc.start(now);osc.stop(now+0.05);break;
-    case 'scan':
-      osc.frequency.setValueAtTime(1200,now);
-      gain.gain.setValueAtTime(0.2,now);
-      gain.gain.exponentialRampToValueAtTime(0.01,now+0.1);
-      osc.start(now);osc.stop(now+0.1);break;
-  }
-}
-
 const FIELDS='nutriscore_grade,nutriscore_version,last_modified_t,traces_tags,code,product_name,brands,image_front_small_url,nutriments,ingredients_text,additives_tags,allergens_tags,categories_tags,quantity,ingredients_analysis_tags,labels_tags';
 const UA={headers:{}};
 async function jget(u,tries=3){let e;for(let i=0;i<tries;i++){try{const r=await fetch(u);if(r.ok){const t=await r.text();if(t[0]==='{')return JSON.parse(t)}}catch(x){e=x}await new Promise(r=>setTimeout(r,700*(i+1)))}throw new Error('Open Food Facts is not responding right now. Try again in a moment.')}
@@ -204,9 +159,9 @@ function addInfo(tag){const k=tag.replace('en:','').toLowerCase(),I=ADD[k];const
 
 async function startCam(){const m=$('camMsg'),v=$('cam');
   try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});v.srcObject=stream;v.setAttribute('playsinline','');v.hidden=false;await v.play();m.textContent='Point at a barcode…'}catch(e){m.textContent='Camera unavailable (needs https and permission): '+e.message;return}
-  if('BarcodeDetector'in window){const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});const loop=async()=>{if(!stream)return;try{const r=await det.detect(v);if(r.length){const c=r[0].rawValue;stopCam();haptic('success');playSound('scan');openCode(c);return}}catch(e){}setTimeout(loop,250)};loop()}
+  if('BarcodeDetector'in window){const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});const loop=async()=>{if(!stream)return;try{const r=await det.detect(v);if(r.length){const c=r[0].rawValue;stopCam();openCode(c);return}}catch(e){}setTimeout(loop,250)};loop()}
   else if(window.ZXing){const rd=new ZXing.MultiFormatReader(),hints=new Map();hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E]);hints.set(ZXing.DecodeHintType.TRY_HARDER,true);rd.setHints(hints);
-    const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});const loop=()=>{if(!stream)return;if(v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);try{const lum=new ZXing.HTMLCanvasElementLuminanceSource(cv),bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));const r=rd.decode(bmp);const c=r.getText();stopCam();haptic('success');playSound('scan');openCode(c);return}catch(e){}}setTimeout(loop,200)};loop()}
+    const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});const loop=()=>{if(!stream)return;if(v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);try{const lum=new ZXing.HTMLCanvasElementLuminanceSource(cv),bmp=new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));const r=rd.decode(bmp);const c=r.getText();stopCam();openCode(c);return}catch(e){}}setTimeout(loop,200)};loop()}
   else m.textContent='Scanner library not loaded (offline?). Type the code instead.'}
 function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}}
 
@@ -216,8 +171,8 @@ let API=null;const SID=(()=>{let v=LS.get('fiq2_sid',null);if(!v){v='s'+Math.ran
 (async()=>{try{if(location.protocol.startsWith('http')){const r=await fetch('/v1/health');if(r.ok&&(await r.json()).ok){API='';syncPrefs()}}}catch(e){}})();
 const api=async(m,u,b)=>{const r=await fetch(API+u,{method:m,headers:{'X-Session-Id':SID,'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});if(!r.ok)throw Object.assign(new Error((await r.json().catch(()=>({}))).detail||r.status),{status:r.status});return r.json()};
 const syncPrefs=()=>{if(API!==null)api('PUT','/v1/me/preferences',{diet:prof.diet==='omni'?'omnivore':prof.diet,priorities:prof.prios,allergens:prof.allergens}).catch(()=>{})};
-function setTab(t){tab=t;if(t!=='scan')stopCam();haptic('tap');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({home,scan,compare,purchases,profile}[t]||home)()}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{haptic('tap');setTab(b.dataset.t)});
+function setTab(t){tab=t;if(t!=='scan')stopCam();document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({home,scan,compare,purchases,profile}[t]||home)()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>setTab(b.dataset.t));
 const nsBadge=p=>{const g=nsGrade(p);return g?`<span class="pill" style="background:${{a:'#038141',b:'#85bb2f',c:'#fecb02',d:'#ee8100',e:'#e63e11'}[g]};color:#fff;font-weight:700">Nutri-Score ${g.toUpperCase()}</span>`:'<span class="pill w">No Nutri-Score available</span>'};
 const pcard=(p,extra='')=>`<div class="card prod" onclick="openCode('${p.code}')"><img src="${esc(p.image_front_small_url||'')}" alt=""><div style="flex:1"><b>${esc(p.product_name||'Unnamed')}</b><div class="mut">${esc(p.brands||'')}</div>${extra}</div><div>${nsGrade(p)?nsBadge(p).replace('Nutri-Score ',''):''}</div></div>`;
 function home(){const m=new Date().toISOString().slice(0,7),mr=rcp.filter(r=>(r.date||'').startsWith(m)),sp=mr.reduce((a,r)=>a+r.totalCents,0);

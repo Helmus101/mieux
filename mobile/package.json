@@ -21,7 +21,6 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "axios": "^1.21.0",
     "expo": "^58.0.22",
-    "expo-av": "~58.0.10",
     "expo-camera": "~58.0.14",
     "expo-constants": "~58.0.14",
     "expo-haptics": "~58.0.7",

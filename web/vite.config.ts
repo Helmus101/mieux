@@ -8,7 +8,10 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@shared': here('src'),
+      '@shared': here('../shared'),
+      // shared/ has no node_modules of its own: resolve its dependencies from web/
+      zustand: here('node_modules/zustand'),
+      axios: here('node_modules/axios'),
     },
   },
   test: { environment: 'node', include: ['src/**/*.test.ts'] },

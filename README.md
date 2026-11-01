@@ -23,21 +23,7 @@ A personalized grocery decision-support product helping users make smarter food 
 - **Features**:
   - Barcode scanning with ZXing
   - Receipt OCR with Tesseract.js
-  - Sound effects (Web Audio API)
-  - Haptic feedback (Web Vibration API)
   - All backend features accessible via shared API client
-
-### PWA (index.html)
-- **Location**: Root `index.html`
-- **Tech Stack**: Vanilla JavaScript
-- **Features**:
-  - Barcode scanning (ZXing UMD or native BarcodeDetector)
-  - Receipt OCR (Tesseract.js CDN)
-  - Sound effects (Web Audio API - synthetic beeps)
-  - Haptic feedback (Web Vibration API)
-  - Offline support (localStorage)
-  - PWA manifest and service worker
-  - Works directly at `http://localhost:8010/index.html`
 
 ### Mobile App (Expo + React Native)
 - **Location**: `mobile/`
@@ -46,8 +32,6 @@ A personalized grocery decision-support product helping users make smarter food 
 - **Features**:
   - Barcode scanning with expo-camera
   - Receipt capture with expo-image-picker
-  - Haptic feedback (expo-haptics)
-  - Sound effects (expo-av - implementation planned)
   - ML Kit Vision OCR (placeholder - needs implementation)
   - All backend features accessible via shared API client
 
@@ -129,27 +113,6 @@ OFF_USER_AGENT=Mieux/1.0 (contact@mieux.app)
 - `POST /v1/auth/register` - Register
 - `GET /health` - Health check
 - `GET /health/ready` - Readiness check
-
-## Sound & Haptics
-
-### PWA (index.html)
-- **Sound**: Web Audio API synthetic beeps on scan, success, error, tap
-- **Haptics**: Web Vibration API (navigator.vibrate)
-- **Feedback**:
-  - Scan: High-pitched beep + short vibration
-  - Success: Ascending tone + double-tap vibration
-  - Error: Low buzz + long vibration pattern
-  - Tap: Short click + light vibration
-
-### Web App (Vite/React)
-- **Sound**: Web Audio API via `src/sound.ts`
-- **Haptics**: Web Vibration API via `src/haptics.ts`
-- **Same feedback patterns as PWA**
-
-### Mobile App (Expo)
-- **Haptics**: expo-haptics (success, warning, error, light, medium, heavy)
-- **Sound**: expo-av (implementation planned)
-- **Haptic patterns configured in `src/haptics.ts`**
 
 ## Core Principles
 
