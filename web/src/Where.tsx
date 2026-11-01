@@ -44,7 +44,7 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
       {msg && <p style={{ color: 'var(--warn)' }}>{msg}</p>}
       {res && !res.retailers.length && <Muted>{t('where.noChain', { r: RADIUS })}{res.far_chains > 0 ? ` ${t('where.farChains', { n: res.far_chains })}` : ''}</Muted>}
       {res?.retailers.map((x: any) => (
-        <details className="chainrow" key={x.chain_id}>
+        <details className="chainrow" key={x.chain_id} open>
           <summary>
             <ChainLogo id={x.chain_id} name={x.chain} />
             <span className="nm">{x.chain}</span>
@@ -52,10 +52,13 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
             <span className="pr">{x.price_per100_cents != null ? `${formatCents(Math.round(x.price_per100_cents * 10))}${liquid ? '/L' : '/kg'}` : ''}{x.pack_cents != null && res.size?.amount ? <><br /><span className="sm">{formatCents(x.pack_cents)} · {sizeLabel(res.size)}</span></> : null}</span>
           </summary>
           <div>
-            {x.nearest_store
-              ? <p style={{ margin: '0 0 6px' }}>{x.nearest_store.distance_m > RADIUS * 1000 && <span className="pill w">{t('where.farAway', { r: RADIUS })}</span>} {x.nearest_store.name}{x.nearest_store.address ? <span className="mut"> · {x.nearest_store.address}</span> : null}{' '}<a target="_blank" rel="noreferrer" href={directionsUrl({ lat: x.nearest_store.lat, lon: x.nearest_store.lon }, pos)}>{t('where.route')}</a></p>
+            {(x.stores ?? []).length
+              ? (x.stores as any[]).slice(0, 3).map((st: any, k: number) => (
+                <div key={k} className="storeline">
+                  <div><b>{st.name}</b>{st.address ? <span className="mut sm"> · {st.address}</span> : null}{st.distance_m > RADIUS * 1000 && <> <span className="pill w">{t('where.farAway', { r: RADIUS })}</span></>}</div>
+                  <div className="mut sm">{dist(st.distance_m)} · <a target="_blank" rel="noreferrer" href={directionsUrl({ lat: st.lat, lon: st.lon }, pos)}>{t('where.route')}</a></div>
+                </div>))
               : <Muted>{t('where.farOrUnknown', { r: RADIUS })}</Muted>}
-            {(x.stores ?? []).slice(1).map((st: any, k: number) => <p key={k} className="mut sm" style={{ margin: '0 0 6px' }}>{t('where.second')} : {st.name} · {dist(st.distance_m)} <a target="_blank" rel="noreferrer" href={directionsUrl({ lat: st.lat, lon: st.lon }, pos)}>{t('where.route')}</a></p>)}
             <p className="mut sm" style={{ margin: 0 }}>{x.note ? `${x.note} · ` : ''}{t('where.src_' + x.match_type)}</p>
           </div>
         </details>))}
