@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { Analytics } from '@vercel/analytics/react';
 import Root from './Root';
 import { setApiBase } from '@shared/config';
 // index.css is imported by App: the landing page has its own stylesheet and no app CSS.
@@ -10,6 +11,7 @@ if (envBase) setApiBase(envBase);
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Root />
+    <Analytics />
   </React.StrictMode>,
 );
 
