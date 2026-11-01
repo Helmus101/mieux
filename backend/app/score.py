@@ -201,7 +201,8 @@ FVN_WORDS = re.compile(r"^(noix|noisette|amande|cacahu[eè]te|pistache|coco|noix
 
 
 # typical vegetable / fruit content of a category, used only when neither the database nor the ingredient list says (always shown as an estimate)
-FVN_PRIOR = [(re.compile(r"(?:^|\s)en:(?:pulses|legume-seeds|dried-legumes|dried-beans|lentils|chickpeas|dried-peas|split-peas|dried-flageolet-green-beans)\b"), 100.0), (re.compile(r"tomato-sauces|pasta-sauces|tomatoes-and-their-products"), 70.0), (re.compile(r"vegetable-soups|veloutes"), 45.0), (re.compile(r"compotes|fruit-purees"), 80.0)]
+WHOLE_FRUIT = re.compile(r"(?:^|\s)en:(?:dried-fruits|dates|raisins|prunes|dried-apricots|dried-figs|dried-bananas|fresh-fruits|dried-cranberries|dried-mangoes)\b")  # whole fruit, dried or fresh: its sugar is the fruit's own
+FVN_PRIOR = [(WHOLE_FRUIT, 80.0), (re.compile(r"(?:^|\s)en:(?:pulses|legume-seeds|dried-legumes|dried-beans|lentils|chickpeas|dried-peas|split-peas|dried-flageolet-green-beans)\b"), 100.0), (re.compile(r"tomato-sauces|pasta-sauces|tomatoes-and-their-products"), 70.0), (re.compile(r"vegetable-soups|veloutes"), 45.0), (re.compile(r"compotes|fruit-purees"), 80.0)]
 
 
 def fvn_estimate(cats: List[str]) -> Optional[float]:
@@ -335,11 +336,12 @@ MORE = {"fibre": ((0.9, 3.0, 8.5), 12, "g"), "protein": ((0.8, 3.0, 8.0), 20, "g
 LESS["satratio"] = ((10.0, 16.0, 28.0, 46.0), 80, "%")
 
 
-def scale_of(key: str, value: Optional[float], drink: bool, better: str) -> Optional[Dict[str, Any]]:
+def scale_of(key: str, value: Optional[float], drink: bool, better: str, relax: float = 1.0) -> Optional[Dict[str, Any]]:
     if value is None:
         return None
     if better == "less":
         cuts, mx, unit = LESS[key]
+        cuts, mx = tuple(c * relax for c in cuts), mx * relax
         edges = [0.0] + list(cuts) + [mx]
         zones = [{"from": edges[i], "to": edges[i + 1], "tier": TIERS[i][0], "tone": TIERS[i][1]} for i in range(5)]
         zone = next((z for z in zones if value <= z["to"]), zones[-1]) if value <= cuts[-1] else zones[-1]
@@ -391,7 +393,9 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
     ing = p.get("ingredientsText")
     adds = p.get("additives") or []
     weights = PROFILES[pid]
-    natural = bool(ing) and not ADDED_SUGAR.search(ing) and (n.get("sugars100g") or 0) > 0
+    whole_fruit = bool(WHOLE_FRUIT.search(" ".join(cats))) and not drink
+    ing_s = ing or ("fruits" if whole_fruit else None)  # no ingredient list on a whole-fruit product (dates, raisins...): its sugar is the fruit's own, not added
+    natural = bool(ing_s) and not ADDED_SUGAR.search(ing_s) and (n.get("sugars100g") or 0) > 0
     # protein / fibre count only where they mean something for the category (weight 0 = irrelevant)
     fvn = fvn_share(extra, ing)
     fvn_est = False
@@ -405,7 +409,7 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
     if pts is None:
         return None  # not enough nutrition data for an honest score
     pts["drink"] = drink
-    dscore = {"fat": d_fat(n, pts, extra, pid), "sugar": d_sugar(n, pts, ing, extra), "salt": d_salt(n, pts), "energy": d_energy(n, pts, drink),
+    dscore = {"fat": d_fat(n, pts, extra, pid), "sugar": d_sugar(n, pts, ing_s, extra), "salt": d_salt(n, pts), "energy": d_energy(n, pts, drink),
               "protein": d_protein(n), "fibre": d_fibre(n), "plant": d_plant(fvn, fvn_est), "micro": d_micro(p.get("micronutrients")), "additives": d_additives(adds, strict), "ingredients": d_ingredients(ing, adds)}
     # 1. nutritional quality: Nutri-Score points (negatives minus the positives that are relevant here), then safeguards
     nq = interp(pts["points"], _NQ_FATS) if "sat_ratio" in pts else nq_from_points(pts["points"])
@@ -418,6 +422,8 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
     flags = flags_of(n, drink, sugar_detail, extra, adds, p.get("novaGroup"), strict)
     if "sat_ratio" in pts:
         flags = [f for f in flags if f["key"] not in ("high_sat_fat", "high_energy")] + ([{"key": "high_sat_ratio", "level": "warn"}] if pts["sat_ratio"] > 46 else [])
+    if whole_fruit:
+        flags = [f for f in flags if f["key"] != "high_energy"]
     bad = [f for f in flags if f["level"] == "bad"]
     # 3. overall = 80 % nutritional + 20 % ingredient, with safeguards: good ingredients cannot lift the total far above the nutrition,
     #    and serious weaknesses cap it whatever else the product does well
@@ -453,7 +459,8 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
         sc_map = {"fat": ("sat", n.get("saturatedFat100g"), "less"), "sugar": ("sugar_liquid" if drink else "sugar_solid", n.get("sugars100g"), "less"),
                   "salt": ("salt", n.get("salt100g"), "less"), "energy": ("energy_liquid" if drink else "energy_solid", n.get("energyKcal100g"), "less"),
                   "protein": ("protein", n.get("protein100g"), "more"), "fibre": ("fibre", n.get("fiber100g"), "more"), "plant": ("plant", fvn, "more")}
-        scale = scale_of(sc_map[k][0], sc_map[k][1], drink, sc_map[k][2]) if k in sc_map else None
+        relax = (1.7 if k == "energy" else 2.4 if k == "sugar" else 1.0) if whole_fruit else 1.0  # whole fruit: calories and natural sugar weigh less (Yuka: low impact)
+        scale = scale_of(sc_map[k][0], sc_map[k][1], drink, sc_map[k][2], relax) if k in sc_map else None
         if k == "fat" and "sat_ratio" in pts:
             scale = scale_of("satratio", pts["sat_ratio"], drink, "less")
         if not relevant:

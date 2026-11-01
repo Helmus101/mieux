@@ -4,6 +4,7 @@ import { api } from '@shared/api/client';
 import { useProfile } from '@shared/stores';
 import { t } from '@shared/i18n';
 import { haptic } from '../ui';
+import { scanClick } from '../haptics';
 import { routes, useNav } from '../nav';
 import { Cancelled, closeCamera, decodeImage, openCamera, scanBarcodes, setTorch, torchSupported } from '../scanner';
 
@@ -25,7 +26,7 @@ export default function Scan() {
     const id = ++run.current;
     try {
       stream.current = await openCamera(video.current!, () => id === run.current); setOn(true); setCanTorch(torchSupported(stream.current));
-      const stopper = await scanBarcodes(video.current!, (c) => { haptic('success'); api.getProduct(c).catch(() => undefined); stop(); open(c); }, frame.current);
+      const stopper = await scanBarcodes(video.current!, (c) => { scanClick(); haptic('success'); api.getProduct(c).catch(() => undefined); stop(); open(c); }, frame.current);
       if (id !== run.current) { stopper(); return; }
       stopScan.current = stopper;
     } catch (e) { if (!(e instanceof Cancelled)) haptic('error'); if (!(e instanceof Cancelled)) setErr(t((e as Error).name === 'NotAllowedError' ? 'scan.camDenied' : (e as Error).name === 'NotFoundError' ? 'scan.camNone' : 'scan.camFail', { e: (e as Error).message })); }
@@ -35,7 +36,7 @@ export default function Scan() {
   const fromPhoto = async (f?: File) => {
     if (!f) return; setErr('');
     const c = await decodeImage(f).catch(() => null);
-    if (c) { haptic('success'); stop(); open(c); } else { haptic('error'); setErr(t('scan.noCode')); }
+    if (c) { scanClick(); haptic('success'); stop(); open(c); } else { haptic('error'); setErr(t('scan.noCode')); }
   };
   const close = () => { haptic('tap'); stop(); go(forCompare ? routes.compare : routes.home); };
   return (

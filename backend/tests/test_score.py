@@ -233,3 +233,15 @@ def test_plant_foods_are_not_mistaken_for_drinks_and_dried_legumes_score_high():
     assert "high_energy" not in {f["key"] for f in s["flags"]} and s["total"] >= 85                    # Yuka: 100
     from app.score import quality
     assert quality(p, True, {**p["scoreInputs"], "strict": True})["total"] >= 95                       # organic adds 10 points in strict mode
+
+
+DATES = {"energy-kcal_100g": 287, "sugars_100g": 57, "saturated-fat_100g": 0.1, "fat_100g": 0.4, "salt_100g": 0.05, "fiber_100g": 7.5, "proteins_100g": 2.2}
+FRUIT = ("en:fruits-and-vegetables-based-foods", "en:dried-fruits", "en:dates")
+
+
+def test_dates_without_ingredient_list_are_not_punished_for_natural_sugar():
+    p = prod(DATES, None, cats=FRUIT)["score"]
+    assert p["total"] >= 65 and not p["caps"]                       # was ~42: unknown sugar was read as added sugar and capped the score
+    assert [f["key"] for f in p["flags"]] == ["high_sugar_natural"]  # a mild warning, not a serious weakness
+    assert dim(prod(DATES, None, cats=FRUIT), "energy")["scale"]["tone"] in ("g", "g2")  # calories are low impact for a whole fruit
+    assert prod(DATES, "Dattes", cats=FRUIT)["score"]["total"] >= 65

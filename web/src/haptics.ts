@@ -33,3 +33,26 @@ export function haptic(kind: HapticKind | number = 'tap') {
     else if (typeof document !== 'undefined') { iosTick(); if (Array.isArray(pattern) && pattern.length > 2) setTimeout(iosTick, 70); }
   } catch { /* unsupported */ }
 }
+
+// Short "click" when a barcode is read (generated, no audio file). Browsers only allow sound after a tap, so the audio context is unlocked on the first touch.
+let ctx: AudioContext | null = null;
+const audio = () => {
+  if (ctx || typeof window === 'undefined') return ctx;
+  const A = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  try { ctx = A ? new A() : null; } catch { ctx = null; }
+  return ctx;
+};
+if (typeof document !== 'undefined') document.addEventListener('pointerdown', () => { const c = audio(); if (c && c.state === 'suspended') c.resume().catch(() => undefined); }, { passive: true });
+
+export function scanClick() {
+  if (!enabled) return;
+  try {
+    const c = audio();
+    if (!c) return;
+    if (c.state === 'suspended') c.resume().catch(() => undefined);
+    const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+    o.type = 'square'; o.frequency.setValueAtTime(1800, t); o.frequency.exponentialRampToValueAtTime(900, t + 0.04);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + 0.07);
+  } catch { /* no sound available */ }
+}
