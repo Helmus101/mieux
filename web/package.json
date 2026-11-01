@@ -9,6 +9,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "@zxing/library": "^0.21.3",
     "axios": "^1.21.0",
     "qrcode-generator": "^2.0.4",
