@@ -16,7 +16,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 def _load_dotenv() -> None:
-    """Tiny .env reader (KEY=value lines) so secrets like LLM_API_KEY live in backend/.env, never in client code. Real env vars win."""
+    """Tiny .env reader (KEY=value lines) so secrets live in backend/.env, never in client code. Real env vars win."""
     path = os.path.join(os.path.dirname(__file__), "..", ".env")
     if not os.path.exists(path):
         return
@@ -58,7 +58,7 @@ app.add_middleware(
 
 app.state.off = OFFClient()
 app.state.prices = value.OpenPricesClient()
-app.state.llm = exp.llm_from_env()  # optional: only set when LLM_API_KEY is configured; the explanation then falls back to a deterministic template
+app.state.llm = None  # no language model: explanations are always built from the computed facts
 app.state.sessions = db.make_session_factory()
 with app.state.sessions() as _s:
     retail.seed(_s)

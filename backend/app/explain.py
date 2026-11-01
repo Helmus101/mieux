@@ -1,33 +1,11 @@
 """Natural-language explanation of a comparison. All numbers come from the engine (facts). A language model may only rephrase them;
 its output is rejected if it contains any number that is not in the facts, or a health claim. The deterministic template is the fallback."""
-import os
 import re
 from typing import Any, Dict, List, Optional, Protocol, Set
-
-import httpx
 
 
 class LLM(Protocol):
     def complete(self, system: str, user: str) -> Optional[str]: ...
-
-
-class OpenAICompatLLM:
-    """Any OpenAI-compatible chat endpoint (DeepSeek by default). Configured with LLM_API_KEY, LLM_BASE_URL, LLM_MODEL."""
-    def __init__(self, key: str, base: str = "https://api.deepseek.com", model: str = "deepseek-chat"):
-        self.key, self.base, self.model = key, base.rstrip("/"), model
-
-    def complete(self, system: str, user: str) -> Optional[str]:
-        try:
-            r = httpx.post(f"{self.base}/chat/completions", headers={"Authorization": f"Bearer {self.key}"}, timeout=20,
-                           json={"model": self.model, "temperature": 0, "max_tokens": 220, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]})
-            return r.json()["choices"][0]["message"]["content"].strip() if r.status_code == 200 else None
-        except (httpx.HTTPError, KeyError, ValueError, IndexError):
-            return None
-
-
-def llm_from_env() -> Optional[LLM]:
-    key = os.environ.get("LLM_API_KEY")
-    return OpenAICompatLLM(key, os.environ.get("LLM_BASE_URL", "https://api.deepseek.com"), os.environ.get("LLM_MODEL", "deepseek-chat")) if key else None
 
 
 def make_facts(orig: Dict[str, Any], alt: Dict[str, Any], orig100: Optional[float], alt100: Optional[float]) -> Dict[str, Any]:
