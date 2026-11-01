@@ -17,6 +17,11 @@ class User(Base):  # anonymous session user; an auth provider can map onto this 
     __tablename__ = "users"
     id = Column(String, primary_key=True)
     supabase_id = Column(String, unique=True, nullable=True)  # Optional: link to Supabase auth
+    name = Column(String, nullable=True)  # first name, only to know who is using the app
+    city = Column(String, nullable=True)
+    postcode = Column(String, nullable=True)
+    platform = Column(String, nullable=True)  # web | ios | android
+    last_seen_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=now)
 
 

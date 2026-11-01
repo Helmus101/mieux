@@ -5,13 +5,14 @@
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
 .landing *{box-sizing:border-box}
 .landing h1,.landing h2,.landing h3,.landing p{margin:0;letter-spacing:inherit;text-transform:none;color:inherit}
-.landing button{font:inherit;color:inherit;cursor:pointer}
+/* no color here: this rule outranks .lp-btn, and inheriting ink made the filled buttons black on black */
+.landing button{font:inherit;cursor:pointer}
 .lp-in{width:100%;max-width:1120px;margin:0 auto}
 
 /* ---------- top bar ---------- */
 .lp-nav{display:flex;align-items:center;gap:10px;padding:16px clamp(18px,5vw,56px);border-bottom:1px solid var(--line)}
 .lp-word{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:800;letter-spacing:-.045em;text-decoration:none;color:var(--ink)}
-.lp-word i{display:block;width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 1px rgba(14,21,18,.38)}
+.lp-word img{display:block;width:32px;height:32px;border-radius:9px}
 .lp-navlinks{display:flex;gap:22px;margin-left:auto;margin-right:22px}
 .lp-navlinks button{border:0;background:none;font-size:14px;color:var(--soft);padding:6px 0;transition:color .2s}
 .lp-navlinks button:hover{color:var(--ink)}
@@ -128,6 +129,8 @@
   background:var(--ink);color:rgba(251,247,236,.55);font-size:12.5px;border-top:1px solid rgba(251,247,236,.14)}
 .lp-foot .lp-btn{background:var(--cream);color:var(--ink);padding:9px 18px;font-size:13px}
 .lp-measure{font-size:11.5px;opacity:.8}
+.lp-footlink{color:rgba(251,247,236,.8);font-size:13px;text-decoration:underline;text-underline-offset:4px}
+.lp-footlink:hover{color:var(--cream)}
 
 /* ---------- reveal on scroll ---------- */
 .lp-reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .8s cubic-bezier(.32,.72,0,1)}

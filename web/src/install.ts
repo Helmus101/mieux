@@ -31,11 +31,10 @@ export const isPhone = () => {
 
 export const APP_PATH = '/app';
 
-const IN_APP = 'mieux_in_app';
-/** The landing page lives only at the root, and only on computers and iPads. Phones, installed apps, deep links and ?app go straight to the app. */
+/** The landing page lives only at the root, and only on computers and iPads. Phones, deep links and ?app go straight to the app.
+ *  The root always shows it: a computer never lands inside the app by surprise, not even in an installed window or a tab
+ *  where the app was already opened. */
 export const wantsLanding = () => {
-  if (typeof window === 'undefined' || isPhone() || isInstalled()) return false;
-  if (window.location.pathname !== '/' || new URLSearchParams(window.location.search).has('app')) return false;
-  try { return sessionStorage.getItem(IN_APP) !== '1'; } catch { return true; }
+  if (typeof window === 'undefined' || isPhone()) return false;
+  return window.location.pathname === '/' && !new URLSearchParams(window.location.search).has('app');
 };
-export const enterApp = () => { try { sessionStorage.setItem(IN_APP, '1'); } catch { /* storage unavailable */ } };

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { api } from '../api/client';
 import { load, save } from '../storage';
 import { PARIS_DEFAULT } from '../zones';
 import { setStrict } from '../config';
@@ -17,9 +18,31 @@ interface State extends Profile {
   compare: string[]; addCompare: (id: string) => void; removeCompare: (id: string) => void; clearCompare: () => void;
 }
 const KEY = 'fiq_profile';
+const platformOf = (): string => {
+  if (typeof navigator === 'undefined') return 'web';
+  const nav = navigator as unknown as { userAgent?: string; product?: string };
+  if (nav.product === 'ReactNative') return 'native';
+  const ua = nav.userAgent ?? '';
+  if (/iPhone|iPad|iPod/.test(ua)) return 'ios';
+  return /Android/i.test(ua) ? 'android' : 'web';
+};
+// Only the first name and city are sent to the server, so the owner can see who uses Mieux without an account.
+// Scans, receipts and prices never go through this call. Debounced: the name field saves on every keystroke.
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+const pushIdentity = (s: Profile) => {
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    api.putIdentity({ name: s.name || null, city: s.place?.city ?? null, postcode: s.place?.postcode ?? null, platform: platformOf() })
+      .catch(() => undefined);           // offline or server restarting: the local profile stays the source of truth
+  }, 1500);
+};
 const init: Profile = load<Profile>(KEY, { onboarded: false, priorities: [], diet: 'omnivore', allergens: [], name: '', place: null, chains: [], strictAdditives: true, autoCamera: false });
 setStrict(init.strictAdditives !== false);
-const persist = (s: Profile) => save(KEY, { onboarded: s.onboarded, priorities: s.priorities, diet: s.diet, allergens: s.allergens, name: s.name ?? '', place: s.place ?? null, chains: s.chains ?? [], strictAdditives: s.strictAdditives !== false, autoCamera: s.autoCamera === true });
+const persist = (s: Profile) => {
+  save(KEY, { onboarded: s.onboarded, priorities: s.priorities, diet: s.diet, allergens: s.allergens, name: s.name ?? '', place: s.place ?? null, chains: s.chains ?? [], strictAdditives: s.strictAdditives !== false, autoCamera: s.autoCamera === true });
+  pushIdentity(s);
+};
 
 export const useProfile = create<State>((set, get) => ({
   ...init,

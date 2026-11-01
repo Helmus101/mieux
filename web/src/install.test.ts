@@ -28,7 +28,7 @@ describe('who gets the landing page', () => {
 describe('landing page vs app', () => {
   const at = (pathname: string, search = '') => {
     vi.stubGlobal('window', { location: { pathname, search }, matchMedia: () => ({ matches: false }) });
-    vi.stubGlobal('sessionStorage', { getItem: () => null });
+    vi.stubGlobal('sessionStorage', { getItem: () => '1' });   // as if the app had already been opened in this tab
   };
   afterEach(() => { vi.unstubAllGlobals(); });
   it('a computer sees the landing page at the root only', () => {
@@ -44,5 +44,11 @@ describe('landing page vs app', () => {
   it('an iPad gets the landing page', () => {
     ua('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1', { platform: 'MacIntel', maxTouchPoints: 5 });
     at('/'); expect(wantsLanding()).toBe(true);
+  });
+  it('a computer gets the landing page even after opening the app, and in an installed window', () => {
+    ua('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/124.0 Safari/537.36', { platform: 'MacIntel' });
+    at('/'); expect(wantsLanding()).toBe(true);            // the app was already opened in this tab
+    vi.stubGlobal('window', { location: { pathname: '/', search: '' }, matchMedia: () => ({ matches: true }) });
+    expect(wantsLanding()).toBe(true);                     // installed desktop app window, still at the root
   });
 });

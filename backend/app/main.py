@@ -1,5 +1,6 @@
 import hashlib
 import re
+import secrets
 from datetime import date, timedelta
 from sqlalchemy.exc import IntegrityError
 import json
@@ -853,6 +854,64 @@ def put_prefs(body: Prefs, uid: str = Depends(user), s: Session = Depends(get_db
     s.merge(r)
     s.commit()
     return body
+
+
+class MeIdentity(BaseModel):
+    name: Optional[str] = None
+    city: Optional[str] = None
+    postcode: Optional[str] = None
+    platform: Optional[str] = None  # web | ios | android | native
+
+
+def _identity(row: Optional[db.User]) -> Dict[str, Any]:
+    if row is None:
+        return {"name": None, "city": None, "postcode": None, "platform": None, "first_seen": None, "last_seen": None}
+    return {"name": row.name, "city": row.city, "postcode": row.postcode, "platform": row.platform,
+            "first_seen": row.created_at.isoformat() if row.created_at else None,
+            "last_seen": row.last_seen_at.isoformat() if row.last_seen_at else None}
+
+
+@app.get("/v1/me/profile")
+def get_identity(uid: str = Depends(user), s: Session = Depends(get_db)):
+    """What is stored about this person: a first name and a city. No account, no e-mail, no password."""
+    return _identity(s.get(db.User, uid))
+
+
+@app.put("/v1/me/profile")
+def put_identity(body: MeIdentity, uid: str = Depends(user), s: Session = Depends(get_db)):
+    """Save the first name and city typed in the profile, so the owner can see who uses Mieux and the profile
+    survives a cleared browser. Everything else (scans, receipts, prices) stays on the device."""
+    row = s.get(db.User, uid) or db.User(id=uid)
+    row.name = (body.name or "").strip()[:80] or None
+    row.city = (body.city or "").strip()[:80] or None
+    row.postcode = (body.postcode or "").strip()[:12] or None
+    row.platform = (body.platform or "").strip()[:16] or None
+    row.last_seen_at = db.now()
+    s.merge(row)
+    s.commit()
+    return _identity(row)
+
+
+@app.get("/v1/people")
+@limiter.limit("30/minute")
+def people(request: Request, days: int = 30, limit: int = 100,
+           x_admin_key: Optional[str] = Header(None), s: Session = Depends(get_db)):
+    """Who is using Mieux: the names and cities people saved, newest activity first. Closed unless ADMIN_KEY is set
+    and sent as X-Admin-Key, so this list is never public."""
+    key = os.environ.get("ADMIN_KEY", "")
+    if not key or not x_admin_key or not secrets.compare_digest(x_admin_key, key):
+        raise HTTPException(404, "Not found")
+    days, limit = max(1, min(365, days)), max(1, min(500, limit))
+    since = db.now() - timedelta(days=days)
+    rows = [r for r in s.query(db.User).order_by(db.User.created_at.desc()).limit(5000).all() if (r.last_seen_at or r.created_at) and (r.last_seen_at or r.created_at) >= since]
+    rows.sort(key=lambda r: r.last_seen_at or r.created_at, reverse=True)
+    rows = rows[:limit]
+    scans = dict(s.query(db.Scan.user_id, func.count(db.Scan.id)).group_by(db.Scan.user_id).all())
+    return {"total_users": s.query(func.count(db.User.id)).scalar() or 0,
+            "with_name": s.query(func.count(db.User.id)).filter(db.User.name.isnot(None)).scalar() or 0,
+            "window_days": days,
+            "people": [{**_identity(r), "id": r.id, "scans": scans.get(r.id, 0)} for r in rows],
+            "note": "Sans compte : un identifiant d'appareil, le prénom et la ville saisis dans le profil."}
 
 
 def _warm_stores(chains: List[str], lat: float, lon: float) -> None:

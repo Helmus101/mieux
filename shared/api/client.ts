@@ -12,6 +12,9 @@ import type {
 } from '../types';
 
 
+export interface IdentityInput { name: string | null; city: string | null; postcode: string | null; platform: string | null }
+export interface Identity extends IdentityInput { first_seen: string | null; last_seen: string | null }
+
 export class MieuxAPI {
   private client: AxiosInstance;
   private token: string | null = null;
@@ -216,6 +219,18 @@ export class MieuxAPI {
 
   async getInsights() {
     const response = await this.client.get('/insights');
+    return response.data;
+  }
+
+  // Who is using the app: first name and city, saved without an account so the profile is not lost
+  // with the browser storage. Nothing else leaves the device through this endpoint.
+  async getIdentity(): Promise<Identity> {
+    const response = await this.client.get('/me/profile');
+    return response.data;
+  }
+
+  async putIdentity(p: IdentityInput) {
+    const response = await this.client.put('/me/profile', p);
     return response.data;
   }
 

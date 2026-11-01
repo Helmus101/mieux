@@ -139,7 +139,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
   return (
     <div className="landing" ref={root}>
       <header className="lp-nav">
-        <a className="lp-word" href="/" aria-label="Mieux"><i />mieux</a>
+        <a className="lp-word" href="/" aria-label="Mieux"><img src="/logo.svg" alt="" width={32} height={32} />mieux</a>
         <div className="lp-navlinks">
           <button onClick={() => go('vs')}>{t('land.navVs')}</button>
           <button onClick={() => go('try')}>{t('land.navTry')}</button>
@@ -211,6 +211,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
 
       <footer className="lp-foot">
         <span>{t('land.foot')}<br /><span className="lp-measure">{t('land.measure')}</span></span>
+        <a className="lp-footlink" href="/stats">{t('usage.link')}</a>
         <button className="lp-btn sm" onClick={onEnter}>{t('land.open')}</button>
       </footer>
     </div>
