@@ -223,3 +223,4 @@ p{margin:12px 0;line-height:1.5}
 .pill{margin:4px 8px 4px 0;padding:5px 12px}
 .ob{padding-left:26px;padding-right:26px}
 .storeline{padding:10px 0}.storeline+.storeline{border-top:.5px solid var(--line)}.storeline>div+div{margin-top:4px}
+.addrow{padding:18px 0;cursor:pointer}.addrow+.addrow{border-top:.5px solid var(--line)}.addhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.addname{flex:1;min-width:120px}.addrow p{margin:8px 0 0}

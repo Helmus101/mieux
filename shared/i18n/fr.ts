@@ -130,6 +130,8 @@ export const fr = {
     nearTitle: 'Aucun magasin à proximité', nearWhy: 'Aucun produit comparable n\'est vendu dans une enseigne à moins de {r} km de chez vous. Vérifiez votre adresse et vos enseignes dans le profil.', nearAction: 'Ouvrir le profil',
     sameTitle: 'Aucun produit du même format', sameWhy: 'Aucun produit comparable n\'a une taille de paquet proche du vôtre.', sameAction: 'Afficher tous les formats',
   },
+  addl: { title: 'Additifs', A: 'Sans risque', B: 'Risque limité', C: 'Risque modéré', D: 'Risque élevé', none: 'Aucun additif : rien à signaler.', count: '{n} additif(s)', bad: '{n} à risque', allOk: 'aucun à risque', more: 'Voir le détail',
+    reg: 'Selon les autorités sanitaires : {x}', strictNote: 'Notre lecture est plus prudente que celle des autorités.', avoid: 'À éviter si possible', risky: 'Additifs à risque', unknown: 'Peu de données sur cet additif : traité avec prudence.' },
   alt: { seeProduct: 'Voir la fiche produit',
     title: 'Alternatives', today: 'Aujourd\'hui, je veux…', todaySub: 'Temporaire, votre profil reste inchangé.', mode: 'Type d\'alternatives', similar: 'Aussi proches que possible', any: 'Toute la catégorie', run: 'Actualiser',
     considered: '{n} produits comparés', excluded: 'Exclus : {c} en conflit avec vos restrictions, {u} non vérifiables, {i} avec des valeurs manquantes, {n} pas meilleurs sur votre première priorité.',

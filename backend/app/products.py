@@ -7,7 +7,7 @@ from .value import parse_quantity
 from .score import quality
 from .taxonomy import classify
 
-SCHEMA_VERSION = 26  # bump when normalize() output changes so cached rows are refreshed
+SCHEMA_VERSION = 27  # bump when normalize() output changes so cached rows are refreshed
 CORE = ["energyKcal100g", "fat100g", "saturatedFat100g", "carbohydrates100g", "sugars100g", "protein100g", "salt100g"]
 NS_RANK = {"a": 5, "b": 4, "c": 3, "d": 2, "e": 1}
 

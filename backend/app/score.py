@@ -302,7 +302,7 @@ def d_additives(adds: List[str], strict: bool = False):
     for a in adds:
         lvl, known = additive_level(a, strict)
         info = additive_info(a)
-        items.append({"code": a.lower().replace("en:", ""), "level": lvl, "known": known, "name": info["name"], "note": info["why"] or ADD_NOTE[lvl]})
+        items.append({"code": a.lower().replace("en:", ""), "level": lvl, "balanced": additive_level(a, False)[0], "known": known, "name": info["name"], "note": info["why"] or ADD_NOTE[lvl]})
         pen += pens[lvl]
     return max(0.0, 100.0 - pen), {"items": items, "count": len(items)}
 
