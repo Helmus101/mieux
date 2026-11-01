@@ -17,7 +17,7 @@ export default function Profile() {
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const locate = async () => { setMsg(''); const r = await findCity(); if (r === 'denied') setMsg(t('about.locDenied')); else if (!r) setMsg(t('about.locFail')); else p.setPlace(r); };
-  const exp = async () => { const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = 'foodiq-donnees.json'; a.click(); };
+  const exp = async () => { const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = 'mieux-donnees.json'; a.click(); };
   const erase = async () => { if (!confirm(t('profile.eraseConfirm'))) return; await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset(); location.href = '/'; };
   return (
     <Screen>

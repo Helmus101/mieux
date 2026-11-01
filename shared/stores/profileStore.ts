@@ -7,7 +7,7 @@ export type Diet = 'omnivore' | 'vegetarian' | 'vegan';
 export const PRIORITY_KEYS = ['value', 'budget', 'overall', 'sugars', 'protein', 'fibre', 'additives'] as const;
 export const ALLERGEN_KEYS = ['gluten', 'milk'] as const; // the two restrictions offered at onboarding; the API accepts all 14 EU allergens
 
-export interface Place { city: string; postcode: string | null; lat?: number; lon?: number; label?: string }
+export interface Place { city: string; postcode: string | null; lat?: number; lon?: number; label?: string; exact?: boolean }
 interface Profile { onboarded: boolean; priorities: string[]; diet: Diet; allergens: string[]; name?: string; place?: Place | null; chains?: string[]; strictAdditives?: boolean; autoCamera?: boolean }
 export interface Zone { lat: number; lon: number; label: string; radius_km: number }
 interface State extends Profile {

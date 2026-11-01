@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { t } from '@shared/i18n';
 import { useProfile, PRIORITY_KEYS } from '@shared/stores';
-import { Button, Card, Muted, Pill } from '../ui';
-import { findCity } from '../place';
+import { Button, Card, Muted, Pill, Cell, ChainLogo } from '../ui';
+import { CHAIN_LIST } from '@shared/chains';
+import { findCity, searchAddress, type Home } from '../place';
 
 const DIET: [string, string][] = [['omnivore', 'diet'], ['vegetarian', 'diet'], ['vegan', 'diet'], ['gluten', 'allergen'], ['milk', 'allergen'], ['peanuts', 'allergen'], ['nuts', 'allergen']];
 const LIST = [...PRIORITY_KEYS, 'eco'];
@@ -11,6 +12,10 @@ export default function Onboarding() {
   const p = useProfile();
   const [step, setStep] = useState(-1);
   const [busy, setBusy] = useState(false), [msg, setMsg] = useState('');
+  const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
+  const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
+  const okAbout = !!p.name?.trim() && p.place?.lat != null && !!p.place?.exact;
+  const chains = p.chains ?? [];
   const locate = async () => {
     setBusy(true); setMsg('');
     const r = await findCity();
@@ -20,31 +25,40 @@ export default function Onboarding() {
   if (step === -1) return (
     <div className="ob">
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div className="kicker">FOODIQ</div><h1 style={{ fontSize: 38 }}>{t('welcome.title')}</h1><Muted>{t('welcome.sub')}</Muted>
+        <div className="kicker">MIEUX</div><h1 style={{ fontSize: 38 }}>{t('welcome.title')}</h1><Muted>{t('welcome.sub')}</Muted>
       </div>
       <Button primary onPress={() => setStep(0)}>{t('welcome.start')}</Button>
-      <Button plain onPress={() => p.finish()}>{t('welcome.guest')}</Button>
     </div>
   );
   return (
     <div className="ob">
-      <div className="dots"><i className={step === 0 ? 'on' : ''} /><i className={step === 1 ? 'on' : ''} /><i className={step === 2 ? 'on' : ''} /></div>
+      <div className="dots"><i className={step === 0 ? 'on' : ''} /><i className={step === 1 ? 'on' : ''} /><i className={step === 2 ? 'on' : ''} /><i className={step === 3 ? 'on' : ''} /></div>
       {step === 0 && (<>
         <h1 style={{ fontSize: 30 }}>{t('about.title')}</h1><Muted>{t('about.sub')}</Muted>
         <p className="mut sm" style={{ marginBottom: 2 }}>{t('about.name')}</p>
         <input value={p.name ?? ''} onChange={(e) => p.setName(e.target.value)} placeholder={t('about.namePh')} autoComplete="given-name" />
         <Card>
           <b>{t('about.locTitle')}</b>
-          {p.place ? <p><Pill>{[p.place.city, p.place.postcode].filter(Boolean).join(' · ')}</Pill></p> : <p className="mut sm">{t('about.locHint')}</p>}
+          {p.place ? <p><Pill tone={p.place.exact ? undefined : 'g'}>{p.place.label ?? ([p.place.city, p.place.postcode].filter(Boolean).join(' · '))}</Pill></p> : <p className="mut sm">{t('about.locHint')}</p>}
+          <input value={q} onChange={(e) => type(e.target.value)} placeholder={t('about.addrPh')} autoComplete="street-address" />
+          {sugg.map((a) => <Cell key={a.label} onPress={() => { p.setPlace(a); setQ(''); setSugg([]); }}>{a.label}</Cell>)}
           <Button disabled={busy} onPress={locate}>{busy ? t('about.locBusy') : p.place ? t('about.change') : t('about.locBtn')}</Button>
           {msg && <p style={{ color: 'var(--warn)' }}>{msg}</p>}
           {p.place && <Button small plain danger onPress={() => p.setPlace(null)}>{t('about.clear')}</Button>}
         </Card>
         <div style={{ flex: 1 }} />
-        <Button primary onPress={() => setStep(1)}>{t('common.continue')}</Button>
-        <Button plain onPress={() => setStep(1)}>{t('common.skip')}</Button>
+        {!okAbout && <p className="mut sm">{t('welcome.need')}</p>}
+        <Button primary disabled={!okAbout} onPress={() => setStep(1)}>{t('common.continue')}</Button>
       </>)}
       {step === 1 && (<>
+        <h1 style={{ fontSize: 30 }}>{t('chains.title')}</h1><Muted>{t('chains.sub')}</Muted>
+        <div className="chain-pick" style={{ marginTop: 14 }}>{CHAIN_LIST.map((c) => { const on = chains.includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
+        <div style={{ flex: 1 }} />
+        {!chains.length && <p className="mut sm">{t('welcome.needChains')}</p>}
+        <Button primary disabled={!chains.length} onPress={() => setStep(2)}>{t('common.continue')}</Button>
+        <Button plain onPress={() => setStep(0)}>{t('common.back')}</Button>
+      </>)}
+      {step === 2 && (<>
         <h1 style={{ fontSize: 30 }}>{t('onboarding.t1')}</h1>
         <Muted>{t('onboarding.s1')} · {t('onboarding.selected', { n: p.priorities.length })}</Muted>
         <div style={{ marginTop: 14 }}>
@@ -55,10 +69,11 @@ export default function Onboarding() {
           ))}
         </div>
         <div style={{ flex: 1 }} />
-        <Button primary onPress={() => setStep(2)}>{t('common.continue')}</Button>
-        <Button plain onPress={() => setStep(0)}>{t('common.back')}</Button>
+        {!p.priorities.length && <p className="mut sm">{t('welcome.needPrio')}</p>}
+        <Button primary disabled={!p.priorities.length} onPress={() => setStep(3)}>{t('common.continue')}</Button>
+        <Button plain onPress={() => setStep(1)}>{t('common.back')}</Button>
       </>)}
-      {step === 2 && (<>
+      {step === 3 && (<>
         <h1 style={{ fontSize: 30 }}>{t('onboarding.t2')}</h1><Muted>{t('onboarding.s2')}</Muted>
         <div style={{ marginTop: 14 }}>
           {DIET.map(([k, kind]) => {
@@ -69,7 +84,7 @@ export default function Onboarding() {
         <Muted>{t('onboarding.allergyNote')}</Muted>
         <div style={{ flex: 1 }} />
         <Button primary onPress={() => p.finish()}>{t('onboarding.start')}</Button>
-        <Button plain onPress={() => setStep(1)}>{t('common.back')}</Button>
+        <Button plain onPress={() => setStep(2)}>{t('common.back')}</Button>
       </>)}
     </div>
   );

@@ -167,3 +167,19 @@ h2{font-size:12px;letter-spacing:.06em;margin:22px 2px 8px}
 .chain-pick{display:flex;flex-wrap:wrap;gap:8px}.chain-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px 6px 6px;font:inherit;font-size:14px;cursor:pointer;color:var(--ink)}
 .chain-chip.on{border-color:var(--ink);background:var(--tint);font-weight:600}
 .logos{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
+
+/* full-screen scanner */
+.cam{position:fixed;inset:0;z-index:100;background:#000;color:#fff;overflow:hidden}
+.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam-mask{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.cam-frame{position:relative;width:78%;max-width:420px;aspect-ratio:1.7;border-radius:20px;box-shadow:0 0 0 100vmax rgba(0,0,0,.5);border:2px solid rgba(255,255,255,.9)}
+.cam-frame i{position:absolute;left:8%;right:8%;top:50%;height:2px;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:scanline 2s ease-in-out infinite}
+.cam-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:max(16px,env(safe-area-inset-top)) 16px 0}
+.cam-btn{width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.cam-btn svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cam-btn.lit{background:#fff}.cam-btn.lit svg{stroke:#000}
+.cam-bottom{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px 20px max(28px,env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.65))}
+.cam-bottom p{margin:0;font-weight:600;text-align:center;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.cam-err{color:#ffb4ab}
+.cam-main{border:0;border-radius:14px;padding:15px 28px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:16px;cursor:pointer}
+.cam-link{font-size:14px;opacity:.85;text-decoration:underline;cursor:pointer}

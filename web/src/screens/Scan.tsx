@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { api } from '@shared/api/client';
 import { useProfile } from '@shared/stores';
 import { t } from '@shared/i18n';
-import { Screen, NavBar, LargeTitle, Card, Button, Row, Muted, haptic } from '../ui';
+import { haptic } from '../ui';
 import { routes, useNav } from '../nav';
 import { Cancelled, closeCamera, decodeImage, openCamera, scanBarcodes, setTorch, torchSupported } from '../scanner';
 
@@ -37,21 +37,20 @@ export default function Scan() {
     const c = await decodeImage(f).catch(() => null);
     if (c) { haptic('success'); stop(); open(c); } else { haptic('error'); setErr(t('scan.noCode')); }
   };
+  const close = () => { haptic('tap'); stop(); go(forCompare ? routes.compare : routes.home); };
   return (
-    <Screen>
-      <NavBar title={t('scan.title')} />
-      <LargeTitle sub={forCompare ? t('compare.scanForCompare') : t('simple.scanSub')}>{t('scan.title')}</LargeTitle>
-      <Card>
-        <div className="viewfinder" style={{ display: on ? 'block' : 'none' }}><video ref={video} muted playsInline /><i /></div>
-        {!on && <div style={{ textAlign: 'center', padding: '28px 0' }}>
-          <svg viewBox="0 0 24 24" width="64" height="64" style={{ stroke: 'var(--mut)', fill: 'none', strokeWidth: 1.4, strokeLinecap: 'round' }}><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M7 12h10" /></svg>
-          <Muted>{t('simple.camNeeded')}</Muted></div>}
-        {on ? <Muted>{t('scan.point')}</Muted> : <Button primary onPress={start}>{t('scan.open')}</Button>}
-        <Row>{canTorch && on && <Button small onPress={flip}>{t('scan.torch')}{torch ? ' · on' : ''}</Button>}
-          <label className="btn sm" style={{ cursor: 'pointer' }}>{t('scan.gallery')}<input type="file" accept="image/*" hidden onChange={(e) => fromPhoto(e.target.files?.[0])} /></label></Row>
-        {err && <p style={{ color: 'var(--bad)' }}>{err}</p>}
-        <p className="mut sm">{t('scan.hint')}</p>
-      </Card>
-    </Screen>
+    <div className="cam">
+      <video ref={video} muted playsInline />
+      <div className="cam-mask"><div className="cam-frame"><i /></div></div>
+      <div className="cam-top">
+        <button className="cam-btn" onClick={close} aria-label={t('common.back')}><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
+        {canTorch && on && <button className={'cam-btn' + (torch ? ' lit' : '')} onClick={flip} aria-label={t('scan.torch')}><svg viewBox="0 0 24 24"><path d="M7 3h10l-2 7v3l-3 3-3-3v-3zM12 16v5" /></svg></button>}
+      </div>
+      <div className="cam-bottom">
+        {err ? <p className="cam-err">{err}</p> : <p>{on ? (forCompare ? t('compare.scanForCompare') : t('scan.point')) : t('simple.camNeeded')}</p>}
+        {!on && <button className="cam-main" onClick={start}>{t('scan.open')}</button>}
+        <label className="cam-link">{t('scan.gallery')}<input type="file" accept="image/*" hidden onChange={(e) => fromPhoto(e.target.files?.[0])} /></label>
+      </div>
+    </div>
   );
 }
