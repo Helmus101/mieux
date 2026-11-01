@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import delete
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -933,6 +934,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     if body.category_mode == "similar":
         # hard substitution filter first (type / form / use), then the user's own "not comparable" verdicts; similarity and quality only rank what survives
         rejected = {r.alt_id for r in s.query(db.ProductSubstitution).filter_by(user_id=uid, original_id=orig["id"], verdict="not_comparable").all()}
+        # learning from everyone: a pair that two different people flagged "not comparable" is hidden for all
+        rejected |= {a for (a,) in s.query(db.ProductSubstitution.alt_id).filter_by(original_id=orig["id"], verdict="not_comparable").group_by(db.ProductSubstitution.alt_id).having(func.count(func.distinct(db.ProductSubstitution.user_id)) >= 2).all()}
         kept = []
         for c in peers:
             sub = taxonomy.substitution(orig, c)

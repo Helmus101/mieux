@@ -66,7 +66,6 @@ export default function Product() {
         {p.score ? <>
           <Row spread><div className="scorebig" style={{ color: p.score.tone === 'b' ? 'var(--bad)' : p.score.tone === 'w' ? 'var(--warn)' : 'var(--accent)' }}>{p.score.total}<small>{t('score.outOf')}</small></div><span style={{ textAlign: 'right' }}><b>{t('score.' + p.score.band)}</b><br /><span className="mut sm">{t('score.title')}</span></span></Row>
           <ScoreBar total={p.score.total} label={t('score.spectrum')} />
-          {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
           {p.score.flags?.length > 0 && <div className="flags">{p.score.flags.slice(0, 3).map((f: any) => <span key={f.key} className={'pill ' + (f.level === 'bad' ? 'b' : 'w')}>{t('flag.' + f.key)}</span>)}</div>}
         </> : <Muted>{t('score.na')}</Muted>}
         {head.kind !== 'none' ? <p style={{ margin: '10px 0 0' }}><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('simple.noPrice')}</p>}
@@ -74,6 +73,7 @@ export default function Product() {
       </Card>
       <Button primary onPress={() => go(routes.alternatives(p.id))}>{t('simple.findBetter')}</Button>
       {p.score && <Collapsible title={t('sdim.title')}>
+          {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
         <Row wrap><NutriScore grade={p.nutriScore} />{verdict && <span className="mut sm"><span className={'dot ' + (verdict.tone ?? 'g')} />{verdict.text}</span>}</Row>
           <p className="mut sm">{t('sdim.profile', { x: t('prof.' + p.score.profile) })} · {t('sdim.confidence', { x: t('sdim.conf_' + p.score.confidence.level), p: p.score.confidence.pct })}{p.score.incomplete ? ' · ' + t('sdim.incomplete') : ''}</p>
           <div className="nsec">{t('sdim.amountsFor')}</div>
@@ -110,7 +110,7 @@ export default function Product() {
           <p className="mut sm">{t(p.score.mode === 'strict' ? 'score.method3' : 'score.method2')}</p>
       </Collapsible>}
 
-      <Collapsible title={t('where.title')}><Where barcode={p.id} liquid={isLiquid(p)} /></Collapsible>
+      <Collapsible open title={t('where.title')}><Where barcode={p.id} liquid={isLiquid(p)} /></Collapsible>
       {p.micronutrients?.length > 0 && <Collapsible title={t('simple.microSec')}>
         {p.micronutrients.map((m: any) => <div key={m.key} style={{ margin: '10px 0' }}><Row spread><span>{t('micro.' + m.key)}</span><Muted>{m.amount} {m.unit} · {m.nrv_pct}%</Muted></Row><Bar value={Math.min(1, m.nrv_pct / 100)} /></div>)}
         <p className="mut sm">{t('micro.note')}</p>

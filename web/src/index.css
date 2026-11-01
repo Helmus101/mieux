@@ -185,3 +185,40 @@ h2{font-size:12px;letter-spacing:.06em;margin:22px 2px 8px}
 .cam-link{font-size:14px;opacity:.85;text-decoration:underline;cursor:pointer}
 
 .chain-chip.off{opacity:.4;text-decoration:line-through}
+
+/* roomier, calmer layout (these rules come last on purpose) */
+.screen{padding:calc(env(safe-area-inset-top) + 16px) 22px calc(130px + env(safe-area-inset-bottom))}
+.navbar{margin:0 -22px;padding-left:22px;padding-right:22px}
+h1{margin:12px 0 10px;line-height:1.15}
+h2{margin:40px 4px 14px}
+h3{margin:0 0 10px}
+p{margin:12px 0;line-height:1.5}
+.mut{line-height:1.45}
+.card{padding:24px;margin:20px 0;border-radius:20px}
+.group{margin:20px 0}
+.cell{padding:16px 22px;min-height:56px}
+.row{gap:16px}
+.chips{gap:12px}
+.btn{padding:17px 20px;margin-top:12px}
+.btn.sm{padding:11px 18px;margin-top:0}
+.btn.plain{margin-top:4px}
+.seg{margin:16px 0}
+.coll{margin:18px 0;border-radius:20px}
+.coll>summary{padding:20px 22px}
+.coll-body{padding:2px 22px 24px}
+.coll-body>*+*{margin-top:14px}
+.nrow{margin:22px 0}
+.nrow-top{margin-bottom:10px}
+.nsec{margin:32px 0 6px}
+.trio{gap:14px;margin:22px 0}
+.trio div{padding:16px 6px;gap:6px}
+.flags{gap:10px;margin:18px 0 8px}
+.sugarbox{margin:24px 0;padding:18px;border-radius:16px}
+.scorebig{margin:4px 0}
+.chainrow>summary{padding:18px 0;gap:16px}
+.chainrow>div{padding:0 0 20px 54px}
+.sheet{padding:10px 24px calc(32px + env(safe-area-inset-bottom))}
+.sheet h3{margin:8px 0 12px}
+.logos{margin:14px 0;gap:10px}
+.pill{margin:4px 8px 4px 0;padding:5px 12px}
+.ob{padding-left:26px;padding-right:26px}

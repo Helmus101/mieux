@@ -4,7 +4,7 @@ import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useHistory, useProfile } from '@shared/stores';
 import { CHAIN_LIST } from '@shared/chains';
-import { Button, Card, ChainLogo, Collapsible, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Skeleton, Toast, haptic } from '../ui';
+import { Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
 import Where from '../Where';
@@ -24,7 +24,7 @@ export default function Alternatives() {
   // "Today" filters start from the saved profile and never write back to it.
   // Quality is judged on nutrition only; the price tabs come from the price rankings, so no price priority is sent.
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
-  const picked = useRef(false); const radius = NEAR_KM, [diffBy, setDiffBy] = useState<'kg' | 'pack'>('kg'), [sameSize, setSameSize] = useState(false), [subMax, setSubMax] = useState(3), [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
+  const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy, setDiffBy] = useState<'kg' | 'pack'>('kg'), [sameSize, setSameSize] = useState(false), [subMax, setSubMax] = useState(3), [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState('');
   const [expl, setExpl] = useState<Record<string, any>>({}), [note, setNote] = useState<string | null>(null);
   useEffect(() => {
@@ -60,6 +60,20 @@ export default function Alternatives() {
     const k = (e.price100 - o.per100_cents) * 10, pct = Math.round(((e.price100 - o.per100_cents) / o.per100_cents) * 100);
     return { text: Math.abs(k) < 1 ? t('diff.sameShort') : `${fmt(k)}${liquid ? '/L' : '/kg'}`, tone: tone(k), sub: Math.abs(k) < 1 ? undefined : `${pct > 0 ? '+' : ''}${pct} % ${t('diff.vs')}` };
   };
+  const detailBody = (e: any) => (<>
+              {e.why && <p style={{ margin: '0 0 8px' }}>{e.why}</p>}
+              {(() => { const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product)); return u ? <p className="mut sm" style={{ margin: '0 0 6px' }}>{t('diff.real')} : <b>{t(u.unit === 'L' ? 'simple.perL' : 'simple.perKg', { p: formatCents(u.perUnitCents) })}</b>{e.pack != null ? ` · ${t('size.pack', { s: e.size?.amount ? sizeLabel(e.size) : '' })} ${formatCents(e.pack)}` : ''}</p> : null; })()}
+              <Row wrap><NutriScore grade={e.product.nutriScore} /><NovaBadge group={e.product.novaGroup} estimated={e.product.novaEstimated} />{e.estimated && <Pill tone="w">{t('est.pill')}</Pill>}{e.product.frEvidence === 'off_tag' && <Pill tone="g">{t('where.toConfirm')}</Pill>}</Row>
+              {(e.vs != null || e.ps != null) && <p className="mut sm">{t('score.value')} {e.vs ?? '—'} · {t('score.priceScore')} {e.ps ?? '—'}</p>}
+              {e.tradeoffs?.length > 0 && <p className="mut sm">{t('alt.tradeoffs')} : {e.tradeoffs.slice(0, 2).join(' ; ')}</p>}
+              {expl[e.product.id]?.text && <Card tint><p style={{ margin: 0 }}>{expl[e.product.id].text}</p></Card>}
+              <Row wrap>
+                <Button primary onPress={() => { setDetail(null); go(routes.product(e.product.id)); }}>{t('alt.seeProduct')}</Button>
+                {!expl[e.product.id]?.text && <Button small plain onPress={() => explain(e.product.id)}>{expl[e.product.id]?.loading ? t('ex.loading') : t('ex.button')}</Button>}
+                <Button small plain onPress={async () => { try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setDetail(null); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}>{t('sub.notComparable')}</Button>
+              </Row>
+              <h3 style={{ marginTop: 24 }}>{t('where.title')}</h3><Where barcode={e.product.id} liquid={isLiquid(e.product)} />
+  </>);
   return (
     <Screen>
       <NavBar onBack={back} title={t('alt.title')} />
@@ -100,24 +114,12 @@ export default function Alternatives() {
             {diffOf(e) && e.stale && e.priceDate && <p className="mut sm" style={{ margin: '4px 0 0' }}>{t('diff.old', { d: String(e.priceDate).slice(0, 7) })}</p>}
             {e.size?.amount && <p className="mut sm" style={{ margin: '4px 0 0' }}>{t('size.pack', { s: sizeLabel(e.size) })}{e.ratio && (e.ratio >= 1.8 || e.ratio <= 0.55) ? ` · ${t(e.ratio >= 1 ? 'size.bigger' : 'size.smaller', { x: String(Math.round((e.ratio >= 1 ? e.ratio : 1 / e.ratio) * 10) / 10).replace('.', ',') })}` : ''}</p>}
             <p className="mut sm" style={{ margin: '4px 0 0' }}>{e.product.substitution ? t('sub.l' + e.product.substitution.level) : ''}{e.nearby ? ` · ${t('where.nearHomeShop', { s: e.nearby.store, d: String(e.nearby.distance_km).replace('.', ',') })}` : ''}</p>
-            <Collapsible title={t('simple.moreInfo')}>
-              {e.why && <p style={{ margin: '0 0 8px' }}>{e.why}</p>}
-              {(() => { const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product)); return u ? <p className="mut sm" style={{ margin: '0 0 6px' }}>{t('diff.real')} : <b>{t(u.unit === 'L' ? 'simple.perL' : 'simple.perKg', { p: formatCents(u.perUnitCents) })}</b>{e.pack != null ? ` · ${t('size.pack', { s: e.size?.amount ? sizeLabel(e.size) : '' })} ${formatCents(e.pack)}` : ''}</p> : null; })()}
-              <Row wrap><NutriScore grade={e.product.nutriScore} /><NovaBadge group={e.product.novaGroup} estimated={e.product.novaEstimated} />{e.estimated && <Pill tone="w">{t('est.pill')}</Pill>}{e.product.frEvidence === 'off_tag' && <Pill tone="g">{t('where.toConfirm')}</Pill>}</Row>
-              {(e.vs != null || e.ps != null) && <p className="mut sm">{t('score.value')} {e.vs ?? '—'} · {t('score.priceScore')} {e.ps ?? '—'}</p>}
-              {e.tradeoffs?.length > 0 && <p className="mut sm">{t('alt.tradeoffs')} : {e.tradeoffs.slice(0, 2).join(' ; ')}</p>}
-              {expl[e.product.id]?.text && <Card tint><p style={{ margin: 0 }}>{expl[e.product.id].text}</p></Card>}
-              <Row wrap>
-                <Button small onPress={() => go(routes.product(e.product.id))}>{t('home.explore')}</Button>
-                {!expl[e.product.id]?.text && <Button small plain onPress={() => explain(e.product.id)}>{expl[e.product.id]?.loading ? t('ex.loading') : t('ex.button')}</Button>}
-                <Button small plain onPress={async () => { try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}>{t('sub.notComparable')}</Button>
-              </Row>
-              <Collapsible title={t('where.title')}><Where barcode={e.product.id} liquid={isLiquid(e.product)} /></Collapsible>
-            </Collapsible>
+            <Button small plain onPress={() => { haptic('tap'); setDetail(e); }}>{t('simple.moreInfo')}</Button>
           </Card>);
       })}
       {r && !busy && <Row wrap><Button small plain onPress={() => setSameSize(!sameSize)}>{sameSize ? t('size.all') : t('size.same')}</Button>{sameSize && r && !r.same_size_applied && <span className="mut sm">{t('size.unknown')}</span>}</Row>}
       {r && !busy && <Button small plain onPress={() => setSubMax(subMax === 3 ? 4 : 3)}>{subMax === 3 ? t('sub.widen') : t('sub.narrow')}</Button>}
+      <Sheet open={!!detail} onClose={() => setDetail(null)} title={detail?.product.name}>{detail && detailBody(detail)}</Sheet>
       <Toast text={note} />
     </Screen>
   );

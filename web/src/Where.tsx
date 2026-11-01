@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { formatCents } from '@shared/utils/format';
@@ -31,10 +31,12 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
     setBusy(false);
   };
   const find = () => run(useHere, all);
+  useEffect(() => { if (hasHome) run(false, false); }, [barcode]); // your stores load by themselves when a home address is set
   const confirm = async (id: string) => { try { await api.confirmListing(barcode, id); if (pos) setRes(await api.retailers(barcode, pos.lat, pos.lon, RADIUS, all ? [] : mine)); setAdding(false); } catch (e: any) { setMsg(e.message); } };
   return (
     <div>
-      <Row wrap><Button small onPress={find} disabled={busy}>{busy ? t('where.loading') : t('where.btn')}</Button>
+      <Row wrap>{(!res || !hasHome) && <Button small onPress={find} disabled={busy}>{busy ? t('where.loading') : t('where.btn')}</Button>}
+        {busy && res && <span className="mut sm">{t('where.loading')}</span>}
         {res && hasHome && <Button small plain onPress={() => { setUseHere(!useHere); run(!useHere, all); }}>{useHere ? t('chains.fromHome') : t('chains.fromHere')}</Button>}
         </Row>
       {res && mine.length > 0 && <p className="mut sm" style={{ margin: '6px 0' }}>{all ? t('chains.showingAll') : t('chains.filtered', { n: mine.length })} <a style={{ cursor: 'pointer' }} onClick={() => { setAll(!all); run(useHere, !all); }}>{all ? t('chains.useMine') : (res.filtered_out > 0 ? t('chains.showHidden', { n: res.filtered_out }) : t('chains.every'))}</a></p>}
