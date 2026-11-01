@@ -8,6 +8,7 @@ import { Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Ro
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
 import Where from '../Where';
+import { friendlyError } from '../errors';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const NEAR_KM = 5; // only products sold at a chain with a branch within 5 km of home: fixed, not a setting
@@ -24,16 +25,16 @@ export default function Alternatives() {
   // "Today" filters start from the saved profile and never write back to it.
   // Quality is judged on nutrition only; the price tabs come from the price rankings, so no price priority is sent.
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
-  const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy, setDiffBy] = useState<'kg' | 'pack'>('kg'), [sameSize, setSameSize] = useState(false), [subMax, setSubMax] = useState(3), [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
-  const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState('');
+  const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy, setDiffBy] = useState<'kg' | 'pack'>('kg'), [sameSize, setSameSize] = useState(false), [subMax, setSubMax] = useState(3), [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
+  const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [expl, setExpl] = useState<Record<string, any>>({}), [note, setNote] = useState<string | null>(null);
   useEffect(() => {
     if (!barcode || !prios.length) return;
-    setBusy(true); setErr('');
+    setBusy(true); setErr(null);
     api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 10, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM }, nearby_only: true } : {}) })
       .then((x: any) => { setR(x); if (!picked.current) { const has = (k: string) => x.rankings?.[k === 'match' ? 'quality' : k]?.length > 0; const first = ['value', 'match', 'budget'].find((k) => k && has(k)); if (first) setRk(first); } addSearch({ originalId: barcode, originalName: x.original?.name ?? barcode, priorities: prios, mode, results: x.alternatives.map((a: any) => ({ id: a.product_id, name: a.product.name, brand: a.product.brand, priceCents: a.price_per_100_cents != null ? Math.round(a.price_per_100_cents) : null })) }); })
-      .catch((e: Error) => setErr(e.message)).finally(() => setBusy(false));
-  }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join()]);
+      .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
+  }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
   const explain = async (id: string) => { setExpl((e) => ({ ...e, [id]: { loading: true } })); try { const x = await api.explain(barcode!, id); setExpl((e) => ({ ...e, [id]: x })); } catch { setExpl((e) => ({ ...e, [id]: null })); } };
   const entries = (r?.rankings?.[rk === 'match' ? 'quality' : rk] ?? []).map((e: any) => ({ product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, ps: e.price_score, nearby: e.nearby, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }));
   // An alternative is shown only if it beats the scanned product on at least one thing: a higher quality score, or a lower price per kilo/litre.
@@ -88,12 +89,17 @@ export default function Alternatives() {
       {hasHome && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('near.label', { c: myChains.length ? t('near.mine') : t('near.all'), r: NEAR_KM })}</p>}
       {r?.rankings?.no_baseline && rk !== 'match' && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('rank.byPriceOnly')}</p>}
       {busy && <><Skeleton h={150} /><Skeleton h={150} /></>}
-      {err && <Card><Muted>{err}</Muted></Card>}
-      {r && !busy && !shown.length && (nothingNear
-        ? <Card><b>{t('near.none', { r: radius })}</b></Card>
-        : sameSize
-        ? <Card><b>{t('size.noneSame')}</b><Button small onPress={() => setSameSize(false)}>{t('size.all')}</Button></Card>
-        : <Card><b>{t(rk === 'match' ? 'rank.noBetterQuality' : r?.rankings?.no_baseline ? 'rank.noBaseline' : rk === 'budget' ? 'rank.noCheaper' : 'rank.noBetterValue')}</b></Card>)}
+      {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
+      {r && !busy && !shown.length && (() => {
+        const os = r?.original?.score?.total;
+        const m = nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
+          : sameSize ? { title: t('emptyAlt.sameTitle'), why: t('emptyAlt.sameWhy'), action: <Button small onPress={() => setSameSize(false)}>{t('emptyAlt.sameAction')}</Button> }
+          : rk === 'match' ? { title: t('emptyAlt.qualityTitle'), why: os != null ? t('emptyAlt.qualityWhy', { s: os }) : t('emptyAlt.qualityWhyNoScore') }
+          : r?.rankings?.no_baseline ? { title: t('emptyAlt.noPriceTitle'), why: t('emptyAlt.noPriceWhy') }
+          : rk === 'budget' ? { title: t('emptyAlt.cheaperTitle'), why: t('emptyAlt.cheaperWhy') }
+          : { title: t('emptyAlt.valueTitle'), why: t('emptyAlt.valueWhy') };
+        return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
+      })()}
       {r && !busy && shown.map((e: any, i: number) => {
         return (
           <Card key={e.product.id}>

@@ -1,3 +1,4 @@
+import { friendlyError } from './errors';
 import { useState } from 'react';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
@@ -16,10 +17,10 @@ export default function Contribute({ barcode, mine, onChange }: { barcode: strin
     if (!Object.keys(data).length) return;
     setBusy(true); setMsg('');
     try { const r = await api.contribute(barcode, data); haptic('success'); onChange(r.product); setMsg(t('add2.saved')); setVals({}); setIng(''); }
-    catch (e: any) { haptic('error'); setMsg(e.message); }
+    catch (e: any) { haptic('error'); const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); }
     setBusy(false);
   };
-  const reset = async () => { try { await api.clearContribution(barcode); const r = await api.getProduct(barcode); onChange(r.product); } catch (e: any) { setMsg(e.message); } };
+  const reset = async () => { try { await api.clearContribution(barcode); const r = await api.getProduct(barcode); onChange(r.product); } catch (e: any) { const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); } };
   return (
     <div>
       <Muted>{t('add2.hint')}</Muted>

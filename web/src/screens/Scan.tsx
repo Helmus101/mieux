@@ -28,7 +28,7 @@ export default function Scan() {
       const stopper = await scanBarcodes(video.current!, (c) => { haptic('success'); api.getProduct(c).catch(() => undefined); stop(); open(c); }, frame.current);
       if (id !== run.current) { stopper(); return; }
       stopScan.current = stopper;
-    } catch (e) { if (!(e instanceof Cancelled)) haptic('error'); if (!(e instanceof Cancelled)) setErr(t('scan.camFail', { e: (e as Error).message })); }
+    } catch (e) { if (!(e instanceof Cancelled)) haptic('error'); if (!(e instanceof Cancelled)) setErr(t((e as Error).name === 'NotAllowedError' ? 'scan.camDenied' : (e as Error).name === 'NotFoundError' ? 'scan.camNone' : 'scan.camFail', { e: (e as Error).message })); }
   };
   useEffect(() => { start(); return stop; }, []); // the live camera opens as soon as the screen does
   const flip = async () => { haptic('tap'); setTorchOn(await setTorch(stream.current, !torch)); };

@@ -5,6 +5,7 @@ import { formatCents } from '@shared/utils/format';
 import { useProfile } from '@shared/stores';
 import { CHAIN_LIST } from '@shared/chains';
 import { directionsUrl } from './place';
+import { friendlyError } from './errors';
 import { Button, ChainLogo, Muted, Row, haptic } from './ui';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -27,12 +28,12 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
     const p = live ? { lat: live.coords.latitude, lon: live.coords.longitude } : hasHome ? { lat: home!.lat!, lon: home!.lon! } : null;
     setPos(p); setUseHere(!!live && hasHome === true ? true : !hasHome);
     if (!p) { setMsg(t('where.denied')); setBusy(false); return; }
-    try { setRes(await api.retailers(barcode, p.lat, p.lon, RADIUS, everyChain ? [] : mine)); haptic('success'); } catch (e: any) { haptic('error'); setMsg(e.message); }
+    try { setRes(await api.retailers(barcode, p.lat, p.lon, RADIUS, everyChain ? [] : mine)); haptic('success'); } catch (e: any) { haptic('error'); const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); }
     setBusy(false);
   };
   const find = () => run(useHere, all);
   useEffect(() => { if (hasHome) run(false, false); }, [barcode]); // your stores load by themselves when a home address is set
-  const confirm = async (id: string) => { try { await api.confirmListing(barcode, id); if (pos) setRes(await api.retailers(barcode, pos.lat, pos.lon, RADIUS, all ? [] : mine)); setAdding(false); } catch (e: any) { setMsg(e.message); } };
+  const confirm = async (id: string) => { try { await api.confirmListing(barcode, id); if (pos) setRes(await api.retailers(barcode, pos.lat, pos.lon, RADIUS, all ? [] : mine)); setAdding(false); } catch (e: any) { const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); } };
   return (
     <div>
       <Row wrap>{(!res || !hasHome) && <Button small onPress={find} disabled={busy}>{busy ? t('where.loading') : t('where.btn')}</Button>}

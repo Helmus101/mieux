@@ -35,7 +35,7 @@ export default function Product() {
         {err.kind === 'notfound' && <><p style={{ margin: '4px 0' }}>{t('product.nf.code', { c: barcode ?? '' })}</p><p className="mut sm">{t('product.nf.why')}</p></>}
         {err.kind === 'invalid' && <p className="mut">{t('product.nf.invalid', { c: barcode ?? '' })}</p>}
         {err.kind === 'network' && <p className="mut">{t('net.down')}</p>}
-        {err.kind === 'server' && <p className="mut">{t('product.nf.srv')}{err.msg ? ` (${err.msg})` : ''}</p>}
+        {err.kind === 'server' && <p className="mut">{t('product.nf.srv')}</p>}
       </Card>
       {(err.kind === 'server' || err.kind === 'network') && <Button primary onPress={() => setAttempt((n) => n + 1)}>{t('common.retry')}</Button>}
       <Button primary={err.kind === 'notfound' || err.kind === 'invalid'} onPress={() => go(routes.scan)}>{t('product.nf.scanAgain')}</Button>
