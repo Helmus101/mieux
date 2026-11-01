@@ -183,3 +183,5 @@ h2{font-size:12px;letter-spacing:.06em;margin:22px 2px 8px}
 .cam-err{color:#ffb4ab}
 .cam-main{border:0;border-radius:14px;padding:15px 28px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:16px;cursor:pointer}
 .cam-link{font-size:14px;opacity:.85;text-decoration:underline;cursor:pointer}
+
+.chain-chip.off{opacity:.4;text-decoration:line-through}

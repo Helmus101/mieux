@@ -15,7 +15,9 @@ export default function Onboarding() {
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const okAbout = !!p.name?.trim() && p.place?.lat != null && !!p.place?.exact;
-  const chains = p.chains ?? [];
+  const all = CHAIN_LIST.map((c) => c.id);
+  const kept = (p.chains ?? []).length ? p.chains! : all;           // nothing stored = every chain is kept
+  const dislike = (id: string) => { const next = kept.includes(id) ? kept.filter((x) => x !== id) : [...kept, id]; if (next.length) p.setChains(next.length === all.length ? [] : next); };
   const locate = async () => {
     setBusy(true); setMsg('');
     const r = await findCity();
@@ -52,10 +54,10 @@ export default function Onboarding() {
       </>)}
       {step === 1 && (<>
         <h1 style={{ fontSize: 30 }}>{t('chains.title')}</h1><Muted>{t('chains.sub')}</Muted>
-        <div className="chain-pick" style={{ marginTop: 14 }}>{CHAIN_LIST.map((c) => { const on = chains.includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
+        <div className="chain-pick" style={{ marginTop: 14 }}>{CHAIN_LIST.map((c) => { const on = kept.includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : ' off')} onClick={() => dislike(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
         <div style={{ flex: 1 }} />
-        {!chains.length && <p className="mut sm">{t('welcome.needChains')}</p>}
-        <Button primary disabled={!chains.length} onPress={() => setStep(2)}>{t('common.continue')}</Button>
+        <p className="mut sm">{kept.length === all.length ? t('chains.allKept') : t('chains.keptN', { n: kept.length })}</p>
+        <Button primary onPress={() => setStep(2)}>{t('common.continue')}</Button>
         <Button plain onPress={() => setStep(0)}>{t('common.back')}</Button>
       </>)}
       {step === 2 && (<>

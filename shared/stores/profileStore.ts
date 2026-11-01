@@ -13,7 +13,7 @@ export interface Zone { lat: number; lon: number; label: string; radius_km: numb
 interface State extends Profile {
   estimates: boolean; setEstimates: (v: boolean) => void;
   zone: Zone | null; setZone: (z: Zone | null) => void;
-  setName: (n: string) => void; setPlace: (p: Place | null) => void; setStrictAdditives: (v: boolean) => void; setAutoCamera: (v: boolean) => void; toggleChain: (id: string) => void; clearChains: () => void; hydrate: () => void; togglePriority: (k: string) => void; setDiet: (d: Diet) => void; toggleAllergen: (k: string) => void; finish: () => void; reset: () => void;
+  setName: (n: string) => void; setPlace: (p: Place | null) => void; setStrictAdditives: (v: boolean) => void; setAutoCamera: (v: boolean) => void; toggleChain: (id: string) => void; setChains: (ids: string[]) => void; clearChains: () => void; hydrate: () => void; togglePriority: (k: string) => void; setDiet: (d: Diet) => void; toggleAllergen: (k: string) => void; finish: () => void; reset: () => void;
   compare: string[]; addCompare: (id: string) => void; removeCompare: (id: string) => void; clearCompare: () => void;
 }
 const KEY = 'fiq_profile';
@@ -33,6 +33,7 @@ export const useProfile = create<State>((set, get) => ({
   setAutoCamera: (v) => { set({ autoCamera: v }); persist({ ...get(), autoCamera: v }); },
   setStrictAdditives: (v) => { setStrict(v); set({ strictAdditives: v }); persist({ ...get(), strictAdditives: v }); },
   toggleChain: (id) => { const cur = get().chains ?? []; const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]; set({ chains: next }); persist({ ...get(), chains: next }); },
+  setChains: (ids) => { set({ chains: ids }); persist({ ...get(), chains: ids }); },
   clearChains: () => { set({ chains: [] }); persist({ ...get(), chains: [] }); },
   setPlace: (p) => { set({ place: p }); persist({ ...get(), place: p }); },
   hydrate: () => { const p = load<Profile>(KEY, init); setStrict(p.strictAdditives !== false); set({ ...p, zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), estimates: load<boolean>('fiq_estimates', false), compare: load<string[]>('fiq_compare', []) }); },
