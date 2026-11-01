@@ -6,6 +6,7 @@ import { t } from '@shared/i18n';
 import { haptic } from '../ui';
 import { routes, useNav } from '../nav';
 import { Cancelled, closeCamera, decodeImage, openCamera, scanBarcodes, setTorch, torchSupported } from '../scanner';
+import { playSound } from '../sound';
 
 // Products are identified by their barcode only: from the live camera or from a photo of the barcode. No typed codes, no name search.
 export default function Scan() {
@@ -25,7 +26,7 @@ export default function Scan() {
     const id = ++run.current;
     try {
       stream.current = await openCamera(video.current!, () => id === run.current); setOn(true); setCanTorch(torchSupported(stream.current));
-      const stopper = await scanBarcodes(video.current!, (c) => { haptic('success'); api.getProduct(c).catch(() => undefined); stop(); open(c); }, frame.current);
+      const stopper = await scanBarcodes(video.current!, (c) => { haptic('success'); playSound('scan'); api.getProduct(c).catch(() => undefined); stop(); open(c); }, frame.current);
       if (id !== run.current) { stopper(); return; }
       stopScan.current = stopper;
     } catch (e) { if (!(e instanceof Cancelled)) haptic('error'); if (!(e instanceof Cancelled)) setErr(t((e as Error).name === 'NotAllowedError' ? 'scan.camDenied' : (e as Error).name === 'NotFoundError' ? 'scan.camNone' : 'scan.camFail', { e: (e as Error).message })); }

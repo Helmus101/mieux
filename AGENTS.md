@@ -103,3 +103,38 @@ Backend can be deployed via:
 Web app deploys to Vercel/Netlify via `npm run build`.
 
 Mobile app deploys via Expo EAS.
+
+## PWA & Sound/Haptics
+
+The PWA (index.html) includes:
+- Haptic feedback via Web Vibration API
+- Sound effects via Web Audio API (synthetic beeps)
+- Barcode scanning sound on successful scan
+- Service worker for offline support (web/public/sw.js)
+- PWA manifest (manifest.json)
+
+Web app (Vite/React) includes:
+- Haptic feedback via haptics.ts
+- Sound effects via sound.ts (Web Audio API)
+- Sound on barcode scan
+
+Mobile app (Expo) includes:
+- Haptic feedback via expo-haptics
+- Sound effects via expo-av (planned)
+- Sound on barcode scan
+
+## Quick Start
+
+```bash
+# Start backend only (includes PWA at /index.html)
+./start.sh
+
+# Or start backend manually
+cd backend
+source .venv/bin/activate
+DATABASE_URL=sqlite:///./foodiq.db uvicorn app.main:app --reload
+
+# Access PWA: http://localhost:8010/index.html
+# Access API: http://localhost:8010
+# Access API docs: http://localhost:8010/docs
+```
