@@ -256,6 +256,16 @@ def _visitor(request: Request) -> str:
     return hashlib.sha256(f"{date.today().isoformat()}|{ip}|{ua}|{salt}".encode()).hexdigest()[:32]
 
 
+def _person(request: Request) -> Optional[str]:
+    """Stable anonymous id, so distinct people can be counted across days. It is a hash of the id the browser already
+    keeps to store scans — never the id itself, never an IP — and it is absent until that id exists."""
+    sid = (request.headers.get("x-session-id") or "").strip()
+    if len(sid) < 8:
+        return None
+    salt = os.getenv("USAGE_SALT") or os.getenv("JWT_SECRET_KEY") or "mieux-usage"
+    return hashlib.sha256(f"person|{sid}|{salt}".encode()).hexdigest()[:32]
+
+
 def _referrer(request: Request) -> str:
     ref = request.headers.get("referer") or ""
     if not ref:
@@ -266,11 +276,15 @@ def _referrer(request: Request) -> str:
 @app.post("/v1/usage/visit")
 @limiter.limit("60/minute")
 def usage_visit(request: Request, body: VisitIn, s: Session = Depends(get_db)):
-    """Counts people, not refreshes: one row per visitor, per surface, per day."""
-    day, visitor = date.today().isoformat(), _visitor(request)
-    if not s.query(db.Visit).filter_by(day=day, surface=body.surface, visitor=visitor).first():
+    """Counts people, not refreshes: one row per visitor, per surface, per day.
+    `visitor` answers "how many today" without following anyone; `person` (when the browser sends its anonymous id)
+    answers "how many distinct people over a month" and "how many come back"."""
+    day, visitor, person = date.today().isoformat(), _visitor(request), _person(request)
+    same = s.query(db.Visit).filter_by(day=day, surface=body.surface)
+    seen = same.filter_by(visitor=visitor).first() or (same.filter(db.Visit.person == person).first() if person else None)
+    if not seen:
         try:
-            s.add(db.Visit(day=day, surface=body.surface, visitor=visitor, referrer=_referrer(request)))
+            s.add(db.Visit(day=day, surface=body.surface, visitor=visitor, person=person, referrer=_referrer(request)))
             s.commit()
         except IntegrityError:  # the same person in two tabs at once
             s.rollback()
@@ -286,14 +300,22 @@ def usage_stats(request: Request, days: int = 30, s: Session = Depends(get_db)):
     rows = s.query(db.Visit).filter(db.Visit.day >= since).all()
     per: Dict[str, Dict[str, Any]] = {}
     for r in rows:
-        d = per.setdefault(r.day, {"visitors": set(), "views": 0, "landing": 0, "app": 0})
+        d = per.setdefault(r.day, {"visitors": set(), "people": set(), "views": 0, "landing": 0, "app": 0})
         d["visitors"].add(r.visitor)
+        if r.person:
+            d["people"].add(r.person)
         d["views"] += 1
         d["landing" if r.surface == "landing" else "app"] += 1
-    daily = [{"day": day, "visitors": len(d["visitors"]), "views": d["views"], "landing_views": d["landing"], "app_opens": d["app"]}
+    daily = [{"day": day, "visitors": len(d["visitors"]), "people": len(d["people"]), "views": d["views"], "landing_views": d["landing"], "app_opens": d["app"]}
              for day, d in sorted(per.items())]
     today = date.today().isoformat()
+    by_person: Dict[str, set] = {}
+    for r in rows:
+        if r.person:
+            by_person.setdefault(r.person, set()).add(r.day)
+    people, people_today, returning = len(by_person), len({p for p, days_ in by_person.items() if today in days_}), sum(1 for days_ in by_person.values() if len(days_) > 1)
     return {"since": since, "days": days,
+            "people": people, "people_today": people_today, "returning": returning,
             "visitors": len({r.visitor for r in rows}),
             "app_visitors": len({r.visitor for r in rows if r.surface == "app"}),
             "views": len(rows),

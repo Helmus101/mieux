@@ -94,7 +94,7 @@ export function Hero({ title, sub, children }: { title: string; sub?: string; ch
   return <div className="hero"><h1>{title}</h1>{sub && <p>{sub}</p>}{children}</div>;
 }
 
-const BANDS = [['b', 'var(--bad)'], ['w', 'var(--warn)'], ['g2', '#8bc34a'], ['g', 'var(--accent)']] as const;
+const BANDS = [['b', 'var(--bad)'], ['w', 'var(--warn)'], ['g2', 'var(--olive)'], ['g', 'var(--accent)']] as const;
 /** Quality score on its 0-100 spectrum: four coloured bands, a marker at the score. */
 export function ScoreBar({ total, label }: { total: number; label?: string }) {
   return (
@@ -106,7 +106,7 @@ export function ScoreBar({ total, label }: { total: number; label?: string }) {
   );
 }
 
-const TONE_VAR: Record<string, string> = { g: 'var(--accent)', g2: '#8bc34a', w: 'var(--warn)', b: 'var(--bad)' };
+const TONE_VAR: Record<string, string> = { g: 'var(--accent)', g2: 'var(--olive)', w: 'var(--warn)', b: 'var(--bad)' };
 /** Nutrients on their own scale, negatives and positives separated (Nutri-Score points per 100 g). */
 export function NutrientScale({ items, label }: { items: any[]; label: (k: string, level: string, positive: boolean) => string }) {
   return (
@@ -120,7 +120,7 @@ export function NutrientScale({ items, label }: { items: any[]; label: (k: strin
   );
 }
 
-const TONE_C: Record<string, string> = { g: 'var(--accent)', g2: '#8bc34a', y: '#f5c518', w: 'var(--warn)', b: 'var(--bad)' };
+const TONE_C: Record<string, string> = { g: 'var(--accent)', g2: 'var(--olive)', y: 'var(--clay)', w: 'var(--warn)', b: 'var(--bad)' };
 /** An amount placed on its labelled scale: coloured zones from worst to best (or best to worst) and a marker at the value. */
 export function AmountScale({ scale }: { scale: { value: number; max: number; zones: { from: number; to: number; tone: string }[] } }) {
   const pos = Math.max(1, Math.min(99, (scale.value / scale.max) * 100));

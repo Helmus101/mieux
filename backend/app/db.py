@@ -128,6 +128,7 @@ class Visit(Base):
     day = Column(String, index=True, nullable=False)  # YYYY-MM-DD
     surface = Column(String, nullable=False)  # landing | app
     visitor = Column(String, index=True, nullable=False)  # daily hash, never a raw IP or user agent
+    person = Column(String, index=True, nullable=True)  # stable hash of the device's anonymous id: distinct people across days
     referrer = Column(String, nullable=True)  # direct | internal | external (coarse on purpose)
     created_at = Column(DateTime, default=now)
     __table_args__ = (UniqueConstraint("day", "surface", "visitor", name="uq_visit_day_surface_visitor"),)

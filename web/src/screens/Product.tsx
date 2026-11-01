@@ -13,8 +13,8 @@ import Where from '../Where';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const TONE_V: Record<string, string> = { g: 'var(--accent)', g2: '#6fae2e', y: '#b8900a', w: 'var(--warn)', b: 'var(--bad)' };
-const toneVar = (tn?: string) => ({ g: 'var(--accent)', g2: '#8bc34a', w: 'var(--warn)', b: 'var(--bad)' } as Record<string, string>)[tn ?? ''] ?? 'var(--ink)';
+const TONE_V: Record<string, string> = { g: 'var(--accent)', g2: 'var(--olive)', y: 'var(--clay)', w: 'var(--warn)', b: 'var(--bad)' };
+const toneVar = (tn?: string) => ({ g: 'var(--accent)', g2: 'var(--olive)', w: 'var(--warn)', b: 'var(--bad)' } as Record<string, string>)[tn ?? ''] ?? 'var(--ink)';
 
 export default function Product() {
   const { barcode } = useParams<{ barcode: string }>();

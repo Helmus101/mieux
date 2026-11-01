@@ -1,8 +1,9 @@
 // Platform-free design tokens. On web they are mirrored as CSS variables (web/src/index.css);
 // in Expo import this file directly and use it in StyleSheet.create.
 export const colors = {
-  light: { bg: '#F2F2F7', card: '#FFFFFF', ink: '#000000', mut: '#8E8E93', line: 'rgba(60,60,67,0.18)', accent: '#34C759', accentInk: '#FFFFFF', tint: 'rgba(52,199,89,0.14)', warn: '#FF9500', bad: '#FF3B30', blue: '#0A84FF' },
-  dark: { bg: '#000000', card: '#1C1C1E', ink: '#FFFFFF', mut: '#8E8E93', line: 'rgba(84,84,88,0.55)', accent: '#30D158', accentInk: '#000000', tint: 'rgba(48,209,88,0.18)', warn: '#FF9F0A', bad: '#FF453A', blue: '#0A84FF' },
+  // The landing page palette: warm paper, ink, leaf green, sage tint. Nutri-Score and NOVA keep their official colours below.
+  light: { bg: '#F7F3E8', card: '#FFFDF6', ink: '#14201A', mut: '#5C6A60', line: 'rgba(31,77,58,0.16)', accent: '#1F4D3A', accentInk: '#F7F3E8', tint: '#E6EDDC', warn: '#B85C38', bad: '#A33B2B', blue: '#1F4D3A' },
+  dark: { bg: '#0F1712', card: '#16211A', ink: '#F3EFE3', mut: '#A9B6AB', line: '#26332B', accent: '#DCF06A', accentInk: '#101A12', tint: 'rgba(220,240,106,0.12)', warn: '#E0A24A', bad: '#E4695A', blue: '#9CBE77' },
 };
 export const radius = { sm: 10, md: 14, lg: 20, pill: 999 };
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };
