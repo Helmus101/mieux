@@ -18,7 +18,7 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
   const home = useProfile((st) => st.place);
   const mine = (useProfile((st) => st.chains) ?? []).filter((id) => CHAIN_LIST.some((c) => c.id === id));
   const [res, setRes] = useState<any | null>(null), [pos, setPos] = useState<{ lat: number; lon: number } | null>(null), [useHere, setUseHere] = useState(false), [all, setAll] = useState(false);
-  const [msg, setMsg] = useState(''), [busy, setBusy] = useState(false), [adding, setAdding] = useState(false);
+  const [more, setMore] = useState(false), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false), [adding, setAdding] = useState(false);
   const hasHome = home?.lat != null;
   const run = async (here: boolean, everyChain: boolean) => {
     setBusy(true); setMsg('');
@@ -43,7 +43,7 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
       {res && <p className="mut sm" style={{ margin: '0 0 6px' }}>{t(useHere ? 'chains.sortedHere' : 'chains.sortedHome')}</p>}
       {msg && <p style={{ color: 'var(--warn)' }}>{msg}</p>}
       {res && !res.retailers.length && <Muted>{t('where.noChain', { r: RADIUS })}{res.far_chains > 0 ? ` ${t('where.farChains', { n: res.far_chains })}` : ''}</Muted>}
-      {res?.retailers.map((x: any) => (
+      {(more ? res?.retailers : res?.retailers.slice(0, 3))?.map((x: any) => (
         <details className="chainrow" key={x.chain_id} open>
           <summary>
             <ChainLogo id={x.chain_id} name={x.chain} />
@@ -53,7 +53,7 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
           </summary>
           <div>
             {(x.stores ?? []).length
-              ? (x.stores as any[]).slice(0, 3).map((st: any, k: number) => (
+              ? (x.stores as any[]).slice(0, 1).map((st: any, k: number) => (
                 <div key={k} className="storeline">
                   <div><b>{st.name}</b>{st.address ? <span className="mut sm"> · {st.address}</span> : null}{st.distance_m > RADIUS * 1000 && <> <span className="pill w">{t('where.farAway', { r: RADIUS })}</span></>}</div>
                   <div className="mut sm">{dist(st.distance_m)} · <a target="_blank" rel="noreferrer" href={directionsUrl({ lat: st.lat, lon: st.lon }, pos)}>{t('where.route')}</a></div>
@@ -62,6 +62,7 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
             <p className="mut sm" style={{ margin: 0 }}>{x.note ? `${x.note} · ` : ''}{t('where.src_' + x.match_type)}</p>
           </div>
         </details>))}
+      {res && res.retailers.length > 3 && <Button small plain onPress={() => { haptic('tap'); setMore(!more); }}>{more ? t('where.fewer') : t('where.moreChains', { n: res.retailers.length - 3 })}</Button>}
       {res && <>
         <p className="mut sm">{t('where.stockNote')}{res.filtered_out > 0 ? ` · ${t('chains.more', { n: res.filtered_out })}` : ''}</p>
         <Button small plain onPress={() => setAdding(!adding)}>{t('where.iFoundIt')}</Button>
