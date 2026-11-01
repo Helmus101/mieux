@@ -15,6 +15,20 @@ export default defineConfig({
     },
   },
   test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  build: {
+    rollupOptions: {
+      output: {
+        // Long-lived vendor chunks: a new app build does not invalidate React/the router/the API client in the cache.
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('@zxing')) return 'zxing';
+          if (id.includes('react-router')) return 'router';
+          if (id.includes('axios')) return 'axios';
+          if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react';
+        },
+      },
+    },
+  },
   server: {
     port: 5180,
     fs: { allow: [here('..')] },

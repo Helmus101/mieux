@@ -1,15 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import Root from './Root';
 import { setApiBase } from '@shared/config';
-import './index.css';
+// index.css is imported by App: the landing page has its own stylesheet and no app CSS.
 
 const envBase = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_BASE_URL;
 if (envBase) setApiBase(envBase);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    <Root />
   </React.StrictMode>,
 );
 

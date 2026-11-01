@@ -47,10 +47,8 @@ export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: strin
     };
     requestAnimationFrame(loop);
   } else {
-    const Z = await import('@zxing/library');
-    const reader = new Z.MultiFormatReader(), hints = new Map<any, any>();
-    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]);
-    reader.setHints(hints);
+    const Z = await import('./zxing');
+    const reader = new Z.MultiFormatUPCEANReader();
     const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true })!;
     const loop = (t: number) => {
       if (stopped) return;
@@ -60,7 +58,7 @@ export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: strin
         const { sx, sy, sw, sh } = frameRegion(video, frame);
         const k = Math.min(1, 720 / sw); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
         cx.drawImage(video, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
-        try { const r = reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cv)))); if (done(r.getText())) return; } catch { /* no code in this frame */ }
+        try { if (done(Z.decodeCanvas(reader, cv))) return; } catch { /* no code in this frame */ }
       }
       requestAnimationFrame(loop);
     };
@@ -93,9 +91,7 @@ export async function decodeImage(file: Blob): Promise<string | null> {
   if ('BarcodeDetector' in window) {
     try { const r = await new (window as any).BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] }).detect(cv); for (const b of r) if (validBarcode(b.rawValue)) return b.rawValue; } catch { /* fall through */ }
   }
-  const Z = await import('@zxing/library');
-  const reader = new Z.MultiFormatReader(), hints = new Map<any, any>();
-  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]);
-  hints.set(Z.DecodeHintType.TRY_HARDER, true); reader.setHints(hints);
-  try { const c = reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cv)))).getText(); return validBarcode(c) ? c : null; } catch { return null; }
+  const Z = await import('./zxing');
+  const reader = new Z.MultiFormatUPCEANReader();
+  try { const c = Z.decodeCanvas(reader, cv); return validBarcode(c) ? c : null; } catch { return null; }
 }

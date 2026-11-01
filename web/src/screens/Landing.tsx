@@ -162,7 +162,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       <section className="mob reveal" id="mobile">
         <div className="mob-in">
           <div><h2>{t('land.mobTitle')}</h2><p>{t('land.mobSub')}</p><button className="l-ghost light" onClick={onEnter}>{t('land.mobOr')}</button></div>
-          <Qr url={`${window.location.origin}/`} />
+          <Qr url={`${window.location.origin}/app`} />
         </div>
       </section>
 

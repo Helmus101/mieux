@@ -29,10 +29,13 @@ export const isPhone = () => {
   return /iPhone|iPod/.test(ua) || (/Android/i.test(ua) && /Mobile/i.test(ua));
 };
 
+export const APP_PATH = '/app';
+
 const IN_APP = 'mieux_in_app';
+/** The landing page lives only at the root, and only on computers and iPads. Phones, installed apps, deep links and ?app go straight to the app. */
 export const wantsLanding = () => {
   if (typeof window === 'undefined' || isPhone() || isInstalled()) return false;
-  if (window.location.pathname !== '/' || new URLSearchParams(window.location.search).has('app')) return false;  // deep links and ?app go straight to the app
+  if (window.location.pathname !== '/' || new URLSearchParams(window.location.search).has('app')) return false;
   try { return sessionStorage.getItem(IN_APP) !== '1'; } catch { return true; }
 };
 export const enterApp = () => { try { sessionStorage.setItem(IN_APP, '1'); } catch { /* storage unavailable */ } };

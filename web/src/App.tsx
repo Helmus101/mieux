@@ -1,14 +1,14 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useProfile, apiPrefs } from '@shared/stores';
 import { Skeleton, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
 import InstallPrompt from './InstallPrompt';
-import { enterApp, wantsLanding } from './install';
+import { APP_PATH } from './install';
+import './index.css';
 
-const Landing = lazy(() => import('./screens/Landing'));
 const Onboarding = lazy(() => import('./screens/Onboarding'));
 const Home = lazy(() => import('./screens/Home'));
 const Scan = lazy(() => import('./screens/Scan'));
@@ -25,10 +25,12 @@ const I = {
   profile: <path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0" />,
 };
 
+/** The tab this route belongs to; the app lives under /app, so strip that prefix first. */
+const sectionOf = (pathname: string) => pathname.replace(/^\/app\/?/, '').split('/')[0] || 'home';
+
 function TabBar() {
   const { go } = useNav();
-  const loc = useLocation();
-  const cur = loc.pathname === '/' ? 'home' : loc.pathname.split('/')[1];
+  const cur = sectionOf(useLocation().pathname);
   const items: [keyof typeof I, string][] = [['home', routes.home], ['scan', routes.scan], ['profile', routes.profile]];
   return (
     <nav className="tabbar"><div className="in">
@@ -53,24 +55,36 @@ function Shell() {
     <div className="app">
       <Suspense fallback={<Screen><Skeleton h={40} w="60%" /><Skeleton h={120} /><Skeleton h={120} /></Screen>}>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/scan" element={<Scan />} />
-          <Route path="/product/:barcode" element={<Product />} />
-          <Route path="/alternatives/:barcode" element={<Alternatives />} />
-          <Route path="/compare" element={<Compare />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/history" element={<History />} />
+          <Route index element={<Home />} />
+          <Route path="scan" element={<Scan />} />
+          <Route path="product/:barcode" element={<Product />} />
+          <Route path="alternatives/:barcode" element={<Alternatives />} />
+          <Route path="compare" element={<Compare />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="history" element={<History />} />
+          <Route path="*" element={<Navigate to={routes.home} replace />} />
         </Routes>
       </Suspense>
-      <InstallPrompt hidden={pathname === '/scan'} />
+      <InstallPrompt hidden={sectionOf(pathname) === 'scan'} />
       <TabBar />
     </div>
   );
 }
 
-// Computers and iPads see the landing page first; phones (and the installed app, and deep links) go straight to the app.
+/** Links from before the app moved (/scan, /product/…, or a bare /): keep them working. */
+function ToApp() {
+  const { pathname, search, hash } = useLocation();
+  const to = pathname === '/' ? APP_PATH : APP_PATH + pathname;
+  return <Navigate to={{ pathname: to, search, hash }} replace />;
+}
+
 export default function App() {
-  const [landing, setLanding] = useState(wantsLanding);
-  if (landing) return <Suspense fallback={null}><Landing onEnter={() => { enterApp(); setLanding(false); }} /></Suspense>;
-  return <BrowserRouter><Shell /></BrowserRouter>;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path={APP_PATH + '/*'} element={<Shell />} />
+        <Route path="*" element={<ToApp />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
