@@ -13,7 +13,7 @@ export default function Scan() {
   const forCompare = !!(useLocation().state as { compare?: boolean } | null)?.compare;  // opened from Compare: add the scanned product there instead of opening it
   const addCompare = useProfile((st) => st.addCompare);
   const open = (c: string) => { if (forCompare) { addCompare(c); go(routes.compare); } else go(routes.product(c)); };
-  const video = useRef<HTMLVideoElement>(null);
+  const video = useRef<HTMLVideoElement>(null), frame = useRef<HTMLDivElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const stopScan = useRef<(() => void) | null>(null);
   const run = useRef(0);
@@ -25,7 +25,7 @@ export default function Scan() {
     const id = ++run.current;
     try {
       stream.current = await openCamera(video.current!, () => id === run.current); setOn(true); setCanTorch(torchSupported(stream.current));
-      const stopper = await scanBarcodes(video.current!, (c) => { haptic('success'); api.getProduct(c).catch(() => undefined); stop(); open(c); });
+      const stopper = await scanBarcodes(video.current!, (c) => { haptic('success'); api.getProduct(c).catch(() => undefined); stop(); open(c); }, frame.current);
       if (id !== run.current) { stopper(); return; }
       stopScan.current = stopper;
     } catch (e) { if (!(e instanceof Cancelled)) haptic('error'); if (!(e instanceof Cancelled)) setErr(t('scan.camFail', { e: (e as Error).message })); }
@@ -41,7 +41,7 @@ export default function Scan() {
   return (
     <div className="cam">
       <video ref={video} muted playsInline />
-      <div className="cam-mask"><div className="cam-frame"><i /></div></div>
+      <div className="cam-mask"><div className="cam-frame" ref={frame}><i /></div></div>
       <div className="cam-top">
         <button className="cam-btn" onClick={close} aria-label={t('common.back')}><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
         {canTorch && on && <button className={'cam-btn' + (torch ? ' lit' : '')} onClick={flip} aria-label={t('scan.torch')}><svg viewBox="0 0 24 24"><path d="M7 3h10l-2 7v3l-3 3-3-3v-3zM12 16v5" /></svg></button>}

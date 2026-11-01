@@ -23,15 +23,26 @@ export async function openCamera(video: HTMLVideoElement, isCurrent: () => boole
 }
 export const closeCamera = (s: MediaStream | null) => s?.getTracks().forEach((t) => t.stop());
 
+/** The part of the video frame (in video pixels) that lies under the on-screen scan frame, given object-fit: cover. */
+function frameRegion(video: HTMLVideoElement, frame?: HTMLElement | null) {
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (!frame || !vw) return { sx: 0, sy: 0, sw: vw, sh: vh };
+  const v = video.getBoundingClientRect(), f = frame.getBoundingClientRect();
+  const k = Math.max(v.width / vw, v.height / vh), ox = (vw * k - v.width) / 2, oy = (vh * k - v.height) / 2;
+  const sx = Math.max(0, (f.left - v.left + ox) / k), sy = Math.max(0, (f.top - v.top + oy) / k);
+  return { sx, sy, sw: Math.min(vw - sx, f.width / k), sh: Math.min(vh - sy, f.height / k) };
+}
+
 /** Starts scanning an already-playing video. Returns a stop function. Uses the native detector when present (fast), else ZXing on a small centre crop. */
-export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: string) => void): Promise<() => void> {
+export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: string) => void, frame?: HTMLElement | null): Promise<() => void> {
   let stopped = false, last = 0;
   const done = (c: string) => { if (stopped || !validBarcode(c)) return false; stopped = true; try { navigator.vibrate?.(30); } catch { /* ignore */ } onCode(c); return true; };
   if ('BarcodeDetector' in window) {
     const det = new (window as any).BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+    const cv0 = document.createElement('canvas'), cx0 = cv0.getContext('2d', { willReadFrequently: true })!;
     const loop = async (t: number) => {
       if (stopped) return;
-      if (t - last > 60 && video.readyState >= 2) { last = t; try { const r = await det.detect(video); for (const b of r) if (done(b.rawValue)) return; } catch { /* keep going */ } }
+      if (t - last > 60 && video.readyState >= 2) { last = t; try { const g = frameRegion(video, frame); cv0.width = Math.round(g.sw); cv0.height = Math.round(g.sh); cx0.drawImage(video, g.sx, g.sy, g.sw, g.sh, 0, 0, cv0.width, cv0.height); const r = await det.detect(cv0); for (const b of r) if (done(b.rawValue)) return; } catch { /* keep going */ } }
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
@@ -46,7 +57,7 @@ export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: strin
       if (t - last > 70 && video.videoWidth) {
         last = t;
         // decode only the centre band, downscaled: ~5x faster than the full frame and where the user aims anyway
-        const sw = video.videoWidth * 0.8, sh = video.videoHeight * 0.45, sx = (video.videoWidth - sw) / 2, sy = (video.videoHeight - sh) / 2;
+        const { sx, sy, sw, sh } = frameRegion(video, frame);
         const k = Math.min(1, 720 / sw); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
         cx.drawImage(video, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
         try { const r = reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(cv)))); if (done(r.getText())) return; } catch { /* no code in this frame */ }
