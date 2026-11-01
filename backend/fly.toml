@@ -1,0 +1,22 @@
+app = "mieux-api"
+primary_region = "cdg"
+
+[build]
+
+[env]
+  ALLOWED_ORIGINS = "*"
+
+[http_service]
+  internal_port = 8010
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[mounts]]
+  source = "mieux_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
