@@ -1,3 +1,8 @@
 User-agent: *
 Allow: /
+
+# Internal metrics page: no search value, keep it out of the index.
+Disallow: /stats
+
+# The API is not a website.
 Disallow: /v1/

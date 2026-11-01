@@ -213,11 +213,13 @@ def test_additive_table_is_complete_consistent_and_cited():
         assert code.startswith("e") and name and why and len(why) > 15, code
         assert balanced in "ABCD" and strict in "ABCD" and strict >= balanced, code      # the precautionary reading is never milder than the evidence-based one
     assert T["e171"][1:3] == ("D", "D") and T["e452"][2] == "D" and T["e330"][1:3] == ("A", "A") and T["e202"][1:3] == ("B", "D")
+    assert T["e471"][1:3] == ("B", "D") and T["e481"][1:3] == ("B", "C")                # Yuka rates these emulsifiers high / moderate; the balanced reading stays with the EFSA
 
 
 def test_strict_mode_caps_nutriscore_d_and_e_at_49_and_uses_yuka_penalties():
     from app.score import quality, d_additives
-    assert d_additives(["en:e202"], strict=True)[0] == 0 and d_additives(["en:e407"], strict=True)[0] == 50 and d_additives(["en:e471"], strict=True)[0] == 80   # high 0, moderate 50, limited 80 of the additive score
+    assert d_additives(["en:e202"], strict=True)[0] == 0 and d_additives(["en:e407"], strict=True)[0] == 50   # high 0, moderate 50 of the additive score
+    assert d_additives(["en:e471"], strict=True)[0] == 0 and d_additives(["en:e481"], strict=True)[0] == 50   # emulsifiers follow Yuka: E471 high, E481 moderate
     choc = {"energy-kcal_100g": 540, "fat_100g": 30, "saturated-fat_100g": 11, "sugars_100g": 45, "salt_100g": 0.1, "fiber_100g": 2, "proteins_100g": 6}
     p = prod(choc, "sucre, huile, noisettes", cats=("en:snacks",))
     s = quality(p, True, {**p["scoreInputs"], "strict": True})                       # organic would add 10 points, still capped by the D/E rule

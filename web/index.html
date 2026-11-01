@@ -2,33 +2,45 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Mieux — scannez un produit, sachez s'il est bon pour vous</title>
+    <meta name="description" content="Mieux : scannez le code-barres d'un produit, obtenez une note sur 100 et trouvez une meilleure alternative, moins chère, dans les supermarchés près de chez vous." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta name="application-name" content="Mieux" />
+    <meta name="apple-mobile-web-app-title" content="Mieux" />
+    <meta name="theme-color" content="#1F4D3A" />
+    <!-- Canonical and social URLs are absolute once VITE_SITE_URL is set at build time (see vite.config.ts). -->
+    %SEO_TAGS%
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#1F4D3A" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Mieux" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="description" content="Mieux : scannez le code-barres d'un produit, obtenez une note sur 100 et trouvez une meilleure alternative, moins chère, dans les supermarchés près de chez vous." />
-    <meta name="robots" content="index, follow" />
-    <meta name="application-name" content="Mieux" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Mieux" />
     <meta property="og:locale" content="fr_FR" />
-    <meta property="og:title" content="Mieux : trouvez mieux, ou moins cher" />
+    <meta property="og:title" content="Mieux — scannez un produit, sachez s'il est bon pour vous" />
     <meta property="og:description" content="Scannez un produit, comparez sa qualité et son prix, et trouvez l'alternative disponible près de chez vous." />
-    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image" content="%OG_IMAGE%" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="Mieux, l'application qui note les produits alimentaires et propose des alternatives" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Mieux : trouvez mieux, ou moins cher" />
+    <meta name="twitter:title" content="Mieux — scannez un produit, sachez s'il est bon pour vous" />
     <meta name="twitter:description" content="Scannez un produit, comparez sa qualité et son prix, et trouvez l'alternative disponible près de chez vous." />
-    <meta name="twitter:image" content="/og-image.png" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Mieux","applicationCategory":"HealthApplication","operatingSystem":"Any","inLanguage":"fr","description":"Scanner de code-barres qui note les produits alimentaires sur 100 et propose de meilleures alternatives en France.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}</script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Mieux</title>
+    <meta name="twitter:image" content="%OG_IMAGE%" />
+    <meta name="twitter:image:alt" content="Mieux, l'application qui note les produits alimentaires et propose des alternatives" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Mieux","applicationCategory":"HealthApplication","operatingSystem":"Any","inLanguage":"fr","description":"Scanner de code-barres qui note les produits alimentaires sur 100 et propose de meilleures alternatives en France.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"featureList":["Note de qualité sur 100","Alternatives de la même catégorie","Comparaison à 100 g","Allergènes en exclusion stricte"]}</script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>Mieux — scannez un produit, sachez s'il est bon pour vous</h1>
+      <p>Mieux note les produits alimentaires sur 100 à partir de leurs données nutritionnelles et de leurs ingrédients, explique chaque critère séparément (sans note cachée) et propose des alternatives de la même catégorie, comparées pour 100 g. Les allergènes déclarés sont des exclusions strictes et une donnée manquante reste inconnue, jamais considérée comme sûre.</p>
+      <p>Activez JavaScript pour utiliser le scanner. L'application est aussi disponible comme application web installable.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
