@@ -245,3 +245,12 @@ def test_dates_without_ingredient_list_are_not_punished_for_natural_sugar():
     assert [f["key"] for f in p["flags"]] == ["high_sugar_natural"]  # a mild warning, not a serious weakness
     assert dim(prod(DATES, None, cats=FRUIT), "energy")["scale"]["tone"] in ("g", "g2")  # calories are low impact for a whole fruit
     assert prod(DATES, "Dattes", cats=FRUIT)["score"]["total"] >= 65
+
+
+def test_drink_sold_by_volume_is_scored_as_a_drink():
+    raw = {"code": "3000000000002", "product_name": "Kombucha", "quantity": "75 cl", "product_quantity": 750,
+           "nutriments": {"energy-kcal_100g": 11, "sugars_100g": 2.5, "saturated-fat_100g": 0, "fat_100g": 0, "salt_100g": 0, "fiber_100g": 0, "proteins_100g": 0},
+           "ingredients_text": "eau, thé, sucre", "categories_tags": ["en:beverages", "en:fermented-drinks", "en:kombuchas"], "countries_tags": ["en:france"]}
+    p = normalize(raw)
+    assert p["quantity"] == {"amount": 750.0, "unit": "ml"}      # "75 cl" used to be read as 750 g, which scored drinks like solid food
+    assert p["score"]["nutritional"]["points"] >= 2 and p["score"]["nutritional"]["score"] < 70   # a sweetened drink is a Nutri-Score C, not a B/A

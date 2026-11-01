@@ -193,8 +193,13 @@ def ns_letter(points: int) -> str:
 _NQ = [(-15, 100), (0, 92), (2, 76), (10, 48), (18, 20), (30, 4), (40, 0)]
 
 
-def nq_from_points(points: float) -> float:
-    return interp(points, _NQ)
+MILK_OR_PLANT = re.compile(r"(?:^|\s)en:(?:milks|plant-based-beverages|plant-milks|dairy-drinks|milk-substitutes|soy-milks|oat-drinks|almond-drinks|rice-drinks)\b")
+# Drinks (Nutri-Score 2023 is stricter for them: only water is an A, 1 point is a B, 2-5 a C, 6-9 a D, 10+ an E)
+_NQ_DRINK = [(-15, 100), (0, 90), (1, 72), (2, 58), (5, 46), (9, 24), (12, 8), (18, 0)]
+
+
+def nq_from_points(points: float, drink: bool = False) -> float:
+    return interp(points, _NQ_DRINK if drink else _NQ)
 
 
 FVN_WORDS = re.compile(r"^(noix|noisette|amande|cacahu[eè]te|pistache|coco|noix de coco|fruits?|l[ée]gumes?|pomme|poire|banane|tomate|carotte|lentille|pois chiche|haricot|dattes?|raisin|abricot|figue|nuts?|almonds?|hazelnuts?|coconut|peanuts?|lentils?|chickpeas?|beans?)\b", re.I)
@@ -412,7 +417,7 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
     dscore = {"fat": d_fat(n, pts, extra, pid), "sugar": d_sugar(n, pts, ing_s, extra), "salt": d_salt(n, pts), "energy": d_energy(n, pts, drink),
               "protein": d_protein(n), "fibre": d_fibre(n), "plant": d_plant(fvn, fvn_est), "micro": d_micro(p.get("micronutrients")), "additives": d_additives(adds, strict), "ingredients": d_ingredients(ing, adds)}
     # 1. nutritional quality: Nutri-Score points (negatives minus the positives that are relevant here), then safeguards
-    nq = interp(pts["points"], _NQ_FATS) if "sat_ratio" in pts else nq_from_points(pts["points"])
+    nq = interp(pts["points"], _NQ_FATS) if "sat_ratio" in pts else nq_from_points(pts["points"], drink and not MILK_OR_PLANT.search(" ".join(cats)))
     if drink and "sat_ratio" not in pts and (n.get("sugars100g") or 0) <= .5 and (n.get("energyKcal100g") or 0) <= 4 and (n.get("saturatedFat100g") or 0) <= .1 and (n.get("salt100g") or 0) <= .1:
         nq = 100.0  # water, plain tea, coffee: nothing to penalise, so the full nutrition mark
     # 2. ingredient quality: additives + ingredient composition (profile weights, renormalised)

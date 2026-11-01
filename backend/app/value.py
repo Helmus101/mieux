@@ -18,6 +18,10 @@ _UNITS = {"g": ("g", 1.0), "kg": ("g", 1000.0), "mg": ("g", 0.001), "ml": ("ml",
 
 def parse_quantity(text: Optional[str], numeric: Any = None, unit: Optional[str] = None) -> Optional[Tuple[float, str]]:
     """Returns (amount, 'g'|'ml') or None. Handles '375 g', '1,5 l', '6 x 125 g'."""
+    if numeric not in (None, "") and not unit and text:
+        txt = parse_quantity(text)  # a bare number has no unit: "75 cl" is 750 ml, not 750 g, so the printed text decides
+        if txt:
+            return txt
     if numeric not in (None, ""):
         try:
             v = float(numeric)
