@@ -92,3 +92,4 @@ backend/data/
 *.jsonl.gz
 *.tar.gz
 web/dist/
+*.db.gz
