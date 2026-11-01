@@ -1,23 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "backend": {
-      "root": "backend",
-      "framework": "fastapi"
-    },
-    "web": {
-      "root": "web",
-      "framework": "vite"
-    }
-  },
+  "installCommand": "cd web && npm install",
+  "buildCommand": "cd web && npm run build",
+  "outputDirectory": "web/dist",
   "rewrites": [
-    {
-      "source": "/v1/(.*)",
-      "destination": { "service": "backend" }
-    },
-    {
-      "source": "/(.*)",
-      "destination": { "service": "web" }
-    }
+    { "source": "/v1/:path*", "destination": "https://mieux-api.fly.dev/v1/:path*" },
+    { "source": "/((?!assets/|logos/).*)", "destination": "/index.html" }
   ]
 }
