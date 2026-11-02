@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import { api } from '@shared/api/client';
-import { t } from '@shared/i18n';
+import { t, setLocale } from '@shared/i18n';
 import { useProfile, apiPrefs } from '@shared/stores';
 import { Skeleton, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
@@ -49,9 +49,11 @@ function TabBar() {
 function Shell() {
   const profile = useProfile();
   const { pathname } = useLocation();
-  const { onboarded, priorities, diet, allergens } = profile;
+  const { onboarded, priorities, diet, allergens, language, country } = profile;
+  // Set locale on app load
+  useEffect(() => { if (language) setLocale(language); }, [language]);
   // Keep the (local) server in sync so fit checks and price-aware ranking use the saved profile.
-  useEffect(() => { if (onboarded) api.updatePreferences(apiPrefs({ priorities, diet, allergens }) as never).catch(() => undefined); }, [onboarded, priorities, diet, allergens]);
+  useEffect(() => { if (onboarded) api.updatePreferences(apiPrefs({ priorities, diet, allergens, country } as never)).catch(() => undefined); }, [onboarded, priorities, diet, allergens, country]);
   if (!onboarded) return <Suspense fallback={null}><Onboarding /></Suspense>;
   return (
     <div className="app">

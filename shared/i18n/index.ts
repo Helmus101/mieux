@@ -1,7 +1,8 @@
 import { fr } from './fr';
+import { en } from './en';
 
-// French is the default (and currently only) UI language; add another dictionary and register it here.
-const dicts: Record<string, any> = { fr };
+// French is the default UI language; English also supported
+const dicts: Record<string, any> = { fr, en };
 let locale = 'fr';
 export const getLocale = () => locale;
 export const setLocale = (l: string) => { if (dicts[l]) locale = l; };

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { t } from '@shared/i18n';
+import { t, setLocale } from '@shared/i18n';
 import { useProfile, PRIORITY_KEYS } from '@shared/stores';
 import { Button, Card, Muted, Pill, Cell, ChainLogo } from '../ui';
 import { CHAIN_LIST } from '@shared/chains';
@@ -34,7 +34,7 @@ export default function Onboarding() {
   );
   return (
     <div className="ob">
-      <div className="dots"><i className={step === 0 ? 'on' : ''} /><i className={step === 1 ? 'on' : ''} /><i className={step === 2 ? 'on' : ''} /><i className={step === 3 ? 'on' : ''} /></div>
+      <div className="dots"><i className={step === 0 ? 'on' : ''} /><i className={step === 1 ? 'on' : ''} /><i className={step === 2 ? 'on' : ''} /><i className={step === 3 ? 'on' : ''} /><i className={step === 4 ? 'on' : ''} /><i className={step === 5 ? 'on' : ''} /></div>
       {step === 0 && (<>
         <h1 style={{ fontSize: 30 }}>{t('about.title')}</h1><Muted>{t('about.sub')}</Muted>
         <p className="mut sm" style={{ marginBottom: 2 }}>{t('about.name')}</p>
@@ -85,8 +85,34 @@ export default function Onboarding() {
         </div>
         <Muted>{t('onboarding.allergyNote')}</Muted>
         <div style={{ flex: 1 }} />
-        <Button primary onPress={() => p.finish()}>{t('onboarding.start')}</Button>
+        <Button primary onPress={() => setStep(4)}>{t('common.continue')}</Button>
         <Button plain onPress={() => setStep(2)}>{t('common.back')}</Button>
+      </>)}
+      {step === 4 && (<>
+        <h1 style={{ fontSize: 30 }}>{t('onboarding.langTitle')}</h1><Muted>{t('onboarding.countrySub')}</Muted>
+        <div style={{ marginTop: 14 }}>
+          {(['fr', 'en'] as const).map((lang) => (
+            <button key={lang} className={'opt' + (p.language === lang ? ' on' : '')} onClick={() => { p.setLanguage(lang); setLocale(lang); }}>
+              <b>{lang === 'fr' ? 'Français' : 'English'}</b><span className="tick" />
+            </button>
+          ))}
+        </div>
+        <div style={{ flex: 1 }} />
+        <Button primary onPress={() => setStep(5)}>{t('common.continue')}</Button>
+        <Button plain onPress={() => setStep(3)}>{t('common.back')}</Button>
+      </>)}
+      {step === 5 && (<>
+        <h1 style={{ fontSize: 30 }}>{t('onboarding.countryTitle')}</h1><Muted>{t('onboarding.countrySub')}</Muted>
+        <div style={{ marginTop: 14 }}>
+          {(['FR', 'US'] as const).map((country) => (
+            <button key={country} className={'opt' + (p.country === country ? ' on' : '')} onClick={() => p.setCountry(country)}>
+              <b>{country === 'FR' ? 'France' : 'United States'}</b><span className="tick" />
+            </button>
+          ))}
+        </div>
+        <div style={{ flex: 1 }} />
+        <Button primary onPress={() => p.finish()}>{t('onboarding.start')}</Button>
+        <Button plain onPress={() => setStep(4)}>{t('common.back')}</Button>
       </>)}
     </div>
   );
