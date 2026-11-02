@@ -27,6 +27,10 @@
   ],
   "rewrites": [
     {
+      "source": "/v1/:path*",
+      "destination": "https://mieux-api.fly.dev/v1/:path*"
+    },
+    {
       "source": "/((?!sitemap\\.xml|robots\\.txt|google.*\\.html).*)",
       "destination": "/index.html"
     }
