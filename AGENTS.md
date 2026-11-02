@@ -106,6 +106,7 @@ Required for backend:
 - `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
 - `OFF_USER_AGENT` - User agent for Open Food Facts
 - `SUPABASE_URL` - Optional: enables Supabase sign-in token verification (`SUPABASE_JWT_SECRET` only for legacy HS256 projects) API
+- Supabase also needs `backend/supabase/scan_counts.sql` run once (the per-account scan total)
 
 ## Deployment
 

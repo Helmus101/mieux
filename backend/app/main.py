@@ -980,18 +980,16 @@ def search(q: str, uid: str = Depends(user)):
 def add_scan(request: Request, body: Dict[str, str], uid: str = Depends(user), s: Session = Depends(get_db)):
     logger.info({"event": "scan_added", "barcode": body.get("barcode"), "user_id": uid})
     p = load_product(s, body["barcode"])
-    if is_account(s, uid):
-        s.query(db.User).filter_by(id=uid).update({db.User.scan_count: func.coalesce(db.User.scan_count, 0) + 1})
-    else:
+    if not is_account(s, uid):  # a signed-in account stores nothing here: its scan total lives in Supabase
         s.add(db.Scan(user_id=uid, product_id=p["id"]))
-    s.commit()
+        s.commit()
     return {"ok": True, "product_id": p["id"]}
 
 
 @app.get("/v1/scans")
 def scans(uid: str = Depends(user), s: Session = Depends(get_db)):
     if is_account(s, uid):
-        return {"scans": [], "count": (s.get(db.User, uid).scan_count or 0)}
+        return {"scans": []}
     rows = s.query(db.Scan).filter_by(user_id=uid).order_by(db.Scan.id.desc()).limit(50).all()
     return {"scans": [{"id": r.id, "created_at": r.created_at.isoformat(), "product": json.loads(s.get(db.Product, r.product_id).data)} for r in rows]}
 

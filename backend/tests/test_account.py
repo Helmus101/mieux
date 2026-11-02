@@ -33,14 +33,13 @@ def setup_env(monkeypatch):
     monkeypatch.setenv("SUPABASE_JWT_SECRET", SECRET)
 
 
-def test_account_keeps_only_a_scan_count(monkeypatch):
+def test_account_stores_no_scans_server_side(monkeypatch):
     setup_env(monkeypatch)
     h = account_headers("acct-scan")
     assert c.post("/v1/scans", json={"barcode": "1"}, headers=h).status_code == 200
     assert c.post("/v1/scans", json={"barcode": "2"}, headers=h).status_code == 200
-    assert c.get("/v1/scans", headers=h).json() == {"scans": [], "count": 2}
+    assert c.get("/v1/scans", headers=h).json() == {"scans": []}
     assert rows(db.Scan, user_id="acct-scan") == []
-    assert rows(db.User, id="acct-scan")[0].scan_count == 2
 
 
 def test_account_saves_no_profile_or_preferences(monkeypatch):
@@ -81,14 +80,3 @@ def test_unverifiable_token_falls_back_to_the_anonymous_session(monkeypatch):
     assert c.get("/v1/products/1", headers={"Authorization": "Bearer " + tok}).status_code == 401
     assert c.get("/v1/products/1", headers={"Authorization": "Bearer " + tok, "X-Session-Id": "fallback-session-1"}).status_code == 200
 
-
-def test_old_database_gets_the_scan_count_column(tmp_path):
-    import sqlalchemy as sa
-    path = tmp_path / "old.db"
-    eng = sa.create_engine(f"sqlite:///{path}")
-    with eng.begin() as cx:
-        cx.execute(sa.text("CREATE TABLE users (id VARCHAR PRIMARY KEY, supabase_id VARCHAR, name VARCHAR, city VARCHAR, postcode VARCHAR, platform VARCHAR, last_seen_at DATETIME, created_at DATETIME)"))
-        cx.execute(sa.text("INSERT INTO users (id) VALUES ('old-user')"))
-    factory = db.make_session_factory(f"sqlite:///{path}")
-    with factory() as s:
-        assert s.get(db.User, "old-user").scan_count == 0

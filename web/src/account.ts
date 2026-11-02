@@ -13,7 +13,18 @@ interface Account { email: string | null; ready: boolean; scans: number | null }
 export const useAccount = create<Account>(() => ({ email: null, ready: !supabase, scans: null }));
 
 /** The total number of scans is the only thing an account keeps; everything else stays on the device. */
-export const refreshScanCount = () => api.getScans().then((r: { count?: number }) => useAccount.setState({ scans: r.count ?? null })).catch(() => undefined);
+export const refreshScanCount = async () => {
+  if (!supabase) return;
+  const { data } = await supabase.from('scan_counts').select('scans').maybeSingle();
+  useAccount.setState({ scans: data?.scans ?? 0 });
+};
+
+/** Adds one to this account's total in Supabase (the function is the only way to change it). */
+export const countScan = async () => {
+  if (!supabase || !useAccount.getState().email) return;
+  const { data } = await supabase.rpc('increment_scans');
+  if (typeof data === 'number') useAccount.setState({ scans: data });
+};
 
 let started = false;
 /** Call once at startup: restores the session, keeps the API token fresh, and clears it on sign-out. */
