@@ -1,7 +1,8 @@
 {
   "build": {
     "env": {
-      "VITE_SITE_URL": "https://mieuxmanger.vercel.app"
+      "VITE_SITE_URL": "https://mieuxmanger.vercel.app",
+      "VITE_API_BASE_URL": "https://mieux-api.fly.dev/v1"
     }
   },
   "headers": [

@@ -13,7 +13,7 @@ import { initHaptics } from '../src/haptics';
 import { Platform } from 'react-native';
 
 // EXPO_PUBLIC_API_URL must point at the FoodIQ backend. On a physical phone use your computer's LAN address (the backend must listen on it).
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (Platform.OS === 'android' ? 'http://10.0.2.2:8010/v1' : 'http://localhost:8010/v1');
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://mieux-api.fly.dev/v1';
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
