@@ -279,3 +279,9 @@ td .nova{padding:4px 8px}
 .flags{gap:8px;margin:14px 0 4px}.flags .pill,.card .pill{margin:0}
 .card>p.mut.sm:first-child{margin-top:0}
 .trio .mut{font-size:12px;letter-spacing:-.2px}.trio div{padding-left:2px;padding-right:2px}
+
+/* settings: calmer rhythm, one control per row */
+.screen h2{margin:36px 4px 12px}
+.screen input+.btn,.screen input+.cell{margin-top:12px}
+.seg button{padding:12px 6px;font-size:15px;min-height:44px}
+.chain-pick{margin:12px 0}
