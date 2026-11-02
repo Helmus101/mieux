@@ -1,6 +1,6 @@
 import { t } from '@shared/i18n';
 import { useHistory, useProfile } from '@shared/stores';
-import { Card, Cell, Group, Hero, Muted, NavBar, Screen, Button } from '../ui';
+import { Card, Cell, Group, Hero, Muted, NavBar, Screen } from '../ui';
 import { routes, useNav } from '../nav';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -22,13 +22,6 @@ export default function Home() {
           <Card><h3>{t('home.howTitle')}</h3>
             <ol className="how"><li>{t('home.how1')}</li><li>{t('home.how2')}</li><li>{t('home.how3')}</li></ol>
           </Card></>}
-      <Card>
-        <h3>📚 Blog</h3>
-        <Muted>Conseils pour mieux manger et comprendre ce que vous consommez.</Muted>
-        <div style={{ marginTop: 12 }}>
-          <Button plain onPress={() => go(routes.blog)}>Voir tous les articles</Button>
-        </div>
-      </Card>
     </Screen>
   );
 }
