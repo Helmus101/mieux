@@ -1100,11 +1100,10 @@ def _raw_relevance(orig: Dict[str, Any], words: set):
     def key(r: Dict[str, Any]):
         rc = set(r.get("categories_tags") or [])
         name = engine._tok(r.get("product_name") or "", r.get("brands"))
-        # Penalize heavily if no shared name words and not in same leaf category
         name_similarity = len(name & orig_name)
         category_match = 0 if leaf and leaf in rc else 1 if parent and parent in rc else 2
-        # Boost if there's a meaningful name overlap (at least 1 word)
-        name_boost = 0 if name_similarity > 0 else 1
+        # Require at least 1 shared name word for relevance
+        name_boost = 0 if name_similarity >= 1 else 10
         return (category_match, name_boost, -len(rc & allc), -name_similarity)
     return key
 
@@ -1155,8 +1154,15 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             raw = []
         raws = sorted([r for r in raw if _raw_candidate(r, prio, alg, orig)], key=_raw_relevance(orig, engine._tok(orig["name"], orig["brand"])))[:220]
     pool: Dict[str, Dict[str, Any]] = {}
+    orig_name_words = engine._tok(orig["name"], orig["brand"])
     for r in raws:
         if not _raw_candidate(r, prio, alg, orig):
+            continue
+        # Strict filter: must have at least 1 shared name word OR be in same leaf category
+        r_name_words = engine._tok(r.get("product_name") or "", r.get("brands"))
+        rc = set(r.get("categories_tags") or [])
+        leaf = orig["categories"][-1] if orig["categories"] else None
+        if not (orig_name_words & r_name_words) and (not leaf or leaf not in rc):
             continue
         p = normalize(r)
         pool.setdefault(p["barcode"], p)
