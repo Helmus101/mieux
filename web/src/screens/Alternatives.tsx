@@ -57,11 +57,11 @@ export default function Alternatives() {
     if (diffBy === 'pack') {
       if (e.pack == null || o.pack_cents == null) return null;
       const c = e.pack - o.pack_cents;
-      return { text: Math.abs(c) < 1 ? t('diff.sameShort') : `${fmt(c)} ${t('diff.perPack')}`, tone: tone(c), sub: e.price100 != null ? (() => { const k = (e.price100 - o.per100_cents) * 10; return `${fmt(k)}${liquid ? '/L' : '/kg'}`; })() : undefined };
+      return { text: `${fmt(c)} ${t('diff.perPack')}`, tone: tone(c), sub: e.price100 != null ? (() => { const k = (e.price100 - o.per100_cents) * 10; return `${fmt(k)}${liquid ? '/L' : '/kg'}`; })() : undefined };
     }
     if (e.price100 == null) return null;
     const k = (e.price100 - o.per100_cents) * 10, pct = Math.round(((e.price100 - o.per100_cents) / o.per100_cents) * 100);
-    return { text: Math.abs(k) < 1 ? t('diff.sameShort') : `${fmt(k)}${liquid ? '/L' : '/kg'}`, tone: tone(k), sub: Math.abs(k) < 1 ? undefined : `${pct > 0 ? '+' : ''}${pct} % ${t('diff.vs')}` };
+    return { text: `${fmt(k)}${liquid ? '/L' : '/kg'}`, tone: tone(k), sub: `${pct > 0 ? '+' : ''}${pct} % ${t('diff.vs')}` };
   };
   const detailBody = (e: any) => (<>
               {e.why && <p style={{ margin: '0 0 8px' }}>{e.why}</p>}
