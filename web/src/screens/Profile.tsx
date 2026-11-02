@@ -4,10 +4,8 @@ import { clearAll } from '@shared/storage';
 import { useProfile, useHistory, PRIORITY_KEYS } from '@shared/stores';
 import { routes, useNav } from '../nav';
 import { useState } from 'react';
-import { Screen, NavBar, LargeTitle, Card, Button, ChainLogo, Collapsible, Muted, Section, Chips, Chip, Group, Cell, Row, Pill, Segmented } from '../ui';
+import { Screen, NavBar, LargeTitle, Button, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Segmented } from '../ui';
 import { CHAIN_LIST } from '@shared/chains';
-import { hapticsEnabled, setHapticsEnabled } from '../haptics';
-import { isInstalled, openInstall, platform } from '../install';
 import { findCity, searchAddress, type Home } from '../place';
 
 export default function Profile() {
@@ -43,25 +41,13 @@ export default function Profile() {
       <Section title={t('profile.priorities')}><Chips>{PRIORITY_KEYS.map((k) => <Chip key={k} on={p.priorities.includes(k)} onPress={() => p.togglePriority(k)}>{t('priorities.' + k)}</Chip>)}</Chips></Section>
       <Section title={t('profile.diet')}><Segmented value={p.diet} onChange={(k) => p.setDiet(k as 'omnivore' | 'vegetarian' | 'vegan')} options={(['omnivore', 'vegetarian', 'vegan'] as const).map((d) => ({ key: d, label: t('diets.' + d) }))} /></Section>
       <Section title={t('profile.restrictions')}><Chips>{['gluten', 'milk', 'peanuts', 'nuts'].map((a) => <Chip key={a} on={p.allergens.includes(a)} onPress={() => p.toggleAllergen(a)}>{t('diets.' + a)}</Chip>)}</Chips><p className="mut sm">{t('onboarding.allergyNote')}</p></Section>
-      <Collapsible title={t('simple.advanced')}>
-      {platform() !== 'other' && !isInstalled() && <Section title={t('pwa.title')}><Group><Cell onPress={openInstall}><Row spread><span>{t('pwa.profile')}</span><span className="chev">›</span></Row></Cell></Group></Section>}
-      <Section title={t('haptics.title')}>
-        <Group><Cell onPress={() => { setHapticsEnabled(!hapticsEnabled()); setTick((n) => n + 1); }}><Row spread><span>{t('haptics.label')}</span><Pill tone={hapticsEnabled() ? undefined : 'g'}>{hapticsEnabled() ? 'On' : 'Off'}</Pill></Row></Cell></Group>
-      </Section>
-      <Section title={t('pricedb.title')}>
-        <Group><Cell onPress={() => p.setEstimates(!p.estimates)}><Row spread><span><b>{t('pricedb.estToggle')}</b><Muted>{t('pricedb.estToggleSub')}</Muted></span><Pill tone={p.estimates ? 'w' : 'g'}>{p.estimates ? 'On' : 'Off'}</Pill></Row></Cell></Group>
-      </Section>
       <Section title={t('profile.localTitle')}>
-        <Card tint><p>{t('profile.localText')}</p><p className="mut">{t('profile.leaves')}</p></Card>
         <Group>
           <Cell onPress={() => go(routes.history)} chevron>{t('history.open')}</Cell>
           <Cell onPress={exp} chevron>{t('profile.export')}</Cell>
           <Cell onPress={erase}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
         </Group>
       </Section>
-      <Section title={t('profile.how')}><Card><details><summary className="mut">{t('profile.how')}</summary><p className="mut">{t('profile.howText')}</p></details></Card></Section>
-      <Button plain onPress={() => p.reset()}>{t('profile.reset')}</Button>
-      </Collapsible>
     </Screen>
   );
 }

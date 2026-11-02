@@ -72,7 +72,6 @@ export default function Product() {
           {p.score.flags?.length > 0 && <div className="flags">{p.score.flags.slice(0, 3).map((f: any) => <span key={f.key} className={'pill ' + (f.level === 'bad' ? 'b' : 'w')}>{t('flag.' + f.key)}</span>)}</div>}
         </> : <Muted>{t('score.na')}</Muted>}
         {head.kind !== 'none' ? <p style={{ margin: '10px 0 0' }}><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('simple.noPrice')}</p>}
-        {pc?.community && head.kind === 'real' && <p className="mut sm" style={{ margin: '2px 0 0' }}>{[pc.community.pack_cents != null && p.quantity?.amount ? `${t('size.pack', { s: p.quantity.amount >= 1000 ? `${Math.round(p.quantity.amount / 100) / 10} ${p.quantity.unit === 'ml' ? 'L' : 'kg'}` : `${Math.round(p.quantity.amount)} ${p.quantity.unit}` })} ${formatCents(pc.community.pack_cents)}` : null, pc.community.n_observations ? t('price.reports', { n: pc.community.n_observations, c: pc.community.n_chains ?? 1 }) : null, pc.community.date ? t(pc.community.stale ? 'price.oldAt' : 'price.at', { d: String(pc.community.date).slice(0, 7) }) : null].filter(Boolean).join(' · ')}</p>}
       </Card>
       {p.score && priorities.length > 0 && (
         <Card>
@@ -145,20 +144,19 @@ export default function Product() {
       </Collapsible>}
 
       {p.score && (() => {
-        const items = [...(p.score.additives?.items ?? [])];
-        const risky = items.filter((x: any) => x.level === 'C' || x.level === 'D').sort((x: any, y: any) => y.level.localeCompare(x.level));
-        const calm = items.length - risky.length;
-        return <Collapsible open={false} title={`${t('addl.title')} · ${items.length ? (risky.length ? t('addl.bad', { n: risky.length }) : t('addl.allOk')) : t('addl.none')}`}>
+        const all = [...(p.score.additives?.items ?? [])] as any[];
+        const items = all.filter((x) => x.known || !all.some((o) => o !== x && x.code.startsWith(o.code))).sort((x, y) => y.level.localeCompare(x.level) || x.code.localeCompare(y.code));
+        const risky = items.filter((x) => x.level === 'C' || x.level === 'D');
+        return <Collapsible open={false} title={`${t('addl.title')} · ${items.length ? t('addl.count', { n: items.length }) + (risky.length ? ' · ' + t('addl.bad', { n: risky.length }) : '') : t('addl.none')}`}>
           {items.length === 0 && <p className="mut">{t('addl.none')}</p>}
-          {risky.map((a: any) => {
+          {items.map((a: any) => {
+            const hi = a.level === 'C' || a.level === 'D';
             const nm = a.name || additiveInfo(a.code)?.name || '';
             return <div className="risk" key={a.code} onClick={() => { haptic('tap'); setSheet(a.code); }} style={{ cursor: 'pointer' }}>
-              <div className="addhead"><span className={'dot ' + (a.level === 'D' ? 'b' : 'w')} /><b>{a.code.toUpperCase()}</b><span className="addname">{nm}</span><span className="chev">›</span></div>
-              {a.note && <p className="mut sm">{a.note}</p>}
+              <div className="addhead"><span className={'dot ' + (a.level === 'D' ? 'b' : a.level === 'C' ? 'w' : 'g')} /><b>{a.code.toUpperCase()}</b><span className="addname">{nm}</span><span className="chev">›</span></div>
+              {hi && a.note && <p className="mut sm">{a.note}</p>}
             </div>;
           })}
-          {risky.length > 0 && calm > 0 && <p className="mut sm">{t('addl.others', { n: calm })}</p>}
-          {risky.length === 0 && items.length > 0 && <p className="mut sm">{t('addl.noneRisk', { n: items.length })}</p>}
         </Collapsible>;
       })()}
       <Collapsible open={false} title={t('where.title')}><Where barcode={p.id} liquid={isLiquid(p)} /></Collapsible>

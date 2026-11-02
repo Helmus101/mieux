@@ -4,7 +4,7 @@ import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useHistory, useProfile } from '@shared/stores';
 import { CHAIN_LIST } from '@shared/chains';
-import { Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
+import { Bar, Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
 import Where from '../Where';
@@ -27,7 +27,7 @@ export default function Alternatives() {
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
   const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy, setDiffBy] = useState<'kg' | 'pack'>('kg'), [sameSize, setSameSize] = useState(false), [subMax, setSubMax] = useState(3), [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
-  const [expl, setExpl] = useState<Record<string, any>>({}), [note, setNote] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
     if (!barcode || !prios.length) return;
     setBusy(true); setErr(null);
@@ -35,7 +35,6 @@ export default function Alternatives() {
       .then((x: any) => { setR(x); if (!picked.current) { const has = (k: string) => x.rankings?.[k === 'match' ? 'quality' : k]?.length > 0; const first = ['value', 'match', 'budget'].find((k) => k && has(k)); if (first) setRk(first); } addSearch({ originalId: barcode, originalName: x.original?.name ?? barcode, priorities: prios, mode, results: x.alternatives.map((a: any) => ({ id: a.product_id, name: a.product.name, brand: a.product.brand, priceCents: a.price_per_100_cents != null ? Math.round(a.price_per_100_cents) : null })) }); })
       .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
-  const explain = async (id: string) => { setExpl((e) => ({ ...e, [id]: { loading: true } })); try { const x = await api.explain(barcode!, id); setExpl((e) => ({ ...e, [id]: x })); } catch { setExpl((e) => ({ ...e, [id]: null })); } };
   const entries = (r?.rankings?.[rk === 'match' ? 'quality' : rk] ?? []).map((e: any) => ({ product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, ps: e.price_score, nearby: e.nearby, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }));
   // An alternative is shown only if it beats the scanned product on at least one thing: a higher quality score, or a lower price per kilo/litre.
   const better = (e: any) => {
@@ -64,15 +63,23 @@ export default function Alternatives() {
     return { text: `${fmt(k)}${liquid ? '/L' : '/kg'}`, tone: tone(k), sub: `${pct > 0 ? '+' : ''}${pct} % ${t('diff.vs')}` };
   };
   const detailBody = (e: any) => (<>
-              {e.why && <p style={{ margin: '0 0 8px' }}>{e.why}</p>}
+              {(() => {
+                const q = e.product.score?.total, oq = r?.original?.score?.total, dq = q != null && oq != null ? q - oq : null;
+                const d = diffOf(e), u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
+                const unitTxt = u ? `${formatCents(u.perUnitCents)}/${u.unit === 'L' ? 'L' : 'kg'}` : '—';
+                return <div className="sumcard">
+                  <div className="sum3">
+                    <div><span className="mut sm">{t('alt.sumQ')}</span><b>{q ?? '—'}</b>{q != null && <Bar value={q / 100} />}{dq != null && <span className={'dl ' + (dq > 0 ? 'up' : dq < 0 ? 'down' : '')}>{dq === 0 ? t('score.same') : `${dq > 0 ? '+' : '−'}${Math.abs(dq)} ${t('score.pts')}`}</span>}</div>
+                    <div><span className="mut sm">{t('alt.sumP')}</span><b className="sm2">{unitTxt}</b>{d && <span className="dl" style={{ color: d.tone }}>{d.text}</span>}</div>
+                    <div><span className="mut sm">{t('alt.sumV')}</span><b>{e.vs ?? '—'}</b>{e.vs != null && <Bar value={e.vs / 100} />}</div>
+                  </div>
+                  {e.tradeoffs?.length > 0 && <div className="flags" style={{ margin: '14px 0 0' }}>{e.tradeoffs.slice(0, 2).map((x: string) => <span key={x} className="pill w">{x}</span>)}</div>}
+                </div>;
+              })()}
               {(() => { const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product)); return u ? <p className="mut sm" style={{ margin: '0 0 6px' }}>{t('diff.real')} : <b>{t(u.unit === 'L' ? 'simple.perL' : 'simple.perKg', { p: formatCents(u.perUnitCents) })}</b>{e.pack != null ? ` · ${t('size.pack', { s: e.size?.amount ? sizeLabel(e.size) : '' })} ${formatCents(e.pack)}` : ''}</p> : null; })()}
               <Row wrap><NutriScore grade={e.product.nutriScore} /><NovaBadge group={e.product.novaGroup} estimated={e.product.novaEstimated} />{e.estimated && <Pill tone="w">{t('est.pill')}</Pill>}{e.product.frEvidence === 'off_tag' && <Pill tone="g">{t('where.toConfirm')}</Pill>}</Row>
-              {(e.vs != null || e.ps != null) && <p className="mut sm">{t('score.value')} {e.vs ?? '—'} · {t('score.priceScore')} {e.ps ?? '—'}</p>}
-              {e.tradeoffs?.length > 0 && <p className="mut sm">{t('alt.tradeoffs')} : {e.tradeoffs.slice(0, 2).join(' ; ')}</p>}
-              {expl[e.product.id]?.text && <Card tint><p style={{ margin: 0 }}>{expl[e.product.id].text}</p></Card>}
-              <Row wrap>
+                            <Row wrap>
                 <Button primary onPress={() => { setDetail(null); go(routes.product(e.product.id)); }}>{t('alt.seeProduct')}</Button>
-                {!expl[e.product.id]?.text && <Button small plain onPress={() => explain(e.product.id)}>{expl[e.product.id]?.loading ? t('ex.loading') : t('ex.button')}</Button>}
                 <Button small plain onPress={async () => { try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setDetail(null); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}>{t('sub.notComparable')}</Button>
               </Row>
               <h3 style={{ marginTop: 24 }}>{t('where.title')}</h3><Where barcode={e.product.id} liquid={isLiquid(e.product)} />

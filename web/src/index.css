@@ -306,3 +306,13 @@ td .nova{padding:4px 8px}
 .nrow .tag{display:inline-block;margin-left:8px;padding:2px 10px;border:1px solid var(--line);border-radius:99px;font-size:12px;font-weight:600;vertical-align:2px}
 .nrow .tag.add{color:var(--warn)}.nrow .tag.nat{color:var(--accent)}
 .risk{padding:14px 0}.risk+.risk{border-top:1px solid var(--line)}.risk p{margin:6px 0 0}
+
+/* alternative summary */
+.sumcard{border:1px solid var(--line);border-radius:18px;background:var(--card);padding:18px;margin:0 0 16px}
+.sum3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.sum3>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sum3 b{font-size:30px;letter-spacing:-.5px;line-height:1}.sum3 b.sm2{font-size:17px;line-height:1.25;min-height:30px;display:flex;align-items:flex-end}
+.sum3 .dl{font-size:13px;font-weight:700;color:var(--mut)}.sum3 .dl.up{color:var(--accent)}.sum3 .dl.down{color:var(--bad)}
+
+.grabzone{padding:10px 0 14px;margin:-6px 0 0;cursor:grab;touch-action:none}.grabzone .grab{margin:0 auto}
+.sheet{overscroll-behavior:contain;will-change:transform}

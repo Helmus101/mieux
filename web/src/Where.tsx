@@ -18,15 +18,18 @@ const dist = (m: number) => (m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1).repl
 export default function Where({ barcode, liquid }: { barcode: string; liquid?: boolean }) {
   const home = useProfile((st) => st.place);
   const mine = (useProfile((st) => st.chains) ?? []).filter((id) => CHAIN_LIST.some((c) => c.id === id));
-  const [res, setRes] = useState<any | null>(null), [pos, setPos] = useState<{ lat: number; lon: number } | null>(null), [useHere, setUseHere] = useState(false), [all, setAll] = useState(false);
+  const [res, setRes] = useState<any | null>(null), [pos, setPos] = useState<{ lat: number; lon: number } | null>(null), [useHere, setUseHere] = useState(false);
+  const all = false;
   const [more, setMore] = useState(false), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false), [adding, setAdding] = useState(false);
   const hasHome = home?.lat != null;
   const run = async (here: boolean, everyChain: boolean) => {
     setBusy(true); setMsg('');
     // the reference point is your home when it is set (the closest branch of each chain to where you live); otherwise, or on request, your current position
-    const live = (here || !hasHome) ? await new Promise<GeolocationPosition | null>((ok) => navigator.geolocation ? navigator.geolocation.getCurrentPosition(ok, () => ok(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }) : ok(null)) : null;
+    const wantLive = here || !hasHome;
+    const live = wantLive ? await new Promise<GeolocationPosition | null>((ok) => navigator.geolocation ? navigator.geolocation.getCurrentPosition(ok, () => ok(null), { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }) : ok(null)) : null;
+    if (here && hasHome && !live) setMsg(t('where.denied'));
     const p = live ? { lat: live.coords.latitude, lon: live.coords.longitude } : hasHome ? { lat: home!.lat!, lon: home!.lon! } : null;
-    setPos(p); setUseHere(!!live && hasHome === true ? true : !hasHome);
+    setPos(p); setUseHere(!!live);
     if (!p) { setMsg(t('where.denied')); setBusy(false); return; }
     try { setRes(await api.retailers(barcode, p.lat, p.lon, RADIUS, everyChain ? [] : mine)); haptic('success'); } catch (e: any) { haptic('error'); const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); }
     setBusy(false);
@@ -39,8 +42,6 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
         {busy && <span className="mut sm"><span className="mini-ring" />{t('where.loading')}</span>}
         {res && hasHome && <Button small plain onPress={() => { setUseHere(!useHere); run(!useHere, all); }}>{useHere ? t('chains.fromHome') : t('chains.fromHere')}</Button>}
         </Row>
-      {res && mine.length > 0 && <p className="mut sm" style={{ margin: '6px 0' }}>{all ? t('chains.showingAll') : t('chains.filtered', { n: mine.length })} <a style={{ cursor: 'pointer' }} onClick={() => { setAll(!all); run(useHere, !all); }}>{all ? t('chains.useMine') : (res.filtered_out > 0 ? t('chains.showHidden', { n: res.filtered_out }) : t('chains.every'))}</a></p>}
-      {res && <p className="mut sm" style={{ margin: '0 0 6px' }}>{t(useHere ? 'chains.sortedHere' : 'chains.sortedHome')}</p>}
       {msg && <p style={{ color: 'var(--warn)' }}>{msg}</p>}
       {res && !res.retailers.length && <Muted>{t('where.noChain', { r: RADIUS })}{res.far_chains > 0 ? ` ${t('where.farChains', { n: res.far_chains })}` : ''}</Muted>}
       {(more ? res?.retailers : res?.retailers.slice(0, 3))?.map((x: any) => (
@@ -59,12 +60,11 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
                   <div className="mut sm">{dist(st.distance_m)} · <a target="_blank" rel="noreferrer" href={directionsUrl({ lat: st.lat, lon: st.lon }, pos)}>{t('where.route')}</a></div>
                 </div>))
               : <Muted>{t('where.farOrUnknown', { r: RADIUS })}</Muted>}
-            <p className="mut sm" style={{ margin: 0 }}>{x.note ? `${x.note} · ` : ''}{t('where.src_' + x.match_type)}</p>
           </div>
         </details>))}
       {res && res.retailers.length > 3 && <Button small plain onPress={() => { haptic('tap'); setMore(!more); }}>{more ? t('where.fewer') : t('where.moreChains', { n: res.retailers.length - 3 })}</Button>}
       {res && <>
-        <p className="mut sm">{t('where.stockNote')}{res.filtered_out > 0 ? ` · ${t('chains.more', { n: res.filtered_out })}` : ''}</p>
+        <p className="mut sm">{t('where.stockNote')}</p>
         <Button small plain onPress={() => setAdding(!adding)}>{t('where.iFoundIt')}</Button>
         {adding && <div className="chips">{res.other_chains.map((c: any) => <button key={c.chain_id} className="chip" onClick={() => confirm(c.chain_id)}>{c.chain}</button>)}</div>}
       </>}

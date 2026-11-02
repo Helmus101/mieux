@@ -173,7 +173,7 @@ export const fr = {
     perDay: 'Jour par jour', day: 'Jour', people: 'Personnes', refresh: 'Actualiser', fail: 'Chiffres indisponibles pour l\'instant.', offline: 'Le serveur ne répond pas. Vérifiez qu\'il tourne, puis touchez Actualiser.', link: 'Combien de personnes l\'utilisent ?',
     how: 'Sans compte, sans cookie et sans nom. L\'appareil garde un identifiant anonyme, et le serveur n\'en conserve qu\'un hachage : les personnes distinctes sont comptées une seule fois sur 30 jours, et celles qui reviennent un autre jour le sont séparément.',
   },
-  alt: { seeProduct: 'Voir la fiche produit',
+  alt: { sumQ: 'Qualité', sumP: 'Prix', sumV: 'Rapport', seeProduct: 'Voir la fiche produit',
     title: 'Alternatives', today: 'Aujourd\'hui, je veux…', todaySub: 'Temporaire, votre profil reste inchangé.', mode: 'Type d\'alternatives', similar: 'Aussi proches que possible', any: 'Toute la catégorie', run: 'Actualiser',
     considered: '{n} produits comparés', excluded: 'Exclus : {c} en conflit avec vos restrictions, {u} non vérifiables, {i} avec des valeurs manquantes, {n} pas meilleurs sur votre première priorité.',
     why: 'Pourquoi', tradeoffs: 'Compromis', similarity: 'Proximité', per100: 'prix / 100 g', original: 'Original', empty: 'Aucune alternative suffisamment comparable n\'a été trouvée.', expand: 'Élargir à la catégorie',

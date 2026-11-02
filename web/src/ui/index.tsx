@@ -84,8 +84,43 @@ export function CountUp({ value, format }: { value: number; format: (v: number) 
 }
 
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title?: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ y: number; t: number; on: boolean } | null>(null);
+  const [dy, setDyState] = useState(0), [dragging, setDragging] = useState(false);
+  const dyRef = useRef(0);
+  const setDy = (v: number) => { dyRef.current = v; setDyState(v); };
+  useEffect(() => {
+    if (!open) return;
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
+  }, [open, onClose]);
+  useEffect(() => { if (!open) { setDy(0); setDragging(false); drag.current = null; } }, [open]);
   if (!open) return null;
-  return <><div className="scrim" onClick={onClose} /><div className="sheet"><div className="grab" />{title && <h3 style={{ marginBottom: 8 }}>{title}</h3>}{children}</div></>;
+  const start = (y: number, target: EventTarget | null) => {
+    const onHandle = !!(target as HTMLElement | null)?.closest?.('.grabzone');
+    drag.current = { y, t: Date.now(), on: onHandle || (ref.current?.scrollTop ?? 0) <= 0 };
+  };
+  const move = (y: number) => { const d = drag.current; if (!d?.on) return; const delta = y - d.y; if (delta > 0) { setDragging(true); setDy(delta); } else if (dyRef.current !== 0) setDy(0); };
+  const end = () => {
+    const d = drag.current; drag.current = null; setDragging(false);
+    const v = dyRef.current;
+    if (d?.on && (v > 110 || (v > 40 && v / Math.max(1, Date.now() - d.t) > 0.5))) onClose();
+    setDy(0);
+  };
+  const mouse = (e: React.MouseEvent) => {
+    start(e.clientY, e.target);
+    const mv = (m: MouseEvent) => move(m.clientY);
+    const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); end(); };
+    window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
+  };
+  return <>
+    <div className="scrim" onClick={onClose} style={{ opacity: Math.max(0.2, 1 - dy / 500) }} />
+    <div ref={ref} className="sheet" style={{ transform: dy ? `translateY(${dy}px)` : undefined, transition: dragging ? 'none' : 'transform .25s var(--ease)' }}
+      onTouchStart={(e) => start(e.touches[0].clientY, e.target)} onTouchMove={(e) => move(e.touches[0].clientY)} onTouchEnd={end} onTouchCancel={end}>
+      <div className="grabzone" onMouseDown={mouse}><div className="grab" /></div>
+      {title && <h3 style={{ marginBottom: 8 }}>{title}</h3>}{children}
+    </div>
+  </>;
 }
 export function Toast({ text }: { text: string | null }) { return text ? <div className="toast">{text}</div> : null; }
 
