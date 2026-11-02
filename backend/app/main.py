@@ -1095,11 +1095,17 @@ def _raw_relevance(orig: Dict[str, Any], words: set):
     leaf = cats[-1] if cats else None
     parent = cats[-2] if len(cats) > 1 else None
     allc = set(cats)
+    orig_name = engine._tok(orig["name"], orig["brand"])
 
     def key(r: Dict[str, Any]):
         rc = set(r.get("categories_tags") or [])
         name = engine._tok(r.get("product_name") or "", r.get("brands"))
-        return (0 if leaf and leaf in rc else 1, 0 if parent and parent in rc else 1, -len(rc & allc), -len(name & words))
+        # Penalize heavily if no shared name words and not in same leaf category
+        name_similarity = len(name & orig_name)
+        category_match = 0 if leaf and leaf in rc else 1 if parent and parent in rc else 2
+        # Boost if there's a meaningful name overlap (at least 1 word)
+        name_boost = 0 if name_similarity > 0 else 1
+        return (category_match, name_boost, -len(rc & allc), -name_similarity)
     return key
 
 
