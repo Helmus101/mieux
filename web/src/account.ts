@@ -9,8 +9,11 @@ const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const supabase: SupabaseClient | null = KEY ? createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
 export const accountEnabled = !!supabase;
 
-interface Account { email: string | null; ready: boolean }
-export const useAccount = create<Account>(() => ({ email: null, ready: !supabase }));
+interface Account { email: string | null; ready: boolean; scans: number | null }
+export const useAccount = create<Account>(() => ({ email: null, ready: !supabase, scans: null }));
+
+/** The total number of scans is the only thing an account keeps; everything else stays on the device. */
+export const refreshScanCount = () => api.getScans().then((r: { count?: number }) => useAccount.setState({ scans: r.count ?? null })).catch(() => undefined);
 
 let started = false;
 /** Call once at startup: restores the session, keeps the API token fresh, and clears it on sign-out. */
@@ -18,8 +21,8 @@ export function initAccount() {
   if (!supabase || started) return;
   started = true;
   const apply = (session: { access_token: string; user: { email?: string | null } } | null) => {
-    if (session) { api.setToken(session.access_token); useAccount.setState({ email: session.user.email ?? null, ready: true }); }
-    else { api.clearToken(); useAccount.setState({ email: null, ready: true }); }
+    if (session) { api.setToken(session.access_token); useAccount.setState({ email: session.user.email ?? null, ready: true }); refreshScanCount(); }
+    else { api.clearToken(); useAccount.setState({ email: null, ready: true, scans: null }); }
   };
   supabase.auth.getSession().then(({ data }) => apply(data.session));
   supabase.auth.onAuthStateChange((_event, session) => apply(session));

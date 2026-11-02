@@ -3,11 +3,11 @@ import { t, setLocale } from '@shared/i18n';
 import { clearAll } from '@shared/storage';
 import { useProfile, useHistory, PRIORITY_KEYS } from '@shared/stores';
 import { routes, useNav } from '../nav';
-import { useState } from 'react';
-import { Screen, NavBar, LargeTitle, Button, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Segmented } from '../ui';
+import { useEffect, useState } from 'react';
+import { Screen, NavBar, LargeTitle, Button, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
 import { CHAIN_LIST } from '@shared/chains';
 import { findCity, searchAddress, type Home } from '../place';
-import { accountEnabled, sendMagicLink, signOut, useAccount } from '../account';
+import { accountEnabled, refreshScanCount, sendMagicLink, signOut, useAccount } from '../account';
 
 export default function Profile() {
   const p = useProfile();
@@ -15,7 +15,8 @@ export default function Profile() {
   const hist = useHistory();
   const [msg, setMsg] = useState(''), [, setTick] = useState(0);
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
-  const email = useAccount((a) => a.email), [mail, setMail] = useState(''), [mailState, setMailState] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
+  const email = useAccount((a) => a.email), scans = useAccount((a) => a.scans), [mail, setMail] = useState(''), [mailState, setMailState] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
+  useEffect(() => { if (email) refreshScanCount(); }, [email]);
   const sendLink = async () => { setMailState('busy'); const { error } = await sendMagicLink(mail.trim()); setMailState(error ? 'error' : 'sent'); };
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const locate = async () => { setMsg(''); const r = await findCity(); if (r === 'denied') setMsg(t('about.locDenied')); else if (!r) setMsg(t('about.locFail')); else p.setPlace(r); };
@@ -26,7 +27,7 @@ export default function Profile() {
       <NavBar title={t('profile.title')} />
       <LargeTitle>{t('profile.title')}</LargeTitle>
       {accountEnabled && <Section title={t('account.title')}>
-        {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
+        {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row></Cell><Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
           <p className="mut sm">{t('account.hint')}</p>
           <input type="email" value={mail} onChange={(e) => { setMail(e.target.value); setMailState('idle'); }} placeholder={t('account.email')} autoComplete="email" inputMode="email" />
           <Button primary disabled={!/^\S+@\S+\.\S+$/.test(mail.trim()) || mailState === 'busy'} onPress={sendLink}>{t('account.send')}</Button>
