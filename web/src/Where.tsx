@@ -32,7 +32,7 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
     setBusy(false);
   };
   const find = () => run(useHere, all);
-  useEffect(() => { if (hasHome) run(false, false); }, [barcode]); // your stores load by themselves when a home address is set
+  useEffect(() => { run(useHere, all); }, [barcode]); // auto-load stores on mount
   const confirm = async (id: string) => { try { await api.confirmListing(barcode, id); if (pos) setRes(await api.retailers(barcode, pos.lat, pos.lon, RADIUS, all ? [] : mine)); setAdding(false); } catch (e: any) { const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); } };
   return (
     <div>
