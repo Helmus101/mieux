@@ -104,7 +104,8 @@ Required for backend:
 - `DATABASE_URL` - PostgreSQL or SQLite connection string
 - `JWT_SECRET_KEY` - Secret for JWT tokens
 - `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
-- `OFF_USER_AGENT` - User agent for Open Food Facts API
+- `OFF_USER_AGENT` - User agent for Open Food Facts
+- `SUPABASE_URL` - Optional: enables Supabase sign-in token verification (`SUPABASE_JWT_SECRET` only for legacy HS256 projects) API
 
 ## Deployment
 

@@ -9,6 +9,7 @@ primary_region = 'cdg'
 [build]
 [env]
   ALLOWED_ORIGINS = 'https://mieuxmanger.vercel.app,https://mieux.app'
+  SUPABASE_URL = 'https://nhlazqawxthoaymwrrze.supabase.co'
 
 [[mounts]]
   source = 'mieux_data'
