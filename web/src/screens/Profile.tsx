@@ -33,6 +33,7 @@ export default function Profile() {
         <p className="mut sm">{t('about.homeHint')}</p>
       </Section>
       <Section title={t('chains.title')}>
+        <p className="mut sm" style={{ marginBottom: 8 }}>Cliquez pour exclure cette enseigne</p>
         <div className="chain-pick">{CHAIN_LIST.map((c) => { const on = (p.chains ?? []).includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
         <p className="mut sm">{(p.chains ?? []).length ? t('chains.some', { n: (p.chains ?? []).length }) : t('chains.all')}{(p.chains ?? []).length > 0 && <> · <a onClick={() => p.clearChains()} style={{ cursor: 'pointer' }}>{t('chains.clear')}</a></>}</p>
       </Section>
