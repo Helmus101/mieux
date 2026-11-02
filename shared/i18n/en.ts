@@ -1,7 +1,7 @@
 export const en = {
   appName: 'Mieux',
   tabs: { home: 'Home', compare: 'Compare', scan: 'Scan', purchases: 'My Purchases', profile: 'Profile' },
-  common: { back: 'Back', cancel: 'Cancel', save: 'Save', done: 'OK', loading: 'Loading…', retry: 'Retry', delete: 'Delete', continue: 'Continue', skip: 'Skip', error: 'Something went wrong', notAvailable: 'n/a', missing: 'missing', perPurchase: 'per purchase', per100g: 'per 100g' },
+  common: { back: 'Back', cancel: 'Cancel', save: 'Save', done: 'OK', loading: 'Loading…', slow: 'This is taking longer than expected.', reload: 'Reload', loadingProduct: 'Analysing the product…', retry: 'Retry', delete: 'Delete', continue: 'Continue', skip: 'Skip', error: 'Something went wrong', notAvailable: 'n/a', missing: 'missing', perPurchase: 'per purchase', per100g: 'per 100g' },
   onboarding: {
     t1: 'What matters most when shopping?', s1: 'Choose up to two priorities.', selected: '{n}/2 selected',
     t2: 'Dietary restrictions?', s2: 'You can change these anytime.', localTitle: 'Your data stays on this device',
@@ -131,7 +131,7 @@ export const en = {
     nearTitle: 'No nearby stores', nearWhy: 'No comparable product is sold in a store within {r} km of you. Check your address and stores in profile.', nearAction: 'Open profile',
     sameTitle: 'No same-size product', sameWhy: 'No comparable product has pack size close to yours.', sameAction: 'Show all sizes',
   },
-  addl: { title: 'Additives', A: 'No risk', B: 'Limited risk', C: 'Moderate risk', D: 'High risk', none: 'No additives: nothing to report.', count: '{n} additive(s)', bad: '{n} risky', allOk: 'none risky', more: 'See details',
+  addl: { others: '{n} other additive(s) with no known risk.', noneRisk: '{n} additive(s), no known risk.', title: 'Additives', A: 'No risk', B: 'Limited risk', C: 'Moderate risk', D: 'High risk', none: 'No additives: nothing to report.', count: '{n} additive(s)', bad: '{n} risky', allOk: 'none risky', more: 'See details',
     reg: 'Per health authorities: {x}', strictNote: 'Our reading is more cautious than authorities.', avoid: 'Avoid if possible', risky: 'Risky additives', unknown: 'Little data on this additive: treated cautiously.' },
   pwa: { title: 'Install Mieux on your phone', sub: 'Direct access from home screen, full screen.', how: 'How', later: 'Later', sheetTitle: 'Add Mieux to home screen',
     why: 'Mieux opens like a real app: full screen, faster, no browser bar.', ios: 'iPhone', android: 'Android',

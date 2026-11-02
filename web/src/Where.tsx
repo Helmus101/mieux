@@ -36,7 +36,7 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
   return (
     <div>
       <Row wrap>
-        {busy && <span className="mut sm">{t('where.loading')}</span>}
+        {busy && <span className="mut sm"><span className="mini-ring" />{t('where.loading')}</span>}
         {res && hasHome && <Button small plain onPress={() => { setUseHere(!useHere); run(!useHere, all); }}>{useHere ? t('chains.fromHome') : t('chains.fromHere')}</Button>}
         </Row>
       {res && mine.length > 0 && <p className="mut sm" style={{ margin: '6px 0' }}>{all ? t('chains.showingAll') : t('chains.filtered', { n: mine.length })} <a style={{ cursor: 'pointer' }} onClick={() => { setAll(!all); run(useHere, !all); }}>{all ? t('chains.useMine') : (res.filtered_out > 0 ? t('chains.showHidden', { n: res.filtered_out }) : t('chains.every'))}</a></p>}

@@ -55,6 +55,16 @@ export function Segmented({ options, value, onChange }: { options: { key: string
   );
 }
 export const Bar = ({ value }: { value: number }) => <div className="bar"><i style={{ width: Math.max(2, Math.min(100, value * 100)) + '%' }} /></div>;
+export function Loader({ label, onRetry }: { label?: string; onRetry?: () => void }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { const id = setTimeout(() => setSlow(true), 8000); return () => clearTimeout(id); }, []);
+  return (
+    <div className="loader" role="status" aria-live="polite">
+      <div className="ring" /><p className="lbl">{(label ?? t('common.loading')).replace(/…$/, '')}<span className="dots3"><i /><i /><i /></span></p>
+      {slow && <div className="slow"><p className="mut sm">{t('common.slow')}</p><Button onPress={onRetry ?? (() => location.reload())}>{t('common.reload')}</Button></div>}
+    </div>
+  );
+}
 export const Skeleton = ({ h = 16, w = '100%' }: { h?: number; w?: number | string }) => <div className="skel" style={{ height: h, width: w, margin: '8px 0' }} />;
 
 export function NutriScore({ grade }: { grade: string | null }) {

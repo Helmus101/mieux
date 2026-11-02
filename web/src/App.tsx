@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { useProfile, apiPrefs } from '@shared/stores';
-import { Skeleton, Screen, haptic } from './ui';
+import { Loader, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
 import InstallPrompt from './InstallPrompt';
 import { APP_PATH } from './install';
@@ -57,7 +57,7 @@ function Shell() {
   if (!onboarded) return <Suspense fallback={null}><Onboarding /></Suspense>;
   return (
     <div className="app">
-      <Suspense fallback={<Screen><Skeleton h={40} w="60%" /><Skeleton h={120} /><Skeleton h={120} /></Screen>}>
+      <Suspense fallback={<Screen><Loader /></Screen>}>
         <Routes>
           <Route index element={<Home />} />
           <Route path="scan" element={<Scan />} />

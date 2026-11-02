@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useProfile, useHistory } from '@shared/stores';
-import { Screen, NavBar, LargeTitle, Card, Button, Muted, Section, Group, Cell, Skeleton, NutriScore, NovaBadge } from '../ui';
+import { Screen, NavBar, LargeTitle, Card, Button, Muted, Section, Group, Cell, NutriScore, NovaBadge, Loader } from '../ui';
 import { routes, useNav } from '../nav';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -22,7 +22,7 @@ export default function Compare() {
       <NavBar title={t('compare.title')} />
       <LargeTitle>{t('compare.title')}</LargeTitle>
       {compare.length < 2 && <Card><Muted>{t('compare.empty')}</Muted></Card>}
-      {compare.length >= 2 && !r && <Skeleton h={220} />}
+      {compare.length >= 2 && !r && <Loader />}
       {r && (
         <Card>
           <div style={{ overflowX: 'auto' }}>

@@ -4,7 +4,7 @@ import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useHistory, useProfile } from '@shared/stores';
 import { CHAIN_LIST } from '@shared/chains';
-import { Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Toast, haptic } from '../ui';
+import { Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
 import Where from '../Where';
@@ -86,7 +86,7 @@ export default function Alternatives() {
       <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={[{ key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }, { key: 'value', label: t('rank.value') }]} />
       {r?.original_price && <Segmented value={diffBy} onChange={(k) => setDiffBy(k as 'kg' | 'pack')} options={[{ key: 'kg', label: t('diff.byKg') }, { key: 'pack', label: t('diff.byPack') }]} />}
       {r?.original_price?.per100_cents != null && <p className="sm" style={{ margin: '2px 0 8px' }}>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</p>}
-      {busy && <><Skeleton h={150} /><Skeleton h={150} /></>}
+      {busy && <><Loader onRetry={() => setTry((n) => n + 1)} /><Skeleton h={120} /></>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
       {r && !busy && !shown.length && (() => {
         const os = r?.original?.score?.total;

@@ -29,6 +29,7 @@ export class MieuxAPI {
 
   constructor() {
     this.client = axios.create({
+      timeout: 25000,
       headers: {
         'Content-Type': 'application/json',
       },

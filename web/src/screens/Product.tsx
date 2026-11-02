@@ -7,7 +7,7 @@ import { formatCents, isLiquid } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
 import { priceHeadline } from '@shared/verdict';
 import { haptic } from '../ui';
-import { Bar, Button, Card, Collapsible, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton } from '../ui';
+import { Bar, Button, Card, Collapsible, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader } from '../ui';
 import { routes, useNav } from '../nav';
 import Where from '../Where';
 
@@ -44,7 +44,7 @@ export default function Product() {
       {err.kind === 'notfound' && <Button plain onPress={() => setAttempt((n) => n + 1)}>{t('common.retry')}</Button>}
     </Screen>
   );
-  if (!d) return <Screen><NavBar onBack={back} /><Skeleton h={90} /><Skeleton h={120} /><Skeleton h={60} /></Screen>;
+  if (!d) return <Screen><NavBar onBack={back} /><Loader label={t('common.loadingProduct')} onRetry={() => setAttempt((n) => n + 1)} /><Skeleton h={90} /><Skeleton h={120} /></Screen>;
 
   const p = d.product, pc = d.price_context;
   const liquid = isLiquid(p), per = liquid ? 'ml' : 'g';
@@ -128,47 +128,37 @@ export default function Product() {
             <div><span className="mut sm">{t('sdim.processing')}</span><NovaBadge group={p.novaGroup} estimated={p.novaEstimated} /></div>
           </div>
           {p.score.caps?.length > 0 && <p className="mut sm">{p.score.caps.map((c: string) => t('cap.' + c)).join(' ')}</p>}
-          {(['nutrition', 'ingredients'] as const).map((g) => (
-            <div key={g}>
-              <div className="nsec">{t('sdim.grp_' + g)}</div>
-              {p.score.dimensions.filter((d: any) => d.group === g).map((d: any) => (
-                <div className="nrow" key={d.key}>
-                  <div className="nrow-top"><span>{t('sdim.' + d.key)}</span>
-                    {d.scale ? <span><b>{d.key === 'plant' ? d.scale.value : amt(d.scale.value)} {d.scale.unit}</b>{d.scale.estimated && <span className="mut sm"> ({t('add2.est')})</span>} <span className="mut sm" style={{ color: TONE_V[d.scale.tone] }}>{t((d.scale.better === 'more' ? 'tierPos.' : 'tier.') + d.scale.tier)}</span></span>
-                      : !d.relevant ? <span className="mut">{t('sdim.na')}</span> : d.missing ? <span className="mut">{t('sdim.missing')}</span>
-                      : <span className="mut sm" style={{ color: TONE_V[d.tone] }}>{d.key === 'micro' ? t('sdim.microList', { n: (d.detail.rich?.length ?? 0) + (d.detail.source?.length ?? 0) }) : t('tier.' + (d.score >= 75 ? 'excellent' : d.score >= 50 ? 'good' : d.score >= 25 ? 'poor' : 'bad'))}</span>}</div>
-                  {d.scale && <AmountScale scale={d.scale} />}
-                  {d.key === 'fat' && d.detail?.sat != null && <p className="mut sm">{t('sdim.fatDetail', { s: amt(d.detail.sat), f: amt(d.detail.total) })}{d.detail.trans != null ? ' · ' + t('sdim.trans', { x: amt(d.detail.trans) }) : ''}</p>}
-                </div>))}
-            </div>))}
-          {p.score.sugar && (() => {
-            const g = p.score.sugar, k = g.kind;
-            return <div className="sugarbox">
-              <b>{t('nut.sugarTitle')} : {g.total} g</b>
-              <div className="chips"><span className={'pill ' + (k === 'natural' ? '' : 'g')}>{t('nut.sugarNatural')}</span><span className={'pill ' + (k === 'added' || k === 'mixed' ? 'w' : 'g')}>{t('nut.sugarAdded')}</span></div>
-              <p className="mut sm">{k === 'natural' ? t('nut.sugarNaturalNote') : k === 'added' ? t('nut.sugarAddedNote', { x: g.added.join(', ') }) : k === 'mixed' ? t('nut.sugarMixedNote', { x: g.added.join(', ') }) : k === 'none' ? t('nut.sugarNone') : t('nut.sugarUnknown')}</p>
-            </div>;
-          })()}
+          <div className="nsec">{t('sdim.grp_nutrition')}</div>
+          {p.score.dimensions.filter((d: any) => d.group === 'nutrition' && d.relevant && !d.missing).map((d: any) => {
+            const sg = d.key === 'sugar' ? p.score.sugar : null, sk = sg?.kind;
+            return (
+              <div className="nrow" key={d.key}>
+                <div className="nrow-top"><span>{t('sdim.' + d.key)}{sk === 'natural' && <span className="tag nat">{t('nut.sugarNatural')}</span>}{(sk === 'added' || sk === 'mixed') && <span className="tag add">{t('nut.sugarAdded')}</span>}</span>
+                  {d.scale ? <span><b>{d.key === 'plant' ? d.scale.value : amt(d.scale.value)} {d.scale.unit}</b>{d.scale.estimated && <span className="mut sm"> ({t('add2.est')})</span>} <span className="mut sm" style={{ color: TONE_V[d.scale.tone] }}>{t((d.scale.better === 'more' ? 'tierPos.' : 'tier.') + d.scale.tier)}</span></span>
+                    : <span className="mut sm" style={{ color: TONE_V[d.tone] }}>{d.key === 'micro' ? t('sdim.microList', { n: (d.detail.rich?.length ?? 0) + (d.detail.source?.length ?? 0) }) : t('tier.' + (d.score >= 75 ? 'excellent' : d.score >= 50 ? 'good' : d.score >= 25 ? 'poor' : 'bad'))}</span>}</div>
+                {d.scale && <AmountScale scale={d.scale} />}
+                {sg && (sk === 'added' || sk === 'mixed') && sg.added?.length > 0 && <p className="mut sm">{t('nut.sugarAddedNote', { x: sg.added.join(', ') })}</p>}
+                {d.key === 'fat' && d.detail?.sat != null && <p className="mut sm">{t('sdim.fatDetail', { s: amt(d.detail.sat), f: amt(d.detail.total) })}{d.detail.trans != null ? ' · ' + t('sdim.trans', { x: amt(d.detail.trans) }) : ''}</p>}
+              </div>);
+          })}
           <p className="mut sm">{t(p.score.mode === 'strict' ? 'score.method3' : 'score.method2')}</p>
       </Collapsible>}
 
       {p.score && (() => {
-        const items = [...(p.score.additives?.items ?? [])].sort((x: any, y: any) => y.level.localeCompare(x.level));
-        const risky = items.filter((x: any) => x.level === 'C' || x.level === 'D');
-        const tone: any = { A: 'g', B: 'g', C: 'w', D: 'b' };
-        return <Collapsible open={false} title={`${t('addl.title')} · ${items.length ? t('addl.count', { n: items.length }) + ' · ' + (risky.length ? t('addl.bad', { n: risky.length }) : t('addl.allOk')) : t('addl.none')}`}>
+        const items = [...(p.score.additives?.items ?? [])];
+        const risky = items.filter((x: any) => x.level === 'C' || x.level === 'D').sort((x: any, y: any) => y.level.localeCompare(x.level));
+        const calm = items.length - risky.length;
+        return <Collapsible open={false} title={`${t('addl.title')} · ${items.length ? (risky.length ? t('addl.bad', { n: risky.length }) : t('addl.allOk')) : t('addl.none')}`}>
           {items.length === 0 && <p className="mut">{t('addl.none')}</p>}
-          {items.map((a: any) => {
+          {risky.map((a: any) => {
             const nm = a.name || additiveInfo(a.code)?.name || '';
-            return <div className="addrow" key={a.code} onClick={() => { haptic('tap'); setSheet(a.code); }}>
-              <div className="addhead"><span className={'dot ' + tone[a.level]} /><b>{a.code.toUpperCase()}</b><span className="addname">{nm}</span><span className={'pill ' + (a.level === 'D' ? 'b' : a.level === 'C' ? 'w' : 'g')}>{t('addl.' + a.level)}</span></div>
+            return <div className="risk" key={a.code} onClick={() => { haptic('tap'); setSheet(a.code); }} style={{ cursor: 'pointer' }}>
+              <div className="addhead"><span className={'dot ' + (a.level === 'D' ? 'b' : 'w')} /><b>{a.code.toUpperCase()}</b><span className="addname">{nm}</span><span className="chev">›</span></div>
               {a.note && <p className="mut sm">{a.note}</p>}
-              {a.balanced && a.balanced !== a.level && <p className="mut sm">{t('addl.reg', { x: t('addl.' + a.balanced) })} · {t('addl.strictNote')}</p>}
-              {!a.known && <p className="mut sm">{t('addl.unknown')}</p>}
-              <span className="sm" style={{ color: 'var(--blue)' }}>{t('addl.more')}</span>
             </div>;
           })}
-          <p className="mut sm">{t(p.score.mode === 'strict' ? 'score.method3' : 'score.method2')}</p>
+          {risky.length > 0 && calm > 0 && <p className="mut sm">{t('addl.others', { n: calm })}</p>}
+          {risky.length === 0 && items.length > 0 && <p className="mut sm">{t('addl.noneRisk', { n: items.length })}</p>}
         </Collapsible>;
       })()}
       <Collapsible open={false} title={t('where.title')}><Where barcode={p.id} liquid={isLiquid(p)} /></Collapsible>

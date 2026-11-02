@@ -1,7 +1,7 @@
 export const fr = {
   appName: 'Mieux',
   tabs: { home: 'Accueil', compare: 'Comparer', scan: 'Scanner', purchases: 'Mes courses', profile: 'Profil' },
-  common: { back: 'Retour', cancel: 'Annuler', save: 'Enregistrer', done: 'OK', loading: 'Chargement…', retry: 'Réessayer', delete: 'Supprimer', continue: 'Continuer', skip: 'Passer', error: 'Une erreur est survenue', notAvailable: 'n/d', missing: 'manquant', perPurchase: 'par achat', per100g: 'pour 100 g' },
+  common: { back: 'Retour', cancel: 'Annuler', save: 'Enregistrer', done: 'OK', loading: 'Chargement…', slow: 'Cela prend plus de temps que prévu.', reload: 'Recharger', loadingProduct: 'Analyse du produit…', retry: 'Réessayer', delete: 'Supprimer', continue: 'Continuer', skip: 'Passer', error: 'Une erreur est survenue', notAvailable: 'n/d', missing: 'manquant', perPurchase: 'par achat', per100g: 'pour 100 g' },
   onboarding: {
     t1: 'Qu\'est-ce qui compte le plus quand vous faites vos courses ?', s1: 'Choisissez jusqu\'à deux priorités.', selected: '{n}/2 sélectionnées',
     t2: 'Des restrictions alimentaires ?', s2: 'Vous pourrez les modifier à tout moment.', localTitle: 'Vos données restent chez vous',
@@ -130,7 +130,7 @@ export const fr = {
     nearTitle: 'Aucun magasin à proximité', nearWhy: 'Aucun produit comparable n\'est vendu dans une enseigne à moins de {r} km de chez vous. Vérifiez votre adresse et vos enseignes dans le profil.', nearAction: 'Ouvrir le profil',
     sameTitle: 'Aucun produit du même format', sameWhy: 'Aucun produit comparable n\'a une taille de paquet proche du vôtre.', sameAction: 'Afficher tous les formats',
   },
-  addl: { title: 'Additifs', A: 'Sans risque', B: 'Risque limité', C: 'Risque modéré', D: 'Risque élevé', none: 'Aucun additif : rien à signaler.', count: '{n} additif(s)', bad: '{n} à risque', allOk: 'aucun à risque', more: 'Voir le détail',
+  addl: { others: '{n} autre(s) additif(s) sans risque connu.', noneRisk: '{n} additif(s), aucun risque connu.', title: 'Additifs', A: 'Sans risque', B: 'Risque limité', C: 'Risque modéré', D: 'Risque élevé', none: 'Aucun additif : rien à signaler.', count: '{n} additif(s)', bad: '{n} à risque', allOk: 'aucun à risque', more: 'Voir le détail',
     reg: 'Selon les autorités sanitaires : {x}', strictNote: 'Notre lecture est plus prudente que celle des autorités.', avoid: 'À éviter si possible', risky: 'Additifs à risque', unknown: 'Peu de données sur cet additif : traité avec prudence.' },
   pwa: { title: 'Installez Mieux sur votre téléphone', sub: 'Un accès direct depuis l\'écran d\'accueil, en plein écran.', how: 'Comment faire', later: 'Plus tard', sheetTitle: 'Ajouter Mieux à l\'écran d\'accueil',
     why: 'Mieux s\'ouvre alors comme une vraie application : en plein écran, plus vite, sans la barre du navigateur.', ios: 'iPhone', android: 'Android',
