@@ -13,11 +13,12 @@ function seo(siteUrl: string) {
   const base = siteUrl.replace(/\/+$/, '');
   const abs = (p: string) => (base ? base + p : p);
   const blogPosts = [
-    { slug: 'comprendre-additifs-alimentaires', title: 'Comprendre les additifs alimentaires: guide complet', date: '2026-11-02' },
-    { slug: 'nutri-score-explique', title: 'Le Nutri-Score expliqué: comment ça marche?', date: '2026-11-01' },
-    { slug: 'produits-ultra-transformes', title: 'Produits ultra-transformés: risques et alternatives', date: '2026-10-28' },
-    { slug: 'manger-mieux-budget', title: 'Comment manger mieux avec un petit budget', date: '2026-10-25' },
-    { slug: 'eviter-additifs-dangereux', title: 'Les additifs à éviter dans votre alimentation', date: '2026-10-20' },
+    { slug: 'aliments-sains-qui-ne-le-sont-pas', title: 'Ces aliments "sains" qui cachent des additifs préoccupants', date: '2026-11-02' },
+    { slug: 'comprendre-additifs-alimentaires', title: 'Comprendre les additifs alimentaires: guide complet', date: '2026-11-01' },
+    { slug: 'nutri-score-explique', title: 'Le Nutri-Score expliqué: comment ça marche?', date: '2026-10-28' },
+    { slug: 'produits-ultra-transformes', title: 'Produits ultra-transformés: risques et alternatives', date: '2026-10-25' },
+    { slug: 'manger-mieux-budget', title: 'Comment manger mieux avec un petit budget', date: '2026-10-20' },
+    { slug: 'eviter-additifs-dangereux', title: 'Les additifs à éviter dans votre alimentation', date: '2026-10-15' },
   ];
   return {
     name: 'mieux-seo',

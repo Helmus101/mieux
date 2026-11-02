@@ -3,6 +3,158 @@ import { NavBar, Screen, Card, Muted } from '../ui';
 import { useNav } from '../nav';
 
 const posts: Record<string, { title: string; content: string; date: string; category: string }> = {
+  'aliments-sains-qui-ne-le-sont-pas': {
+    title: 'Ces aliments "sains" qui cachent des additifs préoccupants',
+    date: '2 novembre 2026',
+    category: 'Santé',
+    content: `
+      <p>Vous pensez bien manger? Pain complet, yaourts naturels, jus de fruits... Ces aliments ont l'image saine. Mais regardez de plus près. Certains cachent des additifs qui méritent votre attention. On passe au crible 5 aliments "sains" qui ne le sont pas toujours.</p>
+      
+      <h2>🍞 1. Le pain complet industriel</h2>
+      <p>Le pain complet, c'est la base d'une alimentation saine, non? Sauf quand c'est du pain industriel ultra-transformé.</p>
+      
+      <p><strong>Le piège:</strong></p>
+      <ul>
+        <li>E471 (mono- et diglycérides d'acides gras) - Émulsifiant très courant</li>
+        <li>E300 (acide ascorbique) - Antioxydant (celui-là est OK)</li>
+        <li>E472e (esters mono- et diacétyltartrique d'acides gras) - Émulsifiant</li>
+      </ul>
+      
+      <p><strong>Pourquoi c'est problématique?</strong></p>
+      <p>Le pain industriel contient souvent beaucoup d'additifs pour que ça se garde des semaines, qu'il reste moelleux... Ce n'est plus vraiment du pain, c'est un produit transformé.</p>
+      
+      <p><strong>L'alternative saine:</strong></p>
+      <ul>
+        <li>Pain de boulangerie (liste courte d'ingrédients)</li>
+        <li>Pain complet bio (additifs limités)</li>
+        <li>Fait maison si vous avez le temps</li>
+      </ul>
+      
+      <h2>🥛 2. Les yaourts "naturels" industriels</h2>
+      <p>Yaourt nature = sain, non? Pas toujours. Regardez la liste.</p>
+      
+      <p><strong>Le piège:</strong></p>
+      <ul>
+        <li>E331 (acide citrique) - Acidifiant (généralement OK)</li>
+        <li>E407 (carraghénanes) - Épaississant (à surveiller)</li>
+        <li>E1442 (amidons modifiés) - Texturant</li>
+        <li>E412 (guar) - Épaississant</li>
+      </ul>
+      
+      <p><strong>Pourquoi c'est problématique?</strong></p>
+      <p>Les yaourts industriels sont souvent épaissis et texturés avec des additifs pour avoir une texture crémeuse sans la matière grasse naturelle. Les carraghénanes (E407) sont particulièrement controversés.</p>
+      
+      <p><strong>L'alternative saine:</strong></p>
+      <ul>
+        <li>Yaourt fermier (ingrédients: lait + ferments lactiques)</li>
+        <li>Yaourt grec (nature, sans additifs)</li>
+        <li>Fait votre propre yaourt (super simple!)</li>
+      </ul>
+      
+      <h2>🧃 3. Les jus de fruits "100% pur jus"</h2>
+      <p>Même "100% pur jus", certains jus cachent des surprises.</p>
+      
+      <p><strong>Le piège:</strong></p>
+      <ul>
+        <li>E300 (acide ascorbique/vitamine C) - Antioxydant (OK)</li>
+        <li>E330 (acide citrique) - Acidifiant (OK)</li>
+        <li>E163 (anthocyanes) - Colorant (OK, naturel)</li>
+      </ul>
+      
+      <p><strong>Pourquoi c'est problématique?</strong></p>
+      <p>Ce n'est pas tant les additifs que le sucre. Un jus de fruit, même sans additifs, c'est du sucre pur. Une bouteille de jus d'orange = 6 oranges. Personne ne mange 6 oranges d'un coup. Et les fibres sont parties.</p>
+      
+      <p><strong>L'alternative saine:</strong></p>
+      <ul>
+        <li>Mangez le fruit entier (fibres + sucre = équilibre)</li>
+        <li>Eau + fruit pressé maison</li>
+        <li>Infusion de fruits sans sucre</li>
+      </ul>
+      
+      <h2>🍫 4. Le chocolat noir "pur cacao"</h2>
+      <p>Le chocolat noir, c'est bon pour la santé, dit-on. Vraiment?</p>
+      
+      <p><strong>Le piège:</strong></p>
+      <ul>
+        <li>E322 (lécithine de soja ou tournesol) - Émulsifiant</li>
+        <li>E476 (polyglycérol polyricinoléate) - Émulsifiant (à éviter)</li>
+        <li>E491 (stéarate de sorbitan) - Émulsifiant</li>
+      </ul>
+      
+      <p><strong>Pourquoi c'est problématique?</strong></p>
+      <p>Le chocolat de qualité n'a pas besoin d'émulsifiants complexes. Si vous voyez E476, fuyez. Et le sucre reste le problème principal, même dans le chocolat noir.</p>
+      
+      <p><strong>L'alternative saine:</strong></p>
+      <ul>
+        <li>Chocolat noir sans additifs (liste: cacao + sucre + beurre de cacao)</li>
+        <li>Cacao pur en poudre (sans sucre)</li>
+        <li>Chocolat artisanal</li>
+      </ul>
+      
+      <h2>🥗 5. Les plats préparés "bio"</h2>
+      <p>"C'est bio, donc c'est sain!" Attention...</p>
+      
+      <p><strong>Le piège:</strong></p>
+      <ul>
+        <li>E471 (mono- et diglycérides) - Émulsifiant</li>
+        <li>E330 (acide citrique) - Acidifiant</li>
+        <li>E331 (acide citrique) - Acidifiant</li>
+        <li>E415 (gomme xanthane) - Épaississant</li>
+        <li>E412 (guar) - Épaississant</li>
+      </ul>
+      
+      <p><strong>Pourquoi c'est problématique?</strong></p>
+      <p>Le bio limite les pesticides et certains additifs, mais pas tous. Un plat préparé bio reste un produit ultra-transformé avec beaucoup d'additifs. Le mode de production (bio) ne change pas la nature du produit (transformé).</p>
+      
+      <p><strong>L'alternative saine:</strong></p>
+      <ul>
+        <li>Fait maison avec des ingrédients bio</li>
+        <li>Produits bruts bio (légumes, fruits, viande)</li>
+        <li>Repas simples plutôt que plats préparés</li>
+      </ul>
+      
+      <h2>🎯 Comment repérer les faux aliments sains?</h2>
+      <p>La règle d'or: <strong>plus la liste est courte, mieux c'est</strong>.</p>
+      
+      <ol>
+        <li><strong>Comptez les ingrédients</strong> - Moins de 5 = généralement bon</li>
+        <li><strong>Recherchez les codes E</strong> - Surtout E471, E476, E320, E321</li>
+        <li><strong>Scannez avec Mieux</strong> - L'application vous alerte sur les additifs</li>
+        <li><strong>Méfiez-vous du marketing</strong> - "naturel", "pur", "sain" = marketing</li>
+        <li><strong>Regardez le NOVA</strong> - NOVA 4 = ultra-transformé, peu importe le bio</li>
+      </ol>
+      
+      <h2>💡 Le piège du "sans"</strong></p>
+      <p>"Sans gluten", "sans lactose", "sans sucre"... Ces produits compensent souvent avec:</p>
+      <ul>
+        <li>Plus d'additifs pour la texture</li>
+        <li>Plus de gras pour le goût</li>
+        <li>Plus d'édulcorants artificiels</li>
+      </ul>
+      
+      <p>Parfois, le produit "normal" est plus sain que le produit "sans"!</p>
+      
+      <h2>📱 Mieux vous aide à voir clair</h2>
+      <p>L'application Mieux scanne les produits et vous dit:</p>
+      <ul>
+        <li>✅ Quels additifs sont présents</li>
+        <li>✅ Leur niveau de risque (A, B, C, D)</li>
+        <li>✅ Le degré de transformation (NOVA)</li>
+        <li>✅ Des alternatives plus saines</li>
+      </ul>
+      
+      <h2>🥗 Ce qu'il faut retenir</h2>
+      <p>Les aliments sains ne sont pas toujours ce qu'ils semblent être:</p>
+      <ul>
+        <li>Le marketing = mensonge bien emballé</li>
+        <li>La liste d'ingrédients = la vérité</li>
+        <li>Le bio = mieux, mais pas parfait</li>
+        <li>Le fait maison = le contrôle total</li>
+      </ul>
+      
+      <p><strong>Conseil final:</strong> Scannez vos produits avec Mieux. En 2 secondes, vous saurons si ce "produit sain" l'est vraiment. Et si ce n'est pas le cas, l'application vous propose des alternatives. 📱✨</p>
+    `,
+  },
   'comprendre-additifs-alimentaires': {
     title: 'Comprendre les additifs alimentaires: guide complet',
     date: '2 novembre 2026',

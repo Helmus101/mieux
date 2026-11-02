@@ -7,9 +7,13 @@ from fastapi import Header, HTTPException
 from jose import JWTError, jwt
 
 # JWT Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+# CRITICAL: JWT_SECRET_KEY must be set in production with a strong random value
+# Generate with: openssl rand -base64 32
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY environment variable must be set")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 days
+ACCESS_TOKEN_EXPIRE_MINUTES = 7 * 24 * 60  # 7 days (reduced from 30 for better security)
 
 
 def create_access_token(data: dict) -> str:

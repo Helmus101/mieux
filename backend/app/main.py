@@ -252,7 +252,9 @@ def _visitor(request: Request) -> str:
     """Daily-rotating hash of IP + browser. Raw values are never stored, so nobody can be followed across days."""
     ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip() or (request.client.host if request.client else "")
     ua = request.headers.get("user-agent", "")[:400]
-    salt = os.getenv("USAGE_SALT") or os.getenv("JWT_SECRET_KEY") or "mieux-usage"
+    salt = os.getenv("USAGE_SALT") or os.getenv("JWT_SECRET_KEY")
+    if not salt:
+        raise RuntimeError("USAGE_SALT or JWT_SECRET_KEY environment variable must be set")
     return hashlib.sha256(f"{date.today().isoformat()}|{ip}|{ua}|{salt}".encode()).hexdigest()[:32]
 
 
@@ -262,7 +264,9 @@ def _person(request: Request) -> Optional[str]:
     sid = (request.headers.get("x-session-id") or "").strip()
     if len(sid) < 8:
         return None
-    salt = os.getenv("USAGE_SALT") or os.getenv("JWT_SECRET_KEY") or "mieux-usage"
+    salt = os.getenv("USAGE_SALT") or os.getenv("JWT_SECRET_KEY")
+    if not salt:
+        raise RuntimeError("USAGE_SALT or JWT_SECRET_KEY environment variable must be set")
     return hashlib.sha256(f"person|{sid}|{salt}".encode()).hexdigest()[:32]
 
 
@@ -915,13 +919,15 @@ def put_identity(body: MeIdentity, uid: str = Depends(user), s: Session = Depend
 
 
 @app.get("/v1/people")
-@limiter.limit("30/minute")
+@limiter.limit("10/minute")
 def people(request: Request, days: int = 30, limit: int = 100,
            x_admin_key: Optional[str] = Header(None), s: Session = Depends(get_db)):
     """Who is using Mieux: the names and cities people saved, newest activity first. Closed unless ADMIN_KEY is set
     and sent as X-Admin-Key, so this list is never public."""
-    key = os.environ.get("ADMIN_KEY", "")
-    if not key or not x_admin_key or not secrets.compare_digest(x_admin_key, key):
+    key = os.environ.get("ADMIN_KEY")
+    if not key:
+        raise HTTPException(404, "Not found")
+    if not x_admin_key or not secrets.compare_digest(x_admin_key, key):
         raise HTTPException(404, "Not found")
     days, limit = max(1, min(365, days)), max(1, min(500, limit))
     since = db.now() - timedelta(days=days)

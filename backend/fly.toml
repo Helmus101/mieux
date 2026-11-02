@@ -8,7 +8,7 @@ primary_region = 'cdg'
 
 [build]
 [env]
-  ALLOWED_ORIGINS = '*'
+  ALLOWED_ORIGINS = 'https://mieuxmanger.vercel.app,https://mieux.app'
 
 [[mounts]]
   source = 'mieux_data'
@@ -22,5 +22,5 @@ primary_region = 'cdg'
   min_machines_running = 1
 
 [[vm]]
-  size = 'shared-cpu-1x'
-  memory = '1gb'
+  size = 'shared-cpu-2x'
+  memory = '2gb'
