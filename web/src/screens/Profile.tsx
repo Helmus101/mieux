@@ -3,11 +3,11 @@ import { t, setLocale } from '@shared/i18n';
 import { clearAll } from '@shared/storage';
 import { useProfile, useHistory, PRIORITY_KEYS } from '@shared/stores';
 import { routes, useNav } from '../nav';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Screen, NavBar, LargeTitle, Button, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
 import { CHAIN_LIST } from '@shared/chains';
 import { findCity, searchAddress, type Home } from '../place';
-import { accountEnabled, refreshScanCount, signOut, useAccount } from '../account';
+import { accountEnabled, signOut, useAccount } from '../account';
 import AuthForm from '../AuthForm';
 
 export default function Profile() {
@@ -17,7 +17,6 @@ export default function Profile() {
   const [msg, setMsg] = useState(''), [, setTick] = useState(0);
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
   const email = useAccount((a) => a.email), scans = useAccount((a) => a.scans);
-  useEffect(() => { if (email) refreshScanCount(); }, [email]);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const locate = async () => { setMsg(''); const r = await findCity(); if (r === 'denied') setMsg(t('about.locDenied')); else if (!r) setMsg(t('about.locFail')); else p.setPlace(r); };
   const exp = async () => { const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = 'mieux-donnees.json'; a.click(); };
