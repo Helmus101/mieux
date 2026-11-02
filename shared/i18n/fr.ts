@@ -8,7 +8,7 @@ export const fr = {
     localText: 'Votre profil, vos tickets et vos scans sont stockés sur cet appareil. Seuls les codes-barres sont envoyés à Open Food Facts pour trouver les produits.',
     start: 'Commencer', allergyNote: 'Information absente ≠ produit sans risque : Mieux indiquera « impossible de vérifier ».',
   },
-  priorities: { eco: 'Respect de l\'environnement (bientôt)', value: 'Meilleur rapport nutrition-prix', budget: 'Économiser', overall: 'Meilleur équilibre nutritionnel', sugars: 'Moins de sucre', protein: 'Plus de protéines', fibre: 'Plus de fibres', additives: 'Moins d\'additifs', salt: 'Moins de sel', saturated_fat: 'Moins de graisses saturées' },
+  priorities: { title: 'Conformité à vos priorités', eco: 'Respect de l\'environnement (bientôt)', value: 'Meilleur rapport nutrition-prix', budget: 'Économiser', overall: 'Meilleur équilibre nutritionnel', sugars: 'Moins de sucre', protein: 'Plus de protéines', fibre: 'Plus de fibres', additives: 'Moins d\'additifs', salt: 'Moins de sel', saturated_fat: 'Moins de graisses saturées' },
   diets: { peanuts: 'Allergie aux arachides', nuts: 'Allergie aux fruits à coque', omnivore: 'Aucune', vegetarian: 'Végétarien', vegan: 'Végétalien', gluten: 'Sans gluten', milk: 'Sans lactose' },
   home: {
     kicker: 'MIEUX', title: 'Manger mieux, simplement', sub: 'Sucre, sel, additifs : ce que dit vraiment l\'étiquette.', howTitle: 'Comment ça marche', how1: 'Scannez le code-barres : le bouton ci-dessus ouvre l\'appareil photo.', how2: 'Lisez la note sur 100, le sucre, le sel et les additifs — en grands mots, sans jargon.', how3: 'Voyez une alternative plus saine vendue près de chez vous, puis décidez.', spend: 'DÉPENSES ENREGISTRÉES · {m}', basedOn: 'Basé sur {n} ticket(s) confirmé(s) ce mois-ci',

@@ -20,6 +20,7 @@ export default function Product() {
   const { barcode } = useParams<{ barcode: string }>();
   const { go, back } = useNav();
   const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare);
+  const priorities = useProfile((s) => s.priorities);
   const hist = useHistory();
   const [d, setD] = useState<any>(null), [err, setErr] = useState<{ kind: 'notfound' | 'invalid' | 'server' | 'network'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), [basis, setBasis] = useState<'100' | 'serving' | 'pack'>('100');
   useEffect(() => {
@@ -67,13 +68,53 @@ export default function Product() {
         {p.score ? <>
           <Row spread><div className="scorebig" style={{ color: p.score.tone === 'b' ? 'var(--bad)' : p.score.tone === 'w' ? 'var(--warn)' : 'var(--accent)' }}>{p.score.total}<small>{t('score.outOf')}</small></div><span style={{ textAlign: 'right' }}><b>{t('score.' + p.score.band)}</b><br /><span className="mut sm">{t('score.title')}</span></span></Row>
           <ScoreBar total={p.score.total} label={t('score.spectrum')} />
-          {p.score.caps?.length > 0 && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })} · {p.score.caps.map((c: string) => t('cap.' + c)).join(' ')}</p>}
           {(p.score.additives?.items ?? []).some((x: any) => x.level === 'C' || x.level === 'D') && <div className="flags">{(p.score.additives.items as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 4).map((x) => <span key={x.code} className={'pill ' + (x.level === 'D' ? 'b' : 'w')} onClick={() => setSheet(x.code)}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</span>)}</div>}
           {p.score.flags?.length > 0 && <div className="flags">{p.score.flags.slice(0, 3).map((f: any) => <span key={f.key} className={'pill ' + (f.level === 'bad' ? 'b' : 'w')}>{t('flag.' + f.key)}</span>)}</div>}
         </> : <Muted>{t('score.na')}</Muted>}
         {head.kind !== 'none' ? <p style={{ margin: '10px 0 0' }}><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('simple.noPrice')}</p>}
         {pc?.community && head.kind === 'real' && <p className="mut sm" style={{ margin: '2px 0 0' }}>{[pc.community.pack_cents != null && p.quantity?.amount ? `${t('size.pack', { s: p.quantity.amount >= 1000 ? `${Math.round(p.quantity.amount / 100) / 10} ${p.quantity.unit === 'ml' ? 'L' : 'kg'}` : `${Math.round(p.quantity.amount)} ${p.quantity.unit}` })} ${formatCents(pc.community.pack_cents)}` : null, pc.community.n_observations ? t('price.reports', { n: pc.community.n_observations, c: pc.community.n_chains ?? 1 }) : null, pc.community.date ? t(pc.community.stale ? 'price.oldAt' : 'price.at', { d: String(pc.community.date).slice(0, 7) }) : null].filter(Boolean).join(' · ')}</p>}
       </Card>
+      {p.score && priorities.length > 0 && (
+        <Card>
+          <p className="mut sm" style={{ marginBottom: 12 }}>{t('priorities.title')}</p>
+          {priorities.map((key) => {
+            const aligned = (() => {
+              if (key === 'additives') {
+                return !(p.score.additives?.items ?? []).some((x: any) => x.level === 'C' || x.level === 'D');
+              }
+              if (key === 'overall' || key === 'value') {
+                return p.score.total >= 50;
+              }
+              if (key === 'budget') {
+                return head.kind !== 'none' && head.perKgCents !== undefined && head.perKgCents < 500;
+              }
+              if (key === 'sugars') {
+                const dim = p.score.dimensions?.find((d: any) => d.key === 'sugars');
+                return dim && dim.score >= 50;
+              }
+              if (key === 'protein') {
+                const dim = p.score.dimensions?.find((d: any) => d.key === 'protein');
+                return dim && dim.score >= 50;
+              }
+              if (key === 'fibre') {
+                const dim = p.score.dimensions?.find((d: any) => d.key === 'fibre');
+                return dim && dim.score >= 50;
+              }
+              return true;
+            })();
+            return (
+              <div key={key} style={{ display: 'flex', alignItems: 'center', padding: '8px 0' }}>
+                <span style={{ 
+                  marginRight: 12, 
+                  fontSize: 18,
+                  color: aligned ? 'var(--accent)' : 'var(--bad)'
+                }}>{aligned ? '✓' : '✗'}</span>
+                <span style={{ flex: 1 }}>{t('priorities.' + key)}</span>
+              </div>
+            );
+          })}
+        </Card>
+      )}
       <Button primary onPress={() => go(routes.alternatives(p.id))}>{t('simple.findBetter')}</Button>
       {p.score && <Collapsible open={false} title={t('sdim.title')}>
           {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
