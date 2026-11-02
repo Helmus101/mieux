@@ -65,6 +65,10 @@ export class MieuxAPI {
     this.token = token;
   }
 
+  clearToken() {
+    this.token = null;
+  }
+
   setSessionId(sessionId: string) {
     this.sessionId = sessionId;
   }

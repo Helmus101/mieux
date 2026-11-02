@@ -6,6 +6,8 @@ from typing import Optional
 from fastapi import Header, HTTPException
 from jose import JWTError, jwt
 
+from . import supabase_auth
+
 # JWT Configuration
 # CRITICAL: JWT_SECRET_KEY must be set in production with a strong random value
 # Generate with: openssl rand -base64 32
@@ -29,7 +31,7 @@ def create_access_token(data: dict) -> str:
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_token
+    return encoded_jwt
 
 
 def decode_access_token(token: str) -> dict:
@@ -73,6 +75,12 @@ def get_user(authorization: Optional[str] = Header(None)) -> dict:
         raise HTTPException(401, "Invalid authorization header format")
 
     token = authorization.replace("Bearer ", "")
+
+    sb = supabase_auth.verify(token)
+    if sb:
+        return sb
+    if supabase_auth.is_supabase_token(token):
+        raise HTTPException(401, "Invalid Supabase token")
 
     try:
         payload = decode_access_token(token)

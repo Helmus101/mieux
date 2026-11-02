@@ -6,6 +6,7 @@ import { useProfile, apiPrefs } from '@shared/stores';
 import { Loader, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
 import InstallPrompt from './InstallPrompt';
+import { initAccount } from './account';
 import { APP_PATH } from './install';
 import './index.css';
 
@@ -50,6 +51,7 @@ function Shell() {
   const profile = useProfile();
   const { pathname } = useLocation();
   const { onboarded, priorities, diet, allergens, language } = profile;
+  useEffect(() => { initAccount(); }, []);
   // Set locale on app load
   useEffect(() => { if (language) setLocale(language); }, [language]);
   // Keep the (local) server in sync so fit checks and price-aware ranking use the saved profile.
