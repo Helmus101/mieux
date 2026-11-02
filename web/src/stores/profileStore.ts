@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { load, save } from '../storage';
+import { load, save } from '@shared/storage';
 import { PARIS_DEFAULT } from '../zones';
-import { setStrict } from '../config';
+import { setStrict } from '@shared/config';
 
 export type Diet = 'omnivore' | 'vegetarian' | 'vegan';
 export const PRIORITY_KEYS = ['value', 'budget', 'overall', 'sugars', 'protein', 'fibre', 'additives'] as const;

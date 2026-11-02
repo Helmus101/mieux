@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { load, save } from '../storage';
+import { load, save } from '@shared/storage';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Everything the user does is also kept on the device (not only in the local server database), so the app works

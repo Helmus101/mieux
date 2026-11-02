@@ -1,7 +1,7 @@
 // Anonymous usage ping: the server counts one visit per person, per surface, per day.
 // Nothing is stored in the browser (no cookie, no id) and failures never affect the page.
 import { load, save } from '@shared/storage';
-import { getApiBase } from './config';
+import { getApiBase } from '@shared/config';
 
 export type Surface = 'landing' | 'app';
 

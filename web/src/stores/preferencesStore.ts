@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api } from '../api/client';
+import { api } from '@shared/api/client';
 import type { UserPreferences } from '../types';
 
 interface PreferencesState extends UserPreferences {
