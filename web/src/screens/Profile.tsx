@@ -40,13 +40,8 @@ export default function Profile() {
       <Section title={t('profile.priorities')}><Chips>{PRIORITY_KEYS.map((k) => <Chip key={k} on={p.priorities.includes(k)} onPress={() => p.togglePriority(k)}>{t('priorities.' + k)}</Chip>)}</Chips></Section>
       <Section title={t('profile.diet')}><Chips>{(['omnivore', 'vegetarian', 'vegan'] as const).map((d) => <Chip key={d} on={p.diet === d} onPress={() => p.setDiet(d)}>{t('diets.' + d)}</Chip>)}</Chips></Section>
       <Section title={t('profile.restrictions')}><Chips>{['gluten', 'milk', 'peanuts', 'nuts'].map((a) => <Chip key={a} on={p.allergens.includes(a)} onPress={() => p.toggleAllergen(a)}>{t('diets.' + a)}</Chip>)}</Chips><p className="mut sm">{t('onboarding.allergyNote')}</p></Section>
-      <Section title={t('about.langName')}>
+      <Section title={t('profile.language')}>
         <Chips>{(['fr', 'en'] as const).map((lang) => <Chip key={lang} on={p.language === lang} onPress={() => { p.setLanguage(lang); setLocale(lang); setTick((n) => n + 1); }}>{lang === 'fr' ? 'Français' : 'English'}</Chip>)}</Chips>
-        <p className="mut sm">{t('about.langHint')}</p>
-      </Section>
-      <Section title={t('about.countryName')}>
-        <Chips>{(['FR', 'US'] as const).map((country) => <Chip key={country} on={p.country === country} onPress={() => p.setCountry(country)}>{country === 'FR' ? 'France' : 'United States'}</Chip>)}</Chips>
-        <p className="mut sm">{t('about.countryHint')}</p>
       </Section>
       <Collapsible title={t('simple.advanced')}>
       {platform() !== 'other' && !isInstalled() && <Section title={t('pwa.title')}><Group><Cell onPress={openInstall}><Row spread><span>{t('pwa.profile')}</span><span className="chev">›</span></Row></Cell></Group></Section>}

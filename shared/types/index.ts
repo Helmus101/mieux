@@ -88,7 +88,6 @@ export interface UserPreferences {
   diet: string;
   priorities: string[];
   allergens: string[];
-  country?: string;
 }
 
 export interface Receipt {
