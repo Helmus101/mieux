@@ -150,10 +150,28 @@ def _add_missing_columns(eng) -> None:
 
 def make_session_factory(url: str = None):
     url = url or os.environ.get("DATABASE_URL", "sqlite:///./foodiq.db")  # PostgreSQL: postgresql+psycopg://...
-    kw = {"connect_args": {"check_same_thread": False}} if url.startswith("sqlite") else {}
+    kw = {"connect_args": {"check_same_thread": False, "timeout": 10}} if url.startswith("sqlite") else {}
     if url.startswith("sqlite") and ":memory:" in url:
         from sqlalchemy.pool import StaticPool
         kw["poolclass"] = StaticPool
+    elif url.startswith("sqlite"):
+        # Production SQLite optimizations: WAL mode, timeout, connection pooling
+        from sqlalchemy.event import listen
+        def sqlite_config(dbapi_conn, _):
+            dbapi_conn.execute("PRAGMA journal_mode=WAL")  # Write-ahead logging for better concurrency
+            dbapi_conn.execute("PRAGMA synchronous=NORMAL")  # Safer than FULL, faster than OFF
+            dbapi_conn.execute("PRAGMA cache_size=-64000")  # 64 MB cache
+            dbapi_conn.execute("PRAGMA temp_store=MEMORY")  # Use memory for temp tables
+            dbapi_conn.execute("PRAGMA mmap_size=30000000")  # Memory-mapped I/O
+            dbapi_conn.execute("PRAGMA page_size=4096")  # Align with OS page size
+        kw["echo_pool"] = False
+        kw["pool_size"] = 5
+        kw["max_overflow"] = 10
+        eng = create_engine(url, **kw)
+        listen(eng, "connect", sqlite_config)
+        Base.metadata.create_all(eng)
+        _add_missing_columns(eng)
+        return sessionmaker(bind=eng, expire_on_commit=False)
     eng = create_engine(url, **kw)
     Base.metadata.create_all(eng)
     _add_missing_columns(eng)

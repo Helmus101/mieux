@@ -41,8 +41,105 @@ from .auth import get_user_or_anonymous, create_access_token
 
 # Structured logging (basic setup for now)
 import logging
+import time
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Simple LRU cache for product data (reduce DB hits)
+from collections import OrderedDict
+class SimpleCache:
+    def __init__(self, max_size=500):
+        self.cache = OrderedDict()
+        self.max_size = max_size
+
+    def get(self, key):
+        if key in self.cache:
+            self.cache.move_to_end(key)
+            return self.cache[key]
+        return None
+
+    def set(self, key, value):
+        self.cache[key] = value
+        self.cache.move_to_end(key)
+        if len(self.cache) > self.max_size:
+            self.cache.popitem(last=False)
+
+product_cache = SimpleCache(max_size=500)
+
+# Batch visit logging to reduce DB write contention (write every 10 visits or 30 seconds)
+from threading import Lock, Timer
+class VisitBatcher:
+    def __init__(self, batch_size=10, flush_interval=30):
+        self.batch = []
+        self.batch_size = batch_size
+        self.flush_interval = flush_interval
+        self.lock = Lock()
+        self.timer = None
+        self.app_state = None
+
+    def set_app_state(self, app_state):
+        """Set reference to app.state after app is created."""
+        self.app_state = app_state
+
+    def add(self, day: str, surface: str, visitor: str, person: Optional[str], referrer: Optional[str]):
+        with self.lock:
+            self.batch.append((day, surface, visitor, person, referrer))
+            if len(self.batch) >= self.batch_size:
+                self._flush_sync()
+            elif self.timer is None:
+                self.timer = Timer(self.flush_interval, self._flush_async)
+                self.timer.daemon = True
+                self.timer.start()
+
+    def flush(self):
+        """Synchronous flush for testing."""
+        with self.lock:
+            if self.batch:
+                batch = self.batch[:]
+                self.batch.clear()
+                if self.timer:
+                    self.timer.cancel()
+                    self.timer = None
+                self._write_batch(batch)
+
+    def _flush_sync(self):
+        """Flush without rescheduling the timer."""
+        batch = self.batch[:]
+        self.batch.clear()
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+        import threading
+        threading.Thread(target=self._write_batch, args=(batch,), daemon=True).start()
+
+    def _flush_async(self):
+        """Flush on timer expiry."""
+        with self.lock:
+            if self.batch:
+                batch = self.batch[:]
+                self.batch.clear()
+                self.timer = None
+                import threading
+                threading.Thread(target=self._write_batch, args=(batch,), daemon=True).start()
+
+    def _write_batch(self, batch):
+        """Write batch to database (background thread)."""
+        if not self.app_state:
+            return
+        try:
+            with self.app_state.sessions() as s:
+                for day, surface, visitor, person, referrer in batch:
+                    try:
+                        existing = s.query(db.Visit).filter_by(day=day, surface=surface, visitor=visitor).first()
+                        if not existing and not (person and s.query(db.Visit).filter_by(day=day, surface=surface, person=person).first()):
+                            s.add(db.Visit(day=day, surface=surface, visitor=visitor, person=person, referrer=referrer))
+                    except IntegrityError:
+                        pass
+                s.commit()
+        except Exception as e:
+            logger.error(f"Failed to write visit batch: {e}")
+
+visit_batcher = VisitBatcher(batch_size=10, flush_interval=30)
 
 # Rate limiting
 limiter = Limiter(key_func=get_remote_address)
@@ -60,10 +157,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Request logging middleware for performance monitoring
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration = (time.time() - start) * 1000  # milliseconds
+    logger.info(f"req {request.method} {request.url.path} status={response.status_code} ms={duration:.0f}")
+    return response
+
 app.state.off = OFFClient()
 app.state.prices = value.OpenPricesClient()
 app.state.llm = None  # no language model: explanations are always built from the computed facts
 app.state.sessions = db.make_session_factory()
+visit_batcher.set_app_state(app.state)  # Enable background visit batching
 with app.state.sessions() as _s:
     retail.seed(_s)
 WEB = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "index.html"))
@@ -280,18 +387,13 @@ def _referrer(request: Request) -> str:
 @app.post("/v1/usage/visit")
 @limiter.limit("60/minute")
 def usage_visit(request: Request, body: VisitIn, s: Session = Depends(get_db)):
-    """Counts people, not refreshes: one row per visitor, per surface, per day.
-    `visitor` answers "how many today" without following anyone; `person` (when the browser sends its anonymous id)
-    answers "how many distinct people over a month" and "how many come back"."""
+    """Batch visit logging to reduce DB write contention at scale. Writes in background (max 30s delay).
+    Tracks visitor counts, surface (landing page vs app), and person identifiers for retention analytics."""
     day, visitor, person = date.today().isoformat(), _visitor(request), _person(request)
-    same = s.query(db.Visit).filter_by(day=day, surface=body.surface)
-    seen = same.filter_by(visitor=visitor).first() or (same.filter(db.Visit.person == person).first() if person else None)
-    if not seen:
-        try:
-            s.add(db.Visit(day=day, surface=body.surface, visitor=visitor, person=person, referrer=_referrer(request)))
-            s.commit()
-        except IntegrityError:  # the same person in two tabs at once
-            s.rollback()
+    referrer = _referrer(request)
+    # Add to batch queue (will write to DB after 10 visits or 30 seconds)
+    visit_batcher.add(day, body.surface, visitor, person, referrer)
+    logger.info(f"visit queued surface={body.surface} batch_size={len(visit_batcher.batch)}")
     return {"ok": True}
 
 

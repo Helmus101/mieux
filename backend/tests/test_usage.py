@@ -22,6 +22,7 @@ def test_a_refresh_is_not_a_new_person():
     h = {"user-agent": "pytest-visitor-one"}
     assert c.post("/v1/usage/visit", json={"surface": "landing"}, headers=h).status_code == 200
     assert c.post("/v1/usage/visit", json={"surface": "landing"}, headers=h).status_code == 200
+    main.visit_batcher.flush()  # Flush batch queue before stats query
     after = stats()
     assert after["landing_views"] == before["landing_views"] + 1
     assert after["visitors"] == before["visitors"] + 1
@@ -32,6 +33,7 @@ def test_opening_the_app_is_counted_too():
     before = stats()
     h = {"user-agent": "pytest-visitor-one"}
     assert c.post("/v1/usage/visit", json={"surface": "app"}, headers=h).status_code == 200
+    main.visit_batcher.flush()  # Flush batch queue before stats query
     after = stats()
     assert after["app_opens"] == before["app_opens"] + 1
     assert after["app_visitors"] == before["app_visitors"] + 1
@@ -42,6 +44,7 @@ def test_two_browsers_are_two_people():
     before = stats()["visitors"]
     c.post("/v1/usage/visit", json={"surface": "landing"}, headers={"user-agent": "pytest-visitor-two"})
     c.post("/v1/usage/visit", json={"surface": "landing"}, headers={"user-agent": "pytest-visitor-three"})
+    main.visit_batcher.flush()  # Flush batch queue before stats query
     assert stats()["visitors"] == before + 2
 
 
@@ -50,6 +53,7 @@ def test_unknown_surface_is_rejected():
 
 
 def test_only_a_daily_hash_is_stored():
+    main.visit_batcher.flush()  # Flush batch queue before database query
     with main.app.state.sessions() as s:
         rows = s.query(db.Visit).all()
     assert rows
