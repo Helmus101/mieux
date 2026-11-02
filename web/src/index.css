@@ -64,7 +64,7 @@ button{font:inherit;color:inherit;-webkit-appearance:none;-webkit-tap-highlight-
 @keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:9px 6px;text-align:left;border-bottom:.5px solid var(--line)}th{font-size:13px;color:var(--mut);font-weight:600}
 td.best{background:var(--tint);font-weight:700;color:var(--accent);border-radius:6px}
-input[type=text],input[type=search],input[type=email],input:not([type]),textarea{width:100%;font:inherit;padding:12px 14px;border:0;border-radius:12px;background:var(--tint);color:var(--ink);outline:none;transition:box-shadow .2s}
+input[type=text],input[type=search],input[type=email],input[type=password],input:not([type]),textarea{width:100%;font:inherit;padding:12px 14px;border:0;border-radius:12px;background:var(--tint);color:var(--ink);outline:none;transition:box-shadow .2s}
 input:focus,textarea:focus{box-shadow:0 0 0 3px var(--tint)}
 .field{display:flex;align-items:center;gap:8px;padding:8px 16px}.field input{flex:1;background:none;padding:6px 0}
 video{width:100%;border-radius:20px;background:#000;max-height:360px;object-fit:cover}

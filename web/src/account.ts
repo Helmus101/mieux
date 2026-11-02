@@ -28,5 +28,25 @@ export function initAccount() {
   supabase.auth.onAuthStateChange((_event, session) => apply(session));
 }
 
-export const sendMagicLink = (email: string) => supabase!.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/app` } });
+export type AuthResult = 'ok' | 'confirm' | 'invalid' | 'exists' | 'weak' | 'error';
+
+const classify = (message: string): AuthResult => {
+  const m = message.toLowerCase();
+  if (m.includes('already') || m.includes('registered')) return 'exists';
+  if (m.includes('password') && (m.includes('least') || m.includes('weak') || m.includes('short'))) return 'weak';
+  if (m.includes('invalid') || m.includes('credentials')) return 'invalid';
+  return 'error';
+};
+
+/** One form for everyone: try to sign in; if there is no such account yet, create it.
+ *  With "Confirm email" switched off in Supabase, sign-up returns a session straight away. */
+export async function continueWithPassword(email: string, password: string): Promise<AuthResult> {
+  const { error } = await supabase!.auth.signInWithPassword({ email, password });
+  if (!error) return 'ok';
+  if (classify(error.message) !== 'invalid') return classify(error.message);
+  const { data, error: upErr } = await supabase!.auth.signUp({ email, password });
+  if (upErr) { const r = classify(upErr.message); return r === 'exists' ? 'invalid' : r; }  // the account exists, so the password was wrong
+  return data.session ? 'ok' : 'confirm';
+}
+
 export const signOut = () => supabase!.auth.signOut();

@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react';
 import { Screen, NavBar, LargeTitle, Button, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
 import { CHAIN_LIST } from '@shared/chains';
 import { findCity, searchAddress, type Home } from '../place';
-import { accountEnabled, refreshScanCount, sendMagicLink, signOut, useAccount } from '../account';
+import { accountEnabled, refreshScanCount, signOut, useAccount } from '../account';
+import AuthForm from '../AuthForm';
 
 export default function Profile() {
   const p = useProfile();
@@ -15,9 +16,8 @@ export default function Profile() {
   const hist = useHistory();
   const [msg, setMsg] = useState(''), [, setTick] = useState(0);
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
-  const email = useAccount((a) => a.email), scans = useAccount((a) => a.scans), [mail, setMail] = useState(''), [mailState, setMailState] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
+  const email = useAccount((a) => a.email), scans = useAccount((a) => a.scans);
   useEffect(() => { if (email) refreshScanCount(); }, [email]);
-  const sendLink = async () => { setMailState('busy'); const { error } = await sendMagicLink(mail.trim()); setMailState(error ? 'error' : 'sent'); };
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const locate = async () => { setMsg(''); const r = await findCity(); if (r === 'denied') setMsg(t('about.locDenied')); else if (!r) setMsg(t('about.locFail')); else p.setPlace(r); };
   const exp = async () => { const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = 'mieux-donnees.json'; a.click(); };
@@ -29,10 +29,7 @@ export default function Profile() {
       {accountEnabled && <Section title={t('account.title')}>
         {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row></Cell><Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
           <p className="mut sm">{t('account.hint')}</p>
-          <input type="email" value={mail} onChange={(e) => { setMail(e.target.value); setMailState('idle'); }} placeholder={t('account.email')} autoComplete="email" inputMode="email" />
-          <Button primary disabled={!/^\S+@\S+\.\S+$/.test(mail.trim()) || mailState === 'busy'} onPress={sendLink}>{t('account.send')}</Button>
-          {mailState === 'sent' && <p style={{ color: 'var(--accent)' }}>{t('account.sent')}</p>}
-          {mailState === 'error' && <p style={{ color: 'var(--warn)' }}>{t('account.error')}</p>}</>}
+          <AuthForm /></>}
       </Section>}
       <Section title={t('simple.loc')}>
         <input value={p.name ?? ''} onChange={(e) => p.setName(e.target.value)} placeholder={t('about.namePh')} autoComplete="given-name" />

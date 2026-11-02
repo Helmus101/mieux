@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { t, setLocale } from '@shared/i18n';
 import { useProfile, PRIORITY_KEYS } from '@shared/stores';
 import { Button, Card, Muted, Pill, Cell, ChainLogo, Segmented } from '../ui';
-import { accountEnabled, sendMagicLink, useAccount } from '../account';
+import { accountEnabled, useAccount } from '../account';
+import AuthForm from '../AuthForm';
 import { CHAIN_LIST } from '@shared/chains';
 import { findCity, searchAddress, type Home } from '../place';
 
@@ -14,8 +15,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(-1);
   const [busy, setBusy] = useState(false), [msg, setMsg] = useState('');
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
-  const email = useAccount((a) => a.email), [mail, setMail] = useState(''), [mailState, setMailState] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
-  const sendLink = async () => { setMailState('busy'); const { error } = await sendMagicLink(mail.trim()); setMailState(error ? 'error' : 'sent'); };
+  const email = useAccount((a) => a.email);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const okAbout = !!p.name?.trim() && p.place?.lat != null && !!p.place?.exact;
   const all = CHAIN_LIST.map((c) => c.id);
@@ -36,10 +36,7 @@ export default function Onboarding() {
       {accountEnabled && <Card>
         {email ? <b>{t('account.as', { x: email })}</b> : <>
           <p className="mut sm" style={{ margin: '0 0 10px' }}>{t('account.hint')}</p>
-          <input type="email" value={mail} onChange={(e) => { setMail(e.target.value); setMailState('idle'); }} placeholder={t('account.email')} autoComplete="email" inputMode="email" />
-          <Button disabled={!/^\S+@\S+\.\S+$/.test(mail.trim()) || mailState === 'busy'} onPress={sendLink}>{t('account.send')}</Button>
-          {mailState === 'sent' && <p style={{ color: 'var(--accent)', margin: '10px 0 0' }}>{t('account.sent')}</p>}
-          {mailState === 'error' && <p style={{ color: 'var(--warn)', margin: '10px 0 0' }}>{t('account.error')}</p>}</>}
+          <AuthForm /></>}
       </Card>}
       <Button primary onPress={() => setStep(0)}>{email || !accountEnabled ? t('welcome.start') : t('account.skip')}</Button>
     </div>
