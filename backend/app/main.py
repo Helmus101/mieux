@@ -981,7 +981,7 @@ def add_scan(request: Request, body: Dict[str, str], uid: str = Depends(user), s
     logger.info({"event": "scan_added", "barcode": body.get("barcode"), "user_id": uid})
     p = load_product(s, body["barcode"])
     if is_account(s, uid):
-        s.query(db.User).filter_by(id=uid).update({db.User.scan_count: db.User.scan_count + 1})
+        s.query(db.User).filter_by(id=uid).update({db.User.scan_count: func.coalesce(db.User.scan_count, 0) + 1})
     else:
         s.add(db.Scan(user_id=uid, product_id=p["id"]))
     s.commit()

@@ -73,3 +73,22 @@ def test_anonymous_sessions_behave_as_before():
     c.post("/v1/scans", json={"barcode": "1"}, headers=h)
     assert len(rows(db.Preference, user_id="anon-session-keep-1")) == 1
     assert len(rows(db.Scan, user_id="anon-session-keep-1")) == 1
+
+
+def test_unverifiable_token_falls_back_to_the_anonymous_session(monkeypatch):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    tok = jwt.encode({"sub": "x", "aud": "authenticated", "iss": f"{URL}/auth/v1", "exp": int(time.time()) + 600}, SECRET, algorithm="HS256")
+    assert c.get("/v1/products/1", headers={"Authorization": "Bearer " + tok}).status_code == 401
+    assert c.get("/v1/products/1", headers={"Authorization": "Bearer " + tok, "X-Session-Id": "fallback-session-1"}).status_code == 200
+
+
+def test_old_database_gets_the_scan_count_column(tmp_path):
+    import sqlalchemy as sa
+    path = tmp_path / "old.db"
+    eng = sa.create_engine(f"sqlite:///{path}")
+    with eng.begin() as cx:
+        cx.execute(sa.text("CREATE TABLE users (id VARCHAR PRIMARY KEY, supabase_id VARCHAR, name VARCHAR, city VARCHAR, postcode VARCHAR, platform VARCHAR, last_seen_at DATETIME, created_at DATETIME)"))
+        cx.execute(sa.text("INSERT INTO users (id) VALUES ('old-user')"))
+    factory = db.make_session_factory(f"sqlite:///{path}")
+    with factory() as s:
+        assert s.get(db.User, "old-user").scan_count == 0

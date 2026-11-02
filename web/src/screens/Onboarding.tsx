@@ -10,7 +10,7 @@ import { findCity, searchAddress, type Home } from '../place';
 const DIET: [string, string][] = [['omnivore', 'diet'], ['vegetarian', 'diet'], ['vegan', 'diet'], ['gluten', 'allergen'], ['milk', 'allergen'], ['peanuts', 'allergen'], ['nuts', 'allergen']];
 const LIST = [...PRIORITY_KEYS, 'eco'];
 
-export default function Onboarding() {
+export default function Onboarding({ gate = false }: { gate?: boolean }) {
   const p = useProfile();
   const [step, setStep] = useState(-1);
   const [busy, setBusy] = useState(false), [msg, setMsg] = useState('');
@@ -38,7 +38,7 @@ export default function Onboarding() {
           <p className="mut sm" style={{ margin: '0 0 10px' }}>{t('account.hint')}</p>
           <AuthForm /></>}
       </Card>}
-      <Button primary onPress={() => setStep(0)}>{email || !accountEnabled ? t('welcome.start') : t('account.skip')}</Button>
+      {!gate && <Button primary disabled={accountEnabled && !email} onPress={() => setStep(0)}>{t('welcome.start')}</Button>}
     </div>
   );
   return (

@@ -39,12 +39,11 @@ export class MieuxAPI {
     this.client.interceptors.request.use((config) => {
       config.baseURL = getApiBase();
       config.headers['X-Lang'] = getLocale();
+      this.sessionId = this.sessionId ?? MieuxAPI.anonymousSession();
+      config.headers['X-Session-Id'] = this.sessionId;  // always sent: if the server cannot verify the token it falls back to this anonymous session instead of failing
       if (this.token) {
         config.headers.Authorization = `Bearer ${this.token}`;
         if (this.prefsHeader) config.headers['X-Prefs'] = this.prefsHeader;  // a signed-in account stores nothing: restrictions travel with each request
-      } else {
-        this.sessionId = this.sessionId ?? MieuxAPI.anonymousSession();
-        config.headers['X-Session-Id'] = this.sessionId;
       }
       return config;
     });

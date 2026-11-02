@@ -146,7 +146,8 @@ def _add_missing_columns(eng) -> None:
         for col in table.columns:
             if col.name not in have:
                 with eng.begin() as cx:
-                    cx.execute(text(f"ALTER TABLE {table.name} ADD COLUMN {col.name} {col.type.compile(eng.dialect)}"))
+                    default = f" DEFAULT {col.server_default.arg}" if col.server_default is not None else ""
+                    cx.execute(text(f"ALTER TABLE {table.name} ADD COLUMN {col.name} {col.type.compile(eng.dialect)}{default}"))
 
 
 def make_session_factory(url: str = None):

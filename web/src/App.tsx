@@ -6,7 +6,7 @@ import { useProfile, apiPrefs } from '@shared/stores';
 import { Loader, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
 import InstallPrompt from './InstallPrompt';
-import { initAccount } from './account';
+import { accountEnabled, initAccount, useAccount } from './account';
 import { APP_PATH } from './install';
 import './index.css';
 
@@ -56,6 +56,9 @@ function Shell() {
   useEffect(() => { if (language) setLocale(language); }, [language]);
   // Keep the (local) server in sync so fit checks and price-aware ranking use the saved profile.
   useEffect(() => { api.setPrefs(apiPrefs({ priorities, diet, allergens })); if (onboarded) api.updatePreferences(apiPrefs({ priorities, diet, allergens }) as never).catch(() => undefined); }, [onboarded, priorities, diet, allergens]);
+  const signedIn = useAccount((a) => a.email), accountReady = useAccount((a) => a.ready);
+  if (accountEnabled && !accountReady) return <Screen><Loader /></Screen>;
+  if (accountEnabled && !signedIn) return <Suspense fallback={null}><Onboarding gate /></Suspense>;  // an account is required to use the app
   if (!onboarded) return <Suspense fallback={null}><Onboarding /></Suspense>;
   return (
     <div className="app">
