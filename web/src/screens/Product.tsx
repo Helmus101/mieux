@@ -52,7 +52,7 @@ export default function Product() {
     ...(p.quantity?.amount ? [{ key: 'pack', label: t('sdim.perPack', { n: Math.round(p.quantity.amount), u: per }), f: p.quantity.amount / 100 }] : [])];
   const factor = (bases.find((b) => b.key === basis) ?? bases[0]).f;
   const amt = (v: number | null | undefined) => (v == null ? '—' : String(Math.round(v * factor * 10) / 10).replace('.', ','));
-  const verdict = verdictOf(d.fit), head = priceHeadline(pc);
+  const head = priceHeadline(pc);
   const info = sheet ? additiveInfo(sheet) : null;
   return (
     <Screen>
@@ -118,7 +118,7 @@ export default function Product() {
       <Button primary onPress={() => go(routes.alternatives(p.id))}>{t('simple.findBetter')}</Button>
       {p.score && <Collapsible open={false} title={t('sdim.title')}>
           {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
-        <Row wrap><NutriScore grade={p.nutriScore} />{verdict && <span className="mut sm"><span className={'dot ' + (verdict.tone ?? 'g')} />{verdict.text}</span>}</Row>
+        <Row wrap><NutriScore grade={p.nutriScore} /></Row>
           <p className="mut sm">{t('sdim.profile', { x: t('prof.' + p.score.profile) })} · {t('sdim.confidence', { x: t('sdim.conf_' + p.score.confidence.level), p: p.score.confidence.pct })}{p.score.incomplete ? ' · ' + t('sdim.incomplete') : ''}</p>
           <div className="nsec">{t('sdim.amountsFor')}</div>
           {bases.length > 1 ? <Segmented value={basis} onChange={(k) => setBasis(k as any)} options={bases.map((b) => ({ key: b.key, label: b.label }))} /> : <p className="mut sm">{bases[0].label}</p>}
