@@ -37,7 +37,7 @@ export const useProfile = create<State>((set, get) => ({
   setChains: (ids) => { set({ chains: ids }); persist({ ...get(), chains: ids }); },
   clearChains: () => { set({ chains: [] }); persist({ ...get(), chains: [] }); },
   setPlace: (p) => { set({ place: p }); persist({ ...get(), place: p }); },
-  hydrate: () => { const p = load<Profile>(KEY, init); setStrict(true); set({ ...p, zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), estimates: load<boolean>('fiq_estimates', false), compare: load<string[]>('fiq_compare', []), strictAdditives: true }); },
+  hydrate: () => { const p = load<Profile>(KEY, init); setStrict(true); set({ ...p, zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), estimates: load<boolean>('fiq_estimates', false), compare: load<string[]>('fiq_compare', []), strictAdditives: true, autoCamera: p.autoCamera === true }); },
   togglePriority: (k) => { if (k === 'eco') return; const p = get().priorities; const n = p.includes(k) ? p.filter((x) => x !== k) : [...p, k].slice(-2); set({ priorities: n }); persist({ ...get(), priorities: n }); },
   setDiet: (d) => { set({ diet: d }); persist({ ...get(), diet: d }); },
   toggleAllergen: (k) => { const a = get().allergens; const n = a.includes(k) ? a.filter((x) => x !== k) : [...a, k]; set({ allergens: n }); persist({ ...get(), allergens: n }); },

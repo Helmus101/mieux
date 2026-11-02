@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { api } from '@shared/api/client';
-import { setApiBase } from '@shared/config';
+import { setApiBase, setStrict } from '@shared/config';
 import { hydrateStores } from '@shared/hydrate';
 import { useProfile } from '@shared/stores';
 import Onboarding from '../src/Onboarding';
@@ -18,7 +18,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (Platform.OS === 'android' ? 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
   const { onboarded, priorities, diet, allergens } = useProfile();
-  useEffect(() => { setApiBase(API_URL); initStorage().then(() => { hydrateStores(); initHaptics(); setReady(true); }); }, []);
+  useEffect(() => { setApiBase(API_URL); setStrict(true); initStorage().then(() => { hydrateStores(); initHaptics(); setReady(true); }); }, []);
   useEffect(() => { if (ready && onboarded) api.updatePreferences({ diet, priorities, allergens } as never).catch(() => undefined); }, [ready, onboarded, priorities, diet, allergens]);
   if (!ready) return <View style={{ flex: 1, justifyContent: 'center' }}><ActivityIndicator /></View>;
   return (
