@@ -55,7 +55,7 @@ function Shell() {
   // Set locale on app load
   useEffect(() => { if (language) setLocale(language); }, [language]);
   // Keep the (local) server in sync so fit checks and price-aware ranking use the saved profile.
-  useEffect(() => { if (onboarded) api.updatePreferences(apiPrefs({ priorities, diet, allergens }) as never).catch(() => undefined); }, [onboarded, priorities, diet, allergens]);
+  useEffect(() => { api.setPrefs(apiPrefs({ priorities, diet, allergens })); if (onboarded) api.updatePreferences(apiPrefs({ priorities, diet, allergens }) as never).catch(() => undefined); }, [onboarded, priorities, diet, allergens]);
   if (!onboarded) return <Suspense fallback={null}><Onboarding /></Suspense>;
   return (
     <div className="app">

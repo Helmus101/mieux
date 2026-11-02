@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { t, setLocale } from '@shared/i18n';
 import { useProfile, PRIORITY_KEYS } from '@shared/stores';
-import { Button, Card, Muted, Pill, Cell, ChainLogo } from '../ui';
+import { Button, Card, Muted, Pill, Cell, ChainLogo, Segmented } from '../ui';
+import { accountEnabled, sendMagicLink, useAccount } from '../account';
 import { CHAIN_LIST } from '@shared/chains';
 import { findCity, searchAddress, type Home } from '../place';
 
@@ -13,6 +14,8 @@ export default function Onboarding() {
   const [step, setStep] = useState(-1);
   const [busy, setBusy] = useState(false), [msg, setMsg] = useState('');
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
+  const email = useAccount((a) => a.email), [mail, setMail] = useState(''), [mailState, setMailState] = useState<'idle' | 'busy' | 'sent' | 'error'>('idle');
+  const sendLink = async () => { setMailState('busy'); const { error } = await sendMagicLink(mail.trim()); setMailState(error ? 'error' : 'sent'); };
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const okAbout = !!p.name?.trim() && p.place?.lat != null && !!p.place?.exact;
   const all = CHAIN_LIST.map((c) => c.id);
@@ -26,15 +29,24 @@ export default function Onboarding() {
   };
   if (step === -1) return (
     <div className="ob">
+      <Segmented value={p.language ?? 'fr'} onChange={(k) => { p.setLanguage(k as 'fr' | 'en'); setLocale(k as 'fr' | 'en'); }} options={[{ key: 'fr', label: 'Français' }, { key: 'en', label: 'English' }]} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div className="kicker">MIEUX</div><h1 style={{ fontSize: 38 }}>{t('welcome.title')}</h1><Muted>{t('welcome.sub')}</Muted>
       </div>
-      <Button primary onPress={() => setStep(0)}>{t('welcome.start')}</Button>
+      {accountEnabled && <Card>
+        {email ? <b>{t('account.as', { x: email })}</b> : <>
+          <p className="mut sm" style={{ margin: '0 0 10px' }}>{t('account.hint')}</p>
+          <input type="email" value={mail} onChange={(e) => { setMail(e.target.value); setMailState('idle'); }} placeholder={t('account.email')} autoComplete="email" inputMode="email" />
+          <Button disabled={!/^\S+@\S+\.\S+$/.test(mail.trim()) || mailState === 'busy'} onPress={sendLink}>{t('account.send')}</Button>
+          {mailState === 'sent' && <p style={{ color: 'var(--accent)', margin: '10px 0 0' }}>{t('account.sent')}</p>}
+          {mailState === 'error' && <p style={{ color: 'var(--warn)', margin: '10px 0 0' }}>{t('account.error')}</p>}</>}
+      </Card>}
+      <Button primary onPress={() => setStep(0)}>{email || !accountEnabled ? t('welcome.start') : t('account.skip')}</Button>
     </div>
   );
   return (
     <div className="ob">
-      <div className="dots"><i className={step === 0 ? 'on' : ''} /><i className={step === 1 ? 'on' : ''} /><i className={step === 2 ? 'on' : ''} /><i className={step === 3 ? 'on' : ''} /><i className={step === 4 ? 'on' : ''} /></div>
+      <div className="dots"><i className={step === 0 ? 'on' : ''} /><i className={step === 1 ? 'on' : ''} /><i className={step === 2 ? 'on' : ''} /><i className={step === 3 ? 'on' : ''} /></div>
       {step === 0 && (<>
         <h1 style={{ fontSize: 30 }}>{t('about.title')}</h1><Muted>{t('about.sub')}</Muted>
         <p className="mut sm" style={{ marginBottom: 2 }}>{t('about.name')}</p>
@@ -85,21 +97,8 @@ export default function Onboarding() {
         </div>
         <Muted>{t('onboarding.allergyNote')}</Muted>
         <div style={{ flex: 1 }} />
-        <Button primary onPress={() => setStep(4)}>{t('common.continue')}</Button>
-        <Button plain onPress={() => setStep(2)}>{t('common.back')}</Button>
-      </>)}
-      {step === 4 && (<>
-        <h1 style={{ fontSize: 30 }}>{t('onboarding.langTitle')}</h1><Muted>{t('onboarding.langSub')}</Muted>
-        <div style={{ marginTop: 14 }}>
-          {(['fr', 'en'] as const).map((lang) => (
-            <button key={lang} className={'opt' + (p.language === lang ? ' on' : '')} onClick={() => { p.setLanguage(lang); setLocale(lang); }}>
-              <b>{lang === 'fr' ? 'Français' : 'English'}</b><span className="tick" />
-            </button>
-          ))}
-        </div>
-        <div style={{ flex: 1 }} />
         <Button primary onPress={() => p.finish()}>{t('onboarding.start')}</Button>
-        <Button plain onPress={() => setStep(3)}>{t('common.back')}</Button>
+        <Button plain onPress={() => setStep(2)}>{t('common.back')}</Button>
       </>)}
     </div>
   );

@@ -1,5 +1,7 @@
+import contextvars
 import hashlib
 import re
+import urllib.parse
 import secrets
 from datetime import date, timedelta
 from sqlalchemy.exc import IntegrityError
@@ -161,6 +163,13 @@ app.add_middleware(
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start = time.time()
+    REQ_PREFS.set(None)
+    raw = request.headers.get("x-prefs")
+    if raw and len(raw) < 2000:
+        try:
+            REQ_PREFS.set(Prefs(**json.loads(urllib.parse.unquote(raw))))
+        except Exception:
+            pass
     response = await call_next(request)
     duration = (time.time() - start) * 1000  # milliseconds
     logger.info(f"req {request.method} {request.url.path} status={response.status_code} ms={duration:.0f}")
@@ -339,7 +348,19 @@ def load_product(s: Session, barcode: str, refresh: bool = False) -> Dict[str, A
     return p
 
 
+REQ_PREFS: "contextvars.ContextVar[Optional[Prefs]]" = contextvars.ContextVar("req_prefs", default=None)
+
+
+def is_account(s: Session, uid: str) -> bool:
+    """A signed-in (Supabase) person: nothing about them is stored except a scan counter."""
+    row = s.get(db.User, uid)
+    return bool(row and row.supabase_id)
+
+
 def prefs_of(s: Session, uid: str) -> Prefs:
+    sent = REQ_PREFS.get()
+    if sent is not None and is_account(s, uid):  # an account sends its restrictions with each request instead of saving them
+        return sent
     r = s.get(db.Preference, uid)
     return Prefs(diet=r.diet, priorities=json.loads(r.priorities), allergens=json.loads(r.allergens)) if r else Prefs()
 
@@ -959,13 +980,18 @@ def search(q: str, uid: str = Depends(user)):
 def add_scan(request: Request, body: Dict[str, str], uid: str = Depends(user), s: Session = Depends(get_db)):
     logger.info({"event": "scan_added", "barcode": body.get("barcode"), "user_id": uid})
     p = load_product(s, body["barcode"])
-    s.add(db.Scan(user_id=uid, product_id=p["id"]))
+    if is_account(s, uid):
+        s.query(db.User).filter_by(id=uid).update({db.User.scan_count: db.User.scan_count + 1})
+    else:
+        s.add(db.Scan(user_id=uid, product_id=p["id"]))
     s.commit()
     return {"ok": True, "product_id": p["id"]}
 
 
 @app.get("/v1/scans")
 def scans(uid: str = Depends(user), s: Session = Depends(get_db)):
+    if is_account(s, uid):
+        return {"scans": [], "count": (s.get(db.User, uid).scan_count or 0)}
     rows = s.query(db.Scan).filter_by(user_id=uid).order_by(db.Scan.id.desc()).limit(50).all()
     return {"scans": [{"id": r.id, "created_at": r.created_at.isoformat(), "product": json.loads(s.get(db.Product, r.product_id).data)} for r in rows]}
 
@@ -977,6 +1003,8 @@ def get_prefs(uid: str = Depends(user), s: Session = Depends(get_db)):
 
 @app.put("/v1/me/preferences")
 def put_prefs(body: Prefs, uid: str = Depends(user), s: Session = Depends(get_db)):
+    if is_account(s, uid):
+        return body
     r = s.get(db.Preference, uid) or db.Preference(user_id=uid)
     r.diet, r.priorities, r.allergens = body.diet, json.dumps(body.priorities), json.dumps(body.allergens)
     s.merge(r)
@@ -1009,6 +1037,8 @@ def get_identity(uid: str = Depends(user), s: Session = Depends(get_db)):
 def put_identity(body: MeIdentity, uid: str = Depends(user), s: Session = Depends(get_db)):
     """Save the first name and city typed in the profile, so the owner can see who uses Mieux and the profile
     survives a cleared browser. Everything else (scans, receipts, prices) stays on the device."""
+    if is_account(s, uid):
+        return _identity(None)
     row = s.get(db.User, uid) or db.User(id=uid)
     row.name = (body.name or "").strip()[:80] or None
     row.city = (body.city or "").strip()[:80] or None
@@ -1429,7 +1459,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     res["original_stores"] = shops.get(orig["barcode"], [])
     res["original"] = {"id": orig["id"], "name": orig["name"], "novaGroup": orig.get("novaGroup"), "nutriScore": orig["nutriScore"], "score": orig.get("score")}
     res["price_note"] = note or tr(lang, "price_note")
-    s.add(db.AlternativeResult(user_id=uid, original_product_id=barcode, request=body.model_dump_json(), response=json.dumps(res)[:200000]))
+    if not is_account(s, uid):
+        s.add(db.AlternativeResult(user_id=uid, original_product_id=barcode, request=body.model_dump_json(), response=json.dumps(res)[:200000]))
     s.commit()
     return res
 
@@ -1438,7 +1469,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
 @limiter.limit("20/minute")
 def comparisons(request: Request, body: CmpReq, uid: str = Depends(user), s: Session = Depends(get_db)):
     P = [load_product(s, b) for b in body.product_ids]
-    s.add(db.Comparison(user_id=uid, product_ids=json.dumps(body.product_ids)))
+    if not is_account(s, uid):
+        s.add(db.Comparison(user_id=uid, product_ids=json.dumps(body.product_ids)))
     s.commit()
     prices = {}
     for p in P:

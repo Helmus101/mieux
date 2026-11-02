@@ -19,6 +19,7 @@ export class MieuxAPI {
   private client: AxiosInstance;
   private token: string | null = null;
   private sessionId: string | null = null;
+  private prefsHeader: string | null = null;
 
   // Anonymous session so scanning works without an account; persisted through the platform storage adapter.
   private static anonymousSession(): string {
@@ -40,6 +41,7 @@ export class MieuxAPI {
       config.headers['X-Lang'] = getLocale();
       if (this.token) {
         config.headers.Authorization = `Bearer ${this.token}`;
+        if (this.prefsHeader) config.headers['X-Prefs'] = this.prefsHeader;  // a signed-in account stores nothing: restrictions travel with each request
       } else {
         this.sessionId = this.sessionId ?? MieuxAPI.anonymousSession();
         config.headers['X-Session-Id'] = this.sessionId;
@@ -67,6 +69,10 @@ export class MieuxAPI {
 
   clearToken() {
     this.token = null;
+  }
+
+  setPrefs(prefs: { diet: string; priorities: string[]; allergens: string[] }) {
+    this.prefsHeader = encodeURIComponent(JSON.stringify(prefs));
   }
 
   setSessionId(sessionId: string) {
