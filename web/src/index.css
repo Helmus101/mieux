@@ -1,12 +1,12 @@
 /* Mieux design system: warm paper, ink, leaf green, the same palette as the landing page. Tokens mirror shared/theme.ts. */
-:root{--bg:#F7F3E8;--card:#FFFDF6;--ink:#14201A;--mut:#5C6A60;--line:rgba(31,77,58,.16);
-  --leaf:#1F4D3A;--olive:#7FA65A;--clay:#B85C38;--sage:#E6EDDC;--lime:#DCF06A;
-  --accent:#1F4D3A;--accent-ink:#F7F3E8;--tint:#E6EDDC;--warn:#B85C38;--bad:#A33B2B;--blue:#1F4D3A;
-  --glass:rgba(247,243,232,.82);--shadow:none;--ease:cubic-bezier(.32,.72,0,1)}
-@media(prefers-color-scheme:dark){:root{--bg:#0F1712;--card:#16211A;--ink:#F3EFE3;--mut:#A9B6AB;--line:#26332B;
-  --leaf:#2C6350;--olive:#9CBE77;--clay:#C56A45;--sage:#1B2A22;--lime:#DCF06A;
-  --accent:#DCF06A;--accent-ink:#101A12;--tint:rgba(220,240,106,.12);--warn:#E0A24A;--bad:#E4695A;--blue:#9CBE77;
-  --glass:rgba(15,23,18,.8);--shadow:none}}
+:root{--bg:#FFFFFF;--card:#F4F7F5;--ink:#0F1A15;--mut:#5A6660;--line:rgba(15,26,21,.12);
+  --leaf:#1F4D3A;--olive:#7FA65A;--clay:#F26B3A;--sage:#EAF1ED;
+  --accent:#1F4D3A;--accent-ink:#FFFFFF;--tint:#EAF1ED;--warn:#D95A22;--bad:#A33B2B;--blue:#1F4D3A;
+  --glass:rgba(255,255,255,.85);--shadow:none;--ease:cubic-bezier(.32,.72,0,1)}
+@media(prefers-color-scheme:dark){:root{--bg:#0D1210;--card:#151C18;--ink:#F2F5F3;--mut:#A3AFA8;--line:#24302A;
+  --leaf:#2C6350;--olive:#9CBE77;--clay:#FF8A5C;--sage:#1A2620;
+  --accent:#6FCF97;--accent-ink:#07140D;--tint:rgba(111,207,151,.14);--warn:#FF9A6B;--bad:#E4695A;--blue:#9CBE77;
+  --glass:rgba(13,18,16,.85);--shadow:none}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.4 -apple-system,"SF Pro Text",system-ui,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
 #root{min-height:100vh}
@@ -136,7 +136,7 @@ h2{font-size:12px;letter-spacing:.06em;margin:22px 2px 8px}
 .pill{background:var(--tint);color:var(--ink);border:1px solid var(--line);font-weight:500}
 .pill.w{color:var(--warn);background:none}.pill.b{color:var(--bad);background:none}.pill.g{color:var(--mut);background:none}
 .tabbar{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none}
-.tab.fab .disc{background:var(--accent);color:var(--accent-ink);box-shadow:none}
+.tab.fab .disc{background:var(--clay);color:#fff;box-shadow:none}
 .tab.on{color:var(--accent)}
 .bar{height:4px}.bar i{background:var(--accent)}
 .scrim{background:rgba(0,0,0,.25)}

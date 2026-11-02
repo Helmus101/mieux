@@ -1,6 +1,6 @@
-/* Landing page (computers and iPads): warm paper, leaf green, a little lime and clay.
+/* Landing page (computers and iPads): white, leaf green and clay.
    One column, hairlines, no cards: the colour comes from the food palette, not from decoration. */
-.landing{--ink:#14201A;--paper:#F7F3E8;--soft:#5C6A60;--leaf:#1F4D3A;--olive:#7FA65A;--lime:#DCF06A;--clay:#B85C38;--sage:#E6EDDC;
+.landing{--ink:#14201A;--paper:#FFFFFF;--soft:#5C6A60;--leaf:#1F4D3A;--olive:#7FA65A;--clay:#F26B3A;--sage:#EAF1ED;
   --line:rgba(31,77,58,.18);
   background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden;
   font:16px/1.55 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
@@ -13,7 +13,7 @@
 
 /* ---------- reading progress (written by Landing.tsx) ---------- */
 .lp-prog{position:fixed;top:0;left:0;right:0;height:2px;z-index:50;pointer-events:none;transform:scaleX(0);transform-origin:0 50%;
-  background:linear-gradient(90deg,var(--leaf),var(--olive) 55%,var(--lime))}
+  background:linear-gradient(90deg,var(--leaf),var(--olive))}
 
 /* ---------- top bar ---------- */
 .lp-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px clamp(20px,5vw,40px);border-bottom:1px solid var(--line)}

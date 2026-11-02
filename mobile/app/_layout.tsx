@@ -20,7 +20,7 @@ export default function RootLayout() {
   const { onboarded, priorities, diet, allergens } = useProfile();
   useEffect(() => { setApiBase(API_URL); setStrict(true); initStorage().then(() => { hydrateStores(); initHaptics(); setReady(true); }); }, []);
   useEffect(() => { if (ready && onboarded) api.updatePreferences({ diet, priorities, allergens } as never).catch(() => undefined); }, [ready, onboarded, priorities, diet, allergens]);
-  if (!ready) return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#F7F3E8' }}><ActivityIndicator size="large" color="#1F4D3A" /></View>;
+  if (!ready) return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#FFFFFF' }}><ActivityIndicator size="large" color="#1F4D3A" /></View>;
   return (
     <SafeAreaProvider>
       <StatusBar style="auto" />
