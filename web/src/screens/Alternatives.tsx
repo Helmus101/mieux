@@ -113,6 +113,7 @@ export default function Alternatives() {
                 return u ? <b style={{ fontSize: 20 }}>{t(u.unit === 'L' ? 'simple.perL' : 'simple.perKg', { p: formatCents(u.perUnitCents) })}</b> : <span className="mut sm">{t('diff.unknown')}</span>;
               })()}
             </Row>
+            {e.product.chains?.length > 0 && <div className="logos" style={{ marginTop: 8 }}>{e.product.chains.slice(0, 6).map((c: string) => <ChainLogo key={c} id={c} size={22} />)}{e.product.chains.length > 6 && <span className="mut sm">+{e.product.chains.length - 6}</span>}</div>}
             <Button small plain onPress={() => { haptic('tap'); setDetail(e); }}>{t('simple.moreInfo')}</Button>
           </Card>);
       })}
