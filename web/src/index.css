@@ -268,3 +268,14 @@ p{margin:14px 0;line-height:1.6}
 .install-x{border:0;background:none;color:var(--mut);font-size:26px;line-height:1;padding:0 4px;cursor:pointer}
 .steps{padding-left:22px;margin:18px 0}.steps li{margin:14px 0;line-height:1.5}
 .seg button.on{background:var(--card);box-shadow:0 2px 6px rgba(0,0,0,.12);font-weight:600}
+
+/* NOVA badge: compact, never overflows its cell; "estimated" sits on its own line */
+.nova{display:inline-flex;flex-direction:column;align-items:center;line-height:1.2;white-space:nowrap;padding:6px 12px}
+.nova-est{display:block;font-size:10px;font-weight:600;opacity:.85;margin-top:1px}
+.trio div{min-width:0}.trio .mut{font-size:13px;text-align:center}
+td .nova{padding:4px 8px}
+
+/* tighter flag pills and priorities card */
+.flags{gap:8px;margin:14px 0 4px}.flags .pill,.card .pill{margin:0}
+.card>p.mut.sm:first-child{margin-top:0}
+.trio .mut{font-size:12px;letter-spacing:-.2px}.trio div{padding-left:2px;padding-right:2px}

@@ -5,7 +5,7 @@ import { additiveInfo } from '@shared/additives';
 import { t } from '@shared/i18n';
 import { formatCents, isLiquid } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
-import { priceHeadline, verdictOf } from '@shared/verdict';
+import { priceHeadline } from '@shared/verdict';
 import { haptic } from '../ui';
 import { Bar, Button, Card, Collapsible, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton } from '../ui';
 import { routes, useNav } from '../nav';
@@ -76,7 +76,7 @@ export default function Product() {
       </Card>
       {p.score && priorities.length > 0 && (
         <Card>
-          <p className="mut sm" style={{ marginBottom: 12 }}>{t('priorities.title')}</p>
+          <p className="mut sm" style={{ margin: '0 0 8px' }}>{t('priorities.title')}</p>
           {priorities.map((key) => {
             const aligned = (() => {
               if (key === 'additives') {

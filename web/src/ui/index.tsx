@@ -81,7 +81,7 @@ export function Toast({ text }: { text: string | null }) { return text ? <div cl
 
 export function NovaBadge({ group, estimated }: { group: number | null | undefined; estimated?: boolean }) {
   if (!group) return <span className="pill g">NOVA ?</span>;
-  return <span className="nova" style={{ background: novaColors[group] }} title={t('nova.g' + group)}>NOVA {group}{estimated ? ' · estimé' : ''}</span>;
+  return <span className="nova" style={{ background: novaColors[group] }} title={t('nova.g' + group)}>NOVA {group}{estimated && <small className="nova-est">{t('add2.est')}</small>}</span>;
 }
 
 /** Closed-by-default section: the web twin of mobile's Collapsible (native <details>, keyboard accessible). */
