@@ -74,7 +74,7 @@ export default function Product() {
         {pc?.community && head.kind === 'real' && <p className="mut sm" style={{ margin: '2px 0 0' }}>{[pc.community.pack_cents != null && p.quantity?.amount ? `${t('size.pack', { s: p.quantity.amount >= 1000 ? `${Math.round(p.quantity.amount / 100) / 10} ${p.quantity.unit === 'ml' ? 'L' : 'kg'}` : `${Math.round(p.quantity.amount)} ${p.quantity.unit}` })} ${formatCents(pc.community.pack_cents)}` : null, pc.community.n_observations ? t('price.reports', { n: pc.community.n_observations, c: pc.community.n_chains ?? 1 }) : null, pc.community.date ? t(pc.community.stale ? 'price.oldAt' : 'price.at', { d: String(pc.community.date).slice(0, 7) }) : null].filter(Boolean).join(' · ')}</p>}
       </Card>
       <Button primary onPress={() => go(routes.alternatives(p.id))}>{t('simple.findBetter')}</Button>
-      {p.score && <Collapsible title={t('sdim.title')}>
+      {p.score && <Collapsible open={false} title={t('sdim.title')}>
           {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
         <Row wrap><NutriScore grade={p.nutriScore} />{verdict && <span className="mut sm"><span className={'dot ' + (verdict.tone ?? 'g')} />{verdict.text}</span>}</Row>
           <p className="mut sm">{t('sdim.profile', { x: t('prof.' + p.score.profile) })} · {t('sdim.confidence', { x: t('sdim.conf_' + p.score.confidence.level), p: p.score.confidence.pct })}{p.score.incomplete ? ' · ' + t('sdim.incomplete') : ''}</p>
@@ -114,7 +114,7 @@ export default function Product() {
         const items = [...(p.score.additives?.items ?? [])].sort((x: any, y: any) => y.level.localeCompare(x.level));
         const risky = items.filter((x: any) => x.level === 'C' || x.level === 'D');
         const tone: any = { A: 'g', B: 'g', C: 'w', D: 'b' };
-        return <Collapsible open={risky.length > 0} title={`${t('addl.title')} · ${items.length ? t('addl.count', { n: items.length }) + ' · ' + (risky.length ? t('addl.bad', { n: risky.length }) : t('addl.allOk')) : t('addl.none')}`}>
+        return <Collapsible open={false} title={`${t('addl.title')} · ${items.length ? t('addl.count', { n: items.length }) + ' · ' + (risky.length ? t('addl.bad', { n: risky.length }) : t('addl.allOk')) : t('addl.none')}`}>
           {items.length === 0 && <p className="mut">{t('addl.none')}</p>}
           {items.map((a: any) => {
             const nm = a.name || additiveInfo(a.code)?.name || '';
@@ -129,7 +129,7 @@ export default function Product() {
           <p className="mut sm">{t(p.score.mode === 'strict' ? 'score.method3' : 'score.method2')}</p>
         </Collapsible>;
       })()}
-      <Collapsible open title={t('where.title')}><Where barcode={p.id} liquid={isLiquid(p)} /></Collapsible>
+      <Collapsible open={false} title={t('where.title')}><Where barcode={p.id} liquid={isLiquid(p)} /></Collapsible>
       {p.micronutrients?.length > 0 && <Collapsible title={t('simple.microSec')}>
         {p.micronutrients.map((m: any) => <div key={m.key} style={{ margin: '10px 0' }}><Row spread><span>{t('micro.' + m.key)}</span><Muted>{m.amount} {m.unit} · {m.nrv_pct}%</Muted></Row><Bar value={Math.min(1, m.nrv_pct / 100)} /></div>)}
         <p className="mut sm">{t('micro.note')}</p>

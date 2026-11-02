@@ -5,5 +5,7 @@ export const routes = {
   home: '/app', scan: '/app/scan', compare: '/app/compare', profile: '/app/profile',
   product: (code: string) => `/app/product/${code}`, alternatives: (code: string) => `/app/alternatives/${code}`,
   history: '/app/history',
+  blog: '/blog',
+  blogPost: (slug: string) => `/blog/${slug}`,
 };
 export function useNav() { const n = useNavigate(); return { go: (p: string, state?: unknown) => n(p, { state }), back: () => n(-1) }; }

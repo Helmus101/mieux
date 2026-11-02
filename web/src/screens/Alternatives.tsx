@@ -76,18 +76,16 @@ export default function Alternatives() {
                 <Button small plain onPress={async () => { try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setDetail(null); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}>{t('sub.notComparable')}</Button>
               </Row>
               <h3 style={{ marginTop: 24 }}>{t('where.title')}</h3><Where barcode={e.product.id} liquid={isLiquid(e.product)} />
+              {e.product.chains?.length > 0 && <div className="logos">{e.product.chains.slice(0, 6).map((c: string) => <ChainLogo key={c} id={c} size={22} />)}{e.product.chains.length > 6 && <span className="mut sm">+{e.product.chains.length - 6}</span>}</div>}
   </>);
   return (
     <Screen>
       <NavBar onBack={back} title={t('alt.title')} />
       <h1>{t('alt.title')}</h1>
       {r?.original && <Muted>{r.original.name}</Muted>}
+      <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={[{ key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }, { key: 'value', label: t('rank.value') }]} />
       {r?.original_price && <Segmented value={diffBy} onChange={(k) => setDiffBy(k as 'kg' | 'pack')} options={[{ key: 'kg', label: t('diff.byKg') }, { key: 'pack', label: t('diff.byPack') }]} />}
       {r?.original_price?.per100_cents != null && <p className="sm" style={{ margin: '2px 0 8px' }}>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</p>}
-      <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={[{ key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }, { key: 'value', label: t('rank.value') }]} />
-      {!hasHome && <p className="mut sm">{t('where.setHome')}</p>}
-      {hasHome && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('near.label', { c: myChains.length ? t('near.mine') : t('near.all'), r: NEAR_KM })}</p>}
-      {r?.rankings?.no_baseline && rk !== 'match' && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('rank.byPriceOnly')}</p>}
       {busy && <><Skeleton h={150} /><Skeleton h={150} /></>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
       {r && !busy && !shown.length && (() => {
@@ -111,17 +109,10 @@ export default function Alternatives() {
               {(() => {
                 const d = diffOf(e);
                 if (d) return <b style={{ fontSize: 20, color: d.tone }}>{d.text}</b>;
-                // The difference with your product cannot be computed (its own price is unknown): show this product's real price when it has one.
                 const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
                 return u ? <b style={{ fontSize: 20 }}>{t(u.unit === 'L' ? 'simple.perL' : 'simple.perKg', { p: formatCents(u.perUnitCents) })}</b> : <span className="mut sm">{t('diff.unknown')}</span>;
               })()}
             </Row>
-            {e.product.chains?.length > 0 && <div className="logos">{e.product.chains.slice(0, 6).map((c: string) => <ChainLogo key={c} id={c} size={22} />)}{e.product.chains.length > 6 && <span className="mut sm">+{e.product.chains.length - 6}</span>}</div>}
-            {(() => { const d = diffOf(e); return d?.sub ? <p className="mut sm" style={{ margin: '4px 0 0' }}>{d.sub}</p> : null; })()}
-            {!diffOf(e) && e.price100 != null && <p className="mut sm" style={{ margin: '4px 0 0' }}>{t('diff.noBaseline')}{e.stale && e.priceDate ? ` · ${t('diff.old', { d: String(e.priceDate).slice(0, 7) })}` : ''}</p>}
-            {diffOf(e) && e.stale && e.priceDate && <p className="mut sm" style={{ margin: '4px 0 0' }}>{t('diff.old', { d: String(e.priceDate).slice(0, 7) })}</p>}
-            {e.size?.amount && <p className="mut sm" style={{ margin: '4px 0 0' }}>{t('size.pack', { s: sizeLabel(e.size) })}{e.ratio && (e.ratio >= 1.8 || e.ratio <= 0.55) ? ` · ${t(e.ratio >= 1 ? 'size.bigger' : 'size.smaller', { x: String(Math.round((e.ratio >= 1 ? e.ratio : 1 / e.ratio) * 10) / 10).replace('.', ',') })}` : ''}</p>}
-            <p className="mut sm" style={{ margin: '4px 0 0' }}>{e.product.substitution ? t('sub.l' + e.product.substitution.level) : ''}{e.nearby ? ` · ${t('where.nearHomeShop', { s: e.nearby.store, d: String(e.nearby.distance_km).replace('.', ',') })}` : ''}</p>
             <Button small plain onPress={() => { haptic('tap'); setDetail(e); }}>{t('simple.moreInfo')}</Button>
           </Card>);
       })}

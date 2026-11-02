@@ -12,6 +12,9 @@
       "infoPlist": {
         "NSCameraUsageDescription": "FoodIQ utilise la caméra pour lire les codes-barres et photographier vos tickets. Les images restent sur votre appareil.",
         "NSLocationWhenInUseUsageDescription": "FoodIQ utilise votre position approximative pour connaître votre ville. Les coordonnées ne sont pas conservées."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {

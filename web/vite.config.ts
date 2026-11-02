@@ -12,6 +12,13 @@ const here = (p: string) => path.resolve(__dirname, p);
 function seo(siteUrl: string) {
   const base = siteUrl.replace(/\/+$/, '');
   const abs = (p: string) => (base ? base + p : p);
+  const blogPosts = [
+    { slug: 'comprendre-additifs-alimentaires', title: 'Comprendre les additifs alimentaires: guide complet', date: '2024-01-15' },
+    { slug: 'nutri-score-explique', title: 'Le Nutri-Score expliqué: comment ça marche?', date: '2024-01-10' },
+    { slug: 'produits-ultra-transformes', title: 'Produits ultra-transformés: risques et alternatives', date: '2024-01-05' },
+    { slug: 'manger-mieux-budget', title: 'Comment manger mieux avec un petit budget', date: '2023-12-20' },
+    { slug: 'eviter-additifs-dangereux', title: 'Les additifs à éviter dans votre alimentation', date: '2023-12-15' },
+  ];
   return {
     name: 'mieux-seo',
     transformIndexHtml(html: string) {
@@ -23,16 +30,20 @@ function seo(siteUrl: string) {
     },
     generateBundle() {
       if (!base) return;
+      const urls = [
+        `<url><loc>${base}/</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
+        `<url><loc>${base}/scanner</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
+        `<url><loc>${base}/alternatives</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
+        `<url><loc>${base}/comparaison</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
+        `<url><loc>${base}/profil</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
+        ...blogPosts.map(post => `<url><loc>${base}/blog/${post.slug}</loc><lastmod>${post.date}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`),
+      ];
       this.emitFile({
         type: 'asset',
         fileName: 'sitemap.xml',
         source: `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>${base}/</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>${base}/scanner</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>
-  <url><loc>${base}/alternatives</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>${base}/comparaison</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>${base}/profil</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+${urls.join('\n  ')}
 </urlset>
 `,
       });
@@ -63,9 +74,11 @@ export default defineConfig(({ mode }) => {
             if (id.includes('react-router')) return 'router';
             if (id.includes('axios')) return 'axios';
             if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react';
+            if (id.includes('zustand')) return 'zustand';
           },
         },
       },
+      chunkSizeWarningLimit: 600,
     },
     server: {
       port: 5180,
