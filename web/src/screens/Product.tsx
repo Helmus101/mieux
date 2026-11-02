@@ -52,7 +52,7 @@ export default function Product() {
     ...(p.quantity?.amount ? [{ key: 'pack', label: t('sdim.perPack', { n: Math.round(p.quantity.amount), u: per }), f: p.quantity.amount / 100 }] : [])];
   const factor = (bases.find((b) => b.key === basis) ?? bases[0]).f;
   const amt = (v: number | null | undefined) => (v == null ? '—' : String(Math.round(v * factor * 10) / 10).replace('.', ','));
-  const head = priceHeadline(pc);
+  const verdict = verdictOf(d.fit), head = priceHeadline(pc);
   const info = sheet ? additiveInfo(sheet) : null;
   return (
     <Screen>
@@ -116,6 +116,41 @@ export default function Product() {
         </Card>
       )}
       <Button primary onPress={() => go(routes.alternatives(p.id))}>{t('simple.findBetter')}</Button>
+      {p.score && <Collapsible open={false} title={t('sdim.title')}>
+          {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
+        <Row wrap><NutriScore grade={p.nutriScore} />{verdict && <span className="mut sm"><span className={'dot ' + (verdict.tone ?? 'g')} />{verdict.text}</span>}</Row>
+          <p className="mut sm">{t('sdim.profile', { x: t('prof.' + p.score.profile) })} · {t('sdim.confidence', { x: t('sdim.conf_' + p.score.confidence.level), p: p.score.confidence.pct })}{p.score.incomplete ? ' · ' + t('sdim.incomplete') : ''}</p>
+          <div className="nsec">{t('sdim.amountsFor')}</div>
+          {bases.length > 1 ? <Segmented value={basis} onChange={(k) => setBasis(k as any)} options={bases.map((b) => ({ key: b.key, label: b.label }))} /> : <p className="mut sm">{bases[0].label}</p>}
+          <div className="trio">
+            <div><span className="mut sm">{t('sdim.nutritional')}</span><b style={{ color: toneVar(p.score.nutritional.tone) }}>{p.score.nutritional.score}</b></div>
+            <div><span className="mut sm">{t('sdim.ingredient')}</span><b style={{ color: toneVar(p.score.ingredient?.tone) }}>{p.score.ingredient ? p.score.ingredient.score : '—'}</b></div>
+            <div><span className="mut sm">{t('sdim.processing')}</span><NovaBadge group={p.novaGroup} estimated={p.novaEstimated} /></div>
+          </div>
+          {p.score.caps?.length > 0 && <p className="mut sm">{p.score.caps.map((c: string) => t('cap.' + c)).join(' ')}</p>}
+          {(['nutrition', 'ingredients'] as const).map((g) => (
+            <div key={g}>
+              <div className="nsec">{t('sdim.grp_' + g)}</div>
+              {p.score.dimensions.filter((d: any) => d.group === g).map((d: any) => (
+                <div className="nrow" key={d.key}>
+                  <div className="nrow-top"><span>{t('sdim.' + d.key)}</span>
+                    {d.scale ? <span><b>{d.key === 'plant' ? d.scale.value : amt(d.scale.value)} {d.scale.unit}</b>{d.scale.estimated && <span className="mut sm"> ({t('add2.est')})</span>} <span className="mut sm" style={{ color: TONE_V[d.scale.tone] }}>{t((d.scale.better === 'more' ? 'tierPos.' : 'tier.') + d.scale.tier)}</span></span>
+                      : !d.relevant ? <span className="mut">{t('sdim.na')}</span> : d.missing ? <span className="mut">{t('sdim.missing')}</span>
+                      : <span className="mut sm" style={{ color: TONE_V[d.tone] }}>{d.key === 'micro' ? t('sdim.microList', { n: (d.detail.rich?.length ?? 0) + (d.detail.source?.length ?? 0) }) : t('tier.' + (d.score >= 75 ? 'excellent' : d.score >= 50 ? 'good' : d.score >= 25 ? 'poor' : 'bad'))}</span>}</div>
+                  {d.scale && <AmountScale scale={d.scale} />}
+                  {d.key === 'fat' && d.detail?.sat != null && <p className="mut sm">{t('sdim.fatDetail', { s: amt(d.detail.sat), f: amt(d.detail.total) })}{d.detail.trans != null ? ' · ' + t('sdim.trans', { x: amt(d.detail.trans) }) : ''}</p>}
+                </div>))}
+            </div>))}
+          {p.score.sugar && (() => {
+            const g = p.score.sugar, k = g.kind;
+            return <div className="sugarbox">
+              <b>{t('nut.sugarTitle')} : {g.total} g</b>
+              <div className="chips"><span className={'pill ' + (k === 'natural' ? '' : 'g')}>{t('nut.sugarNatural')}</span><span className={'pill ' + (k === 'added' || k === 'mixed' ? 'w' : 'g')}>{t('nut.sugarAdded')}</span></div>
+              <p className="mut sm">{k === 'natural' ? t('nut.sugarNaturalNote') : k === 'added' ? t('nut.sugarAddedNote', { x: g.added.join(', ') }) : k === 'mixed' ? t('nut.sugarMixedNote', { x: g.added.join(', ') }) : k === 'none' ? t('nut.sugarNone') : t('nut.sugarUnknown')}</p>
+            </div>;
+          })()}
+          <p className="mut sm">{t(p.score.mode === 'strict' ? 'score.method3' : 'score.method2')}</p>
+      </Collapsible>}
 
       {p.score && (() => {
         const items = [...(p.score.additives?.items ?? [])].sort((x: any, y: any) => y.level.localeCompare(x.level));
