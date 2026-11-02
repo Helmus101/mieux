@@ -1,5 +1,5 @@
 // Runtime configuration, set once by each platform at startup (web: Vite env, Expo: EXPO_PUBLIC_API_URL).
-let apiBase = '/v1';
+let apiBase = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || '/v1';
 export const getApiBase = () => apiBase;
 export const setApiBase = (u: string) => { apiBase = u.replace(/\/$/, ''); };
 
