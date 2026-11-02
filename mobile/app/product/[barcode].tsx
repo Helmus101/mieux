@@ -32,13 +32,13 @@ export default function Product() {
   if (err) return <Screen><Text style={{ color: c.ink, fontSize: 24, fontWeight: '700' }}>{t('product.notFound')}</Text><Muted>{err}</Muted><Button primary onPress={back}>{t('common.back')}</Button></Screen>;
   if (!d) return <Screen><Skeleton h={90} /><Skeleton h={120} /><Skeleton h={60} /></Screen>;
 
-  const p = d.product, n = p.nutriments, pc = d.price_context, fav = hist.favourites.includes(p.id);
+  const p = d.product, n = p.nutriments, pc = d.price_context;
   const verdict = verdictOf(d.fit), head = priceHeadline(pc);
   const info = sheet ? additiveInfo(sheet) : null;
 
   return (
     <Screen>
-      <Row spread><Button small plain onPress={back}>‹ {t('common.back')}</Button><Button small plain onPress={() => { hist.toggleFavourite(p); hx.success(); }}>{fav ? t('product.favOn') : t('product.fav')}</Button></Row>
+      <Row spread><Button small plain onPress={back}>‹ {t('common.back')}</Button></Row>
       {offline && <Pill tone="w">{t('history.offline')}</Pill>}
       <Row>{p.imageUrl ? <Image source={{ uri: p.imageUrl }} style={{ width: 88, height: 88, borderRadius: 16, backgroundColor: '#fff' }} resizeMode="contain" /> : null}
         <View style={{ flex: 1 }}><Muted>{p.brand}</Muted><Text style={{ color: c.ink, fontSize: 22, fontWeight: '700' }}>{p.name}</Text><Muted small>{p.quantityText}</Muted></View></Row>

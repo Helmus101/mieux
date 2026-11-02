@@ -6,7 +6,7 @@ import { useProfile } from '@shared/stores';
 import { CHAIN_LIST } from '@shared/chains';
 import { directionsUrl } from './place';
 import { friendlyError } from './errors';
-import { Button, ChainLogo, Muted, Row, haptic } from './ui';
+import { Button, ChainLogo, Muted, Row, Segmented, haptic } from './ui';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const RADIUS = 5; // only branches within 5 km
@@ -40,7 +40,7 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
     <div>
       <Row wrap>
         {busy && <span className="mut sm"><span className="mini-ring" />{t('where.loading')}</span>}
-        {res && hasHome && <Button small plain onPress={() => { setUseHere(!useHere); run(!useHere, all); }}>{useHere ? t('chains.fromHome') : t('chains.fromHere')}</Button>}
+        {hasHome && <div style={{ width: '100%' }}><p className="mut sm" style={{ margin: '0 0 4px' }}>{t('where.refLabel')}</p><Segmented value={useHere ? 'here' : 'home'} onChange={(k) => { if (busy) return; setUseHere(k === 'here'); run(k === 'here', all); }} options={[{ key: 'home', label: t('where.refHome') }, { key: 'here', label: t('where.refHere') }]} /></div>}
         </Row>
       {msg && <p style={{ color: 'var(--warn)' }}>{msg}</p>}
       {res && !res.retailers.length && <Muted>{t('where.noChain', { r: RADIUS })}{res.far_chains > 0 ? ` ${t('where.farChains', { n: res.far_chains })}` : ''}</Muted>}

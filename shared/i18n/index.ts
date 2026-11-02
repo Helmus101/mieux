@@ -12,5 +12,7 @@ export function t(path: string, vars?: Record<string, string | number>): string 
   const d = dicts[locale] ?? fr;
   const v = path.split('.').reduce((o: any, k) => (o == null ? o : o[k]), d) ?? path.split('.').reduce((o: any, k) => (o == null ? o : o[k]), fr);
   if (typeof v !== 'string') return path;
-  return vars ? v.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? '')) : v;
+  if (!vars) return v;
+  const plural = typeof vars.n === 'number' ? vars.n > 1 : Number(vars.n) > 1;
+  return v.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? '')).replace(/\(s\)/g, plural ? 's' : '');
 }

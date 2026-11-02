@@ -64,6 +64,20 @@ export default function Product() {
         <div><Muted>{p.brand}</Muted><h1 style={{ fontSize: 24 }}>{p.name}</h1><Muted>{p.quantityText}</Muted></div>
       </Row>
 
+      {(() => {
+        const rf = (d.fit ?? []).filter((x: any) => x.priority.startsWith('allergen:') || x.priority.startsWith('diet:'));
+        if (!rf.length) return null;
+        const key = (x: any) => x.priority.split(':')[1];
+        const nm = (x: any) => t((x.priority.startsWith('allergen:') ? 'restr.a_' : 'restr.d_') + key(x));
+        const has = rf.filter((x: any) => x.priority.startsWith('allergen:') && x.status === 'conflict' && p.allergens.includes(key(x))).map(nm);
+        const tr2 = rf.filter((x: any) => x.priority.startsWith('allergen:') && x.status === 'conflict' && !p.allergens.includes(key(x))).map(nm);
+        const dietBad = rf.filter((x: any) => x.priority.startsWith('diet:') && x.status === 'conflict').map(nm);
+        const unk = rf.filter((x: any) => x.status === 'unknown').map(nm);
+        const lines = [has.length ? t('restr.contains', { x: has.join(', ') }) : '', tr2.length ? t('restr.traces', { x: tr2.join(', ') }) : '', ...dietBad.map((x: string) => t('restr.notDiet', { x })), unk.length ? t('restr.unknown', { x: unk.join(', ') }) : ''].filter(Boolean);
+        const bad = has.length + tr2.length + dietBad.length > 0;
+        return <Card><div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}><span style={{ fontSize: 22, lineHeight: 1.2, color: bad ? 'var(--bad)' : lines.length ? 'var(--warn)' : 'var(--accent)' }}>{bad ? '✗' : lines.length ? '!' : '✓'}</span>
+          <div>{lines.length ? lines.map((l) => <p key={l} style={{ margin: '0 0 4px', fontWeight: 600, color: bad ? 'var(--bad)' : 'var(--ink)' }}>{l}</p>) : <p style={{ margin: '0 0 4px', fontWeight: 600 }}>{t('restr.ok')}</p>}<p className="mut sm" style={{ margin: 0 }}>{t('restr.check')}</p></div></div></Card>;
+      })()}
       <Card>
         {p.score ? <>
           <Row spread><div className="scorebig" style={{ color: p.score.tone === 'b' ? 'var(--bad)' : p.score.tone === 'w' ? 'var(--warn)' : 'var(--accent)' }}>{p.score.total}<small>{t('score.outOf')}</small></div><span style={{ textAlign: 'right' }}><b>{t('score.' + p.score.band)}</b><br /><span className="mut sm">{t('score.title')}</span></span></Row>

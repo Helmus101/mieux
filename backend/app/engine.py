@@ -126,6 +126,11 @@ def fit(p: Dict[str, Any], priorities: List[str], allergens: List[str], diet: Op
             out.append({"priority": "allergen:" + a, "status": "unknown", "text": tr(lang, "allergen_unknown")})
         else:
             out.append({"priority": "allergen:" + a, "status": "match", "text": tr(lang, "allergen_ok")})
+    if diet in ("vegan", "vegetarian"):
+        an = p["analysis"]
+        bad = ("en:non-vegan" in an) if diet == "vegan" else ("en:non-vegetarian" in an)
+        ok = ("en:vegan" in an) if diet == "vegan" else ("en:vegetarian" in an or "en:vegan" in an)
+        out.append({"priority": "diet:" + diet, "status": "conflict" if bad else "match" if ok else "unknown", "text": tr(lang, "diet_conflict" if bad else "diet_ok" if ok else "diet_unknown")})
     return out
 
 
