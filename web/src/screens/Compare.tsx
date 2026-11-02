@@ -11,12 +11,11 @@ const LABEL: Record<string, string> = { energyKcal100g: 'kcal', protein100g: 'pr
 export default function Compare() {
   const { go } = useNav();
   const { compare, addCompare, removeCompare, clearCompare, estimates } = useProfile();
-  const addComparison = useHistory((s) => s.addComparison);
   const [r, setR] = useState<any>(null);
   // most recent distinct scans first (stored on this device); a product scanned ten times appears once
   const scans = useHistory((s) => s.scans);
   const recent = scans.map((x) => x.product).filter((p, i, a) => a.findIndex((q) => q.id === p.id) === i);
-  useEffect(() => { if (compare.length >= 2) api.compareProducts(compare, estimates).then((x: any) => { setR(x); addComparison(compare, x.products.map((p: any) => p.name)); }).catch(() => setR(null)); else setR(null); }, [compare, estimates]);
+  useEffect(() => { if (compare.length >= 2) api.compareProducts(compare, estimates).then((x: any) => { setR(x); }).catch(() => setR(null)); else setR(null); }, [compare, estimates]);
   return (
     <Screen>
       <NavBar title={t('compare.title')} />

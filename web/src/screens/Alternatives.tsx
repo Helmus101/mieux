@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
-import { useHistory, useProfile } from '@shared/stores';
+import { useProfile } from '@shared/stores';
 import { CHAIN_LIST } from '@shared/chains';
 import { Bar, Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
@@ -18,7 +18,6 @@ export default function Alternatives() {
   const { barcode } = useParams<{ barcode: string }>();
   const { go, back } = useNav();
   const saved = useProfile((s) => s.priorities), estimates = useProfile((s) => s.estimates);
-  const addSearch = useHistory((s) => s.addSearch);
   const home = useProfile((s) => s.place);
   const hasHome = home?.lat != null;
   const myChains = (useProfile((s) => s.chains) ?? []).filter((id) => CHAIN_LIST.some((c) => c.id === id));
@@ -32,7 +31,7 @@ export default function Alternatives() {
     if (!barcode || !prios.length) return;
     setBusy(true); setErr(null);
     api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 10, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM }, nearby_only: true } : {}) })
-      .then((x: any) => { setR(x); if (!picked.current) { const has = (k: string) => x.rankings?.[k === 'match' ? 'quality' : k]?.length > 0; const first = ['value', 'match', 'budget'].find((k) => k && has(k)); if (first) setRk(first); } addSearch({ originalId: barcode, originalName: x.original?.name ?? barcode, priorities: prios, mode, results: x.alternatives.map((a: any) => ({ id: a.product_id, name: a.product.name, brand: a.product.brand, priceCents: a.price_per_100_cents != null ? Math.round(a.price_per_100_cents) : null })) }); })
+      .then((x: any) => { setR(x); if (!picked.current) { const has = (k: string) => x.rankings?.[k === 'match' ? 'quality' : k]?.length > 0; const first = ['value', 'match', 'budget'].find((k) => k && has(k)); if (first) setRk(first); } })
       .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
   const entries = (r?.rankings?.[rk === 'match' ? 'quality' : rk] ?? []).map((e: any) => ({ product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, ps: e.price_score, nearby: e.nearby, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }));
