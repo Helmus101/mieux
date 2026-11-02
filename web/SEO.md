@@ -4,19 +4,16 @@
 
 The Google verification file is located at:
 - **File**: `public/googleeb88d5ba4c78424d.html`
-- **URL**: `https://yourdomain.com/googleeb88d5ba4c78424d.html`
+- **URL**: `https://mieuxmanger.vercel.app/googleeb88d5ba4c78424d.html`
 - **Content**: `google-site-verification: googleeb88d5ba4c78424d.html`
 
 ### Steps to Verify Ownership:
 
 1. Go to [Google Search Console](https://search.google.com/search-console)
 2. Select "URL prefix" property type
-3. Enter your domain (e.g., `https://mieux.app`)
+3. Enter your domain: `https://mieuxmanger.vercel.app`
 4. Choose "HTML file" verification method
-5. Download the verification file from Google
-6. Replace the content in `public/googleeb88d5ba4c78424d.html` with just the verification token
-7. Deploy the changes
-8. Click "Verify" in Google Search Console
+5. Click "Verify"
 
 **Current verification file content:**
 ```
@@ -67,8 +64,20 @@ Updated JSON-LD to include:
 ## Environment Variables
 
 ### Required for Production SEO:
+Set this in Vercel Dashboard (Settings → Environment Variables):
 ```bash
-VITE_SITE_URL=https://mieux.app
+VITE_SITE_URL=https://mieuxmanger.vercel.app
+```
+
+Or use `vercel.json` (already configured):
+```json
+{
+  "build": {
+    "env": {
+      "VITE_SITE_URL": "https://mieuxmanger.vercel.app"
+    }
+  }
+}
 ```
 
 ### Optional for Backend:
@@ -95,12 +104,12 @@ The build is configured with:
 
 Before deploying to production:
 
-1. ✅ Set `VITE_SITE_URL` environment variable
+1. ✅ Set `VITE_SITE_URL` environment variable (done in vercel.json)
 2. ✅ Update Google verification file if token changes
 3. ✅ Verify sitemap.xml is generated correctly
 4. ✅ Test robots.txt at `/robots.txt`
 5. ✅ Verify sitemap at `/sitemap.xml`
-6. ✅ Update sitemap URL in robots.txt (uncomment line)
+6. ✅ Sitemap URL in robots.txt updated to https://mieuxmanger.vercel.app/sitemap.xml
 7. ✅ Submit sitemap to Google Search Console
 8. ✅ Submit sitemap to Bing Webmaster Tools
 9. ✅ Test with [Google Rich Results Test](https://search.google.com/test/rich-results)
@@ -137,6 +146,29 @@ For local development with SEO preview:
 VITE_SITE_URL=http://localhost:5180 npm run build
 npm run preview
 ```
+
+## Vercel Deployment
+
+The site is deployed to Vercel at `https://mieuxmanger.vercel.app`.
+
+### Environment Variables in Vercel:
+1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+2. Add `VITE_SITE_URL` = `https://mieuxmanger.vercel.app`
+3. Select environments: Production, Preview (optional)
+4. Click Save
+
+### Using vercel.json:
+The `vercel.json` file is already configured with:
+- Site URL for sitemap generation
+- Correct Content-Type headers for sitemap.xml and robots.txt
+- Rewrite rules to ensure static files (sitemap.xml, robots.txt, google*.html) are served directly without going through index.html
+
+### Automatic Deployment:
+- Push to main branch → deploys to production
+- Push to other branches → deploys to preview URLs
+- The sitemap will be automatically generated during build with the correct URL
+- Vercel will serve sitemap.xml with `application/xml` content-type
+- Static files are served directly, not through the SPA router
 
 ## Additional SEO Opportunities
 

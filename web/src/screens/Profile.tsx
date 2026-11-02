@@ -40,9 +40,6 @@ export default function Profile() {
       <Section title={t('profile.diet')}><Chips>{(['omnivore', 'vegetarian', 'vegan'] as const).map((d) => <Chip key={d} on={p.diet === d} onPress={() => p.setDiet(d)}>{t('diets.' + d)}</Chip>)}</Chips></Section>
       <Section title={t('profile.restrictions')}><Chips>{['gluten', 'milk', 'peanuts', 'nuts'].map((a) => <Chip key={a} on={p.allergens.includes(a)} onPress={() => p.toggleAllergen(a)}>{t('diets.' + a)}</Chip>)}</Chips><p className="mut sm">{t('onboarding.allergyNote')}</p></Section>
       <Collapsible title={t('simple.advanced')}>
-      <Section title={t('strict.title')}>
-        <Group><Cell onPress={() => p.setStrictAdditives(!(p.strictAdditives !== false))}><Row spread><span><b>{p.strictAdditives !== false ? t('strict.on') : t('strict.off')}</b><Muted>{p.strictAdditives !== false ? t('strict.onSub') : t('strict.offSub')}</Muted></span><Pill tone={p.strictAdditives !== false ? undefined : 'g'}>{p.strictAdditives !== false ? 'On' : 'Off'}</Pill></Row></Cell></Group>
-      </Section>
       {platform() !== 'other' && !isInstalled() && <Section title={t('pwa.title')}><Group><Cell onPress={openInstall}><Row spread><span>{t('pwa.profile')}</span><span className="chev">›</span></Row></Cell></Group></Section>}
       <Section title={t('haptics.title')}>
         <Group><Cell onPress={() => { setHapticsEnabled(!hapticsEnabled()); setTick((n) => n + 1); }}><Row spread><span>{t('haptics.label')}</span><Pill tone={hapticsEnabled() ? undefined : 'g'}>{hapticsEnabled() ? 'On' : 'Off'}</Pill></Row></Cell></Group>

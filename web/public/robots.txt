@@ -13,5 +13,5 @@ Disallow: /admin
 # Crawl-delay for respectful crawling
 Crawl-delay: 1
 
-# Sitemap (update the URL to match your actual domain)
-# Sitemap: https://yourdomain.com/sitemap.xml
+# Sitemap
+Sitemap: https://mieuxmanger.vercel.app/sitemap.xml

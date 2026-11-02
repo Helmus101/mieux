@@ -1,0 +1,33 @@
+{
+  "build": {
+    "env": {
+      "VITE_SITE_URL": "https://mieuxmanger.vercel.app"
+    }
+  },
+  "headers": [
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!sitemap\\.xml|robots\\.txt|google.*\\.html).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

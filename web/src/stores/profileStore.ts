@@ -18,8 +18,9 @@ interface State extends Profile {
 }
 const KEY = 'fiq_profile';
 const init: Profile = load<Profile>(KEY, { onboarded: false, priorities: [], diet: 'omnivore', allergens: [], name: '', place: null, chains: [], strictAdditives: true, autoCamera: false });
-setStrict(init.strictAdditives !== false);
-const persist = (s: Profile) => save(KEY, { onboarded: s.onboarded, priorities: s.priorities, diet: s.diet, allergens: s.allergens, name: s.name ?? '', place: s.place ?? null, chains: s.chains ?? [], strictAdditives: s.strictAdditives !== false, autoCamera: s.autoCamera === true });
+// Always use strict mode (Yuka-like) by default
+setStrict(true);
+const persist = (s: Profile) => save(KEY, { onboarded: s.onboarded, priorities: s.priorities, diet: s.diet, allergens: s.allergens, name: s.name ?? '', place: s.place ?? null, chains: s.chains ?? [], strictAdditives: true, autoCamera: s.autoCamera === true });
 
 export const useProfile = create<State>((set, get) => ({
   ...init,
@@ -31,12 +32,12 @@ export const useProfile = create<State>((set, get) => ({
   // At most two priorities: picking a third replaces the oldest.
   setName: (n) => { set({ name: n }); persist({ ...get(), name: n }); },
   setAutoCamera: (v) => { set({ autoCamera: v }); persist({ ...get(), autoCamera: v }); },
-  setStrictAdditives: (v) => { setStrict(v); set({ strictAdditives: v }); persist({ ...get(), strictAdditives: v }); },
+  setStrictAdditives: () => { setStrict(true); set({ strictAdditives: true }); persist({ ...get(), strictAdditives: true }); },
   toggleChain: (id) => { const cur = get().chains ?? []; const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]; set({ chains: next }); persist({ ...get(), chains: next }); },
   setChains: (ids) => { set({ chains: ids }); persist({ ...get(), chains: ids }); },
   clearChains: () => { set({ chains: [] }); persist({ ...get(), chains: [] }); },
   setPlace: (p) => { set({ place: p }); persist({ ...get(), place: p }); },
-  hydrate: () => { const p = load<Profile>(KEY, init); setStrict(p.strictAdditives !== false); set({ ...p, zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), estimates: load<boolean>('fiq_estimates', false), compare: load<string[]>('fiq_compare', []) }); },
+  hydrate: () => { const p = load<Profile>(KEY, init); setStrict(true); set({ ...p, zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), estimates: load<boolean>('fiq_estimates', false), compare: load<string[]>('fiq_compare', []), strictAdditives: true }); },
   togglePriority: (k) => { if (k === 'eco') return; const p = get().priorities; const n = p.includes(k) ? p.filter((x) => x !== k) : [...p, k].slice(-2); set({ priorities: n }); persist({ ...get(), priorities: n }); },
   setDiet: (d) => { set({ diet: d }); persist({ ...get(), diet: d }); },
   toggleAllergen: (k) => { const a = get().allergens; const n = a.includes(k) ? a.filter((x) => x !== k) : [...a, k]; set({ allergens: n }); persist({ ...get(), allergens: n }); },
