@@ -15,10 +15,14 @@ export const isInstalled = () => {
 /** Phone, in a normal browser tab: the case where the install hint helps. */
 export const shouldHint = () => platform() !== 'other' && !isInstalled();
 
-// Dismissing the banner only lasts until the page is loaded again: it comes back on every fresh load until the app is installed.
+// × hides the banner until the page is loaded again; "Plus tard" hides it for 5 days. Otherwise it shows on every fresh load.
+const KEY = 'mieux_install_hidden_until', LATER_DAYS = 5;
 let dismissed = false;
-export const hintHidden = () => dismissed;
-export const hideHint = () => { dismissed = true; };
+export const hintHidden = () => { if (dismissed) return true; try { return Number(localStorage.getItem(KEY) ?? 0) > Date.now(); } catch { return false; } };
+export const hideHint = (later = false) => {
+  dismissed = true;
+  if (later) { try { localStorage.setItem(KEY, String(Date.now() + LATER_DAYS * 864e5)); } catch { /* storage unavailable */ } }
+};
 
 export const OPEN_EVENT = 'mieux:install';
 export const openInstall = () => window.dispatchEvent(new Event(OPEN_EVENT));

@@ -18,7 +18,8 @@ export default function InstallPrompt({ hidden, bare }: { hidden?: boolean; bare
     window.addEventListener('beforeinstallprompt', onBip); window.addEventListener(OPEN_EVENT, onOpen); window.addEventListener('appinstalled', onDone);
     return () => { window.removeEventListener('beforeinstallprompt', onBip); window.removeEventListener(OPEN_EVENT, onOpen); window.removeEventListener('appinstalled', onDone); };
   }, []);
-  const later = () => { haptic('tap'); hideHint(); setBanner(false); setOpen(false); };
+  const later = () => { haptic('tap'); hideHint(true); setBanner(false); setOpen(false); };
+  const close = () => { haptic('tap'); hideHint(); setBanner(false); };
   const install = async () => {
     if (!native) { setOpen(true); return; }
     haptic('tap'); await native.prompt();
@@ -33,7 +34,7 @@ export default function InstallPrompt({ hidden, bare }: { hidden?: boolean; bare
         <img src="/icon-180.png" alt="" width={44} height={44} />
         <div className="grow"><b>{t('pwa.title')}</b><div className="mut sm">{t('pwa.sub')}</div></div>
         <Button small primary onPress={() => (native && platform() === 'android' ? install() : (haptic('tap'), setOpen(true)))}>{t('pwa.how')}</Button>
-        <button className="install-x" onClick={later} aria-label={t('pwa.later')}>×</button>
+        <button className="install-x" onClick={close} aria-label={t('pwa.later')}>×</button>
       </div>)}
     <Sheet open={open} onClose={() => setOpen(false)} title={t('pwa.sheetTitle')}>
       <p className="mut">{t('pwa.why')}</p>
