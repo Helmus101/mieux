@@ -431,9 +431,13 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
     field = "fiber100g" if basis == "fibre" else "protein100g"
     cats = set(orig["categories"])
     rows = []
+    ref = [v for v in list(prices.values()) + [orig_price] if v]
+    med = sorted(ref)[len(ref) // 2] if ref else None
     for c in pool:
         p = prices.get(c["barcode"])
         if p is None or c["barcode"] == orig["barcode"] or p < 3:  # under 0.30 EUR/kg is a mis-scaled community price, not a real shelf price
+            continue
+        if med and len(ref) >= 5 and (p > med * 6 or p < med / 8):  # far outside what this kind of product costs: a mis-scaled price, never a cheapest/best-value pick
             continue
         sim = deep_similarity(orig, c)
         if mode == "similar" and sim < 0.45:
