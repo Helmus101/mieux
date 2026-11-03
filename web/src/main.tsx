@@ -11,6 +11,11 @@ if (envBase) setApiBase(envBase);
 // Always use strict mode (Yuka-like additive evaluation)
 setStrict(true);
 
+// Start downloading the app's first screens in parallel with the shell instead of one after the other (phones skip the landing page).
+if (/iPhone|iPod|Android/i.test(navigator.userAgent) || window.location.pathname.startsWith('/app')) {
+  void import('./App'); void import('./screens/Home'); void import('./screens/Onboarding');
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Root />

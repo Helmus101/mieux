@@ -67,6 +67,11 @@ export function initAccount() {
     if (session) { api.setToken(session.access_token); useAccount.setState({ email: session.user.email ?? null, uid: session.user.id, ready: true }); syncScans(); }
     else { api.clearToken(); useAccount.setState({ email: null, uid: null, ready: true, scans: null, pending: 0, syncError: null }); }
   };
+  // Open instantly for a returning user: the saved session is on the device, so trust it now and let Supabase confirm (or refresh an expired token over the network) in the background.
+  try {
+    const saved = JSON.parse(localStorage.getItem(`sb-${new globalThis.URL(URL).hostname.split('.')[0]}-auth-token`) ?? 'null');
+    if (saved?.access_token && saved?.user?.id) apply(saved);
+  } catch { /* nothing saved: the normal path below decides */ }
   supabase.auth.getSession().then(({ data }) => apply(data.session));
   supabase.auth.onAuthStateChange((_event, session) => apply(session));
 }
