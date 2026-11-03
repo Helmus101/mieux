@@ -1387,6 +1387,10 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     imp = {a["product"]["id"]: ("; ".join(a["improvements"]), a["tradeoffs"]) for a in res["alternatives"]}
     o_sc = (orig.get("score") or {}).get("total")
     scored = sorted([c for c in pool_src if (c.get("score") or {}).get("total") is not None and (o_sc is None or c["score"]["total"] > o_sc)], key=lambda c: (-c["score"]["total"], prices.get(c["barcode"]) is None, prices.get(c["barcode"]) or 0, -engine.deep_similarity(orig, c)))  # only products of better quality than yours
+    if len(scored) < 5 and o_sc is not None:  # fewer than 5 strictly better: add equally rated products, so the list is still worth browsing
+        have_ = {c["barcode"] for c in scored}
+        scored += sorted([c for c in pool_src if (c.get("score") or {}).get("total") == o_sc and c["barcode"] not in have_ and c["barcode"] != orig["barcode"]],
+                         key=lambda c: (prices.get(c["barcode"]) is None, prices.get(c["barcode"]) or 0, -engine.deep_similarity(orig, c)))
     qrows = []
     for c in scored[:10]:  # strictly by quality score, highest first (price plays no part here)
         why, trade = imp.get(c["id"]) or (tr(lang, "quality_note", s=c["score"]["total"], o=o_sc if o_sc is not None else "?"), engine._tradeoffs(orig, c, engine.deep_similarity(orig, c), lang))

@@ -471,7 +471,11 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
         out["no_baseline"] = True
         out["basis"] = basis
         return out
+    MIN_LIST = 5  # aim for 5 to 10 picks per list: when a strict rule leaves fewer, the next-closest still-better products are added
     budget = sorted([r for r in rows if r["min_ok"] and r["price_per_100_cents"] < orig_price * 0.98], key=lambda r: r["price_per_100_cents"])
+    if len(budget) < MIN_LIST:
+        have = {r["product"]["barcode"] for r in budget}
+        budget += sorted([r for r in rows if r["min_ok"] and r["price_per_100_cents"] < orig_price and r["product"]["barcode"] not in have], key=lambda r: r["price_per_100_cents"])
     o_pe = per_euro(on, field, orig_price)
     def pe(r): return per_euro(r["product"]["nutriments"], field, r["price_per_100_cents"])
     o_sc = (orig.get("score") or {}).get("total")
@@ -483,6 +487,10 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
     # Quality-price: more quality (score /100) per euro than the scanned product, without losing more than 5 quality points.
     value = sorted([r for r in rows if r["value_score"] is not None and o_vs is not None and r["value_score"] >= o_vs + 3
                     and (o_sc is None or r["product"]["score"]["total"] >= o_sc - 5)], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
+    if len(value) < MIN_LIST and o_vs is not None:
+        have = {r["product"]["barcode"] for r in value}
+        value += sorted([r for r in rows if r["value_score"] is not None and r["value_score"] > o_vs and (o_sc is None or r["product"]["score"]["total"] >= o_sc - 10)
+                         and r["product"]["barcode"] not in have], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
     for r in budget: r["why"] = tr(lang, "rk_budget", d=f"{(orig_price - r['price_per_100_cents'])/100:.2f}")
     for r in value:
         r["why"] = tr(lang, "rk_qp", s=r["product"]["score"]["total"], p=f"{r['price_per_100_cents']*10/100:.2f}", o=f"{orig_price*10/100:.2f}", os=o_sc if o_sc is not None else "?", v=r["value_score"], ov=o_vs)
