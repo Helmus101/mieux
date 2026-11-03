@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 export const routes = {
   home: '/app', scan: '/app/scan', compare: '/app/compare', profile: '/app/profile',
   product: (code: string) => `/app/product/${code}`, alternatives: (code: string) => `/app/alternatives/${code}`,
-  history: '/app/history',
+  history: '/app/history', admin: '/app/admin',
   blog: '/blog',
   blogPost: (slug: string) => `/blog/${slug}`,
 };

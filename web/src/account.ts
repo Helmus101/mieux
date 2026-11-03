@@ -31,18 +31,44 @@ export const countScan = () => {
   useAccount.setState({ scans: l.total });
 };
 
-/** Write-only: when a new week has begun, send the scans counted since the last write (one request, no data returned). */
-export const syncScans = async () => {
+const todayKey = () => new Date().toISOString().slice(0, 10);
+const lsGet = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
+
+/** Has the admin asked every device to write now? One tiny read (a single number), at most once a day, and only when scans are waiting. */
+const syncRequested = async (uid: string): Promise<boolean> => {
+  if (lsGet(`fiq_syncchk_${uid}`) === todayKey()) return false;
+  lsSet(`fiq_syncchk_${uid}`, todayKey());
+  const { data } = await supabase!.from('app_config').select('sync_epoch').eq('id', 1).maybeSingle();
+  const epoch = Number(data?.sync_epoch ?? 0), seen = Number(lsGet(`fiq_syncepoch_${uid}`) ?? 0);
+  if (epoch > seen) { lsSet(`fiq_syncepoch_${uid}`, String(epoch)); return true; }
+  return false;
+};
+
+/** Write-only: send the scans counted since the last write when a new week has begun (or when the admin asked). One request, nothing returned. */
+let syncing: Promise<void> | null = null;
+/** One write at a time: auth events can fire several times at startup, and a second concurrent write would double-count. */
+export const syncScans = (): Promise<void> => (syncing ??= doSync().finally(() => { syncing = null; }));
+
+const doSync = async () => {
   const { uid } = useAccount.getState();
   if (!supabase || !uid) return;
   const l = readLocal(uid), now = weekStart();
   useAccount.setState({ scans: l.total });
   if (!l.week) { writeLocal(uid, { ...l, week: now }); return; }  // first run: the first write happens when this week ends
-  if (l.week >= now || l.pending <= 0) return;
+  if (l.pending <= 0) return;
+  const due = l.week < now || await syncRequested(uid);
+  if (!due) return;
   const sent = l.pending;
   const { error } = await supabase.rpc('add_scans', { n: sent });
   if (!error) { const cur = readLocal(uid); writeLocal(uid, { ...cur, pending: Math.max(0, cur.pending - sent), week: now }); }
 };
+
+export const ADMIN_EMAIL = 'tjong.willem@gmail.com';
+export interface AdminStats { users: number; scans: number; accounts_with_scans: number; sync_epoch: number }
+/** Admin only: the database refuses anyone who is not in the admins table, whatever the page shows. */
+export const adminStats = async (): Promise<AdminStats> => { const { data, error } = await supabase!.rpc('admin_stats'); if (error) throw error; return data as AdminStats; };
+export const adminRequestSync = async (): Promise<number> => { const { data, error } = await supabase!.rpc('admin_request_sync'); if (error) throw error; return Number(data); };
 
 let started = false;
 /** Call once at startup: restores the session, keeps the API token fresh, and clears it on sign-out. */

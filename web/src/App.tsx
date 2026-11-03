@@ -18,6 +18,7 @@ const Alternatives = lazy(() => import('./screens/Alternatives'));
 const Compare = lazy(() => import('./screens/Compare'));
 const Profile = lazy(() => import('./screens/Profile'));
 const History = lazy(() => import('./screens/History'));
+const Admin = lazy(() => import('./screens/Admin'));
 const Blog = lazy(() => import('./screens/Blog'));
 const BlogPost = lazy(() => import('./screens/BlogPost'));
 
@@ -71,6 +72,7 @@ function Shell() {
           <Route path="compare" element={<Compare />} />
           <Route path="profile" element={<Profile />} />
           <Route path="history" element={<History />} />
+          <Route path="admin" element={<Admin />} />
           <Route path="*" element={<Navigate to={routes.home} replace />} />
         </Routes>
       </Suspense>

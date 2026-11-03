@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Screen, NavBar, LargeTitle, Button, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
 import { CHAIN_LIST } from '@shared/chains';
 import { findCity, searchAddress, type Home } from '../place';
-import { accountEnabled, signOut, useAccount } from '../account';
+import { ADMIN_EMAIL, accountEnabled, signOut, useAccount } from '../account';
 import AuthForm from '../AuthForm';
 
 export default function Profile() {
@@ -26,7 +26,7 @@ export default function Profile() {
       <NavBar title={t('profile.title')} />
       <LargeTitle>{t('profile.title')}</LargeTitle>
       {accountEnabled && <Section title={t('account.title')}>
-        {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row></Cell><Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
+        {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row></Cell>{email === ADMIN_EMAIL && <Cell onPress={() => go(routes.admin)} chevron>{t('admin.title')}</Cell>}<Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
           <p className="mut sm">{t('account.hint')}</p>
           <AuthForm /></>}
       </Section>}
