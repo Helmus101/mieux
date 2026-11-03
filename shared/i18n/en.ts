@@ -136,7 +136,7 @@ export const en = {
   },
   addl: { others: '{n} other additive(s) with no known risk.', noneRisk: '{n} additive(s), no known risk.', title: 'Additives', A: 'No risk', B: 'Limited risk', C: 'Moderate risk', D: 'High risk', none: 'No additives: nothing to report.', count: '{n} additive(s)', bad: '{n} risky', allOk: 'none risky', more: 'See details',
     reg: 'Per health authorities: {x}', strictNote: 'Our reading is more cautious than authorities.', avoid: 'Avoid if possible', risky: 'Risky additives', unknown: 'Little data on this additive: treated cautiously.' },
-  pwa: { title: 'Install Mieux on your phone', sub: 'Direct access from home screen, full screen.', how: 'How', later: 'Later', sheetTitle: 'Add Mieux to home screen',
+  pwa: { title: 'Install Mieux', sub: 'One tap from your home screen', how: 'Add', later: 'Later', sheetTitle: 'Add Mieux to home screen',
     why: 'Mieux opens like a real app: full screen, faster, no browser bar.', ios: 'iPhone', android: 'Android',
     ios1: 'Open this page in Safari (iPhone\'s blue browser).', ios2a: 'Tap the Share button', ios2b: 'at the bottom of the screen.', ios3: 'Scroll the menu, then tap "Add to Home Screen".', ios4: 'Tap "Add" at top right. Mieux icon appears on your home screen.',
     and1: 'Open this page in Chrome.', and2: 'Tap the menu ⋮ (three dots) at top right.', and3: 'Choose "Install app" or "Add to home screen".', and4: 'Confirm with "Install". Mieux icon appears on your home screen.',
