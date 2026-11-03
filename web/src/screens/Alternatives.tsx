@@ -44,7 +44,7 @@ export default function Alternatives() {
     return q || c || v || ps == null;  // no price of your own: products with a real price are listed by price, and the note says so
   };
   const shown = entries.filter((e: any) => !hidden.includes(e.product.id) && better(e));
-  const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
+  const nothingNear = hasHome && !!r && ['budget', 'value', 'quality', 'closest'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
   const diffOf = (e: any): { text: string; tone: string; sub?: string } | null => {
     const o = r?.original_price;
@@ -89,7 +89,7 @@ export default function Alternatives() {
       <NavBar onBack={back} title={t('alt.title')} />
       <h1>{t('alt.title')}</h1>
       {r?.original && <Muted>{r.original.name}</Muted>}
-      <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={[{ key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }, { key: 'value', label: t('rank.value') }]} />
+      <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={[{ key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }, { key: 'value', label: t('rank.value') }, { key: 'closest', label: t('rank.closest') }]} />
       {r?.original_price && <Segmented value={diffBy} onChange={(k) => setDiffBy(k as 'kg' | 'pack')} options={[{ key: 'kg', label: t('diff.byKg') }, { key: 'pack', label: t('diff.byPack') }]} />}
       {r?.original_price?.per100_cents != null && <p className="sm" style={{ margin: '2px 0 8px' }}>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</p>}
       {busy && <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} /><Skeleton h={120} /></>}
