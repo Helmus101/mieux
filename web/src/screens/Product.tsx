@@ -27,7 +27,7 @@ export default function Product() {
   useEffect(() => {
     if (!barcode) return;
     setD(null); setErr(null); setOffline(false);
-    api.getProduct(barcode, estimates).then((x: any) => { setD(x); hist.addScan(x.product); api.addScan(barcode).catch(() => undefined); countScan(); })
+    api.getProduct(barcode, estimates).then((x: any) => { setD(x); hist.addScan(x.product); api.addScan(barcode).catch(() => undefined); countScan(barcode); })
       .catch((e: any) => { const snap = useHistory.getState().productById(barcode); if (snap && e?.response?.status !== 404) { setD({ product: snap, fit: [], price_context: null }); setOffline(true); } else setErr(e?.response?.status === 404 ? { kind: 'notfound', msg: '' } : e?.response?.status === 400 ? { kind: 'invalid', msg: '' } : e?.response ? { kind: 'server', msg: e?.response?.data?.detail ?? e.message } : { kind: 'network', msg: e.message }); });
   }, [barcode, estimates, attempt]);
   if (err) return (

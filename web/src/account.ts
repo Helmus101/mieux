@@ -12,63 +12,49 @@ export const accountEnabled = !!supabase;
 interface Account { email: string | null; uid: string | null; ready: boolean; scans: number | null }
 export const useAccount = create<Account>(() => ({ email: null, uid: null, ready: !supabase, scans: null }));
 
-/* The scan total is counted on the device and never read back from Supabase (saves egress).
- * It is written once, when a new week starts: a single request that adds last week's scans to the account total. */
-interface Local { total: number; pending: number; week: string }
+/* Every scan is added to the account total in Supabase right away (a write-only call that returns nothing: no egress).
+ * The total shown in Profile is counted on the device and never read back. If a write fails (offline), the scans wait and go out with the next one. */
+interface Local { total: number; pending: number }
 const storeKey = (uid: string) => `fiq_scans_${uid}`;
-const readLocal = (uid: string): Local => { try { return { total: 0, pending: 0, week: '', ...JSON.parse(localStorage.getItem(storeKey(uid)) ?? '{}') }; } catch { return { total: 0, pending: 0, week: '' }; } };
+const readLocal = (uid: string): Local => { try { return { total: 0, pending: 0, ...JSON.parse(localStorage.getItem(storeKey(uid)) ?? '{}') }; } catch { return { total: 0, pending: 0 }; } };
 const writeLocal = (uid: string, v: Local) => { try { localStorage.setItem(storeKey(uid), JSON.stringify(v)); } catch { /* storage unavailable: the count simply is not kept */ } };
-/** Monday of the current week, as YYYY-MM-DD. */
-export const weekStart = (d = new Date()) => { const m = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)); return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-${String(m.getDate()).padStart(2, '0')}`; };
 
-/** Counts one scan locally. No network. */
-export const countScan = () => {
+let flushing: Promise<void> | null = null;
+/** Sends the scans that are waiting. One write at a time, so a scan during a send is picked up right after instead of being counted twice. */
+export const syncScans = (): Promise<void> => (flushing ??= doFlush().finally(() => { flushing = null; }));
+
+const doFlush = async () => {
+  for (let i = 0; i < 5; i++) {
+    const { uid } = useAccount.getState();
+    if (!supabase || !uid) return;
+    const l = readLocal(uid);
+    useAccount.setState({ scans: l.total });
+    if (l.pending <= 0) return;
+    const { error } = await supabase.rpc('add_scans', { n: l.pending });
+    if (error) return;
+    const cur = readLocal(uid);
+    writeLocal(uid, { ...cur, pending: Math.max(0, cur.pending - l.pending) });
+  }
+};
+
+let lastCounted = { code: '', at: 0 };
+/** Counts one scan and sends it. The same product within 30 s is one scan (a screen can render its effect twice). */
+export const countScan = (code: string) => {
   const uid = useAccount.getState().uid;
   if (!uid) return;
+  if (code === lastCounted.code && Date.now() - lastCounted.at < 30000) return;
+  lastCounted = { code, at: Date.now() };
   const l = readLocal(uid);
-  l.total += 1; l.pending += 1; l.week = l.week || weekStart();
+  l.total += 1; l.pending += 1;
   writeLocal(uid, l);
   useAccount.setState({ scans: l.total });
-};
-
-const todayKey = () => new Date().toISOString().slice(0, 10);
-const lsGet = (k: string) => { try { return localStorage.getItem(k); } catch { return null; } };
-const lsSet = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
-
-/** Has the admin asked every device to write now? One tiny read (a single number), at most once a day, and only when scans are waiting. */
-const syncRequested = async (uid: string): Promise<boolean> => {
-  if (lsGet(`fiq_syncchk_${uid}`) === todayKey()) return false;
-  lsSet(`fiq_syncchk_${uid}`, todayKey());
-  const { data } = await supabase!.from('app_config').select('sync_epoch').eq('id', 1).maybeSingle();
-  const epoch = Number(data?.sync_epoch ?? 0), seen = Number(lsGet(`fiq_syncepoch_${uid}`) ?? 0);
-  if (epoch > seen) { lsSet(`fiq_syncepoch_${uid}`, String(epoch)); return true; }
-  return false;
-};
-
-/** Write-only: send the scans counted since the last write when a new week has begun (or when the admin asked). One request, nothing returned. */
-let syncing: Promise<void> | null = null;
-/** One write at a time: auth events can fire several times at startup, and a second concurrent write would double-count. */
-export const syncScans = (): Promise<void> => (syncing ??= doSync().finally(() => { syncing = null; }));
-
-const doSync = async () => {
-  const { uid } = useAccount.getState();
-  if (!supabase || !uid) return;
-  const l = readLocal(uid), now = weekStart();
-  useAccount.setState({ scans: l.total });
-  if (!l.week) { writeLocal(uid, { ...l, week: now }); return; }  // first run: the first write happens when this week ends
-  if (l.pending <= 0) return;
-  const due = l.week < now || await syncRequested(uid);
-  if (!due) return;
-  const sent = l.pending;
-  const { error } = await supabase.rpc('add_scans', { n: sent });
-  if (!error) { const cur = readLocal(uid); writeLocal(uid, { ...cur, pending: Math.max(0, cur.pending - sent), week: now }); }
+  syncScans();
 };
 
 export const ADMIN_EMAIL = 'tjong.willem@gmail.com';
-export interface AdminStats { users: number; scans: number; accounts_with_scans: number; sync_epoch: number }
+export interface AdminStats { users: number; scans: number; accounts_with_scans: number }
 /** Admin only: the database refuses anyone who is not in the admins table, whatever the page shows. */
 export const adminStats = async (): Promise<AdminStats> => { const { data, error } = await supabase!.rpc('admin_stats'); if (error) throw error; return data as AdminStats; };
-export const adminRequestSync = async (): Promise<number> => { const { data, error } = await supabase!.rpc('admin_request_sync'); if (error) throw error; return Number(data); };
 
 let started = false;
 /** Call once at startup: restores the session, keeps the API token fresh, and clears it on sign-out. */

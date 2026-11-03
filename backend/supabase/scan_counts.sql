@@ -1,5 +1,5 @@
 -- Run once in Supabase: SQL Editor > New query > paste > Run.
--- The only thing stored per account: how many scans. The app counts on the device and writes ONCE A WEEK; it never reads this table.
+-- The only thing stored per account: how many scans. The app adds each scan as it happens (write-only) and never reads this table.
 
 create table if not exists public.scan_counts (
   user_id uuid primary key references auth.users (id) on delete cascade,
@@ -32,7 +32,7 @@ grant execute on function public.add_scans(integer) to authenticated;
 
 
 -- =====================================================================================================
--- Admin: totals, and a "sync now" request. Only the people listed in public.admins can use these.
+-- Admin: totals. Only the people listed in public.admins can use this.
 -- Admin is pinned to the account's user id, not to an email: with "Confirm email" off, anyone could type your email at sign-up
 -- BEFORE you do. So sign up with tjong.willem@gmail.com first, then run the insert below.
 -- =====================================================================================================
@@ -41,12 +41,9 @@ alter table public.admins enable row level security;   -- no policies: only the 
 
 insert into public.admins (user_id) select id from auth.users where email = 'tjong.willem@gmail.com' on conflict do nothing;
 
--- One row. Devices read sync_epoch (a few bytes) at most once a day, and only when they hold unsent scans.
-create table if not exists public.app_config (id integer primary key check (id = 1), sync_epoch bigint not null default 0);
-insert into public.app_config (id) values (1) on conflict do nothing;
-alter table public.app_config enable row level security;
-drop policy if exists "signed-in users read config" on public.app_config;
-create policy "signed-in users read config" on public.app_config for select to authenticated using (true);
+-- Earlier versions had a sync-request mechanism; it is no longer needed.
+drop function if exists public.admin_request_sync();
+drop table if exists public.app_config;
 
 create or replace function public.admin_stats() returns json
 language plpgsql security definer set search_path = public, auth as $$
@@ -55,23 +52,10 @@ begin
   return json_build_object(
     'users', (select count(*) from auth.users),
     'scans', coalesce((select sum(scans) from public.scan_counts), 0),
-    'accounts_with_scans', (select count(*) from public.scan_counts),
-    'sync_epoch', (select sync_epoch from public.app_config where id = 1)
+    'accounts_with_scans', (select count(*) from public.scan_counts)
   );
 end;
 $$;
 
-create or replace function public.admin_request_sync() returns bigint
-language plpgsql security definer set search_path = public as $$
-declare e bigint := extract(epoch from now())::bigint;
-begin
-  if not exists (select 1 from public.admins where user_id = auth.uid()) then raise exception 'not allowed'; end if;
-  update public.app_config set sync_epoch = e where id = 1;
-  return e;
-end;
-$$;
-
 revoke all on function public.admin_stats() from public, anon;
-revoke all on function public.admin_request_sync() from public, anon;
 grant execute on function public.admin_stats() to authenticated;
-grant execute on function public.admin_request_sync() to authenticated;
