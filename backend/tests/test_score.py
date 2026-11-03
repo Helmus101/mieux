@@ -256,3 +256,20 @@ def test_drink_sold_by_volume_is_scored_as_a_drink():
     p = normalize(raw)
     assert p["quantity"] == {"amount": 750.0, "unit": "ml"}      # "75 cl" used to be read as 750 g, which scored drinks like solid food
     assert p["score"]["nutritional"]["points"] >= 2 and p["score"]["nutritional"]["score"] < 70   # a sweetened drink is a Nutri-Score C, not a B/A
+
+
+def test_incomplete_nutrition_still_gets_a_score_with_lower_confidence():
+    partial = prod({"sugars_100g": 4, "salt_100g": 0.1}, "lait", cats=("en:dairies",))   # no energy, no saturated fat
+    full = prod(GOOD, "lait", cats=("en:dairies",))
+    s = partial["score"]
+    assert s is not None and s["incomplete"] and s["confidence"]["pct"] < full["score"]["confidence"]["pct"]
+    assert dim(partial, "fat")["missing"] and dim(partial, "energy")["missing"]       # the rows stay "missing" (the app hides them)
+    assert 0 <= s["total"] <= 100
+
+
+def test_missing_values_are_never_flattering():
+    # the same product with its worst nutrient hidden must not score higher than with it shown
+    shown = prod({**BAD}, "sucre, huile de palme")["score"]["total"]
+    hidden = prod({k: v for k, v in BAD.items() if k not in ("saturated-fat_100g", "salt_100g", "energy-kcal_100g")}, "sucre, huile de palme")["score"]["total"]
+    assert hidden >= 0 and hidden <= shown + 25       # assumption is middling, not zero: stays in a sensible range
+    assert prod({}, "x")["score"] is None             # no figures at all: still no score

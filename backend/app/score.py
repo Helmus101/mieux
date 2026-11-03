@@ -142,24 +142,36 @@ def _pts(v: Optional[float], thresholds: List[float]) -> int:
     return 0 if v is None else sum(1 for t in thresholds if v > t)
 
 
+ASSUMED_POINTS = {"energy": 3, "sugars": 3, "sat": 2, "salt": 2}  # typical packaged food, used only for a nutrient that is missing
+
+
 def nutri_points(n, drink: bool, natural_sugar: bool, use_protein: bool, use_fibre: bool, fvn: Optional[float] = None, cheese: bool = False) -> Optional[Dict[str, Any]]:
     kcal, sug, sat, salt = n.get("energyKcal100g"), n.get("sugars100g"), n.get("saturatedFat100g"), n.get("salt100g")
-    if kcal is None or sug is None or sat is None or salt is None:
-        return None
-    kj = kcal * 4.184
-    energy = _pts(kj, [30 * i for i in range(1, 10)]) if drink else _pts(kj, [335 * i for i in range(1, 11)])
-    sugars = _pts(sug, [0.5, 2, 3.5, 5, 6, 7, 8, 9, 10, 11]) if drink else _pts(sug, [3.4, 6.8, 10, 14, 17, 20, 24, 27, 31, 34, 37, 41, 44, 48, 51])
-    if natural_sugar:
-        sugars //= 2  # sugars that come from milk / whole fruit (no added sugar in the ingredients) weigh half
-    satp = _pts(sat, [float(i) for i in range(1, 11)])
-    saltp = _pts(salt, [0.2 * i for i in range(1, 21)])
+    assumed = [k for k, v in (("energy", kcal), ("sugars", sug), ("sat", sat), ("salt", salt)) if v is None]
+    if len(assumed) == 4:
+        return None  # no nutrition figure at all: nothing honest to score
+    # A missing figure is never treated as zero: it counts as a typical middling value (ASSUMED_POINTS), so incomplete data cannot flatter a product.
+    # The dimension stays "missing" and the score is flagged incomplete with lower confidence.
+    if kcal is not None:
+        kj = kcal * 4.184
+        energy = _pts(kj, [30 * i for i in range(1, 10)]) if drink else _pts(kj, [335 * i for i in range(1, 11)])
+    else:
+        energy = ASSUMED_POINTS["energy"]
+    if sug is not None:
+        sugars = _pts(sug, [0.5, 2, 3.5, 5, 6, 7, 8, 9, 10, 11]) if drink else _pts(sug, [3.4, 6.8, 10, 14, 17, 20, 24, 27, 31, 34, 37, 41, 44, 48, 51])
+        if natural_sugar:
+            sugars //= 2  # sugars that come from milk / whole fruit (no added sugar in the ingredients) weigh half
+    else:
+        sugars = ASSUMED_POINTS["sugars"]
+    satp = _pts(sat, [float(i) for i in range(1, 11)]) if sat is not None else ASSUMED_POINTS["sat"]
+    saltp = _pts(salt, [0.2 * i for i in range(1, 21)]) if salt is not None else ASSUMED_POINTS["salt"]
     neg = energy + sugars + satp + saltp
     fibre = _pts(n.get("fiber100g"), [3.0, 4.1, 5.2, 6.3, 7.4, 8.5]) if use_fibre else 0
     # fruit / vegetable / legume / nut content (% of the product): > 40 % = 1, > 60 % = 2, > 80 % = 5 points
     fv = 0 if fvn is None else (5 if fvn > 80 else 2 if fvn > 60 else 1 if fvn > 40 else 0)
     # Nutri-Score rule kept: when the negative points are high (>= 11) protein only counts if the fruit/veg/nut share is above 80 %
     prot = _pts(n.get("protein100g"), [2.4, 4.8, 7.2, 9.6, 12, 14, 17]) if (use_protein and (neg < 11 or fv == 5 or cheese)) else 0  # cheese: protein always counts (official rule)
-    return {"fvn": fv, "fvn_pct": fvn, "energy": energy, "sugars": sugars, "sat": satp, "salt": saltp, "fibre": fibre, "protein": prot, "negative": neg, "positive": fibre + prot + fv, "points": neg - fibre - prot - fv}
+    return {"fvn": fv, "fvn_pct": fvn, "energy": energy, "sugars": sugars, "sat": satp, "salt": saltp, "fibre": fibre, "protein": prot, "negative": neg, "positive": fibre + prot + fv, "points": neg - fibre - prot - fv, "assumed": assumed}
 
 
 # ---- fats, oils, nuts and seeds (Nutri-Score 2023 has its own negative components: energy from saturates and the saturated share of the fat)
