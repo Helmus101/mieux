@@ -8,15 +8,10 @@ export class Cancelled extends Error { constructor() { super('cancelled'); this.
 
 /** isCurrent lets a caller abandon a start that was superseded (React StrictMode mounts twice; fast navigation) before it touches the video. */
 export async function openCamera(video: HTMLVideoElement, isCurrent: () => boolean = () => true): Promise<MediaStream> {
-  // A camera released a moment ago is reused: no new permission request and no restart delay when going back to scan another product.
-  let stream = warm && warm.getVideoTracks().some((t) => t.readyState === 'live') ? warm : null;
-  if (warmTimer) { clearTimeout(warmTimer); warmTimer = undefined; }
-  warm = null;
-  stream ??= await navigator.mediaDevices.getUserMedia({
+  const stream = await navigator.mediaDevices.getUserMedia({
     audio: false,
     video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
   });
-  try { localStorage.setItem('mieux_cam_ok', '1'); } catch { /* storage unavailable */ }
   if (!isCurrent()) { stream.getTracks().forEach((t) => t.stop()); throw new Cancelled(); }
   video.srcObject = stream; video.setAttribute('playsinline', ''); video.muted = true;
   try { await video.play(); } catch (e) {
@@ -30,18 +25,7 @@ export async function openCamera(video: HTMLVideoElement, isCurrent: () => boole
 }
 /** Downloads the barcode decoder ahead of time (browsers without a native detector, e.g. iPhone Safari). */
 export const preloadDecoder = () => { if (!('BarcodeDetector' in window)) void import('./zxing'); };
-let warm: MediaStream | null = null, warmTimer: ReturnType<typeof setTimeout> | undefined;
-/** Releases the camera after 20 s, not at once: scanning the next product right away reuses it (and never asks for permission again). */
-export const closeCamera = (s: MediaStream | null) => {
-  if (!s) return;
-  if (warm && warm !== s) warm.getTracks().forEach((t) => t.stop());
-  try { void s.getVideoTracks()[0]?.applyConstraints({ advanced: [{ torch: false } as any] }).catch(() => undefined); } catch { /* no torch */ }
-  warm = s;
-  if (warmTimer) clearTimeout(warmTimer);
-  warmTimer = setTimeout(() => { warm?.getTracks().forEach((t) => t.stop()); warm = null; }, 20000);
-};
-/** True once this device has allowed the camera for Mieux (so the screen can open it without asking the user to tap first). */
-export const cameraRemembered = () => { try { return localStorage.getItem('mieux_cam_ok') === '1'; } catch { return false; } };
+export const closeCamera = (s: MediaStream | null) => s?.getTracks().forEach((t) => t.stop());
 
 /** The part of the video frame (in video pixels) that lies under the on-screen scan frame, given object-fit: cover. */
 function frameRegion(video: HTMLVideoElement, frame?: HTMLElement | null) {
