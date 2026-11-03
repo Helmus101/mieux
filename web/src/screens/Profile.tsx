@@ -16,7 +16,7 @@ export default function Profile() {
   const hist = useHistory();
   const [msg, setMsg] = useState(''), [, setTick] = useState(0);
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
-  const email = useAccount((a) => a.email), scans = useAccount((a) => a.scans);
+  const email = useAccount((a) => a.email), scans = useAccount((a) => a.scans), pending = useAccount((a) => a.pending), syncError = useAccount((a) => a.syncError);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const locate = async () => { setMsg(''); const r = await findCity(); if (r === 'denied') setMsg(t('about.locDenied')); else if (!r) setMsg(t('about.locFail')); else p.setPlace(r); };
   const exp = async () => { const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = 'mieux-donnees.json'; a.click(); };
@@ -26,7 +26,7 @@ export default function Profile() {
       <NavBar title={t('profile.title')} />
       <LargeTitle>{t('profile.title')}</LargeTitle>
       {accountEnabled && <Section title={t('account.title')}>
-        {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row></Cell>{email === ADMIN_EMAIL && <Cell onPress={() => go(routes.admin)} chevron>{t('admin.title')}</Cell>}<Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
+        {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row>{pending > 0 && <p className="mut sm" style={{ margin: '6px 0 0' }}>{t('account.pending', { n: pending })}{syncError ? ` · ${syncError}` : ''}</p>}</Cell>{email === ADMIN_EMAIL && <Cell onPress={() => go(routes.admin)} chevron>{t('admin.title')}</Cell>}<Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
           <p className="mut sm">{t('account.hint')}</p>
           <AuthForm /></>}
       </Section>}

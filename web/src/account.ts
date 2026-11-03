@@ -9,8 +9,8 @@ const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const supabase: SupabaseClient | null = KEY ? createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
 export const accountEnabled = !!supabase;
 
-interface Account { email: string | null; uid: string | null; ready: boolean; scans: number | null }
-export const useAccount = create<Account>(() => ({ email: null, uid: null, ready: !supabase, scans: null }));
+interface Account { email: string | null; uid: string | null; ready: boolean; scans: number | null; pending: number; syncError: string | null }
+export const useAccount = create<Account>(() => ({ email: null, uid: null, ready: !supabase, scans: null, pending: 0, syncError: null }));
 
 /* Every scan is added to the account total in Supabase right away (a write-only call that returns nothing: no egress).
  * The total shown in Profile is counted on the device and never read back. If a write fails (offline), the scans wait and go out with the next one. */
@@ -28,12 +28,14 @@ const doFlush = async () => {
     const { uid } = useAccount.getState();
     if (!supabase || !uid) return;
     const l = readLocal(uid);
-    useAccount.setState({ scans: l.total });
+    useAccount.setState({ scans: l.total, pending: l.pending });
     if (l.pending <= 0) return;
     const { error } = await supabase.rpc('add_scans', { n: l.pending });
-    if (error) return;
+    if (error) { console.warn('add_scans failed', error); useAccount.setState({ syncError: error.message || error.code || 'error' }); return; }
     const cur = readLocal(uid);
-    writeLocal(uid, { ...cur, pending: Math.max(0, cur.pending - l.pending) });
+    const left = Math.max(0, cur.pending - l.pending);
+    writeLocal(uid, { ...cur, pending: left });
+    useAccount.setState({ pending: left, syncError: null });
   }
 };
 
@@ -47,7 +49,7 @@ export const countScan = (code: string) => {
   const l = readLocal(uid);
   l.total += 1; l.pending += 1;
   writeLocal(uid, l);
-  useAccount.setState({ scans: l.total });
+  useAccount.setState({ scans: l.total, pending: l.pending });
   syncScans();
 };
 
@@ -63,7 +65,7 @@ export function initAccount() {
   started = true;
   const apply = (session: { access_token: string; user: { id: string; email?: string | null } } | null) => {
     if (session) { api.setToken(session.access_token); useAccount.setState({ email: session.user.email ?? null, uid: session.user.id, ready: true }); syncScans(); }
-    else { api.clearToken(); useAccount.setState({ email: null, uid: null, ready: true, scans: null }); }
+    else { api.clearToken(); useAccount.setState({ email: null, uid: null, ready: true, scans: null, pending: 0, syncError: null }); }
   };
   supabase.auth.getSession().then(({ data }) => apply(data.session));
   supabase.auth.onAuthStateChange((_event, session) => apply(session));
