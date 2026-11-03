@@ -273,3 +273,12 @@ def test_missing_values_are_never_flattering():
     hidden = prod({k: v for k, v in BAD.items() if k not in ("saturated-fat_100g", "salt_100g", "energy-kcal_100g")}, "sucre, huile de palme")["score"]["total"]
     assert hidden >= 0 and hidden <= shown + 25       # assumption is middling, not zero: stays in a sensible range
     assert prod({}, "x")["score"] is None             # no figures at all: still no score
+
+
+def test_plain_infusion_without_nutrition_table_still_scores():
+    from app import score
+    p = {"nutriments": {}, "categories": ["en:beverages", "en:herbal-teas", "en:tea-bags"], "ingredientsText": "Menthe poivrée*, fenouil*", "additives": [], "novaGroup": 1}
+    r = score.quality(p)
+    assert r and r["total"] >= 80 and r["incomplete"]
+    sweet = dict(p, ingredientsText="Thé, sucre, arôme")
+    assert score.quality(sweet) is None  # sugar listed but no figure: nothing honest to score

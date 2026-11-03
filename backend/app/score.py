@@ -118,6 +118,7 @@ def profile_of(cats: List[str]) -> str:
     return "default"
 
 
+PLAIN_INFUSION = re.compile(r"(?:^|\s)en:(?:herbal-teas|herbal-infusions|infusions|tisanes|teas|black-teas|green-teas|white-teas|tea-bags|herbal-tea-bags|coffees|ground-coffees|coffee-beans|waters|spring-waters|mineral-waters)\b")
 DRINK_TAGS = re.compile(r"(?:^|\s)en:(?:beverages|plant-based-beverages|waters|spring-waters|mineral-waters|milks|fruit-juices|fruit-nectars|juices|sodas|colas|carbonated-drinks|energy-drinks|sweetened-beverages|teas|iced-teas|coffees|plant-milks|plant-based-milk-alternatives|rice-based-drinks|oat-based-drinks|soy-milks|almond-milks|hazelnut-based-drinks|alcoholic-beverages|wines|beers|spirits)\b")
 
 
@@ -423,6 +424,14 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
     if fats_path and pid == "oils_fats" and (GOOD_OILS.search(" ".join(cats)) or GOOD_OILS.search(ing or "")):
         fvn, fvn_est = 100.0, False  # olive / rapeseed / walnut oil counts as a favourable plant component
     pts = (nutri_points_fats(n, fvn, weights["protein"] > 0) if fats_path else None) or nutri_points(n, drink, natural, weights["protein"] > 0, weights["fibre"] > 0, fvn)
+    if pts is None and PLAIN_INFUSION.search(" ".join(cats)) and not (ing and ADDED_SUGAR.search(ing)):
+        # Plain tea, herbal infusion, coffee or water: open data often has no nutrition table because there is nothing in the cup. Dry herbs
+        # prepared as a drink are taken as zero for every nutrient (flagged as assumed), so the score rests on ingredients and additives.
+        n = {**n, **{k: (n.get(k) or 0) for k in ("energyKcal100g", "sugars100g", "saturatedFat100g", "salt100g")}}
+        drink = True
+        pts = nutri_points(n, True, False, weights["protein"] > 0, weights["fibre"] > 0, fvn)
+        if pts:
+            pts["assumed"] = ["energy", "sugars", "sat", "salt"]
     if pts is None:
         return None  # not enough nutrition data for an honest score
     pts["drink"] = drink
