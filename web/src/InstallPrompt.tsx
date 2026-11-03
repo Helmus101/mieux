@@ -7,7 +7,7 @@ interface BIP extends Event { prompt: () => Promise<void>; userChoice: Promise<{
 const ShareIcon = () => <svg viewBox="0 0 24 24" width="20" height="20" style={{ verticalAlign: 'middle', stroke: 'var(--blue)', fill: 'none', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M12 15V4M8 8l4-4 4 4M6 12v7a1 1 0 001 1h10a1 1 0 001-1v-7" /></svg>;
 
 /** A small banner on phones that are not using the installed app, plus a sheet with the steps for iPhone and Android. Also opened from the profile. */
-export default function InstallPrompt({ hidden }: { hidden?: boolean }) {
+export default function InstallPrompt({ hidden, bare }: { hidden?: boolean; bare?: boolean }) {
   const [banner, setBanner] = useState(() => shouldHint() && !hintHidden());
   const [open, setOpen] = useState(false), [tab, setTab] = useState(platform() === 'android' ? 'android' : 'ios');
   const [native, setNative] = useState<BIP | null>(null);
@@ -29,7 +29,7 @@ export default function InstallPrompt({ hidden }: { hidden?: boolean }) {
   if (isInstalled()) return null;
   return (<>
     {banner && !hidden && (
-      <div className="install-banner" role="region" aria-label={t('pwa.title')}>
+      <div className={bare ? 'install-banner bare' : 'install-banner'} role="region" aria-label={t('pwa.title')}>
         <img src="/icon-180.png" alt="" width={44} height={44} />
         <div className="grow"><b>{t('pwa.title')}</b><div className="mut sm">{t('pwa.sub')}</div></div>
         <Button small primary onPress={() => (native && platform() === 'android' ? install() : (haptic('tap'), setOpen(true)))}>{t('pwa.how')}</Button>

@@ -59,8 +59,9 @@ function Shell() {
   useEffect(() => { api.setPrefs(apiPrefs({ priorities, diet, allergens })); if (onboarded) api.updatePreferences(apiPrefs({ priorities, diet, allergens }) as never).catch(() => undefined); }, [onboarded, priorities, diet, allergens]);
   const signedIn = useAccount((a) => a.email), accountReady = useAccount((a) => a.ready);
   if (accountEnabled && !accountReady) return <Screen><Loader /></Screen>;
-  if (accountEnabled && !signedIn) return <Suspense fallback={null}><Onboarding gate /></Suspense>;  // an account is required to use the app
-  if (!onboarded) return <Suspense fallback={null}><Onboarding /></Suspense>;
+  // The add-to-home-screen banner shows from the very first screen (sign-in, onboarding), not only inside the app.
+  if (accountEnabled && !signedIn) return <><Suspense fallback={null}><Onboarding gate /></Suspense><InstallPrompt bare /></>;  // an account is required to use the app
+  if (!onboarded) return <><Suspense fallback={null}><Onboarding /></Suspense><InstallPrompt bare /></>;
   return (
     <div className="app">
       <Suspense fallback={<Screen><Loader /></Screen>}>
