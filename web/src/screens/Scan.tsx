@@ -6,7 +6,7 @@ import { t } from '@shared/i18n';
 import { haptic } from '../ui';
 import { scanClick } from '../haptics';
 import { routes, useNav } from '../nav';
-import { Cancelled, closeCamera, decodeImage, openCamera, scanBarcodes, setTorch, torchSupported } from '../scanner';
+import { Cancelled, closeCamera, decodeImage, openCamera, preloadDecoder, scanBarcodes, setTorch, torchSupported } from '../scanner';
 
 // Products are identified by their barcode only: from the live camera or from a photo of the barcode. No typed codes, no name search.
 export default function Scan() {
@@ -24,6 +24,7 @@ export default function Scan() {
   const start = async () => {
     setErr('');
     const id = ++run.current;
+    preloadDecoder();  // downloads while the camera starts, not after
     try {
       stream.current = await openCamera(video.current!, () => id === run.current); setOn(true); setCanTorch(torchSupported(stream.current));
       const stopper = await scanBarcodes(video.current!, (c) => { scanClick(); haptic('success'); api.getProduct(c).catch(() => undefined); stop(); open(c); }, frame.current);

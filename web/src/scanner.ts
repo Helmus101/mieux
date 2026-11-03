@@ -10,7 +10,7 @@ export class Cancelled extends Error { constructor() { super('cancelled'); this.
 export async function openCamera(video: HTMLVideoElement, isCurrent: () => boolean = () => true): Promise<MediaStream> {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: false,
-    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 }, advanced: [{ focusMode: 'continuous' } as any] },
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
   });
   if (!isCurrent()) { stream.getTracks().forEach((t) => t.stop()); throw new Cancelled(); }
   video.srcObject = stream; video.setAttribute('playsinline', ''); video.muted = true;
@@ -19,8 +19,12 @@ export async function openCamera(video: HTMLVideoElement, isCurrent: () => boole
     else throw e;
   }
   if (!isCurrent()) { stream.getTracks().forEach((t) => t.stop()); throw new Cancelled(); }
+  // Continuous focus is asked for after the camera is already running: putting it in the first request can slow the start or make it fail.
+  try { void stream.getVideoTracks()[0]?.applyConstraints({ advanced: [{ focusMode: 'continuous' } as any] }).catch(() => undefined); } catch { /* not supported */ }
   return stream;
 }
+/** Downloads the barcode decoder ahead of time (browsers without a native detector, e.g. iPhone Safari). */
+export const preloadDecoder = () => { if (!('BarcodeDetector' in window)) void import('./zxing'); };
 export const closeCamera = (s: MediaStream | null) => s?.getTracks().forEach((t) => t.stop());
 
 /** The part of the video frame (in video pixels) that lies under the on-screen scan frame, given object-fit: cover. */
