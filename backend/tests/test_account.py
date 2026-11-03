@@ -80,3 +80,20 @@ def test_unverifiable_token_falls_back_to_the_anonymous_session(monkeypatch):
     assert c.get("/v1/products/1", headers={"Authorization": "Bearer " + tok}).status_code == 401
     assert c.get("/v1/products/1", headers={"Authorization": "Bearer " + tok, "X-Session-Id": "fallback-session-1"}).status_code == 200
 
+
+
+def test_lookup_failure_is_retryable_not_not_found():
+    from app.off import OFFError
+
+    class Down(FakeOFF):
+        def get_product(self, barcode):
+            raise OFFError("down")
+
+    real = main.app.state.off
+    main.app.state.off = Down()
+    try:
+        r = c.get("/v1/products/3017620422003", headers={"X-Session-Id": "session-down-001"})
+        assert r.status_code == 503
+    finally:
+        main.app.state.off = real
+    assert c.get("/v1/products/3017620422003", headers={"X-Session-Id": "session-down-001"}).headers["x-content-type-options"] == "nosniff"

@@ -216,14 +216,14 @@ class OFFClient:
                 time.sleep(wait)
             self._last_search = time.monotonic()
 
-    def _get(self, url: str, params: Dict[str, Any], tries: int = 2, search: bool = False) -> Dict[str, Any]:
+    def _get(self, url: str, params: Dict[str, Any], tries: int = 2, search: bool = False, timeout: float = 20) -> Dict[str, Any]:
         if time.monotonic() < self._blocked_until:
             raise OFFError("Open Food Facts is pausing us (rate limit): using saved data")
         last: Optional[Exception] = None
         for i in range(tries):
             self._wait_turn(search)
             try:
-                r = httpx.get(url, params=params, headers=HEADERS, timeout=20)
+                r = httpx.get(url, params=params, headers=HEADERS, timeout=timeout)
                 if r.status_code == 200 and r.text.startswith("{"):
                     self._fails = 0
                     return r.json()
@@ -266,7 +266,7 @@ class OFFClient:
         hit = self.local.product(barcode)  # our own copy first: instant and unlimited
         if hit:
             return hit
-        j = self._get(f"{self.base}/api/v2/product/{barcode}.json", {"fields": FIELDS})
+        j = self._get(f"{self.base}/api/v2/product/{barcode}.json", {"fields": FIELDS}, 3, timeout=8)
         return None if j.get("status") == 0 else j.get("product")
 
     def search_category(self, tag: str, size: int = 100, pages: int = 1) -> List[Dict[str, Any]]:

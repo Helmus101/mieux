@@ -107,7 +107,7 @@ export default function Alternatives() {
       {r && !busy && shown.map((e: any, i: number) => {
         return (
           <Card key={e.product.id}>
-            <Row>{e.product.imageUrl && <img src={e.product.imageUrl} alt="" width={56} height={56} style={{ objectFit: 'contain', borderRadius: 12, background: '#fff' }} />}
+            <Row>{e.product.imageUrl && <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={56} height={56} style={{ objectFit: 'contain', borderRadius: 12, background: '#fff' }} />}
               <div className="grow"><b>{i + 1}. {e.product.name}</b><Muted>{e.product.brand}</Muted></div></Row>
             <Row spread>
               {e.product.score ? <span><b style={{ fontSize: 28, letterSpacing: -.5 }}>{e.product.score.total}</b><span className="mut sm">{t('score.outOf')} · {t('score.' + e.product.score.band)}</span>

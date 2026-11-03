@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '@shared/api/client';
 import { additiveInfo } from '@shared/additives';
@@ -23,13 +23,16 @@ export default function Product() {
   const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare);
   const priorities = useProfile((s) => s.priorities);
   const hist = useHistory();
-  const [d, setD] = useState<any>(null), [err, setErr] = useState<{ kind: 'notfound' | 'invalid' | 'server' | 'network'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), [basis, setBasis] = useState<'100' | 'serving' | 'pack'>('100');
+  const [d, setD] = useState<any>(null), [err, setErr] = useState<{ kind: 'notfound' | 'invalid' | 'server' | 'network'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0), [basis, setBasis] = useState<'100' | 'serving' | 'pack'>('100');
   useEffect(() => {
     if (!barcode) return;
     setD(null); setErr(null); setOffline(false);
+    let cancelled = false, retryTimer: ReturnType<typeof setTimeout> | undefined;
     api.getProduct(barcode, estimates).then((x: any) => { setD(x); hist.addScan(x.product); api.addScan(barcode).catch(() => undefined); countScan(barcode); })
-      .catch((e: any) => { const snap = useHistory.getState().productById(barcode); if (snap && e?.response?.status !== 404) { setD({ product: snap, fit: [], price_context: null }); setOffline(true); } else setErr(e?.response?.status === 404 ? { kind: 'notfound', msg: '' } : e?.response?.status === 400 ? { kind: 'invalid', msg: '' } : e?.response ? { kind: 'server', msg: e?.response?.data?.detail ?? e.message } : { kind: 'network', msg: e.message }); });
+      .catch((e: any) => { if (!cancelled && autoTries.current < 2 && e?.response?.status !== 400 && !(e?.response && ![404, 502, 503, 504].includes(e.response.status))) { autoTries.current += 1; retryTimer = setTimeout(() => setAttempt((n) => n + 1), 1200); return; } const snap = useHistory.getState().productById(barcode); if (snap && e?.response?.status !== 404) { setD({ product: snap, fit: [], price_context: null }); setOffline(true); } else setErr(e?.response?.status === 404 ? { kind: 'notfound', msg: '' } : e?.response?.status === 400 ? { kind: 'invalid', msg: '' } : e?.response ? { kind: 'server', msg: e?.response?.data?.detail ?? e.message } : { kind: 'network', msg: e.message }); });
+    return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
   }, [barcode, estimates, attempt]);
+  useEffect(() => { autoTries.current = 0; }, [barcode]);
   if (err) return (
     <Screen>
       <NavBar onBack={back} />
@@ -62,7 +65,7 @@ export default function Product() {
       {offline && <Pill tone="w">{t('history.offline')}</Pill>}
       {p.soldInFrance !== true && <Card><Pill tone="w">{p.soldInFrance === false ? t('simple.notFr') : t('simple.frUnknown')}</Pill></Card>}
       <Row>
-        {p.imageUrl && <img src={p.imageUrl} alt="" width={88} height={88} style={{ objectFit: 'contain', borderRadius: 16, background: '#fff' }} />}
+        {p.imageUrl && <img src={p.imageUrl} alt="" decoding="async" fetchPriority="high" width={88} height={88} style={{ objectFit: 'contain', borderRadius: 16, background: '#fff' }} />}
         <div><Muted>{p.brand}</Muted><h1 style={{ fontSize: 24 }}>{p.name}</h1><Muted>{p.quantityText}</Muted></div>
       </Row>
 

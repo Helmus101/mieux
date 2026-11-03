@@ -12,6 +12,7 @@ from typing import Any, Dict, Iterator, List, Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import delete
@@ -144,7 +145,12 @@ class VisitBatcher:
 visit_batcher = VisitBatcher(batch_size=10, flush_interval=30)
 
 # Rate limiting
-limiter = Limiter(key_func=get_remote_address)
+def client_ip(request: Request) -> str:
+    """Behind Fly's proxy every request comes from the proxy: rate limit per real client address instead."""
+    return request.headers.get("fly-client-ip") or get_remote_address(request)
+
+
+limiter = Limiter(key_func=client_ip)
 app = FastAPI(title="Mieux API", version="0.2")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -158,6 +164,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(GZipMiddleware, minimum_size=800)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    resp = await call_next(request)
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "no-referrer")
+    resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    return resp
+
 
 # Request logging middleware for performance monitoring
 @app.middleware("http")
@@ -333,9 +352,7 @@ def load_product(s: Session, barcode: str, refresh: bool = False) -> Dict[str, A
             d = cached
             d["served_from_cache"] = True
             return d
-        if getattr(getattr(app.state.off, "local", None), "available", lambda: False)():
-            raise HTTPException(404, "Product not found")  # not in our copy of the French database, and the live service cannot be asked right now
-        raise HTTPException(503, str(e))
+        raise HTTPException(503, "Product service is busy, please retry")  # transient: never say "not found" when we simply could not ask
     if raw is None:
         raise HTTPException(404, "Product not found")
     p = normalize(raw)
