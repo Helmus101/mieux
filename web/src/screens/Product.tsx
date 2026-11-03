@@ -48,7 +48,7 @@ export default function Product() {
       {err.kind === 'notfound' && <Button plain onPress={() => setAttempt((n) => n + 1)}>{t('common.retry')}</Button>}
     </Screen>
   );
-  if (!d) return <Screen><NavBar onBack={back} /><Loader label={t('common.loadingProduct')} onRetry={() => setAttempt((n) => n + 1)} /><Skeleton h={90} /><Skeleton h={120} /></Screen>;
+  if (!d) return <Screen><NavBar onBack={back} /><Loader steps={t('common.stepsProduct').split('|')} onRetry={() => setAttempt((n) => n + 1)} /><Skeleton h={90} /><Skeleton h={120} /></Screen>;
 
   const p = d.product, pc = d.price_context;
   const liquid = isLiquid(p), per = liquid ? 'ml' : 'g';

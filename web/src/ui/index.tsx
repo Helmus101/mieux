@@ -55,9 +55,12 @@ export function Segmented({ options, value, onChange }: { options: { key: string
   );
 }
 export const Bar = ({ value }: { value: number }) => <div className="bar"><i style={{ width: Math.max(2, Math.min(100, value * 100)) + '%' }} /></div>;
-export function Loader({ label, onRetry }: { label?: string; onRetry?: () => void }) {
-  const [slow, setSlow] = useState(false);
+/** steps: messages shown one after the other (every 2 s) so a long wait visibly makes progress. */
+export function Loader({ label, onRetry, steps }: { label?: string; onRetry?: () => void; steps?: string[] }) {
+  const [slow, setSlow] = useState(false), [i, setI] = useState(0);
   useEffect(() => { const id = setTimeout(() => setSlow(true), 8000); return () => clearTimeout(id); }, []);
+  useEffect(() => { if (!steps || steps.length < 2) return; const id = setInterval(() => setI((n) => Math.min(n + 1, steps.length - 1)), 2000); return () => clearInterval(id); }, [steps]);
+  if (steps?.length) label = steps[Math.min(i, steps.length - 1)];
   return (
     <div className="loader" role="status" aria-live="polite">
       <div className="ring" /><p className="lbl">{(label ?? t('common.loading')).replace(/…$/, '')}<span className="dots3"><i /><i /><i /></span></p>
