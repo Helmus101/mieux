@@ -55,6 +55,7 @@ export default function Product() {
   const amt = (v: number | null | undefined) => (v == null ? '—' : String(Math.round(v * factor * 10) / 10).replace('.', ','));
   const head = priceHeadline(pc);
   const info = sheet ? additiveInfo(sheet) : null;
+  const sItem = sheet ? ((p.score?.additives?.items ?? []) as any[]).find((x) => x.code === sheet) : null;
   return (
     <Screen>
       <NavBar onBack={back} title={p.name} />
@@ -188,9 +189,12 @@ export default function Product() {
       <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('score.page')}</a>
       <Button plain onPress={() => { addCompare(p.id); go(routes.compare); }}>{t('product.compare')}</Button>
 
-      <Sheet open={!!sheet} onClose={() => setSheet(null)} title={sheet ? sheet.toUpperCase() + (info ? ' · ' + info.name : '') : ''}>
+      <Sheet open={!!sheet} onClose={() => setSheet(null)} title={sheet ? sheet.toUpperCase() + (info ? ' · ' + info.name : sItem?.name ? ' · ' + sItem.name : '') : ''}>
         {info ? <><h3>{t('add.why')}</h3><p>{info.why}</p><h3>{t('add.evidence')}</h3><p>{info.evidence}</p><h3>{t('add.regulation')}</h3><p>{info.regulation}</p><h3>{t('add.advice')}</h3><p>{info.advice}</p>
-          <p className="mut sm">{t('add.source')} : <a target="_blank" rel="noreferrer" href={info.source}>EFSA / UE</a></p></> : <><p className="mut">{t('add.unknown')}</p><a target="_blank" rel="noreferrer" href="https://food.ec.europa.eu/food-safety/food-improvement-agents/additives/database_en">{t('add.euDb')}</a></>}
+          <p className="mut sm">{t('add.source')} : <a target="_blank" rel="noreferrer" href={info.source}>EFSA / UE</a></p></>
+          : sItem?.known ? <><p><span className={'pill ' + (sItem.level === 'D' ? 'b' : sItem.level === 'C' ? 'w' : 'g')}>{t('addl.' + sItem.level)}</span></p>{sItem.note && <p>{sItem.note}</p>}
+            <p className="mut sm"><a target="_blank" rel="noreferrer" href="https://food.ec.europa.eu/food-safety/food-improvement-agents/additives/database_en">{t('add.euDb')}</a></p></>
+          : <><p className="mut">{t('add.unknown')}</p><a target="_blank" rel="noreferrer" href="https://food.ec.europa.eu/food-safety/food-improvement-agents/additives/database_en">{t('add.euDb')}</a></>}
         <Button onPress={() => setSheet(null)}>{t('common.done')}</Button>
       </Sheet>
     </Screen>
