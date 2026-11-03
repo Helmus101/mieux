@@ -139,7 +139,7 @@ export const en = {
   pwa: { title: 'Install Mieux', sub: 'One tap from your home screen', how: 'Add', later: 'Later', sheetTitle: 'Add Mieux to home screen',
     why: 'Mieux opens like a real app: full screen, faster, no browser bar.', ios: 'iPhone', android: 'Android',
     ios1: 'Open this page in Safari (iPhone\'s blue browser).', ios2a: 'Tap the Share button', ios2b: 'at the bottom of the screen. On some iPhones, first tap the ☰ or ⋯ menu (next to the address bar), then "Share".', ios3: 'Scroll the menu, then tap "Add to Home Screen".', ios4: 'Tap "Add" at top right. Mieux icon appears on your home screen.',
-    and1: 'Open this page in Chrome.', and2: 'Tap the menu ⋮ (three dots) at top right.', and3: 'Choose "Install app" or "Add to home screen".', and4: 'Confirm with "Install". Mieux icon appears on your home screen.',
+    and1: 'Open this page in Chrome (or Edge, Firefox, Samsung Internet).', and2: 'Tap the ⋮ (three dots) menu, at the top right or bottom of the screen depending on your phone.', and3: 'Choose "Install app"; otherwise "Add to home screen". If you only see "Add to", tap it, then "Home screen".', and4: 'Confirm with "Install" or "Add". The Mieux icon appears on your home screen, sometimes in the app drawer.',
     installNow: 'Install now', iosNote: 'On iPhone, only Safari allows this for a web app; with another browser, open this link in Safari first.', andNote: 'On Samsung Internet: menu ≡ then "Add page to" then "Home screen".', profile: 'Add to home screen' },
   land: {
     open: 'Open app', navFeatures: 'Features', navTry: 'Simulator', navPhone: 'On mobile',
