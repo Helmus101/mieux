@@ -49,6 +49,13 @@ export default function Profile() {
       <Section title={t('profile.priorities')}><Chips>{PRIORITY_KEYS.map((k) => <Chip key={k} on={p.priorities.includes(k)} onPress={() => p.togglePriority(k)}>{t('priorities.' + k)}</Chip>)}</Chips></Section>
       <Section title={t('profile.diet')}><Segmented value={p.diet} onChange={(k) => p.setDiet(k as 'omnivore' | 'vegetarian' | 'vegan')} options={(['omnivore', 'vegetarian', 'vegan'] as const).map((d) => ({ key: d, label: t('diets.' + d) }))} /></Section>
       <Section title={t('profile.restrictions')}><Chips>{['gluten', 'milk', 'peanuts', 'nuts'].map((a) => <Chip key={a} on={p.allergens.includes(a)} onPress={() => p.toggleAllergen(a)}>{t('diets.' + a)}</Chip>)}</Chips><p className="mut sm">{t('onboarding.allergyNote')}</p></Section>
+      <Section title={t('profile.contactTitle')}>
+        <Group>
+          <Cell onPress={() => { window.location.href = `mailto:bonjourmieuxmanger@gmail.com?subject=${encodeURIComponent(t('profile.contactSubject'))}`; }} chevron>
+            <div>{t('profile.contact')}</div><div className="mut sm">{t('profile.contactSub')} · bonjourmieuxmanger@gmail.com</div>
+          </Cell>
+        </Group>
+      </Section>
       <Section title={t('profile.localTitle')}>
         <Group>
           <Cell onPress={() => go(routes.history)} chevron>{t('history.open')}</Cell>
