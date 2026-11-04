@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import Iterator
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, Boolean, UniqueConstraint, create_engine
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Index, Integer, String, Text, Boolean, UniqueConstraint, create_engine
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 Base = declarative_base()
@@ -16,8 +16,10 @@ def now():
 class User(Base):  # anonymous session user; an auth provider can map onto this later
     __tablename__ = "users"
     id = Column(String, primary_key=True)
-    supabase_id = Column(String, unique=True, nullable=True)  # Optional: link to Supabase auth
+    supabase_id = Column(String, nullable=True)  # Optional: link to Supabase auth
     name = Column(String, nullable=True)  # first name, only to know who is using the app
+    __table_args__ = (Index("ix_users_supabase_id", "supabase_id", unique=True),)
+
     city = Column(String, nullable=True)
     postcode = Column(String, nullable=True)
     platform = Column(String, nullable=True)  # web | ios | android
