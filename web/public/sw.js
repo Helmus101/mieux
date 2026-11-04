@@ -1,8 +1,9 @@
 // Service worker: the app opens instantly from the cache and updates itself in the background. API calls always go to the network.
-const C = 'mieux-shell-v2';
+const C = 'mieux-shell-v3';
 self.addEventListener('install', e => { e.waitUntil(caches.open(C).then(c => c.addAll(['/app', '/favicon.svg', '/icon-180.png']))); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k))))); self.clients.claim(); });
-const refresh = (req) => fetch(req).then(r => { if (r.ok) { const cp = r.clone(); caches.open(C).then(c => c.put(req, cp)); } return r; });
+// Only real files are kept: after a deploy a missing script can come back as the HTML page, and caching that would freeze the app.
+const refresh = (req) => fetch(req).then(r => { const html = (r.headers.get('content-type') || '').includes('text/html'); const isPage = req.mode === 'navigate' || new URL(req.url).pathname === '/app'; if (r.ok && (isPage || !html)) { const cp = r.clone(); caches.open(C).then(c => c.put(req, cp)); } return r; });
 self.addEventListener('fetch', e => {
   const req = e.request, u = new URL(req.url);
   if (req.method !== 'GET' || u.origin !== location.origin || u.pathname.startsWith('/v1')) return;

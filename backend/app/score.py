@@ -525,6 +525,6 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
             "processing": {"nova": p.get("novaGroup"), "estimated": bool(p.get("novaEstimated"))},
             "caps": caps, "parts": parts, "uncapped": uncapped, "dimensions": dims, "flags": flags,
             "confidence": {"pct": conf, "level": "high" if conf >= 80 else "medium" if conf >= 55 else "low", "missing": missing, "doubts": doubts},
-            "incomplete": any(k not in NOT_ON_LABELS for k in missing) or bool(pts.get("assumed")), "nova": {"group": p.get("novaGroup"), "estimated": bool(p.get("novaEstimated"))},
+            "incomplete": any(k not in NOT_ON_LABELS and (k not in ("fibre", "protein") or weights.get(k, 0) >= .2) for k in missing) or bool(pts.get("assumed")), "nova": {"group": p.get("novaGroup"), "estimated": bool(p.get("novaEstimated"))},
             "sugar": sugar_detail.get("sugar"), "additives": {"score": round(dscore["additives"][0]), "items": dscore["additives"][1]["items"], "count": dscore["additives"][1]["count"]},
             "calculatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds")}
