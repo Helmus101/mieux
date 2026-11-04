@@ -11,15 +11,10 @@ export default function DesktopQRBanner() {
     if (!shouldShow || !containerRef.current) return;
 
     try {
-      containerRef.current.innerHTML = '';
       const qr = QRCode(4, 'L');
       qr.addData(getAppUrl());
       qr.make();
-      const img = qr.createImage(true);
-      if (img) {
-        img.className = 'qr-code';
-        containerRef.current.appendChild(img);
-      }
+      containerRef.current.innerHTML = qr.createImgTag(8);
     } catch (e) {
       console.error('Failed to generate QR code:', e);
     }
