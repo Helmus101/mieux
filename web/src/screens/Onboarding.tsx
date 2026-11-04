@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { t, setLocale } from '@shared/i18n';
 import { useProfile, PRIORITY_KEYS } from '@shared/stores';
-import { Button, Card, Muted, Pill, Cell, ChainLogo, Segmented } from '../ui';
+import { Button, Card, Muted, ChainLogo, Segmented } from '../ui';
 import { accountEnabled, useAccount } from '../account';
 import AuthForm from '../AuthForm';
 import { CHAIN_LIST } from '@shared/chains';
-import { findCity, searchAddress, type Home } from '../place';
 
 const DIET: [string, string][] = [['omnivore', 'diet'], ['vegetarian', 'diet'], ['vegan', 'diet'], ['gluten', 'allergen'], ['milk', 'allergen'], ['peanuts', 'allergen'], ['nuts', 'allergen']];
 const LIST = [...PRIORITY_KEYS, 'eco'];
@@ -13,20 +12,12 @@ const LIST = [...PRIORITY_KEYS, 'eco'];
 export default function Onboarding({ gate = false }: { gate?: boolean }) {
   const p = useProfile();
   const [step, setStep] = useState(-1);
-  const [busy, setBusy] = useState(false), [msg, setMsg] = useState('');
-  const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
+  const [address, setAddress] = useState('');
   const email = useAccount((a) => a.email);
-  const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const okAbout = !!p.name?.trim(); // Location is now optional
   const all = CHAIN_LIST.map((c) => c.id);
   const kept = (p.chains ?? []).length ? p.chains! : all;           // nothing stored = every chain is kept
   const dislike = (id: string) => { const next = kept.includes(id) ? kept.filter((x) => x !== id) : [...kept, id]; if (next.length) p.setChains(next.length === all.length ? [] : next); };
-  const locate = async () => {
-    setBusy(true); setMsg('');
-    const r = await findCity();
-    if (r === 'denied') setMsg(t('about.locDenied')); else if (!r) setMsg(t('about.locFail')); else p.setPlace(r);
-    setBusy(false);
-  };
   if (step === -1) return (
     <div className="ob">
       <Segmented value={p.language ?? 'fr'} onChange={(k) => { p.setLanguage(k as 'fr' | 'en'); setLocale(k as 'fr' | 'en'); }} options={[{ key: 'fr', label: 'Français' }, { key: 'en', label: 'English' }]} />
@@ -51,11 +42,9 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
         <Card>
           <b>{t('about.locTitle')}</b>
           <p className="mut sm" style={{ marginBottom: 8, fontSize: 13 }}>{t('about.locNote')}</p>
-          {p.place ? <p><Pill tone={p.place.exact ? undefined : 'g'}>{p.place.label ?? ([p.place.city, p.place.postcode].filter(Boolean).join(' · '))}</Pill></p> : <p className="mut sm">{t('about.locHint')}</p>}
-          <input value={q} onChange={(e) => type(e.target.value)} placeholder={t('about.addrPh')} autoComplete="street-address" />
-          {sugg.map((a) => <Cell key={a.label} onPress={() => { p.setPlace(a); setQ(''); setSugg([]); }}>{a.label}</Cell>)}
-          <Button disabled={busy} onPress={locate}>{busy ? t('about.locBusy') : p.place ? t('about.change') : t('about.locBtn')}</Button>
-          {msg && <p style={{ color: 'var(--warn)' }}>{msg}</p>}
+          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t('about.addrPh')} autoComplete="street-address" />
+          {address && <Button small primary onPress={() => { p.setPlace({ city: address, postcode: null, label: address, exact: false }); setAddress(''); }}>{t('about.locBtn')}</Button>}
+          {p.place && <p style={{ marginTop: 8, fontSize: 14, fontWeight: 500 }}>{p.place.label ?? p.place.city}</p>}
           {p.place && <Button small plain danger onPress={() => p.setPlace(null)}>{t('about.clear')}</Button>}
           {!p.place && <Button small plain onPress={() => setStep(1)}>{t('about.skip')}</Button>}
         </Card>
