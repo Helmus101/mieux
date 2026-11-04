@@ -14,7 +14,17 @@ export default function DesktopQRBanner() {
       const qr = QRCode(4, 'L');
       qr.addData(getAppUrl());
       qr.make();
-      qr.drawCanvas(canvasRef.current, 8);
+      const dataUrl = (qr as unknown as { makeDataURL: (size: number) => string }).makeDataURL(8);
+      const img = new Image();
+      img.onload = () => {
+        const ctx = canvasRef.current?.getContext('2d');
+        if (ctx && canvasRef.current) {
+          canvasRef.current.width = img.width;
+          canvasRef.current.height = img.height;
+          ctx.drawImage(img, 0, 0);
+        }
+      };
+      img.src = dataUrl;
     } catch (e) {
       console.error('Failed to generate QR code:', e);
     }
