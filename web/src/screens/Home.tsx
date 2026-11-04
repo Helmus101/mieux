@@ -23,9 +23,9 @@ export default function Home() {
         <h2>{t('history.scans')}</h2>
         <Group>{recent.map((s) => <Cell key={s.id} image={s.product.imageUrl ?? ''} chevron onPress={() => go(routes.product(s.id))}><b>{s.product.name}</b><Muted>{s.product.brand}{s.product.score ? ` · ${s.product.score.total}/100` : ''}</Muted></Cell>)}</Group>
       </>}
-      <Card><h3>{t('home.howTitle')}</h3>
+      {recent.length === 0 && <Card><h3>{t('home.howTitle')}</h3>
         <ol className="how"><li>{t('home.how1')}</li><li>{t('home.how2')}</li><li>{t('home.how3')}</li></ol>
-      </Card>
+      </Card>}
     </Screen>
   );
 }
