@@ -4,27 +4,22 @@ import { t } from '@shared/i18n';
 import { isDesktop, getAppUrl } from './mobileDetect';
 
 export default function DesktopQRBanner() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const shouldShow = isDesktop();
 
   useEffect(() => {
-    if (!shouldShow || !canvasRef.current) return;
+    if (!shouldShow || !containerRef.current) return;
 
     try {
+      containerRef.current.innerHTML = '';
       const qr = QRCode(4, 'L');
       qr.addData(getAppUrl());
       qr.make();
-      const dataUrl = (qr as unknown as { makeDataURL: (size: number) => string }).makeDataURL(8);
-      const img = new Image();
-      img.onload = () => {
-        const ctx = canvasRef.current?.getContext('2d');
-        if (ctx && canvasRef.current) {
-          canvasRef.current.width = img.width;
-          canvasRef.current.height = img.height;
-          ctx.drawImage(img, 0, 0);
-        }
-      };
-      img.src = dataUrl;
+      const img = qr.createImage(true);
+      if (img) {
+        img.className = 'qr-code';
+        containerRef.current.appendChild(img);
+      }
     } catch (e) {
       console.error('Failed to generate QR code:', e);
     }
@@ -39,7 +34,7 @@ export default function DesktopQRBanner() {
           <h3>{t('home.mobileTitle')}</h3>
           <p>{t('home.mobileSub')}</p>
         </div>
-        <canvas ref={canvasRef} className="qr-code" />
+        <div ref={containerRef} />
       </div>
     </div>
   );
