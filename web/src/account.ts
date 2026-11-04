@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { api } from '@shared/api/client';
+import { hydrateProfile } from '@shared/stores/profileStore';
+import { hydrateHistory } from '@shared/stores/historyStore';
 
 const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://nhlazqawxthoaymwrrze.supabase.co';
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -64,8 +66,18 @@ export function initAccount() {
   if (!supabase || started) return;
   started = true;
   const apply = (session: { access_token: string; user: { id: string; email?: string | null } } | null) => {
-    if (session) { api.setToken(session.access_token); useAccount.setState({ email: session.user.email ?? null, uid: session.user.id, ready: true }); syncScans(); }
-    else { api.clearToken(); useAccount.setState({ email: null, uid: null, ready: true, scans: null, pending: 0, syncError: null }); }
+    if (session) {
+      api.setToken(session.access_token);
+      useAccount.setState({ email: session.user.email ?? null, uid: session.user.id, ready: true });
+      hydrateProfile(session.user.id);
+      hydrateHistory(session.user.id);
+      syncScans();
+    } else {
+      api.clearToken();
+      useAccount.setState({ email: null, uid: null, ready: true, scans: null, pending: 0, syncError: null });
+      hydrateProfile();
+      hydrateHistory();
+    }
   };
   // Open instantly for a returning user: the saved session is on the device, so trust it now and let Supabase confirm (or refresh an expired token over the network) in the background.
   try {

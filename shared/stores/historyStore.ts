@@ -14,10 +14,14 @@ interface State {
   addScan: (product: any) => void; addSearch: (s: Omit<SearchEntry, 'id' | 'at'>) => void; addComparison: (ids: string[], names: string[]) => void; addReceipt: (r: Omit<ReceiptEntry, 'id' | 'at'>) => void;
   productById: (id: string) => any | null; removeScan: (at: string) => void; clear: () => void; exportAll: () => unknown;
 }
-const K = { scans: 'fiq_h_scans', searches: 'fiq_h_searches', comparisons: 'fiq_h_comparisons', receipts: 'fiq_h_receipts' };
+const getK = (uid?: string) => {
+  const prefix = uid ? `fiq_h_${uid}_` : 'fiq_h_';
+  return { scans: prefix + 'scans', searches: prefix + 'searches', comparisons: prefix + 'comparisons', receipts: prefix + 'receipts' };
+};
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+const K = getK();
 export const useHistory = create<State>((set, get) => ({
   scans: load<ScanEntry[]>(K.scans, []), searches: load<SearchEntry[]>(K.searches, []), comparisons: load<CompareEntry[]>(K.comparisons, []),
   receipts: load<ReceiptEntry[]>(K.receipts, []),
@@ -31,8 +35,11 @@ export const useHistory = create<State>((set, get) => ({
   exportAll: () => { const s = get(); return { scans: s.scans, searches: s.searches, comparisons: s.comparisons, receipts: s.receipts }; },
 }));
 
-/** Re-read persisted data after the platform storage adapter has been swapped (Expo). */
-export const hydrateHistory = () => useHistory.setState({
-  scans: load<ScanEntry[]>(K.scans, []), searches: load<SearchEntry[]>(K.searches, []), comparisons: load<CompareEntry[]>(K.comparisons, []),
-  receipts: load<ReceiptEntry[]>(K.receipts, []),
-});
+/** Re-read persisted data after the platform storage adapter has been swapped (Expo) or account changed. */
+export const hydrateHistory = (accountUid?: string) => {
+  const k = getK(accountUid);
+  useHistory.setState({
+    scans: load<ScanEntry[]>(k.scans, []), searches: load<SearchEntry[]>(k.searches, []), comparisons: load<CompareEntry[]>(k.comparisons, []),
+    receipts: load<ReceiptEntry[]>(k.receipts, []),
+  });
+};
