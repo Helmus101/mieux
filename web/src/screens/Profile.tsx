@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
 import { CHAIN_LIST } from '@shared/chains';
 import { searchAddress, type Home } from '../place';
+import { isInstalled, openInstall } from '../install';
 import { ADMIN_EMAIL, accountEnabled, signOut, useAccount } from '../account';
 import AuthForm from '../AuthForm';
 
@@ -48,6 +49,7 @@ export default function Profile() {
       <Section title={t('profile.restrictions')}><Chips>{['gluten', 'milk', 'peanuts', 'nuts'].map((a) => <Chip key={a} on={p.allergens.includes(a)} onPress={() => p.toggleAllergen(a)}>{t('diets.' + a)}</Chip>)}</Chips><p className="mut sm">{t('onboarding.allergyNote')}</p></Section>
       <Section title={t('profile.contactTitle')}>
         <Group>
+          {!isInstalled() && <Cell onPress={openInstall} chevron>{t('pwa.profile')}</Cell>}
           <Cell onPress={() => { window.location.href = `mailto:bonjourmieuxmanger@gmail.com?subject=${encodeURIComponent(t('profile.contactSubject'))}`; }} chevron>
             <div>{t('profile.contact')}</div><div className="mut sm">{t('profile.contactSub')} · bonjourmieuxmanger@gmail.com</div>
           </Cell>
