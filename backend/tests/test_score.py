@@ -282,3 +282,8 @@ def test_plain_infusion_without_nutrition_table_still_scores():
     assert r and r["total"] >= 80 and r["incomplete"]
     sweet = dict(p, ingredientsText="Thé, sucre, arôme")
     assert score.quality(sweet) is None  # sugar listed but no figure: nothing honest to score
+
+
+def test_complete_label_is_not_flagged_incomplete_for_missing_vitamins():
+    p = prod(GOOD, "farine complète, eau", cats=("en:breads",))
+    assert not p["score"]["incomplete"]  # vitamins/minerals are almost never on a label

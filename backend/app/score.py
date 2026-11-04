@@ -13,6 +13,7 @@ VERSION = "3.0"
 
 # ---------------------------------------------------------------- category profiles
 # weight 0 = the dimension is irrelevant for the category (dropped, weight redistributed). Relevant but missing data = incomplete, not irrelevant.
+NOT_ON_LABELS = ("micro", "plant")  # vitamins/minerals and plant share are almost never printed: their absence must not flag every product
 DIMS = ["fat", "sugar", "salt", "energy", "protein", "fibre", "plant", "micro", "additives", "ingredients"]
 PLANT_PROFILES = {"nuts_seeds", "fruits_veg", "legumes", "sauces", "ready_meals", "frozen", "grains_cereals", "default", "snacks_confectionery"}  # where the share of vegetables / fruit / legumes / nuts says something
 BASE = {"fat": .15, "sugar": .15, "salt": .10, "energy": .10, "protein": .15, "fibre": .15, "micro": .10, "additives": .10, "ingredients": .10}
@@ -482,6 +483,8 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
         relevant = (weights.get(k, 0) > 0) or k == "energy" or (k == "plant" and pid in PLANT_PROFILES)
         if k == "energy" and pid == "oils_fats":
             relevant = False
+        if k == "micro" and sc is None:
+            relevant = False  # vitamin/mineral data is almost never on the label: its absence says nothing about this product
         sc_map = {"fat": ("sat", n.get("saturatedFat100g"), "less"), "sugar": ("sugar_liquid" if drink else "sugar_solid", n.get("sugars100g"), "less"),
                   "salt": ("salt", n.get("salt100g"), "less"), "energy": ("energy_liquid" if drink else "energy_solid", n.get("energyKcal100g"), "less"),
                   "protein": ("protein", n.get("protein100g"), "more"), "fibre": ("fibre", n.get("fiber100g"), "more"), "plant": ("plant", fvn, "more")}
@@ -522,6 +525,6 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
             "processing": {"nova": p.get("novaGroup"), "estimated": bool(p.get("novaEstimated"))},
             "caps": caps, "parts": parts, "uncapped": uncapped, "dimensions": dims, "flags": flags,
             "confidence": {"pct": conf, "level": "high" if conf >= 80 else "medium" if conf >= 55 else "low", "missing": missing, "doubts": doubts},
-            "incomplete": bool(missing), "nova": {"group": p.get("novaGroup"), "estimated": bool(p.get("novaEstimated"))},
+            "incomplete": any(k not in NOT_ON_LABELS for k in missing) or bool(pts.get("assumed")), "nova": {"group": p.get("novaGroup"), "estimated": bool(p.get("novaEstimated"))},
             "sugar": sugar_detail.get("sugar"), "additives": {"score": round(dscore["additives"][0]), "items": dscore["additives"][1]["items"], "count": dscore["additives"][1]["count"]},
             "calculatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds")}

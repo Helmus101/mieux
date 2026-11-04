@@ -23,13 +23,13 @@ export default function Product() {
   const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare);
   const priorities = useProfile((s) => s.priorities);
   const hist = useHistory();
-  const [d, setD] = useState<any>(null), [err, setErr] = useState<{ kind: 'notfound' | 'invalid' | 'server' | 'network'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0), [basis, setBasis] = useState<'100' | 'serving' | 'pack'>('100');
+  const [d, setD] = useState<any>(null), [err, setErr] = useState<{ kind: 'notfound' | 'notfood' | 'invalid' | 'server' | 'network'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0), [basis, setBasis] = useState<'100' | 'serving' | 'pack'>('100');
   useEffect(() => {
     if (!barcode) return;
     setD(null); setErr(null); setOffline(false);
     let cancelled = false, retryTimer: ReturnType<typeof setTimeout> | undefined;
     api.getProduct(barcode, estimates).then((x: any) => { setD(x); hist.addScan(x.product); api.addScan(barcode).catch(() => undefined); countScan(barcode); })
-      .catch((e: any) => { if (!cancelled && autoTries.current < 2 && e?.response?.status !== 400 && !(e?.response && ![404, 502, 503, 504].includes(e.response.status))) { autoTries.current += 1; retryTimer = setTimeout(() => setAttempt((n) => n + 1), 1200); return; } const snap = useHistory.getState().productById(barcode); if (snap && e?.response?.status !== 404) { setD({ product: snap, fit: [], price_context: null }); setOffline(true); } else setErr(e?.response?.status === 404 ? { kind: 'notfound', msg: '' } : e?.response?.status === 400 ? { kind: 'invalid', msg: '' } : e?.response ? { kind: 'server', msg: e?.response?.data?.detail ?? e.message } : { kind: 'network', msg: e.message }); });
+      .catch((e: any) => { if (!cancelled && autoTries.current < 2 && e?.response?.status !== 400 && !(e?.response && ![404, 502, 503, 504].includes(e.response.status))) { autoTries.current += 1; retryTimer = setTimeout(() => setAttempt((n) => n + 1), 1200); return; } const snap = useHistory.getState().productById(barcode); if (snap && e?.response?.status !== 404) { setD({ product: snap, fit: [], price_context: null }); setOffline(true); } else setErr(e?.response?.status === 404 ? { kind: e.response.data?.detail === 'not_food' ? 'notfood' : 'notfound', msg: '' } : e?.response?.status === 400 ? { kind: 'invalid', msg: '' } : e?.response ? { kind: 'server', msg: e?.response?.data?.detail ?? e.message } : { kind: 'network', msg: e.message }); });
     return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
   }, [barcode, estimates, attempt]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
@@ -37,14 +37,15 @@ export default function Product() {
     <Screen>
       <NavBar onBack={back} />
       <Card>
-        <h2 style={{ margin: '0 0 6px', textTransform: 'none', letterSpacing: 0, fontSize: 22, color: 'var(--ink)' }}>{t(err.kind === 'notfound' ? 'product.nf.title' : err.kind === 'invalid' ? 'product.nf.invalidTitle' : err.kind === 'network' ? 'product.nf.netTitle' : 'product.nf.srvTitle')}</h2>
+        <h2 style={{ margin: '0 0 6px', textTransform: 'none', letterSpacing: 0, fontSize: 22, color: 'var(--ink)' }}>{t(err.kind === 'notfood' ? 'product.nf.foodTitle' : err.kind === 'notfound' ? 'product.nf.title' : err.kind === 'invalid' ? 'product.nf.invalidTitle' : err.kind === 'network' ? 'product.nf.netTitle' : 'product.nf.srvTitle')}</h2>
         {err.kind === 'notfound' && <><p style={{ margin: '4px 0' }}>{t('product.nf.code', { c: barcode ?? '' })}</p><p className="mut sm">{t('product.nf.why')}</p></>}
+        {err.kind === 'notfood' && <p className="mut">{t('product.nf.food')}</p>}
         {err.kind === 'invalid' && <p className="mut">{t('product.nf.invalid', { c: barcode ?? '' })}</p>}
         {err.kind === 'network' && <p className="mut">{t('net.down')}</p>}
         {err.kind === 'server' && <p className="mut">{t('product.nf.srv')}</p>}
       </Card>
       {(err.kind === 'server' || err.kind === 'network') && <Button primary onPress={() => setAttempt((n) => n + 1)}>{t('common.retry')}</Button>}
-      <Button primary={err.kind === 'notfound' || err.kind === 'invalid'} onPress={() => go(routes.scan)}>{t('product.nf.scanAgain')}</Button>
+      <Button primary={err.kind === 'notfound' || err.kind === 'notfood' || err.kind === 'invalid'} onPress={() => go(routes.scan)}>{t('product.nf.scanAgain')}</Button>
       {err.kind === 'notfound' && <Button plain onPress={() => setAttempt((n) => n + 1)}>{t('common.retry')}</Button>}
     </Screen>
   );

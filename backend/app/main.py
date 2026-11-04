@@ -38,7 +38,7 @@ _load_dotenv()
 from . import budget as bud, db, engine, estimate, explain as exp, receipts, retail, score, taxonomy, value
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
-from .off import OFFClient, OFFError
+from .off import OFFClient, OFFError, NotFoodError
 from .products import normalize, SCHEMA_VERSION
 from .auth import get_user_or_anonymous, create_access_token
 
@@ -347,6 +347,8 @@ def load_product(s: Session, barcode: str, refresh: bool = False) -> Dict[str, A
         return cached
     try:
         raw = app.state.off.get_product(barcode)
+    except NotFoodError:
+        raise HTTPException(404, "not_food")
     except OFFError as e:
         if row:  # offline: serve cache with its date
             d = cached

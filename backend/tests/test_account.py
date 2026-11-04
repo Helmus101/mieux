@@ -97,3 +97,43 @@ def test_lookup_failure_is_retryable_not_not_found():
     finally:
         main.app.state.off = real
     assert c.get("/v1/products/3017620422003", headers={"X-Session-Id": "session-down-001"}).headers["x-content-type-options"] == "nosniff"
+
+
+def test_non_food_barcode_is_a_clear_404_not_a_server_error():
+    from app.off import NotFoodError
+
+    class Book(FakeOFF):
+        def get_product(self, barcode):
+            raise NotFoodError(barcode)
+
+    real = main.app.state.off
+    main.app.state.off = Book()
+    try:
+        r = c.get("/v1/products/9782070612758", headers={"X-Session-Id": "session-book-001"})
+        assert r.status_code == 404 and r.json()["detail"] == "not_food"
+    finally:
+        main.app.state.off = real
+
+
+def test_off_json_404_is_an_answer_not_a_failure(monkeypatch):
+    import app.off as off
+
+    class R:
+        status_code = 404
+        text = '{"code":"9782070612758","status":0,"status_verbose":"product found with a different product type: product"}'
+        headers = {}
+        def json(self):
+            import json
+            return json.loads(self.text)
+
+    calls = []
+    monkeypatch.setattr(off.httpx, "get", lambda *a, **k: calls.append(1) or R())
+    client = off.OFFClient.__new__(off.OFFClient)
+    client.__init__()
+    client.local = type("L", (), {"product": lambda self, b: None})()
+    try:
+        client.get_product("9782070612758")
+        assert False, "expected NotFoodError"
+    except off.NotFoodError:
+        pass
+    assert len(calls) == 1  # no retries: it was a real answer

@@ -25,6 +25,10 @@ class OFFError(Exception):
     pass
 
 
+class NotFoodError(Exception):
+    """Open Food Facts knows the barcode, but as another product type (book, cosmetic, pet food...)."""
+
+
 class _Disk:
     """Tiny persistent key/value cache (own sqlite file, safe across threads and restarts)."""
     def __init__(self, path: str):
@@ -224,7 +228,7 @@ class OFFClient:
             self._wait_turn(search)
             try:
                 r = httpx.get(url, params=params, headers=HEADERS, timeout=timeout)
-                if r.status_code == 200 and r.text.startswith("{"):
+                if r.status_code in (200, 404) and r.text.startswith("{"):  # a JSON 404 is OFF's normal "no such product" answer, not a failure
                     self._fails = 0
                     return r.json()
                 if r.status_code in (401, 403):  # blocked: stay away for a good while
@@ -267,7 +271,11 @@ class OFFClient:
         if hit:
             return hit
         j = self._get(f"{self.base}/api/v2/product/{barcode}.json", {"fields": FIELDS}, 3, timeout=8)
-        return None if j.get("status") == 0 else j.get("product")
+        if j.get("status") == 0:
+            if "different product type" in str(j.get("status_verbose", "")):
+                raise NotFoodError(barcode)
+            return None
+        return j.get("product")
 
     def search_category(self, tag: str, size: int = 100, pages: int = 1) -> List[Dict[str, Any]]:
         """Products sold in France in the category, most scanned first (one request of up to 100 products: searches are the scarce resource)."""
