@@ -336,3 +336,7 @@ td .nova{padding:4px 8px}
 .install-card .grow.wrap>*{white-space:normal;overflow:visible}
 .cam .install-card{width:100%;max-width:420px;margin:0;color:var(--ink)}
 .scrim{z-index:140}.sheet{z-index:141}  /* above the full-screen scanner (z 100) so the install steps can open from it */
+.ob-points{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:10px}
+.ob-points li{position:relative;padding-left:24px;font-size:15.5px;font-weight:600;line-height:1.35}
+.ob-points li::before{content:"";position:absolute;left:0;top:.35em;width:12px;height:12px;border-radius:50%;background:var(--accent)}
+.ob-points li:nth-child(2)::before{background:var(--clay)}.ob-points li:nth-child(3)::before{background:var(--olive)}

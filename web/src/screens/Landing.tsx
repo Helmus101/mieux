@@ -41,13 +41,28 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       </header>
 
       <section className="lp-hero">
-        <h1 className="lp-h1"><span>{t('land.t1')}</span><span>{t('land.t2')}</span><em>{t('land.t3')}</em></h1>
-        <p className="lp-sub">{t('land.sub')}</p>
-        <div className="lp-cta">
-          <button className="lp-btn" onClick={onEnter}>{t('land.open')}</button>
-          <a className="lp-link" href="#difference">{t('land.navVs')}</a>
+        <div className="lp-hero-copy">
+          <p className="lp-eyebrow">{t('land.eyebrow')}</p>
+          <h1 className="lp-h1"><span>{t('land.t1')}</span><span>{t('land.t2')}</span><em>{t('land.t3')}</em></h1>
+          <p className="lp-sub">{t('land.sub')}</p>
+          <div className="lp-cta">
+            <button className="lp-btn lp-btn-lg" onClick={onEnter}>{t('land.openFree')} <span aria-hidden>→</span></button>
+          </div>
+          <p className="lp-trust">{t('land.ctaNote')}</p>
         </div>
-        <p className="lp-trust">{t('land.trust')}</p>
+
+        <div className="lp-demo" aria-label={t('land.ex.label')}>
+          <span className="lp-demo-tag">{t('land.ex.label')}</span>
+          <div className="lp-scan">
+            <div className="lp-scan-l"><small>{t('land.ex.scanned')}</small><b>{t('land.ex.name')}</b><span>{t('land.ex.price')} · {t('land.ex.unit')}</span></div>
+            <div className="lp-score lp-score-bad"><b>31</b><small>/100</small></div>
+          </div>
+          <ul className="lp-alts">
+            <li className="lp-alt lp-alt-cheap"><i>€</i><div><small>{t('land.ex.cheap')}</small><b>{t('land.ex.cheapName')}</b></div><span>1,69 €<em>{t('land.ex.cheapNote')}</em></span></li>
+            <li className="lp-alt lp-alt-quality"><i>★</i><div><small>{t('land.ex.quality')}</small><b>{t('land.ex.qualityName')}</b></div><span>86/100<em>{t('land.ex.qualityNote')}</em></span></li>
+            <li className="lp-alt lp-alt-value"><i>✓</i><div><small>{t('land.ex.value')}</small><b>{t('land.ex.valueName')}</b></div><span>71/100<em>2,95 €</em></span></li>
+          </ul>
+        </div>
       </section>
 
       <section className="lp-sec" id="difference">
