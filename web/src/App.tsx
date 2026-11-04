@@ -1,14 +1,20 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy as reactLazy, Suspense, useEffect, type ComponentType } from 'react';
 import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { useProfile, apiPrefs } from '@shared/stores';
 import { Loader, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
 import InstallPrompt from './InstallPrompt';
+import ErrorBoundary from './ErrorBoundary';
 import { accountEnabled, initAccount, useAccount } from './account';
 import { APP_PATH } from './install';
 import './index.css';
+
+// A screen's script downloads the first time it is opened; on a weak connection that can fail once, so try again before giving up.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Screen = { default: ComponentType<any> };
+const lazy = (load: () => Promise<Screen>) => reactLazy(() => load().catch(() => new Promise<void>((ok) => setTimeout(ok, 600)).then(load)));
 
 const Onboarding = lazy(() => import('./screens/Onboarding'));
 const Home = lazy(() => import('./screens/Home'));
@@ -50,6 +56,7 @@ function TabBar() {
 
 function Shell() {
   const profile = useProfile();
+  const { pathname } = useLocation();
   const { onboarded, priorities, diet, allergens, language } = profile;
   useEffect(() => { initAccount(); }, []);
   // Set locale on app load
@@ -63,7 +70,7 @@ function Shell() {
   if (!onboarded) return <><Suspense fallback={null}><Onboarding /></Suspense><InstallPrompt /></>;
   return (
     <div className="app">
-      <Suspense fallback={<Screen><Loader /></Screen>}>
+      <ErrorBoundary resetKey={pathname}><Suspense fallback={<Screen><Loader /></Screen>}>
         <Routes>
           <Route index element={<Home />} />
           <Route path="scan" element={<Scan />} />
@@ -75,7 +82,7 @@ function Shell() {
           <Route path="admin" element={<Admin />} />
           <Route path="*" element={<Navigate to={routes.home} replace />} />
         </Routes>
-      </Suspense>
+      </Suspense></ErrorBoundary>
       <InstallPrompt />
       <TabBar />
     </div>

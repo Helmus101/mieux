@@ -11,11 +11,12 @@ export function InstallCard() {
   const [shown, setShown] = useState(() => shouldHint() && !hintHidden() && !isInstalled());
   useEffect(() => { const done = () => setShown(false); window.addEventListener('appinstalled', done); return () => window.removeEventListener('appinstalled', done); }, []);
   if (!shown) return null;
+  const ios = platform() === 'ios';
   return (
     <div className="install-card" role="region" aria-label={t('pwa.title')}>
       <img src="/icon-180.png" alt="" width={40} height={40} />
-      <div className="grow"><b>{t('pwa.title')}</b><div className="mut sm">{t('pwa.sub')}</div></div>
-      <Button small primary onPress={() => { haptic('tap'); openInstall(); }}>{t('pwa.how')}</Button>
+      <div className={'grow' + (ios ? ' wrap' : '')}><b>{t('pwa.title')}</b><div className="mut sm">{ios ? <>{t('pwa.iosQuickA')} <ShareIcon /> {t('pwa.iosQuickB')}</> : t('pwa.sub')}</div></div>
+      <Button small primary onPress={() => { haptic('tap'); openInstall(); }}>{ios ? t('pwa.steps') : t('pwa.how')}</Button>
       <button className="install-x" onClick={() => { haptic('tap'); hideHint(); setShown(false); }} aria-label={t('pwa.later')}>×</button>
     </div>
   );

@@ -24,9 +24,7 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
   };
   const email = useAccount((a) => a.email);
   const okAbout = !!p.name?.trim(); // Location is now optional
-  const all = CHAIN_LIST.map((c) => c.id);
-  const kept = (p.chains ?? []).length ? p.chains! : all;           // nothing stored = every chain is kept
-  const dislike = (id: string) => { const next = kept.includes(id) ? kept.filter((x) => x !== id) : [...kept, id]; if (next.length) p.setChains(next.length === all.length ? [] : next); };
+  const chosen = p.chains ?? [];  // nothing chosen = every chain is shown
   if (step === -1) return (
     <div className="ob">
       <Segmented value={p.language ?? 'fr'} onChange={(k) => { p.setLanguage(k as 'fr' | 'en'); setLocale(k as 'fr' | 'en'); }} options={[{ key: 'fr', label: 'Français' }, { key: 'en', label: 'English' }]} />
@@ -64,9 +62,9 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
       </>)}
       {step === 1 && (<>
         <h1 style={{ fontSize: 30 }}>{t('chains.title')}</h1><Muted>{t('chains.sub')}</Muted>
-        <div className="chain-pick" style={{ marginTop: 14 }}>{CHAIN_LIST.map((c) => { const on = kept.includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : ' off')} onClick={() => dislike(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
+        <div className="chain-pick" style={{ marginTop: 14 }}>{CHAIN_LIST.map((c) => { const on = chosen.includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
         <div style={{ flex: 1 }} />
-        <p className="mut sm">{kept.length === all.length ? t('chains.allKept') : t('chains.keptN', { n: kept.length })}</p>
+        <p className="mut sm">{chosen.length ? t('chains.some', { n: chosen.length }) : t('chains.all')}</p>
         <Button primary onPress={() => setStep(2)}>{t('common.continue')}</Button>
         <Button plain onPress={() => setStep(0)}>{t('common.back')}</Button>
       </>)}

@@ -326,3 +326,4 @@ td .nova{padding:4px 8px}
 }
 .install-card{display:flex;align-items:center;gap:10px;padding:10px 8px 10px 12px;margin:12px 0;border:1px solid var(--line);border-radius:16px;background:var(--card)}
 .install-card img{border-radius:9px;flex:none}.install-card .grow{min-width:0;line-height:1.25}.install-card .grow>*{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.install-card .btn{flex:none;white-space:nowrap;min-height:34px;padding:0 14px;margin-top:0;width:auto}
+.install-card .grow.wrap>*{white-space:normal;overflow:visible}
