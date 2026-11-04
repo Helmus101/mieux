@@ -137,3 +137,31 @@ def test_off_json_404_is_an_answer_not_a_failure(monkeypatch):
     except off.NotFoodError:
         pass
     assert len(calls) == 1  # no retries: it was a real answer
+
+
+def test_search_rate_limit_does_not_block_barcode_lookups(monkeypatch):
+    import app.off as off
+
+    class Limited:
+        status_code = 429
+        text = "slow down"
+        headers = {"Retry-After": "1"}
+
+    class Ok:
+        status_code = 200
+        text = '{"status":1,"product":{"code":"1"}}'
+        headers = {}
+        def json(self):
+            return {"status": 1, "product": {"code": "1"}}
+
+    monkeypatch.setattr(off.time, "sleep", lambda s: None)
+    client = off.OFFClient()
+    client.local = type("L", (), {"product": lambda self, b: None})()
+    monkeypatch.setattr(off.httpx, "get", lambda *a, **k: Limited())
+    for _ in range(3):
+        try:
+            client._get("https://x/search", {}, 2, search=True)
+        except off.OFFError:
+            pass
+    monkeypatch.setattr(off.httpx, "get", lambda *a, **k: Ok())
+    assert client.get_product("1") == {"code": "1"}

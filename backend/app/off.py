@@ -207,7 +207,8 @@ class OFFClient:
         self._mem: Dict[str, Any] = {}
         self._lock = threading.Lock()
         self._last_search = 0.0
-        self._blocked_until = 0.0
+        self._blocked_until = 0.0         # hard block (401/403): applies to everything
+        self._search_blocked_until = 0.0  # rate limit hit by searches: must not stop single-barcode lookups, which have a far higher allowance
         self._fails = 0
 
     # -- transport -------------------------------------------------------------------------------------------------------------------
@@ -221,7 +222,7 @@ class OFFClient:
             self._last_search = time.monotonic()
 
     def _get(self, url: str, params: Dict[str, Any], tries: int = 2, search: bool = False, timeout: float = 20) -> Dict[str, Any]:
-        if time.monotonic() < self._blocked_until:
+        if time.monotonic() < self._blocked_until or (search and time.monotonic() < self._search_blocked_until):
             raise OFFError("Open Food Facts is pausing us (rate limit): using saved data")
         last: Optional[Exception] = None
         for i in range(tries):
@@ -239,7 +240,8 @@ class OFFClient:
                     retry = r.headers.get("Retry-After")
                     pause = float(retry) if retry and retry.isdigit() else 20.0 * self._fails
                     if self._fails >= 2:
-                        self._blocked_until = time.monotonic() + min(300.0, pause)
+                        if search:
+                            self._search_blocked_until = time.monotonic() + min(300.0, pause)
                         break
                     time.sleep(min(pause, 8.0))
                     continue
