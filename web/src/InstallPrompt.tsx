@@ -1,41 +1,47 @@
 import { useEffect, useState } from 'react';
 import { t } from '@shared/i18n';
 import { Button, Sheet, haptic } from './ui';
-import { OPEN_EVENT, hideHint, hintHidden, isInstalled, platform, shouldHint } from './install';
+import { OPEN_EVENT, hideHint, hintHidden, isInstalled, openInstall, platform, shouldHint } from './install';
 
 interface BIP extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }
 const ShareIcon = () => <svg viewBox="0 0 24 24" width="20" height="20" style={{ verticalAlign: 'middle', stroke: 'var(--blue)', fill: 'none', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M12 15V4M8 8l4-4 4 4M6 12v7a1 1 0 001 1h10a1 1 0 001-1v-7" /></svg>;
 
-/** A small banner on phones that are not using the installed app, plus a sheet with the steps for iPhone and Android. Also opened from the profile. */
-export default function InstallPrompt({ hidden, bare }: { hidden?: boolean; bare?: boolean }) {
-  const [banner, setBanner] = useState(() => shouldHint() && !hintHidden());
+/** A small closable card (not a floating popup) that suggests adding the app to the home screen; it opens the steps sheet below. */
+export function InstallCard() {
+  const [shown, setShown] = useState(() => shouldHint() && !hintHidden() && !isInstalled());
+  useEffect(() => { const done = () => setShown(false); window.addEventListener('appinstalled', done); return () => window.removeEventListener('appinstalled', done); }, []);
+  if (!shown) return null;
+  return (
+    <div className="install-card" role="region" aria-label={t('pwa.title')}>
+      <img src="/icon-180.png" alt="" width={40} height={40} />
+      <div className="grow"><b>{t('pwa.title')}</b><div className="mut sm">{t('pwa.sub')}</div></div>
+      <Button small primary onPress={() => { haptic('tap'); openInstall(); }}>{t('pwa.how')}</Button>
+      <button className="install-x" onClick={() => { haptic('tap'); hideHint(); setShown(false); }} aria-label={t('pwa.later')}>×</button>
+    </div>
+  );
+}
+
+/** The steps sheet for iPhone and Android: mounted once, opened by the card or from the profile. */
+export default function InstallPrompt() {
   const [open, setOpen] = useState(false), [tab, setTab] = useState(platform() === 'android' ? 'android' : 'ios');
   const [native, setNative] = useState<BIP | null>(null);
   useEffect(() => {
     const onBip = (e: Event) => { e.preventDefault(); setNative(e as BIP); };
     const onOpen = () => { setTab(platform() === 'android' ? 'android' : 'ios'); setOpen(true); };
-    const onDone = () => { setBanner(false); setOpen(false); };
+    const onDone = () => setOpen(false);
     window.addEventListener('beforeinstallprompt', onBip); window.addEventListener(OPEN_EVENT, onOpen); window.addEventListener('appinstalled', onDone);
     return () => { window.removeEventListener('beforeinstallprompt', onBip); window.removeEventListener(OPEN_EVENT, onOpen); window.removeEventListener('appinstalled', onDone); };
   }, []);
-  const later = () => { haptic('tap'); hideHint(true); setBanner(false); setOpen(false); };
-  const close = () => { haptic('tap'); hideHint(); setBanner(false); };
+  const later = () => { haptic('tap'); hideHint(true); setOpen(false); };
   const install = async () => {
     if (!native) { setOpen(true); return; }
     haptic('tap'); await native.prompt();
     const r = await native.userChoice.catch(() => null);
-    if (r?.outcome === 'accepted') { setBanner(false); setOpen(false); }
+    if (r?.outcome === 'accepted') setOpen(false);
     setNative(null);
   };
   if (isInstalled()) return null;
   return (<>
-    {banner && !hidden && (
-      <div className={bare ? 'install-banner bare' : 'install-banner'} role="region" aria-label={t('pwa.title')}>
-        <img src="/icon-180.png" alt="" width={44} height={44} />
-        <div className="grow"><b>{t('pwa.title')}</b><div className="mut sm">{t('pwa.sub')}</div></div>
-        <Button small primary onPress={() => (native && platform() === 'android' ? install() : (haptic('tap'), setOpen(true)))}>{t('pwa.how')}</Button>
-        <button className="install-x" onClick={close} aria-label={t('pwa.later')}>×</button>
-      </div>)}
     <Sheet open={open} onClose={() => setOpen(false)} title={t('pwa.sheetTitle')}>
       <p className="mut">{t('pwa.why')}</p>
       <div className="seg" role="tablist">

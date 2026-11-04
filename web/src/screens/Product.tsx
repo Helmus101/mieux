@@ -10,6 +10,8 @@ import { haptic } from '../ui';
 import { Bar, Button, Card, Collapsible, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader } from '../ui';
 import { routes, useNav } from '../nav';
 import Where from '../Where';
+import { InstallCard } from '../InstallPrompt';
+import DesktopQRBanner from '../DesktopQRBanner';
 import { countScan } from '../account';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -201,6 +203,8 @@ export default function Product() {
           : <><p className="mut">{t('add.unknown')}</p><a target="_blank" rel="noreferrer" href="https://food.ec.europa.eu/food-safety/food-improvement-agents/additives/database_en">{t('add.euDb')}</a></>}
         <Button onPress={() => setSheet(null)}>{t('common.done')}</Button>
       </Sheet>
+      <InstallCard />
+      <DesktopQRBanner />
     </Screen>
   );
 }

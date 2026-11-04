@@ -50,7 +50,6 @@ function TabBar() {
 
 function Shell() {
   const profile = useProfile();
-  const { pathname } = useLocation();
   const { onboarded, priorities, diet, allergens, language } = profile;
   useEffect(() => { initAccount(); }, []);
   // Set locale on app load
@@ -60,8 +59,8 @@ function Shell() {
   const signedIn = useAccount((a) => a.email), accountReady = useAccount((a) => a.ready);
   if (accountEnabled && !accountReady) return <Screen><Loader /></Screen>;
   // The add-to-home-screen banner shows from the very first screen (sign-in, onboarding), not only inside the app.
-  if (accountEnabled && !signedIn) return <><Suspense fallback={null}><Onboarding gate /></Suspense><InstallPrompt bare /></>;  // an account is required to use the app
-  if (!onboarded) return <><Suspense fallback={null}><Onboarding /></Suspense><InstallPrompt bare /></>;
+  if (accountEnabled && !signedIn) return <><Suspense fallback={null}><Onboarding gate /></Suspense><InstallPrompt /></>;  // an account is required to use the app
+  if (!onboarded) return <><Suspense fallback={null}><Onboarding /></Suspense><InstallPrompt /></>;
   return (
     <div className="app">
       <Suspense fallback={<Screen><Loader /></Screen>}>
@@ -77,7 +76,7 @@ function Shell() {
           <Route path="*" element={<Navigate to={routes.home} replace />} />
         </Routes>
       </Suspense>
-      <InstallPrompt hidden={sectionOf(pathname) === 'scan'} />
+      <InstallPrompt />
       <TabBar />
     </div>
   );

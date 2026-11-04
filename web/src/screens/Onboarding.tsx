@@ -5,6 +5,7 @@ import { useProfile, PRIORITY_KEYS } from '@shared/stores';
 import { Button, Card, Cell, Muted, ChainLogo, Segmented } from '../ui';
 import { accountEnabled, useAccount } from '../account';
 import AuthForm from '../AuthForm';
+import { InstallCard } from '../InstallPrompt';
 import { CHAIN_LIST } from '@shared/chains';
 
 const DIET: [string, string][] = [['omnivore', 'diet'], ['vegetarian', 'diet'], ['vegan', 'diet'], ['gluten', 'allergen'], ['milk', 'allergen'], ['peanuts', 'allergen'], ['nuts', 'allergen']];
@@ -37,6 +38,7 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
           <p className="mut sm" style={{ margin: '0 0 10px' }}>{t('account.hint')}</p>
           <AuthForm /></>}
       </Card>}
+      <InstallCard />
       {!gate && <Button primary disabled={accountEnabled && !email} onPress={() => setStep(0)}>{t('welcome.start')}</Button>}
     </div>
   );
