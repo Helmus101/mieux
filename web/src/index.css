@@ -317,3 +317,13 @@ td .nova{padding:4px 8px}
 
 .grabzone{padding:10px 0 14px;margin:-6px 0 0;cursor:grab;touch-action:none}.grabzone .grab{margin:0 auto}
 .sheet{overscroll-behavior:contain;will-change:transform}
+
+/* desktop QR code banner */
+@media(min-width:800px){
+.desktop-qr-banner{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;margin:28px 0;display:none}
+.app .desktop-qr-banner{display:block}
+.qr-content{display:flex;gap:24px;align-items:center;justify-content:space-between}
+.qr-left h3{margin:0 0 8px;font-size:18px;font-weight:600}
+.qr-left p{margin:6px 0 0;font-size:14px;color:var(--mut);max-width:300px}
+.qr-code{width:140px;height:140px;padding:6px;background:#fff;border-radius:12px;flex-shrink:0}
+}

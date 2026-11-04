@@ -19,6 +19,7 @@ export const fr = {
     startText: 'Scannez le code-barres d\'un produit : Mieux montre le sucre, le sel, les graisses saturées, les additifs et les allergènes, donne une note sur 100 et propose une alternative plus saine.',
     noSaving: 'Aucune économie vérifiée pour l\'instant', noSavingText: 'Mieux n\'annonce une économie que si un produit comparable a un prix daté et une taille de paquet connue. Scannez plus de tickets, associez vos produits ou choisissez une priorité.',
     whereMoney: 'Où va votre argent', biggest: 'Vos plus gros achats', notClaim: 'Ce que Mieux n\'affirme pas', analysing: 'Analyse de vos achats…', loadFail: 'Impossible de charger : {e}', recent: 'Derniers scans',
+    mobileTitle: 'Meilleur sur mobile', mobileSub: 'Scannez ce code avec votre téléphone pour une meilleure expérience.',
   },
   scan: { camDenied: 'Accès à la caméra refusé. Autorisez la caméra pour ce site dans les réglages du navigateur, puis rouvrez le scanner.', camNone: 'Aucune caméra détectée sur cet appareil. Vous pouvez scanner depuis une photo du code-barres.', autoOpen: 'Ouvrir la caméra automatiquement', autoOpenSub: 'Désactivé : la caméra ne s\'ouvre que quand vous appuyez dessus.', typeCode: 'Saisir le code-barres', codePh: 'Ex. 3017620422003', badCode: 'Code-barres invalide : vérifiez les chiffres (8, 12 ou 13).',
     torch: 'Lampe', gallery: 'Photo du code-barres', noCode: 'Aucun code-barres détecté dans cette image.',

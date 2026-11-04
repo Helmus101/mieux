@@ -20,6 +20,7 @@ export const en = {
     startText: 'Scan a product barcode: Mieux shows sugar, salt, saturated fat, additives and allergens, gives a score out of 100, and suggests a healthier alternative.',
     noSaving: 'No verified savings yet', noSavingText: 'Mieux only reports savings when a comparable product has a dated price and known pack size. Scan more receipts, match your products or pick a priority.',
     whereMoney: 'Where your money goes', biggest: 'Your biggest purchases', notClaim: 'What Mieux doesn\'t claim', analysing: 'Analyzing your purchases…', loadFail: 'Unable to load: {e}', recent: 'Recent scans',
+    mobileTitle: 'Better on mobile', mobileSub: 'Scan this code with your phone for a better experience.',
   },
   scan: { camDenied: 'Camera access denied. Allow camera for this site in browser settings, then reopen the scanner.', camNone: 'No camera detected on this device. You can scan from a barcode photo.', autoOpen: 'Open camera automatically', autoOpenSub: 'Off: camera only opens when you tap it.', typeCode: 'Enter barcode', codePh: 'e.g. 3017620422003', badCode: 'Invalid barcode: check the digits (8, 12 or 13).',
     torch: 'Flashlight', gallery: 'Barcode photo', noCode: 'No barcode detected in this image.',

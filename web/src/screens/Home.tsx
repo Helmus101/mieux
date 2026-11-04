@@ -2,6 +2,7 @@ import { t } from '@shared/i18n';
 import { useHistory, useProfile } from '@shared/stores';
 import { Card, Cell, Group, Hero, Muted, NavBar, Screen } from '../ui';
 import { routes, useNav } from '../nav';
+import DesktopQRBanner from '../DesktopQRBanner';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function Home() {
@@ -15,6 +16,7 @@ export default function Home() {
       <Hero title={name ? t('about.hello', { n: name }) : t('home.title')} sub={place ? place.city : t('home.sub')}>
         <button className="btn" onClick={() => go(routes.scan)}>{t('home.scanProduct')}</button>
       </Hero>
+      <DesktopQRBanner />
       <h2>{t('history.scans')}</h2>
       {recent.length
         ? <Group>{recent.map((s) => <Cell key={s.id} image={s.product.imageUrl ?? ''} chevron onPress={() => go(routes.product(s.id))}><b>{s.product.name}</b><Muted>{s.product.brand}{s.product.score ? ` · ${s.product.score.total}/100` : ''}</Muted></Cell>)}</Group>
