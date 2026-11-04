@@ -79,7 +79,15 @@ export function initAccount() {
     hydrateHistory();
     if (uid && !useProfile.getState().onboarded && lang) useProfile.getState().setLanguage(lang);
     useAccount.setState({ email: session?.user.email ?? null, uid, ready: true, scans: null, pending: 0, syncError: null });
-    if (uid) syncScans();
+    if (uid) { syncScans(); checkStillExists(uid); }
+  };
+  // The account may have been deleted elsewhere while this device still holds its session: confirm in the background and sign out if so. A network failure never signs anyone out.
+  const checkStillExists = async (uid: string) => {
+    const { error } = await supabase.auth.getUser();
+    if (error && current === uid && /not.?found|does not exist|user_not_found|jwt|invalid.*(token|claim)/i.test(`${error.code ?? ''} ${error.message}`) && (error.status === undefined || [401, 403, 404].includes(error.status))) {
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+      apply(null);
+    }
   };
   // Open instantly for a returning user: the saved session is on the device, so trust it now and let Supabase confirm (or refresh an expired token over the network) in the background.
   try {

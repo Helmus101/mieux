@@ -6,7 +6,7 @@ import { routes, useNav } from '../nav';
 import { useState } from 'react';
 import { Screen, NavBar, LargeTitle, Button, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
 import { CHAIN_LIST } from '@shared/chains';
-import { findCity, searchAddress, type Home } from '../place';
+import { searchAddress, type Home } from '../place';
 import { ADMIN_EMAIL, accountEnabled, signOut, useAccount } from '../account';
 import AuthForm from '../AuthForm';
 
@@ -18,7 +18,6 @@ export default function Profile() {
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
   const email = useAccount((a) => a.email), scans = useAccount((a) => a.scans), pending = useAccount((a) => a.pending), syncError = useAccount((a) => a.syncError);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
-  const locate = async () => { setMsg(''); const r = await findCity(); if (r === 'denied') setMsg(t('about.locDenied')); else if (!r) setMsg(t('about.locFail')); else p.setPlace(r); };
   const exp = async () => { const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = 'mieux-donnees.json'; a.click(); };
   const erase = async () => { if (!confirm(t('profile.eraseConfirm'))) return; await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset(); location.href = '/'; };
   return (
@@ -34,8 +33,6 @@ export default function Profile() {
         <input value={p.name ?? ''} onChange={(e) => p.setName(e.target.value)} placeholder={t('about.namePh')} autoComplete="given-name" />
         <input value={q} onChange={(e) => type(e.target.value)} placeholder={p.place ? (p.place.label ?? ([p.place.city, p.place.postcode].filter(Boolean).join(' · ') || t('about.addrPh'))) : t('about.addrPh')} autoComplete="street-address" style={{ marginTop: 12 }} />
         {sugg.map((a) => <Cell key={a.label} onPress={() => { p.setPlace(a); setQ(''); setSugg([]); }}>{a.label}</Cell>)}
-        <Button onPress={locate}>{t('about.locBtn')}</Button>
-        {msg && <p style={{ color: 'var(--warn)' }}>{msg}</p>}
         <p className="mut sm">{t('about.homeHint')}</p>
       </Section>
       <Section title={t('profile.language')}>
