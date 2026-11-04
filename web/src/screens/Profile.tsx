@@ -4,7 +4,7 @@ import { clearAll } from '@shared/storage';
 import { useProfile, useHistory, PRIORITY_KEYS } from '@shared/stores';
 import { routes, useNav } from '../nav';
 import { useState } from 'react';
-import { Screen, NavBar, LargeTitle, Button, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
+import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
 import { CHAIN_LIST } from '@shared/chains';
 import { searchAddress, type Home } from '../place';
 import { ADMIN_EMAIL, accountEnabled, signOut, useAccount } from '../account';
@@ -14,7 +14,7 @@ export default function Profile() {
   const p = useProfile();
   const { go } = useNav();
   const hist = useHistory();
-  const [msg, setMsg] = useState(''), [, setTick] = useState(0);
+  const [, setTick] = useState(0);
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
   const email = useAccount((a) => a.email), scans = useAccount((a) => a.scans), pending = useAccount((a) => a.pending), syncError = useAccount((a) => a.syncError);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
