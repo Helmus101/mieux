@@ -56,10 +56,6 @@ export const countScan = (code: string) => {
   syncScans();
 };
 
-export const ADMIN_EMAIL = 'tjong.willem@gmail.com';
-export interface AdminStats { users: number; scans: number; accounts_with_scans: number }
-/** Admin only: the database refuses anyone who is not in the admins table, whatever the page shows. */
-export const adminStats = async (): Promise<AdminStats> => { const { data, error } = await supabase!.rpc('admin_stats'); if (error) throw error; return data as AdminStats; };
 
 let started = false;
 /** Call once at startup: restores the session, keeps the API token fresh, and clears it on sign-out. */

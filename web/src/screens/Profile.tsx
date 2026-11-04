@@ -8,7 +8,7 @@ import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chi
 import { CHAIN_LIST } from '@shared/chains';
 import { searchAddress, type Home } from '../place';
 import { isInstalled, openInstall } from '../install';
-import { ADMIN_EMAIL, accountEnabled, signOut, useAccount } from '../account';
+import { accountEnabled, signOut, useAccount } from '../account';
 import AuthForm from '../AuthForm';
 
 export default function Profile() {
@@ -26,7 +26,7 @@ export default function Profile() {
       <NavBar title={t('profile.title')} />
       <LargeTitle>{t('profile.title')}</LargeTitle>
       {accountEnabled && <Section title={t('account.title')}>
-        {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row>{pending > 0 && <p className="mut sm" style={{ margin: '6px 0 0' }}>{t('account.pending', { n: pending })}{syncError ? ` · ${syncError}` : ''}</p>}</Cell>{email === ADMIN_EMAIL && <Cell onPress={() => go(routes.admin)} chevron>{t('admin.title')}</Cell>}<Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
+        {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row>{pending > 0 && <p className="mut sm" style={{ margin: '6px 0 0' }}>{t('account.pending', { n: pending })}{syncError ? ` · ${syncError}` : ''}</p>}</Cell><Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
           <p className="mut sm">{t('account.hint')}</p>
           <AuthForm /></>}
       </Section>}
