@@ -67,19 +67,22 @@ export function initAccount() {
   if (!supabase || started) return;
   started = true;
   const apply = (session: { access_token: string; user: { id: string; email?: string | null } } | null) => {
+    // First clear all stores to prevent data leakage between accounts
+    useAccount.setState({ email: null, uid: null, ready: false, scans: null, pending: 0, syncError: null });
+    
     if (session) {
       api.setToken(session.access_token);
+      setAccountId(session.user.id); // Set account ID BEFORE hydrating
+      hydrateProfile();
+      hydrateHistory();
       useAccount.setState({ email: session.user.email ?? null, uid: session.user.id, ready: true });
-      setAccountId(session.user.id); // Set account ID for scoped local storage
-      hydrateProfile(session.user.id);
-      hydrateHistory(session.user.id);
       syncScans();
     } else {
       api.clearToken();
-      useAccount.setState({ email: null, uid: null, ready: true, scans: null, pending: 0, syncError: null });
-      setAccountId(null); // Clear account ID to use default storage
+      setAccountId(null); // Clear account ID BEFORE hydrating
       hydrateProfile();
       hydrateHistory();
+      useAccount.setState({ email: null, uid: null, ready: true, scans: null, pending: 0, syncError: null });
     }
   };
   // Open instantly for a returning user: the saved session is on the device, so trust it now and let Supabase confirm (or refresh an expired token over the network) in the background.
