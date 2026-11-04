@@ -1,6 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { APP_PATH, wantsLanding } from './install';
+import { t } from '@shared/i18n';
 import { trackVisit } from './usage';
+import { Loader } from './ui';
+import ErrorBoundary from './ErrorBoundary';
 
 // Loaded separately on purpose: the landing page must not download the app's router, API client and stores.
 const App = lazy(() => import('./App'));
@@ -23,6 +26,8 @@ function start(): boolean {
   return landing;
 }
 
+const LoadingFallback = () => <div className="screen"><Loader steps={[t('common.loading'), t('common.slow')]} /></div>;
+
 export default function Root() {
   const [stats, setStats] = useState(atStats);
   const [landing, setLanding] = useState(start);
@@ -36,14 +41,22 @@ export default function Root() {
     return () => window.removeEventListener('popstate', sync);
   }, []);
   if (stats) return (
-    <Suspense fallback={null}>
-      <Usage onBack={() => { window.history.pushState(null, '', '/'); setStats(false); setLanding(wantsLanding()); }} />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingFallback />}>
+        <Usage onBack={() => { window.history.pushState(null, '', '/'); setStats(false); setLanding(wantsLanding()); }} />
+      </Suspense>
+    </ErrorBoundary>
   );
   if (landing) return (
-    <Suspense fallback={null}>
-      <Landing onEnter={() => { window.history.pushState(null, '', APP_PATH); setLanding(false); }} />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingFallback />}>
+        <Landing onEnter={() => { window.history.pushState(null, '', APP_PATH); setLanding(false); }} />
+      </Suspense>
+    </ErrorBoundary>
   );
-  return <Suspense fallback={null}><App /></Suspense>;
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingFallback />}><App /></Suspense>
+    </ErrorBoundary>
+  );
 }

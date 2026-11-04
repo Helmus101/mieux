@@ -27,12 +27,8 @@ export const hideHint = (later = false) => {
 export const OPEN_EVENT = 'mieux:install';
 export const openInstall = () => window.dispatchEvent(new Event(OPEN_EVENT));
 
-/** A phone (not a tablet): phones go straight into the app, computers and iPads get the landing page first. */
-export const isPhone = () => {
-  if (typeof navigator === 'undefined') return false;
-  const ua = navigator.userAgent;
-  return /iPhone|iPod/.test(ua) || (/Android/i.test(ua) && /Mobile/i.test(ua));
-};
+/** Touch devices go straight into the app; the marketing landing page is desktop/laptop only. */
+export const isPhone = () => platform() !== 'other';
 
 export const APP_PATH = '/app';
 
