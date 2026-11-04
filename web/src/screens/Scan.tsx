@@ -6,7 +6,6 @@ import { t } from '@shared/i18n';
 import { haptic } from '../ui';
 import { scanClick } from '../haptics';
 import { routes, useNav } from '../nav';
-import { InstallCard } from '../InstallPrompt';
 import { Cancelled, closeCamera, decodeImage, openCamera, preloadDecoder, scanBarcodes, setTorch, torchSupported } from '../scanner';
 
 // Products are identified by their barcode only: from the live camera or from a photo of the barcode. No typed codes, no name search.
@@ -52,7 +51,6 @@ export default function Scan() {
       <div className="cam-bottom">
         {err ? <p className="cam-err">{err}</p> : <p>{on ? (forCompare ? t('compare.scanForCompare') : t('scan.point')) : t('simple.camNeeded')}</p>}
         {!on && <button className="cam-main" onClick={start}>{t('scan.open')}</button>}
-        <InstallCard />
         <label className="cam-link">{t('scan.gallery')}<input type="file" accept="image/*" hidden onChange={(e) => fromPhoto(e.target.files?.[0])} /></label>
       </div>
     </div>
