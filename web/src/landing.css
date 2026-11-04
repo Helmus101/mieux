@@ -30,12 +30,19 @@
 
 /* ---------- hero ---------- */
 .lp-hero{padding-top:clamp(64px,11vw,132px);padding-bottom:clamp(48px,7vw,88px)}
+.lp-kicker{margin-bottom:18px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--leaf)}
 .lp-h1{font-size:clamp(36px,5.4vw,58px);line-height:1.04;letter-spacing:-.042em;font-weight:700}
 .lp-h1 span{display:block}
 .lp-h1 em{display:block;font-style:italic;font-family:ui-serif,Georgia,"Times New Roman",serif;font-weight:500;letter-spacing:-.03em;color:var(--leaf)}
 .lp-sub{margin-top:24px;max-width:46ch;font-size:17px;line-height:1.6;color:var(--soft)}
 .lp-cta{display:flex;align-items:center;flex-wrap:wrap;gap:22px;margin-top:30px}
 .lp-trust{margin-top:18px;font-size:13px;color:var(--soft)}
+.lp-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:clamp(42px,7vw,76px) 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.lp-steps li{display:flex;flex-direction:column;gap:10px;padding:18px 18px 0 0;border-right:1px solid var(--line)}
+.lp-steps li+li{padding-left:18px}
+.lp-steps li:last-child{border-right:0}
+.lp-steps strong{font-size:11px;letter-spacing:.1em;color:var(--clay)}
+.lp-steps span{font-size:15px;font-weight:600;line-height:1.35}
 
 /* ---------- sections ---------- */
 .lp-sec{padding-top:clamp(44px,6vw,76px);padding-bottom:clamp(44px,6vw,76px);border-top:1px solid var(--line)}
@@ -80,6 +87,9 @@
 }
 
 @media (max-width:760px){
+  .lp-steps{grid-template-columns:1fr;gap:0}
+  .lp-steps li,.lp-steps li+li{padding:14px 0;border-right:0;border-bottom:1px solid var(--line)}
+  .lp-steps li:last-child{border-bottom:0}
   .lp-tr{grid-template-columns:1fr;gap:4px}
   .lp-tr-no{display:none}
   .lp-tr-head{display:none}

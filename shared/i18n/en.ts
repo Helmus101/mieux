@@ -156,7 +156,7 @@ export const en = {
     f2t: 'Alternatives near you', f2d: 'Better quality, cheaper or better ratio: only products sold within 5km of you.',
     f3t: 'Additives decoded', f3d: 'Each additive ranked from "no risk" to "high risk", with the reason and source.',
     f4t: 'Your scans stay on you', f4d: 'No tracking: your scans, receipts and preferences stay on your device. Your account only keeps your scan total.',
-    mobTitle: 'On your phone', mobSub: 'Scan this code: the app opens, and can install on your home screen.', mobOr: 'Or continue here, on this screen.',
+    mobTitle: 'On your phone', mobSub: 'Scan this code: the app opens, and can install on your home screen.', mobOr: 'Or continue here, on this screen.', stepsTitle: 'How Mieux works', step1: 'Scan a barcode', step2: 'Understand the label', step3: 'Choose with confidence',
     foot: 'Data: Open Food Facts and Open Prices, under ODbL license.', scroll: 'Scroll',
     navVs: 'The difference',
     vsTitle: 'Yuka scores. Mieux helps you save.',

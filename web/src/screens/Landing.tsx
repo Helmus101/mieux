@@ -41,6 +41,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       </header>
 
       <section className="lp-hero">
+        <p className="lp-kicker">{t('land.kicker')}</p>
         <h1 className="lp-h1"><span>{t('land.t1')}</span><span>{t('land.t2')}</span><em>{t('land.t3')}</em></h1>
         <p className="lp-sub">{t('land.sub')}</p>
         <div className="lp-cta">
@@ -48,6 +49,11 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           <a className="lp-link" href="#difference">{t('land.navVs')}</a>
         </div>
         <p className="lp-trust">{t('land.trust')}</p>
+        <ol className="lp-steps" aria-label={t('land.stepsTitle')}>
+          <li><strong>01</strong><span>{t('land.step1')}</span></li>
+          <li><strong>02</strong><span>{t('land.step2')}</span></li>
+          <li><strong>03</strong><span>{t('land.step3')}</span></li>
+        </ol>
       </section>
 
       <section className="lp-sec" id="difference">

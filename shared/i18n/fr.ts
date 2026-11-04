@@ -155,7 +155,7 @@ export const fr = {
     f2t: 'Des alternatives près de chez vous', f2d: 'Meilleure qualité, moins cher ou meilleur rapport : uniquement des produits vendus à moins de 5 km de chez vous.',
     f3t: 'Les additifs décryptés', f3d: 'Chaque additif est classé de « sans risque » à « risque élevé », avec la raison et la source.',
     f4t: 'Vos scans restent chez vous', f4d: 'Pas de pistage : vos scans, vos tickets et vos préférences restent sur votre appareil. Votre compte ne garde que le nombre de vos scans.',
-    mobTitle: 'Sur le téléphone', mobSub: 'Scannez ce code : l\'application s\'ouvre, et peut s\'installer sur l\'écran d\'accueil.', mobOr: 'Ou continuez ici, sur cet écran.',
+    mobTitle: 'Sur le téléphone', mobSub: 'Scannez ce code : l\'application s\'ouvre, et peut s\'installer sur l\'écran d\'accueil.', mobOr: 'Ou continuez ici, sur cet écran.', stepsTitle: 'Comment fonctionne Mieux', step1: 'Scannez un code-barres', step2: 'Comprenez l\'étiquette', step3: 'Choisissez sereinement',
     foot: 'Données : Open Food Facts et Open Prices, sous licence ODbL.', scroll: 'Défiler',
     navVs: 'La différence',
     vsTitle: 'Yuka note. Mieux vous aide à économiser.',
