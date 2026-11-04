@@ -192,6 +192,11 @@ export class MieuxAPI {
     return response.data;
   }
 
+  async searchAddress(q: string): Promise<{ label: string; city: string; postcode: string | null; lat: number; lon: number; exact: boolean }[]> {
+    const response = await this.client.post('/address', { query: q });
+    return response.data;
+  }
+
   async addPrice(barcode: string, priceCents: number) {
     const response = await this.client.post(`/products/${barcode}/prices`, { price_cents: priceCents });
     return response.data;

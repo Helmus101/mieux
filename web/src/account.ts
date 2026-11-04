@@ -1,11 +1,9 @@
 import { create } from 'zustand';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { api } from '@shared/api/client';
-import { hydrateProfile } from '@shared/stores/profileStore';
+import { hydrateProfile, useProfile } from '@shared/stores/profileStore';
 import { hydrateHistory } from '@shared/stores/historyStore';
 import { setAccountId } from '@shared/storage';
-import { useProfile } from '@shared/stores/profileStore';
-import { useHistory } from '@shared/stores/historyStore';
 
 const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://nhlazqawxthoaymwrrze.supabase.co';
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -68,41 +66,20 @@ let started = false;
 export function initAccount() {
   if (!supabase || started) return;
   started = true;
-  const apply = async (session: { access_token: string; user: { id: string; email?: string | null } } | null) => {
-    // First clear all stores to prevent data leakage between accounts
-    useAccount.setState({ email: null, uid: null, ready: false, scans: null, pending: 0, syncError: null });
-    
-    if (session) {
-      // Verify the session is still valid (account wasn't deleted)
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) {
-        // Session invalid or account deleted - sign out
-        api.clearToken();
-        setAccountId(null);
-        hydrateProfile();
-        hydrateHistory();
-        useAccount.setState({ email: null, uid: null, ready: true, scans: null, pending: 0, syncError: null });
-        return;
-      }
-      
-      api.setToken(session.access_token);
-      // CRITICAL: Set account ID BEFORE hydrating, and explicitly reset to empty state first
-      setAccountId(session.user.id);
-      // Reset profile to default to prevent loading old data
-      useProfile.setState({ onboarded: false, priorities: [], diet: 'omnivore', allergens: [], name: '', place: null, chains: [], strictAdditives: true, autoCamera: false, language: 'fr' });
-      useHistory.setState({ scans: [], searches: [], comparisons: [], receipts: [] });
-      // Now hydrate with the account's data
-      hydrateProfile();
-      hydrateHistory();
-      useAccount.setState({ email: session.user.email ?? null, uid: session.user.id, ready: true });
-      syncScans();
-    } else {
-      api.clearToken();
-      setAccountId(null); // Clear account ID BEFORE hydrating
-      hydrateProfile();
-      hydrateHistory();
-      useAccount.setState({ email: null, uid: null, ready: true, scans: null, pending: 0, syncError: null });
-    }
+  let current: string | null | undefined;  // undefined = nothing applied yet
+  const apply = (session: { access_token: string; user: { id: string; email?: string | null } } | null) => {
+    const uid = session?.user.id ?? null;
+    if (session) api.setToken(session.access_token); else api.clearToken();
+    if (uid === current) return;  // token refresh or repeated event for the same account: nothing to switch, and the screen must not flicker
+    // Switching account: point local storage at that account's keys, then reload the stores from them. Language chosen before signing in carries over.
+    const lang = useProfile.getState().language;
+    current = uid;
+    setAccountId(uid);
+    hydrateProfile();
+    hydrateHistory();
+    if (uid && !useProfile.getState().onboarded && lang) useProfile.getState().setLanguage(lang);
+    useAccount.setState({ email: session?.user.email ?? null, uid, ready: true, scans: null, pending: 0, syncError: null });
+    if (uid) syncScans();
   };
   // Open instantly for a returning user: the saved session is on the device, so trust it now and let Supabase confirm (or refresh an expired token over the network) in the background.
   try {

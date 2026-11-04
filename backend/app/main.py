@@ -895,6 +895,29 @@ def geocode(request: Request, body: GeoReq, uid: str = Depends(user)):
     return {"lat": lat, "lon": lon, "label": r[0]["nom"]}
 
 
+class AddressReq(BaseModel):
+    query: str = Field(min_length=3, max_length=200)
+
+
+@app.post("/v1/address")
+@limiter.limit("40/minute")
+def address_search(request: Request, body: AddressReq):
+    """Free-text address -> properly formatted French addresses with coordinates (api-adresse.data.gouv.fr)."""
+    import httpx
+    try:
+        r = httpx.get("https://api-adresse.data.gouv.fr/search/", params={"q": body.query.strip(), "limit": 5, "autocomplete": 1}, timeout=6).json()
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(503, "Address service unavailable")
+    out = []
+    for f in r.get("features", []):
+        p, lon_lat = f.get("properties", {}), f.get("geometry", {}).get("coordinates")
+        if not lon_lat or not p.get("label"):
+            continue
+        out.append({"label": p["label"], "city": p.get("city") or "", "postcode": p.get("postcode"), "lat": lon_lat[1], "lon": lon_lat[0],
+                    "exact": p.get("type") in ("housenumber", "street")})
+    return out
+
+
 class RetailersReq(Loc):
     chains: List[str] = []  # restrict to these chain ids (empty = all)
 

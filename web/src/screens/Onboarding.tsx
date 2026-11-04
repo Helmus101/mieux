@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { useProfile, PRIORITY_KEYS } from '@shared/stores';
-import { Button, Card, Muted, ChainLogo, Segmented } from '../ui';
+import { Button, Card, Cell, Muted, ChainLogo, Segmented } from '../ui';
 import { accountEnabled, useAccount } from '../account';
 import AuthForm from '../AuthForm';
 import { CHAIN_LIST } from '@shared/chains';
@@ -13,6 +14,13 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
   const p = useProfile();
   const [step, setStep] = useState(-1);
   const [address, setAddress] = useState('');
+  const [sugg, setSugg] = useState<Awaited<ReturnType<typeof api.searchAddress>>>([]);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const type = (v: string) => {
+    setAddress(v); clearTimeout(timer.current);
+    if (v.trim().length < 3) { setSugg([]); return; }
+    timer.current = setTimeout(() => { api.searchAddress(v).then(setSugg).catch(() => setSugg([])); }, 350);
+  };
   const email = useAccount((a) => a.email);
   const okAbout = !!p.name?.trim(); // Location is now optional
   const all = CHAIN_LIST.map((c) => c.id);
@@ -42,8 +50,8 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
         <Card>
           <b>{t('about.locTitle')}</b>
           <p className="mut sm" style={{ marginBottom: 8, fontSize: 13 }}>{t('about.locNote')}</p>
-          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t('about.addrPh')} autoComplete="street-address" />
-          {address && <Button small primary onPress={() => { p.setPlace({ city: address, postcode: null, label: address, exact: false }); setAddress(''); }}>{t('about.locBtn')}</Button>}
+          <input value={address} onChange={(e) => type(e.target.value)} placeholder={t('about.addrPh')} autoComplete="street-address" />
+          {sugg.map((a) => <Cell key={a.label} onPress={() => { p.setPlace(a); setAddress(''); setSugg([]); }}>{a.label}</Cell>)}
           {p.place && <p style={{ marginTop: 8, fontSize: 14, fontWeight: 500 }}>{p.place.label ?? p.place.city}</p>}
           {p.place && <Button small plain danger onPress={() => p.setPlace(null)}>{t('about.clear')}</Button>}
           {!p.place && <Button small plain onPress={() => setStep(1)}>{t('about.skip')}</Button>}
