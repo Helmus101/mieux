@@ -8,11 +8,20 @@ let kv: KV = {
   keys: () => { try { return Object.keys(localStorage); } catch { return []; } },
 };
 export const setStorage = (s: KV) => { kv = s; };
+
+// Account-scoped storage: if a user ID is provided, keys are prefixed with it
+let currentAccountId: string | null = null;
+export const setAccountId = (uid: string | null) => { currentAccountId = uid; };
+export const getAccountId = () => currentAccountId;
+
+/** Prefixes the key with the account ID if one is set, for account-scoped local storage */
+const scopedKey = (k: string): string => currentAccountId ? `${k}_${currentAccountId}` : k;
+
 /** Reads JSON. Tolerates a legacy raw string value when the default is a string/null (older versions stored the session id unquoted). */
 export const load = <T,>(k: string, d: T): T => {
-  const raw = kv.getItem(k);
+  const raw = kv.getItem(scopedKey(k));
   if (raw == null) return d;
   try { return JSON.parse(raw) as T; } catch { return (typeof d === 'string' || d === null ? (raw as unknown as T) : d); }
 };
-export const save = (k: string, v: unknown) => kv.setItem(k, JSON.stringify(v));
+export const save = (k: string, v: unknown) => kv.setItem(scopedKey(k), JSON.stringify(v));
 export const clearAll = (prefix = 'fiq_') => { (kv.keys?.() ?? []).filter((k) => k.startsWith(prefix)).forEach((k) => kv.removeItem(k)); };

@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { api } from '@shared/api/client';
 import { hydrateProfile } from '@shared/stores/profileStore';
 import { hydrateHistory } from '@shared/stores/historyStore';
+import { setAccountId } from '@shared/storage';
 
 const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://nhlazqawxthoaymwrrze.supabase.co';
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -69,12 +70,14 @@ export function initAccount() {
     if (session) {
       api.setToken(session.access_token);
       useAccount.setState({ email: session.user.email ?? null, uid: session.user.id, ready: true });
+      setAccountId(session.user.id); // Set account ID for scoped local storage
       hydrateProfile(session.user.id);
       hydrateHistory(session.user.id);
       syncScans();
     } else {
       api.clearToken();
       useAccount.setState({ email: null, uid: null, ready: true, scans: null, pending: 0, syncError: null });
+      setAccountId(null); // Clear account ID to use default storage
       hydrateProfile();
       hydrateHistory();
     }
