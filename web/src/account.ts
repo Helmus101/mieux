@@ -4,6 +4,8 @@ import { api } from '@shared/api/client';
 import { hydrateProfile } from '@shared/stores/profileStore';
 import { hydrateHistory } from '@shared/stores/historyStore';
 import { setAccountId } from '@shared/storage';
+import { useProfile } from '@shared/stores/profileStore';
+import { useHistory } from '@shared/stores/historyStore';
 
 const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://nhlazqawxthoaymwrrze.supabase.co';
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -66,13 +68,30 @@ let started = false;
 export function initAccount() {
   if (!supabase || started) return;
   started = true;
-  const apply = (session: { access_token: string; user: { id: string; email?: string | null } } | null) => {
+  const apply = async (session: { access_token: string; user: { id: string; email?: string | null } } | null) => {
     // First clear all stores to prevent data leakage between accounts
     useAccount.setState({ email: null, uid: null, ready: false, scans: null, pending: 0, syncError: null });
     
     if (session) {
+      // Verify the session is still valid (account wasn't deleted)
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        // Session invalid or account deleted - sign out
+        api.clearToken();
+        setAccountId(null);
+        hydrateProfile();
+        hydrateHistory();
+        useAccount.setState({ email: null, uid: null, ready: true, scans: null, pending: 0, syncError: null });
+        return;
+      }
+      
       api.setToken(session.access_token);
-      setAccountId(session.user.id); // Set account ID BEFORE hydrating
+      // CRITICAL: Set account ID BEFORE hydrating, and explicitly reset to empty state first
+      setAccountId(session.user.id);
+      // Reset profile to default to prevent loading old data
+      useProfile.setState({ onboarded: false, priorities: [], diet: 'omnivore', allergens: [], name: '', place: null, chains: [], strictAdditives: true, autoCamera: false, language: 'fr' });
+      useHistory.setState({ scans: [], searches: [], comparisons: [], receipts: [] });
+      // Now hydrate with the account's data
       hydrateProfile();
       hydrateHistory();
       useAccount.setState({ email: session.user.email ?? null, uid: session.user.id, ready: true });
