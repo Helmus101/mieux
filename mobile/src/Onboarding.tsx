@@ -29,6 +29,7 @@ export default function Onboarding() {
   const c = useTheme();
   const [step, setStep] = useState(-1);
   const [busy, setBusy] = useState(false), [msg, setMsg] = useState('');
+  const okAbout = !!p.name?.trim(); // Location is now optional
   const locate = async () => {
     setBusy(true); setMsg('');
     try { const r = await findCity(); if (r === 'denied') { setMsg(t('about.locDenied')); hx.warning(); } else if (!r) { setMsg(t('about.locFail')); hx.error(); } else { p.setPlace(r); hx.success(); } }
@@ -44,12 +45,16 @@ export default function Onboarding() {
         <Muted>{t('about.name')}</Muted><Field value={p.name ?? ''} onChangeText={p.setName} placeholder={t('about.namePh')} />
         <Card>
           <Text style={{ color: c.ink, fontWeight: '700', fontSize: 17 }}>{t('about.locTitle')}</Text>
+          <Muted small style={{ marginBottom: 8 }}>{t('about.locNote')}</Muted>
           {p.place ? <View style={{ marginVertical: 8 }}><Pill>{[p.place.city, p.place.postcode].filter(Boolean).join(' · ')}</Pill></View> : <Muted small>{t('about.locHint')}</Muted>}
           {busy ? <ActivityIndicator style={{ margin: 12 }} /> : <Button onPress={locate}>{p.place ? t('about.change') : t('about.locBtn')}</Button>}
           {msg ? <Text style={{ color: c.warn }}>{msg}</Text> : null}
           {p.place ? <Button small plain danger onPress={() => p.setPlace(null)}>{t('about.clear')}</Button> : null}
+          {!p.place && <Button small plain onPress={() => setStep(1)}>{t('about.skip')}</Button>}
         </Card>
-        <Button primary onPress={() => setStep(1)}>{t('common.continue')}</Button><Button plain onPress={() => setStep(1)}>{t('common.skip')}</Button></>}
+        <View style={{ flex: 1 }} />
+        {!okAbout && <Muted small>{t('welcome.need')}</Muted>}
+        <Button primary disabled={!okAbout} onPress={() => setStep(1)}>{t('common.continue')}</Button><Button plain onPress={() => setStep(1)}>{t('common.skip')}</Button></>}
       {step === 1 && <><LargeTitle sub={`${t('onboarding.s1')} · ${t('onboarding.selected', { n: p.priorities.length })}`}>{t('onboarding.t1')}</LargeTitle>
         {[...PRIORITY_KEYS, 'eco'].map((k) => <Opt key={k} on={p.priorities.includes(k)} label={t('priorities.' + k)} disabled={k === 'eco'} onPress={() => p.togglePriority(k)} />)}
         <Button primary onPress={() => setStep(2)}>{t('common.continue')}</Button><Button plain onPress={() => setStep(0)}>{t('common.back')}</Button></>}

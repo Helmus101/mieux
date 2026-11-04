@@ -17,7 +17,7 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
   const email = useAccount((a) => a.email);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
-  const okAbout = !!p.name?.trim() && p.place?.lat != null && !!p.place?.exact;
+  const okAbout = !!p.name?.trim(); // Location is now optional
   const all = CHAIN_LIST.map((c) => c.id);
   const kept = (p.chains ?? []).length ? p.chains! : all;           // nothing stored = every chain is kept
   const dislike = (id: string) => { const next = kept.includes(id) ? kept.filter((x) => x !== id) : [...kept, id]; if (next.length) p.setChains(next.length === all.length ? [] : next); };
@@ -50,12 +50,14 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
         <input value={p.name ?? ''} onChange={(e) => p.setName(e.target.value)} placeholder={t('about.namePh')} autoComplete="given-name" />
         <Card>
           <b>{t('about.locTitle')}</b>
+          <p className="mut sm" style={{ marginBottom: 8, fontSize: 13 }}>{t('about.locNote')}</p>
           {p.place ? <p><Pill tone={p.place.exact ? undefined : 'g'}>{p.place.label ?? ([p.place.city, p.place.postcode].filter(Boolean).join(' · '))}</Pill></p> : <p className="mut sm">{t('about.locHint')}</p>}
           <input value={q} onChange={(e) => type(e.target.value)} placeholder={t('about.addrPh')} autoComplete="street-address" />
           {sugg.map((a) => <Cell key={a.label} onPress={() => { p.setPlace(a); setQ(''); setSugg([]); }}>{a.label}</Cell>)}
           <Button disabled={busy} onPress={locate}>{busy ? t('about.locBusy') : p.place ? t('about.change') : t('about.locBtn')}</Button>
           {msg && <p style={{ color: 'var(--warn)' }}>{msg}</p>}
           {p.place && <Button small plain danger onPress={() => p.setPlace(null)}>{t('about.clear')}</Button>}
+          {!p.place && <Button small plain onPress={() => setStep(1)}>{t('about.skip')}</Button>}
         </Card>
         <div style={{ flex: 1 }} />
         {!okAbout && <p className="mut sm">{t('welcome.need')}</p>}
