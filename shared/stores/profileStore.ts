@@ -64,7 +64,7 @@ export const useProfile = create<State>((set, get) => {
   api.setCountry(loaded.country ?? 'FR'); setMoneyCountry(loaded.country);
   return {
     ...loaded,
-    estimates: load<boolean>('fiq_estimates', false), // real data only unless the user opts in
+    estimates: load<boolean>('fiq_estimates', init.country === 'US'), // real data only unless the user opts in; US shoppers start with labelled estimates because real US prices are rare
     setEstimates: (v) => { set({ estimates: v }); save('fiq_estimates', v); },
     zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), // Paris by default
     setZone: (z) => { set({ zone: z }); save('fiq_zone', z); },
@@ -75,7 +75,7 @@ export const useProfile = create<State>((set, get) => {
     setLanguage: (l) => { set({ language: l }); persist({ ...get(), language: l }); },
     // Switching country drops chains that do not exist there, so a French chain never filters US results.
     setCountry: (c) => { const ids = new Set(chainsFor(c).map((x) => x.id)); const chains = (get().chains ?? []).filter((id) => ids.has(id)); const language: Language = c === 'US' ? 'en' : get().language ?? 'fr';  // choosing the United States switches the app to English; the language can still be changed afterwards
-      api.setCountry(c); setMoneyCountry(c); setLocale(language); set({ country: c, chains, language }); persist({ ...get(), country: c, chains, language }); },
+      api.setCountry(c); setMoneyCountry(c); setLocale(language); if (c === 'US' && get().country !== 'US') { set({ estimates: true }); save('fiq_estimates', true); } set({ country: c, chains, language }); persist({ ...get(), country: c, chains, language }); },
     setStrictAdditives: () => { setStrict(true); set({ strictAdditives: true }); persist({ ...get(), strictAdditives: true }); },
     toggleChain: (id) => { const cur = get().chains ?? []; const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]; set({ chains: next }); persist({ ...get(), chains: next }); },
     removeChain: (id) => { const cur = get().chains ?? []; const next = cur.filter((x) => x !== id); set({ chains: next }); persist({ ...get(), chains: next }); },

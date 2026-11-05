@@ -124,3 +124,17 @@ def test_sold_here_is_recomputed_per_market_even_for_cached_products():
         assert main._sold_here({"countries": []}) is None
     finally:
         market.set_current("FR")
+
+
+def test_us_category_estimates_use_dollar_staple_averages_and_france_keeps_euros():
+    from app import estimate
+    cats = ["en:plant-based-foods", "en:long-grain-rices"]
+    assert estimate.category_price_per100(cats) == 28.0                  # France: "rices" 2.8 EUR/kg -> 28 cents per 100 g
+    market.set_current("US")
+    try:
+        assert round(estimate.category_price_per100(cats), 1) == 24.6     # US: BLS rice average, 2.46 USD/kg -> 24.6 cents per 100 g
+        assert estimate.category_price_per100(["en:beverages", "en:plant-based-milks"]) is None   # not a staple we have an average for
+        assert estimate.chain_prices(24.6, 1000) == []                    # the Paris chain index is French only
+        assert estimate.estimate_per100({"categories": cats}, [])[1] == "category"
+    finally:
+        market.set_current("FR")
