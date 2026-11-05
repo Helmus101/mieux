@@ -346,7 +346,21 @@ class ConfirmReq(BaseModel):
 
 
 # ---- helpers
+def _sold_here(p: Dict[str, Any]) -> Optional[bool]:
+    """Is the product listed as sold in this request's market? None when its countries are unknown. Recomputed on every request: the cached row was normalised for whichever market asked first."""
+    cs = p.get("countries") or []
+    return None if not cs else market.MARKETS[market.current()] in cs
+
+
 def load_product(s: Session, barcode: str, refresh: bool = False) -> Dict[str, Any]:
+    p = _load_product(s, barcode, refresh)
+    here = _sold_here(p)
+    if here != p.get("soldInFrance") or (market.current() != "FR" and p.get("frEvidence")):
+        p = {**p, "soldInFrance": here, "frEvidence": p.get("frEvidence") if market.current() == "FR" else None}
+    return p
+
+
+def _load_product(s: Session, barcode: str, refresh: bool = False) -> Dict[str, Any]:
     if not re.fullmatch(r"\d{1,14}", barcode or ""):
         raise HTTPException(400, "Invalid barcode: digits only")
     row = s.get(db.Product, barcode)

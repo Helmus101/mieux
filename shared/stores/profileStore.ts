@@ -5,6 +5,7 @@ import { PARIS_DEFAULT } from '../zones';
 import { setStrict } from '../config';
 import { chainsFor, type Country } from '../chains';
 import { setMoneyCountry } from '../utils/money';
+import { setLocale } from '../i18n';
 
 export type Diet = 'omnivore' | 'vegetarian' | 'vegan';
 export type Language = 'fr' | 'en';
@@ -39,7 +40,18 @@ const pushIdentity = (s: Profile) => {
       .catch(() => undefined);           // offline or server restarting: the local profile stays the source of truth
   }, 1500);
 };
-const init: Profile = { onboarded: false, priorities: [], diet: 'omnivore', allergens: [], name: '', place: null, chains: [], strictAdditives: true, autoCamera: false, language: 'fr', country: 'FR' };
+/** First visit: a browser set to US English, or English in a US timezone, starts in the United States, in English. Everyone else starts in France, in French. */
+const detectCountry = (): Country => {
+  try {
+    const lang = (typeof navigator !== 'undefined' && navigator.language) || '';
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const usZone = /^(America\/(New_York|Chicago|Denver|Los_Angeles|Phoenix|Anchorage|Detroit|Boise|Indiana|Kentucky|Menominee|North_Dakota|Juneau|Sitka|Nome|Adak)|Pacific\/Honolulu)/.test(tz);
+    if (/-US$/i.test(lang) || (/^en/i.test(lang) && usZone)) return 'US';
+  } catch { /* no Intl: stay with France */ }
+  return 'FR';
+};
+const freshProfile = (): Profile => { const country = detectCountry(); return { onboarded: false, priorities: [], diet: 'omnivore', allergens: [], name: '', place: null, chains: [], strictAdditives: true, autoCamera: false, language: country === 'US' ? 'en' : 'fr', country }; };
+const init: Profile = freshProfile();
 // Always use strict mode (Yuka-like) by default
 setStrict(true);
 const persist = (s: Profile) => {
@@ -62,7 +74,8 @@ export const useProfile = create<State>((set, get) => {
     setAutoCamera: (v) => { set({ autoCamera: v }); persist({ ...get(), autoCamera: v }); },
     setLanguage: (l) => { set({ language: l }); persist({ ...get(), language: l }); },
     // Switching country drops chains that do not exist there, so a French chain never filters US results.
-    setCountry: (c) => { const ids = new Set(chainsFor(c).map((x) => x.id)); const chains = (get().chains ?? []).filter((id) => ids.has(id)); api.setCountry(c); setMoneyCountry(c); set({ country: c, chains }); persist({ ...get(), country: c, chains }); },
+    setCountry: (c) => { const ids = new Set(chainsFor(c).map((x) => x.id)); const chains = (get().chains ?? []).filter((id) => ids.has(id)); const language: Language = c === 'US' ? 'en' : get().language ?? 'fr';  // choosing the United States switches the app to English; the language can still be changed afterwards
+      api.setCountry(c); setMoneyCountry(c); setLocale(language); set({ country: c, chains, language }); persist({ ...get(), country: c, chains, language }); },
     setStrictAdditives: () => { setStrict(true); set({ strictAdditives: true }); persist({ ...get(), strictAdditives: true }); },
     toggleChain: (id) => { const cur = get().chains ?? []; const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]; set({ chains: next }); persist({ ...get(), chains: next }); },
     removeChain: (id) => { const cur = get().chains ?? []; const next = cur.filter((x) => x !== id); set({ chains: next }); persist({ ...get(), chains: next }); },

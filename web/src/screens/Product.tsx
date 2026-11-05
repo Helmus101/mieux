@@ -24,6 +24,7 @@ export default function Product() {
   const { go, back } = useNav();
   const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare);
   const priorities = useProfile((s) => s.priorities);
+  const country = useProfile((s) => s.country);
   const hist = useHistory();
   const [d, setD] = useState<any>(null), [err, setErr] = useState<{ kind: 'notfound' | 'notfood' | 'invalid' | 'server' | 'network' | 'rate' | 'auth'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0), [basis, setBasis] = useState<'100' | 'serving' | 'pack'>('100');
   useEffect(() => {
@@ -69,7 +70,7 @@ export default function Product() {
     <Screen>
       <NavBar onBack={back} title={p.name} />
       {offline && <Pill tone="w">{t('history.offline')}</Pill>}
-      {p.soldInFrance !== true && <Card><Pill tone="w">{p.soldInFrance === false ? t('simple.notFr') : t('simple.frUnknown')}</Pill></Card>}
+      {p.soldInFrance !== true && <Card><Pill tone="w">{p.soldInFrance === false ? t(country === 'US' ? 'simple.notUs' : 'simple.notFr') : t(country === 'US' ? 'simple.usUnknown' : 'simple.frUnknown')}</Pill></Card>}
       <Row>
         {p.imageUrl && <img src={p.imageUrl} alt="" decoding="async" fetchPriority="high" width={88} height={88} style={{ objectFit: 'contain', borderRadius: 16, background: '#fff' }} />}
         <div><Muted>{p.brand}</Muted><h1 style={{ fontSize: 24 }}>{p.name}</h1><Muted>{p.quantityText}</Muted></div>

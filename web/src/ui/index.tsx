@@ -184,6 +184,11 @@ const CHAIN_LOOK: Record<string, [string, string, string]> = {
   carrefour: ['#004E9F', '#fff', 'C'], leclerc: ['#0072BC', '#F58220', 'E.L'], intermarche: ['#E2001A', '#fff', 'I'], auchan: ['#E4002B', '#fff', 'A'], lidl: ['#FFD500', '#0050AA', 'Lidl'],
   aldi: ['#00549F', '#fff', 'A'], monoprix: ['#111', '#fff', 'M'], franprix: ['#E2001A', '#fff', 'F'], casino: ['#00A651', '#fff', 'C'], superu: ['#E30613', '#fff', 'U'], picard: ['#0057A8', '#fff', 'P'],
   biocoop: ['#7AB51D', '#fff', 'B'], naturalia: ['#00954F', '#fff', 'N'], lavieclaire: ['#009A44', '#fff', 'VC'], grandfrais: ['#E30613', '#fff', 'GF'], cora: ['#E30613', '#fff', 'C'], match: ['#E30613', '#fff', 'M'],
+  // United States (badges only appear when the chain's icon file is missing: Costco, Meijer and Hy-Vee have no usable icon)
+  walmart: ['#0071CE', '#fff', 'W'], kroger: ['#134A9E', '#fff', 'K'], costco: ['#E31837', '#fff', 'C'], target: ['#CC0000', '#fff', 'T'], albertsons: ['#0066B2', '#fff', 'A'], safeway: ['#E31837', '#fff', 'S'],
+  publix: ['#3A8D2E', '#fff', 'P'], wholefoods: ['#00674B', '#fff', 'WF'], traderjoes: ['#C8102E', '#fff', 'TJ'], heb: ['#E21B22', '#fff', 'H'], wegmans: ['#D13F22', '#fff', 'W'], sprouts: ['#4B8B3B', '#fff', 'S'],
+  foodlion: ['#004B87', '#fff', 'FL'], stopshop: ['#7AB51D', '#fff', 'SS'], meijer: ['#E31837', '#fff', 'M'], sams: ['#0067A0', '#fff', 'S'], bjs: ['#C8102E', '#fff', 'BJ'], hyvee: ['#E31837', '#fff', 'H'],
+  shoprite: ['#E31837', '#fff', 'SR'], harristeeter: ['#004B87', '#fff', 'HT'], winndixie: ['#E31837', '#fff', 'WD'],
 };
 /** Chain mark: an logo image if web/public/logos/<id>.png exists (the chain's own site icon), otherwise a coloured badge in the chain's colours (not the registered logo). */
 export function ChainLogo({ id, name, size = 34 }: { id: string; name?: string; size?: number }) {

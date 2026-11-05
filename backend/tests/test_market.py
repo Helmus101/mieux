@@ -112,3 +112,15 @@ def test_us_prices_are_us_shops_in_dollars(tmp_path):
     assert got["n_observations"] == 2 and us.seen_in_france("0001") is True   # "seen in this client's country"
     fr = value.OpenPricesClient(local_path=path)
     assert fr.latest("0001", (200.0, "g"))["currency"] == "EUR"
+
+
+def test_sold_here_is_recomputed_per_market_even_for_cached_products():
+    p = {"countries": ["france"], "soldInFrance": True}                      # as cached by a French shopper
+    assert main._sold_here(p) is True
+    market.set_current("US")
+    try:
+        assert main._sold_here(p) is False                                    # a US shopper must not see it as sold in the US
+        assert main._sold_here({"countries": ["united-states", "world"]}) is True
+        assert main._sold_here({"countries": []}) is None
+    finally:
+        market.set_current("FR")
