@@ -35,7 +35,7 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-from . import budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value, vision
+from . import budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
@@ -199,12 +199,12 @@ _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # One local Open Food Facts copy per market (scripts/import_off_dump.py, OFF_COUNTRY); app.state.off forwards to the request's market.
 app.state.off = market.PerMarket({
     "FR": OFFClient(),
-    "US": OFFClient(cache_path=os.path.join(_HERE, "off_cache_us.db"), local_path=os.path.join(_HERE, "off_local_us.db"),
-                    quick_path=os.path.join(_HERE, "off_quick_us.db"), country="united-states"),
+    "US": OFFClient(cache_path=os.environ.get("OFF_CACHE_US", os.path.join(_HERE, "off_cache_us.db")), local_path=os.environ.get("OFF_LOCAL_US", os.path.join(_HERE, "off_local_us.db")),
+                    quick_path=os.environ.get("OFF_QUICK_US", os.path.join(_HERE, "off_quick_us.db")), country="united-states"),
 })
 app.state.prices = market.PerMarket({
     "FR": value.OpenPricesClient(),
-    "US": value.OpenPricesClient(local_path=os.path.join(_HERE, "op_local_us.db"), country="US", base="USD"),
+    "US": value.OpenPricesClient(local_path=os.environ.get("OP_LOCAL_US", os.path.join(_HERE, "op_local_us.db")), country="US", base="USD"),
 })
 app.state.llm = None  # no language model: explanations are always built from the computed facts
 app.state.sessions = db.make_session_factory()
@@ -1032,40 +1032,6 @@ def search(q: str, uid: str = Depends(user)):
         return {"products": [normalize(r) for r in app.state.off.search_name(q) if r.get("product_name")]}
     except OFFError as e:
         raise HTTPException(503, str(e))
-
-
-class PhotoIn(BaseModel):
-    image: str = Field(max_length=int(vision.MAX_BYTES * 1.4))  # base64
-    media_type: str = "image/jpeg"
-
-
-@app.post("/v1/vision/identify")
-@limiter.limit("10/minute")
-def vision_identify(request: Request, body: PhotoIn, uid: str = Depends(user), x_beta: Optional[str] = Header(None)):
-    """Beta: read the brand and name off a photo of a pack and look up its barcode. Off unless the app sends X-Beta: 1 (the beta switch in Profile).
-    The photo is sent to Anthropic for this one request and is not stored by Mieux."""
-    if x_beta != "1":
-        raise HTTPException(403, "Beta feature")
-    if body.media_type not in vision.MEDIA_TYPES:
-        raise HTTPException(422, "Unsupported image type")
-    try:
-        import base64
-        raw = base64.b64decode(body.image, validate=True)
-    except ValueError:
-        raise HTTPException(422, "Invalid image")
-    if not raw or len(raw) > vision.MAX_BYTES:
-        raise HTTPException(413, "Image too large")
-    try:
-        ident = vision.identify(raw, body.media_type)
-    except RuntimeError:
-        raise HTTPException(503, "Photo identification is not configured")
-    except Exception as e:  # SDK errors (rate limit, overload, network): never leak details to the client
-        logger.warning({"event": "vision_failed", "error": type(e).__name__})
-        raise HTTPException(502, "Photo identification failed")
-    matches = vision.match(app.state.off, ident) if ident["identified"] or ident["barcode_digits"] else []
-    logger.info({"event": "vision_identify", "user_id": uid, "identified": ident["identified"], "confidence": ident["confidence"], "matches": len(matches)})
-    return {"identified": ident["identified"], "confidence": ident["confidence"], "brand": ident["brand"] or None, "name": ident["product_name"] or None,
-            "variant": ident["variant"] or None, "size": ident["size"] or None, "matches": matches}
 
 
 @app.post("/v1/scans")

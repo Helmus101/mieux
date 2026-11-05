@@ -197,9 +197,6 @@ export const fr = {
     reviewTitle: 'Vérifiez votre ticket', needsConfirm: 'À confirmer', shop: 'Magasin', date: 'Date (AAAA-MM-JJ)', total: 'Total du ticket', sum: 'Somme des articles', matchOk: 'Le total correspond', mismatch: 'Écart de {d} entre les articles et le total. Vérifiez les lignes manquantes ou les remises.',
     linkTo: 'Associer à « {n} » (correspondance probable)', unmatchedHint: 'Un produit non reconnu peut rester non associé. Une ligne de ticket prouve un achat, pas la variante exacte.', confirm: 'Enregistrer le ticket', saved: 'Ticket enregistré', dup: 'Doublon possible : même magasin, même date, même total. Enregistrer quand même ?', lowConf: 'faible confiance, vérifiez', empty: 'Aucun ticket à vérifier.', saving: 'Enregistrement…',
   },
-  beta: { title: 'Mode bêta', off: 'Désactivé', on: 'Activé', note: 'Fonctionnalités expérimentales. Activé : le scanner propose « Photographier un produit ». La photo est envoyée à une IA (Anthropic) pour lire la marque et le nom, puis Mieux retrouve le code-barres dans sa base. Mieux ne conserve pas la photo.',
-    photo: 'Photographier un produit (bêta)', reading: 'Lecture du produit…', readingSub: 'Marque, nom, format, puis recherche du code-barres.', saw: 'Reconnu : {x}', pick: 'Choisissez le bon produit', exact: 'Code-barres lu sur l\'emballage',
-    noMatch: 'Produit reconnu, mais absent de la base. Essayez de cadrer le code-barres.', notProduct: 'Je ne vois pas de produit alimentaire sur cette photo.', retry: 'Reprendre une photo', unavailable: 'La photo n\'est pas encore activée sur le serveur.', slow: 'Trop de photos d\'affilée. Réessayez dans une minute.', fail: 'Impossible de lire la photo pour le moment.', low: 'Je ne suis pas sûr : vérifiez le produit.' },
   country: { FR: 'France', US: 'États-Unis', usNote: 'Version test : les prix et les enseignes américaines sont encore très partiels.' },
   profile: {
     country: 'Pays',

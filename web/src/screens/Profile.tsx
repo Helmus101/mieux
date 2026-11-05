@@ -43,10 +43,6 @@ export default function Profile() {
         <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />
         {p.country === 'US' && <p className="mut sm">{t('country.usNote')}</p>}
       </Section>
-      <Section title={t('beta.title')}>
-        <Segmented value={p.beta ? 'on' : 'off'} onChange={(k) => p.setBeta(k === 'on')} options={[{ key: 'off', label: t('beta.off') }, { key: 'on', label: t('beta.on') }]} />
-        <p className="mut sm">{t('beta.note')}</p>
-      </Section>
       <Collapsible title={t('chains.title')}>
         <p className="mut sm" style={{ marginBottom: 8 }}>{t('chains.hint')}</p>
         <div className="chain-pick">{chainsFor(p.country).map((c) => { const on = (p.chains ?? []).includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>

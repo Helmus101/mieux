@@ -198,9 +198,6 @@ export const en = {
     reviewTitle: 'Check your receipt', needsConfirm: 'To confirm', shop: 'Store', date: 'Date (YYYY-MM-DD)', total: 'Receipt total', sum: 'Sum of items', matchOk: 'Total matches', mismatch: 'Gap of {d} between items and total. Check for missing lines or discounts.',
     linkTo: 'Match to "{n}" (likely match)', unmatchedHint: 'An unrecognized product can stay unmatched. A receipt line proves a purchase, not the exact variant.', confirm: 'Save receipt', saved: 'Receipt saved', dup: 'Possible duplicate: same store, date, total. Save anyway?', lowConf: 'low confidence, check', empty: 'No receipt to verify.', saving: 'Saving…',
   },
-  beta: { title: 'Beta mode', off: 'Off', on: 'On', note: 'Experimental features. On: the scanner offers "Photograph a product". The photo is sent to an AI (Anthropic) to read the brand and name, then Mieux finds the barcode in its database. Mieux does not keep the photo.',
-    photo: 'Photograph a product (beta)', reading: 'Reading the product…', readingSub: 'Brand, name, size, then barcode lookup.', saw: 'Recognised: {x}', pick: 'Pick the right product', exact: 'Barcode read from the pack',
-    noMatch: 'Product recognised, but not in the database. Try framing the barcode.', notProduct: "I can't see a food product in this photo.", retry: 'Take another photo', unavailable: 'Photo recognition is not enabled on the server yet.', slow: 'Too many photos in a row. Try again in a minute.', fail: "Couldn't read the photo right now.", low: "I'm not sure: please check the product." },
   country: { FR: 'France', US: 'United States', usNote: 'Test version: US prices and stores are still very incomplete.' },
   profile: {
     country: 'Country',

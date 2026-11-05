@@ -6,7 +6,6 @@ import { t } from '@shared/i18n';
 import { haptic } from '../ui';
 import { scanClick } from '../haptics';
 import { routes, useNav } from '../nav';
-import PhotoIdentify from '../PhotoIdentify';
 import { Cancelled, closeCamera, decodeImage, openCamera, preloadDecoder, scanBarcodes, setTorch, torchSupported } from '../scanner';
 
 // Products are identified by their barcode only: from the live camera or from a photo of the barcode. No typed codes, no name search.
@@ -19,7 +18,6 @@ export default function Scan() {
   const stream = useRef<MediaStream | null>(null);
   const stopScan = useRef<(() => void) | null>(null);
   const run = useRef(0);
-  const beta = useProfile((st) => st.beta === true), [photo, setPhoto] = useState<File | null>(null);  // beta: identify a pack from a photo
   const [on, setOn] = useState(false), [torch, setTorchOn] = useState(false), [canTorch, setCanTorch] = useState(false), [err, setErr] = useState('');
 
   const stop = () => { run.current++; stopScan.current?.(); stopScan.current = null; closeCamera(stream.current); stream.current = null; setOn(false); };
@@ -53,10 +51,8 @@ export default function Scan() {
       <div className="cam-bottom">
         {err ? <p className="cam-err">{err}</p> : <p>{on ? (forCompare ? t('compare.scanForCompare') : t('scan.point')) : t('simple.camNeeded')}</p>}
         {!on && <button className="cam-main" onClick={start}>{t('scan.open')}</button>}
-        {beta && <label className="cam-link">{t('beta.photo')}<input type="file" accept="image/*" capture="environment" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { stop(); setPhoto(f); } }} /></label>}
         <label className="cam-link">{t('scan.gallery')}<input type="file" accept="image/*" hidden onChange={(e) => fromPhoto(e.target.files?.[0])} /></label>
       </div>
-      {photo && <PhotoIdentify file={photo} onPick={(c) => { setPhoto(null); open(c); }} onClose={() => { setPhoto(null); start(); }} />}
     </div>
   );
 }

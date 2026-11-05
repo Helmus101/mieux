@@ -15,9 +15,6 @@ import type {
 export interface IdentityInput { name: string | null; city: string | null; postcode: string | null; platform: string | null }
 export interface Identity extends IdentityInput { first_seen: string | null; last_seen: string | null }
 
-export interface PhotoMatch { barcode: string; name: string | null; brand: string | null; quantity: string | null; image: string | null; match: number; exact: boolean }
-export interface PhotoIdentification { identified: boolean; confidence: 'high' | 'medium' | 'low'; brand: string | null; name: string | null; variant: string | null; size: string | null; matches: PhotoMatch[] }
-
 export class MieuxAPI {
   private client: AxiosInstance;
   private token: string | null = null;
@@ -198,12 +195,6 @@ export class MieuxAPI {
   }
 
   setCountry(c: string) { this.country = c === 'US' ? 'US' : 'FR'; }
-
-  /** Beta: read brand and name off a photo of a pack (JPEG, base64) and look up its barcode. */
-  async identifyPhoto(image: string, mediaType = 'image/jpeg'): Promise<PhotoIdentification> {
-    const response = await this.client.post('/vision/identify', { image, media_type: mediaType }, { headers: { 'X-Beta': '1' }, timeout: 70000 });
-    return response.data;
-  }
 
   async searchAddress(q: string): Promise<{ label: string; city: string; postcode: string | null; lat: number; lon: number; exact: boolean }[]> {
     const response = await this.client.post('/address', { query: q });

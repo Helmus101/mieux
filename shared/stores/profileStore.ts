@@ -12,12 +12,12 @@ export const PRIORITY_KEYS = ['value', 'budget', 'overall', 'sugars', 'protein',
 export const ALLERGEN_KEYS = ['gluten', 'milk'] as const; // the two restrictions offered at onboarding; the API accepts all 14 EU allergens
 
 export interface Place { city: string; postcode: string | null; lat?: number; lon?: number; label?: string; exact?: boolean }
-interface Profile { onboarded: boolean; priorities: string[]; diet: Diet; allergens: string[]; name?: string; place?: Place | null; chains?: string[]; strictAdditives?: boolean; autoCamera?: boolean; language?: Language; country?: Country; beta?: boolean }
+interface Profile { onboarded: boolean; priorities: string[]; diet: Diet; allergens: string[]; name?: string; place?: Place | null; chains?: string[]; strictAdditives?: boolean; autoCamera?: boolean; language?: Language; country?: Country }
 export interface Zone { lat: number; lon: number; label: string; radius_km: number }
 interface State extends Profile {
   estimates: boolean; setEstimates: (v: boolean) => void;
   zone: Zone | null; setZone: (z: Zone | null) => void;
-  setName: (n: string) => void; setPlace: (p: Place | null) => void; setStrictAdditives: (v: boolean) => void; setAutoCamera: (v: boolean) => void; setLanguage: (l: Language) => void; setCountry: (c: Country) => void; setBeta: (v: boolean) => void; toggleChain: (id: string) => void; removeChain: (id: string) => void; setChains: (ids: string[]) => void; clearChains: () => void; hydrate: () => void; togglePriority: (k: string) => void; setDiet: (d: Diet) => void; toggleAllergen: (k: string) => void; finish: () => void; reset: () => void;
+  setName: (n: string) => void; setPlace: (p: Place | null) => void; setStrictAdditives: (v: boolean) => void; setAutoCamera: (v: boolean) => void; setLanguage: (l: Language) => void; setCountry: (c: Country) => void; toggleChain: (id: string) => void; removeChain: (id: string) => void; setChains: (ids: string[]) => void; clearChains: () => void; hydrate: () => void; togglePriority: (k: string) => void; setDiet: (d: Diet) => void; toggleAllergen: (k: string) => void; finish: () => void; reset: () => void;
   compare: string[]; addCompare: (id: string) => void; removeCompare: (id: string) => void; clearCompare: () => void;
 }
 const platformOf = (): string => {
@@ -43,7 +43,7 @@ const init: Profile = { onboarded: false, priorities: [], diet: 'omnivore', alle
 // Always use strict mode (Yuka-like) by default
 setStrict(true);
 const persist = (s: Profile) => {
-  save('fiq_profile', { onboarded: s.onboarded, priorities: s.priorities, diet: s.diet, allergens: s.allergens, name: s.name ?? '', place: s.place ?? null, chains: s.chains ?? [], strictAdditives: true, autoCamera: s.autoCamera === true, language: s.language ?? 'fr', country: s.country ?? 'FR', beta: s.beta === true });
+  save('fiq_profile', { onboarded: s.onboarded, priorities: s.priorities, diet: s.diet, allergens: s.allergens, name: s.name ?? '', place: s.place ?? null, chains: s.chains ?? [], strictAdditives: true, autoCamera: s.autoCamera === true, language: s.language ?? 'fr', country: s.country ?? 'FR' });
   pushIdentity(s);
 };
 
@@ -61,7 +61,6 @@ export const useProfile = create<State>((set, get) => {
     setName: (n) => { set({ name: n }); persist({ ...get(), name: n }); },
     setAutoCamera: (v) => { set({ autoCamera: v }); persist({ ...get(), autoCamera: v }); },
     setLanguage: (l) => { set({ language: l }); persist({ ...get(), language: l }); },
-    setBeta: (v) => { set({ beta: v }); persist({ ...get(), beta: v }); },
     // Switching country drops chains that do not exist there, so a French chain never filters US results.
     setCountry: (c) => { const ids = new Set(chainsFor(c).map((x) => x.id)); const chains = (get().chains ?? []).filter((id) => ids.has(id)); api.setCountry(c); setMoneyCountry(c); set({ country: c, chains }); persist({ ...get(), country: c, chains }); },
     setStrictAdditives: () => { setStrict(true); set({ strictAdditives: true }); persist({ ...get(), strictAdditives: true }); },
@@ -70,7 +69,7 @@ export const useProfile = create<State>((set, get) => {
     setChains: (ids) => { set({ chains: ids }); persist({ ...get(), chains: ids }); },
     clearChains: () => { set({ chains: [] }); persist({ ...get(), chains: [] }); },
     setPlace: (p) => { set({ place: p }); persist({ ...get(), place: p }); },
-    hydrate: () => { const p = load<Profile>('fiq_profile', init); api.setCountry(p.country ?? 'FR'); setMoneyCountry(p.country); setStrict(true); set({ ...p, zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), estimates: load<boolean>('fiq_estimates', false), compare: load<string[]>('fiq_compare', []), priorities: p.priorities ?? [], strictAdditives: true, autoCamera: p.autoCamera === true, language: p.language ?? 'fr', country: p.country ?? 'FR', beta: p.beta === true }); },
+    hydrate: () => { const p = load<Profile>('fiq_profile', init); api.setCountry(p.country ?? 'FR'); setMoneyCountry(p.country); setStrict(true); set({ ...p, zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), estimates: load<boolean>('fiq_estimates', false), compare: load<string[]>('fiq_compare', []), priorities: p.priorities ?? [], strictAdditives: true, autoCamera: p.autoCamera === true, language: p.language ?? 'fr', country: p.country ?? 'FR' }); },
     togglePriority: (k) => { if (k === 'eco') return; const p = get().priorities; const n = p.includes(k) ? p.filter((x) => x !== k) : [...p, k].slice(-2); set({ priorities: n }); persist({ ...get(), priorities: n }); },
     setDiet: (d) => { set({ diet: d }); persist({ ...get(), diet: d }); },
     toggleAllergen: (k) => { const a = get().allergens; const n = a.includes(k) ? a.filter((x) => x !== k) : [...a, k]; set({ allergens: n }); persist({ ...get(), allergens: n }); },

@@ -199,15 +199,6 @@ h2{font-size:12px;letter-spacing:.06em;margin:22px 2px 8px}
 .cam-main{border:0;border-radius:14px;padding:15px 28px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:16px;cursor:pointer}
 .cam-link{font-size:14px;opacity:.85;text-decoration:underline;cursor:pointer}
 
-.ph-sheet{position:absolute;inset:0;z-index:5;display:flex;align-items:flex-end;background:rgba(0,0,0,.55)}
-.ph-card{width:100%;max-height:82%;overflow:auto;background:var(--bg);color:var(--ink);border-radius:20px 20px 0 0;padding:22px 20px max(22px,env(safe-area-inset-bottom))}
-.ph-card h2{font-size:20px;margin:6px 0 10px}
-.ph-list{display:flex;flex-direction:column;gap:8px;margin:6px 0 14px}
-.ph-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;border:0;border-radius:14px;background:var(--card);color:var(--ink);font:inherit;font-size:16px;cursor:pointer}
-.ph-item img,.ph-noimg{width:44px;height:44px;flex:none;border-radius:8px;object-fit:contain;background:#fff}
-.ph-close{width:100%;padding:14px;border:0;border-radius:14px;background:transparent;color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
-.ph-spin{width:28px;height:28px;margin:14px 0 8px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:phspin .8s linear infinite}
-@keyframes phspin{to{transform:rotate(360deg)}}
 .chain-chip.off{opacity:.4;text-decoration:line-through}
 
 /* roomier, calmer layout (these rules come last on purpose) */
