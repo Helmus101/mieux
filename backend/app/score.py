@@ -7,7 +7,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from .additives_db import T as ADDITIVES
+from .additives_db import T as ADDITIVES, USE as ADDITIVE_USE
 
 VERSION = "3.0"
 
@@ -91,7 +91,10 @@ def additive_level(code: str, strict: bool = False) -> Tuple[str, bool]:
 
 def additive_info(code: str) -> Dict[str, Any]:
     row = ADDITIVES.get(code.lower().replace("en:", ""))
-    return {"name": row[0], "why": row[3]} if row else {"name": None, "why": None}
+    if not row:
+        return {"name": None, "why": None, "use": None, "found": None}
+    use = ADDITIVE_USE.get(code.lower().replace("en:", ""))
+    return {"name": row[0], "why": row[3], "use": use[0] if use else None, "found": use[1] if use else None}
 
 
 # ---------------------------------------------------------------- sugar origin (ingredients based)
@@ -316,7 +319,7 @@ def d_additives(adds: List[str], strict: bool = False):
     for a in adds:
         lvl, known = additive_level(a, strict)
         info = additive_info(a)
-        items.append({"code": a.lower().replace("en:", ""), "level": lvl, "balanced": additive_level(a, False)[0], "known": known, "name": info["name"], "note": info["why"] or ADD_NOTE[lvl]})
+        items.append({"code": a.lower().replace("en:", ""), "level": lvl, "balanced": additive_level(a, False)[0], "known": known, "name": info["name"], "note": info["why"] or ADD_NOTE[lvl], "use": info["use"], "found": info["found"]})
         pen += pens[lvl]
     return max(0.0, 100.0 - pen), {"items": items, "count": len(items)}
 

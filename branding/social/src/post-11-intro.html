@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Mieux post 11</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Instrument+Sans:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* One idea: a bad score, then the question Mieux answers. Giant orange number on leaf green, three levels of text, one call to action. */
+:root{--leaf:#1F4D3A;--clay:#F26B3A;--paper:#FFFFFF;
+  --display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;--body:"Instrument Sans","Helvetica Neue",Arial,sans-serif}
+*{box-sizing:border-box;margin:0}
+html,body{width:1080px;height:1350px;background:var(--leaf);overflow:hidden}
+.post{position:relative;width:1080px;height:1350px;padding:72px 80px 72px;color:#fff;font-family:var(--body);display:flex;flex-direction:column;background:var(--leaf)}
+.top{display:flex;align-items:center;justify-content:space-between}
+.pill{font-size:23px;font-weight:600;letter-spacing:.04em;padding:11px 20px;border:2px solid rgba(255,255,255,.5);border-radius:99px}
+.brand{display:flex;align-items:center;gap:16px;font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:.16em}
+.brand svg{width:56px;height:56px;display:block}
+.label{margin-top:52px;font-family:var(--display);font-weight:800;font-size:56px;line-height:1.04;letter-spacing:-.02em}
+.label span{color:var(--clay)}
+.score{display:flex;align-items:baseline;gap:30px;margin-left:-14px;margin-top:6px;font-family:var(--display);font-weight:800;color:var(--clay);line-height:.8}
+.score b{font-size:500px;letter-spacing:-.035em}
+.score span{font-size:96px;letter-spacing:-.03em;color:#fff;opacity:.9}
+h1{margin-top:30px;font-family:var(--display);font-weight:800;font-size:88px;line-height:1;letter-spacing:-.02em}
+.sub{margin-top:24px;max-width:900px;font-size:33px;line-height:1.28;font-weight:500;color:rgba(255,255,255,.86)}
+.foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between}
+.foot small{font-size:22px;color:rgba(255,255,255,.62)}
+.cta{display:flex;align-items:center;gap:18px;font-family:var(--display);font-weight:800;font-size:44px;letter-spacing:-.01em}
+.cta i{display:flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:50%;background:var(--clay);font-style:normal;font-size:38px;color:#fff}
+</style></head>
+<body>
+<div class="post">
+  <div class="top">  <div class="brand"><svg viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#fff"/><path d="M122 392V250a67 67 0 0 1 134 0V392M256 250a67 67 0 0 1 134 0V392" fill="none" stroke="#1F4D3A" stroke-width="50"/><circle cx="390" cy="132" r="31" fill="#F26B3A"/></svg>MIEUX</div><div class="pill">Appli nutrition · gratuite</div></div>
+  <div class="label">Scanne un aliment.<br>Vois sa <span>note nutrition</span>.</div>
+  <div class="score"><b>31</b><span>/100</span></div>
+  <h1>Puis trouve mieux.<br>Et moins cher.</h1>
+  <p class="sub">Mieux note le sucre, le sel et les additifs, puis te propose 3 alternatives : la moins chère, la meilleure, le meilleur rapport qualité-prix.</p>
+  <div class="foot"><small>Gratuit · Exemple illustratif</small><div class="cta">Lien en bio <i>→</i></div></div>
+</div>
+</body></html>

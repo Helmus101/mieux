@@ -287,3 +287,13 @@ def test_plain_infusion_without_nutrition_table_still_scores():
 def test_complete_label_is_not_flagged_incomplete_for_missing_vitamins():
     p = prod(GOOD, "farine complète, eau", cats=("en:breads",))
     assert not p["score"]["incomplete"]  # vitamins/minerals are almost never on a label
+
+
+def test_every_additive_has_a_use_and_where_it_is_found():
+    from app.additives_db import T, USE
+    assert not [c for c in T if c not in USE], "additive without use / found-in text"
+    assert all(u.strip() and f.strip() for u, f in USE.values())
+    p = prod(GOOD, "eau, sucre", adds=("en:e330", "en:e171"))
+    items = {i["code"]: i for i in p["score"]["additives"]["items"]}
+    assert items["e330"]["use"] and items["e330"]["found"] and items["e330"]["note"]
+    assert "interdit" in items["e171"]["found"].lower()

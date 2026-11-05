@@ -199,9 +199,10 @@ export default function Product() {
       <Button plain onPress={() => { addCompare(p.id); go(routes.compare); }}>{t('product.compare')}</Button>
 
       <Sheet open={!!sheet} onClose={() => setSheet(null)} title={sheet ? sheet.toUpperCase() + (info ? ' · ' + info.name : sItem?.name ? ' · ' + sItem.name : '') : ''}>
-        {info ? <><h3>{t('add.why')}</h3><p>{info.why}</p><h3>{t('add.evidence')}</h3><p>{info.evidence}</p><h3>{t('add.regulation')}</h3><p>{info.regulation}</p><h3>{t('add.advice')}</h3><p>{info.advice}</p>
+        {(sItem?.use || sItem?.found) && <>{sItem.use && <><h3>{t('add.use')}</h3><p>{sItem.use}</p></>}{sItem.found && <><h3>{t('add.found')}</h3><p>{sItem.found}</p></>}</>}
+        {info ? <>{!sItem?.use && <><h3>{t('add.why')}</h3><p>{info.why}</p></>}<h3>{t('add.evidence')}</h3><p>{info.evidence}</p><h3>{t('add.regulation')}</h3><p>{info.regulation}</p><h3>{t('add.advice')}</h3><p>{info.advice}</p>
           <p className="mut sm">{t('add.source')} : <a target="_blank" rel="noreferrer" href={info.source}>EFSA / UE</a></p></>
-          : sItem?.known ? <><p><span className={'pill ' + (sItem.level === 'D' ? 'b' : sItem.level === 'C' ? 'w' : 'g')}>{t('addl.' + sItem.level)}</span></p>{sItem.note && <p>{sItem.note}</p>}
+          : sItem?.known ? <><p><span className={'pill ' + (sItem.level === 'D' ? 'b' : sItem.level === 'C' ? 'w' : 'g')}>{t('addl.' + sItem.level)}</span></p>{sItem.note && <><h3>{t('add.health')}</h3><p>{sItem.note}</p></>}
             <p className="mut sm"><a target="_blank" rel="noreferrer" href="https://food.ec.europa.eu/food-safety/food-improvement-agents/additives/database_en">{t('add.euDb')}</a></p></>
           : <><p className="mut">{t('add.unknown')}</p><a target="_blank" rel="noreferrer" href="https://food.ec.europa.eu/food-safety/food-improvement-agents/additives/database_en">{t('add.euDb')}</a></>}
         <Button onPress={() => setSheet(null)}>{t('common.done')}</Button>
