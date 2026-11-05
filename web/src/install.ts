@@ -27,15 +27,15 @@ export const hideHint = (later = false) => {
 export const OPEN_EVENT = 'mieux:install';
 export const openInstall = () => window.dispatchEvent(new Event(OPEN_EVENT));
 
-/** Touch devices go straight into the app; the marketing landing page is desktop/laptop only. */
+/** Phone or tablet (touch device). */
 export const isPhone = () => platform() !== 'other';
 
 export const APP_PATH = '/app';
 
-/** The landing page lives only at the root, and only on computers and iPads. Phones, deep links and ?app go straight to the app.
- *  The root always shows it: a computer never lands inside the app by surprise, not even in an installed window or a tab
- *  where the app was already opened. */
+/** The landing page lives only at the root, on every device. Only the installed app on a phone or tablet skips it (the home-screen
+ *  icon opens /app anyway). Deep links and ?app go straight to the app.
+ *  A computer never lands inside the app by surprise, not even in an installed window or a tab where the app was already opened. */
 export const wantsLanding = () => {
-  if (typeof window === 'undefined' || isPhone()) return false;
+  if (typeof window === 'undefined' || (isPhone() && isInstalled())) return false;
   return window.location.pathname === '/' && !new URLSearchParams(window.location.search).has('app');
 };

@@ -118,3 +118,19 @@ Backend can be deployed via:
 Web app deploys to Vercel/Netlify via `npm run build`.
 
 Mobile app deploys via Expo EAS.
+
+## Markets (France and United States)
+
+The app sends `X-Country: FR|US` on every call (profile setting, default FR). `app.state.off` forwards to that market's own Open Food Facts copy:
+`off_local.db` + `off_quick.db` (France) and `off_local_us.db` + `off_quick_us.db` (United States). Build the US copy like the French one, with a country:
+
+```bash
+cd backend
+OFF_COUNTRY=united-states OFF_LOCAL=$PWD/off_local_us.db .venv/bin/python3.9 -m scripts.import_off_dump ~/Downloads/en.openfoodfacts.org.products.csv
+OFF_LOCAL=$PWD/off_local_us.db OFF_QUICK=$PWD/off_quick_us.db .venv/bin/python3.9 scripts/build_quick_index.py
+```
+
+`soldInFrance` on a product means "sold in the request's market" (name kept for cached rows). Chains live in `retail.py` / `chains.py`; `retail.in_market()` keeps each market's chain list separate. Community prices (Open Prices) are per market too: `op_local.db` (France, EUR) and `op_local_us.db` (US shops, USD), built with
+`OP_COUNTRY=US OP_LOCAL=$PWD/op_local_us.db .venv/bin/python3.9 -m scripts.import_prices_dump data/prices.jsonl.gz data/locations.jsonl.gz`.
+Prices are held in the market's currency (`market.currency()`), sentences are localised with `market.localize_money`, and category price estimates exist for France only.
+Code that fans out to a `ThreadPoolExecutor` must use `_ctx_map` so worker threads keep the request's market.

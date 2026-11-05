@@ -6,7 +6,7 @@ import { Button, Card, Cell, Muted, ChainLogo, Segmented } from '../ui';
 import { accountEnabled, useAccount } from '../account';
 import AuthForm from '../AuthForm';
 import { InstallCard } from '../InstallPrompt';
-import { CHAIN_LIST } from '@shared/chains';
+import { chainsFor, COUNTRIES, type Country } from '@shared/chains';
 
 const DIET: [string, string][] = [['omnivore', 'diet'], ['vegetarian', 'diet'], ['vegan', 'diet'], ['gluten', 'allergen'], ['milk', 'allergen'], ['peanuts', 'allergen'], ['nuts', 'allergen']];
 const LIST = [...PRIORITY_KEYS, 'eco'];
@@ -62,7 +62,9 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
       </>)}
       {step === 1 && (<>
         <h1 style={{ fontSize: 30 }}>{t('chains.title')}</h1><Muted>{t('chains.sub')}</Muted>
-        <div className="chain-pick" style={{ marginTop: 14 }}>{CHAIN_LIST.map((c) => { const on = chosen.includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
+        <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />
+        {p.country === 'US' && <p className="mut sm">{t('country.usNote')}</p>}
+        <div className="chain-pick" style={{ marginTop: 14 }}>{chainsFor(p.country).map((c) => { const on = chosen.includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
         <div style={{ flex: 1 }} />
         <p className="mut sm">{chosen.length ? t('chains.some', { n: chosen.length }) : t('chains.all')}</p>
         <Button primary onPress={() => setStep(2)}>{t('common.continue')}</Button>

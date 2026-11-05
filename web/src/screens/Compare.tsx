@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
+import { formatCents } from '@shared/utils/format';
 import { useProfile, useHistory } from '@shared/stores';
 import { Screen, NavBar, LargeTitle, Card, Button, Muted, Section, Group, Cell, NutriScore, NovaBadge, Loader } from '../ui';
 import { routes, useNav } from '../nav';
@@ -28,8 +29,8 @@ export default function Compare() {
             <table><tbody>
               <tr><th />{r.products.map((p: any) => <th key={p.id}>{p.name.slice(0, 18)}<br /><Button small plain onPress={() => removeCompare(p.id)}>{t('compare.remove')}</Button></th>)}</tr>
               <tr><td>{t('compare.nutriscore')}</td>{r.products.map((p: any) => <td key={p.id}><NutriScore grade={p.nutriScore} /></td>)}</tr>
-              <tr><td>{t('compare.perKg')}</td>{r.products.map((p: any) => <td key={p.id}>{p.price ? <><b>{(p.price.per100_cents / 10).toFixed(2).replace('.', ',')} €</b>{p.price.source === 'estimate' && <><br /><span className="pill w">{t('est.pill')}</span></>}</> : '—'}</td>)}</tr>
-              <tr><td>{t('compare.pack')}</td>{r.products.map((p: any) => <td key={p.id}>{p.price?.pack_cents != null ? (p.price.pack_cents / 100).toFixed(2).replace('.', ',') + ' €' : '—'}</td>)}</tr>
+              <tr><td>{t('compare.perKg')}</td>{r.products.map((p: any) => <td key={p.id}>{p.price ? <><b>{formatCents(Math.round(p.price.per100_cents * 10))}</b>{p.price.source === 'estimate' && <><br /><span className="pill w">{t('est.pill')}</span></>}</> : '—'}</td>)}</tr>
+              <tr><td>{t('compare.pack')}</td>{r.products.map((p: any) => <td key={p.id}>{p.price?.pack_cents != null ? formatCents(p.price.pack_cents) : '—'}</td>)}</tr>
               <tr><td>{t('nova.title').split(' (')[0]}</td>{r.nova.map((g: number | null, i: number) => <td key={i}><NovaBadge group={g} /></td>)}</tr>
               {r.rows.map((row: any) => (
                 <tr key={row.field}><td>{t('compare.' + LABEL[row.field])}</td>{row.values.map((v: number | null, i: number) => <td key={i} className={row.favourable[i] ? 'best' : ''}>{v == null ? '—' : Math.round(v * 10) / 10}</td>)}</tr>

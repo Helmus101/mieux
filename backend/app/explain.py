@@ -1,6 +1,8 @@
 """Natural-language explanation of a comparison. All numbers come from the engine (facts). A language model may only rephrase them;
 its output is rejected if it contains any number that is not in the facts, or a health claim. The deterministic template is the fallback."""
 import re
+
+from . import market
 from typing import Any, Dict, List, Optional, Protocol, Set
 
 
@@ -78,7 +80,7 @@ SYSTEM = {"fr": "Tu reformules une comparaison de deux produits alimentaires en 
 
 
 def explain(f: Dict[str, Any], lang: str, llm: Optional[LLM]) -> Dict[str, Any]:
-    base = template(f, lang)
+    base = market.localize_money(template(f, lang))
     if llm is None:
         return {"text": base, "source": "template", "facts": f}
     out = llm.complete(SYSTEM["fr" if lang == "fr" else "en"], f"Faits : {f}\nPhrase de référence : {base}")

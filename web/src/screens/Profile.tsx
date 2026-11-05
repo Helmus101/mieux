@@ -5,7 +5,7 @@ import { useProfile, useHistory, PRIORITY_KEYS } from '@shared/stores';
 import { routes, useNav } from '../nav';
 import { useState } from 'react';
 import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
-import { CHAIN_LIST } from '@shared/chains';
+import { chainsFor, COUNTRIES, type Country } from '@shared/chains';
 import { searchAddress, type Home } from '../place';
 import { isInstalled, openInstall } from '../install';
 import { accountEnabled, signOut, useAccount } from '../account';
@@ -39,9 +39,17 @@ export default function Profile() {
       <Section title={t('profile.language')}>
         <Segmented value={p.language ?? 'fr'} onChange={(k) => { p.setLanguage(k as 'fr' | 'en'); setLocale(k as 'fr' | 'en'); setTick((n) => n + 1); }} options={[{ key: 'fr', label: 'Français' }, { key: 'en', label: 'English' }]} />
       </Section>
+      <Section title={t('profile.country')}>
+        <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />
+        {p.country === 'US' && <p className="mut sm">{t('country.usNote')}</p>}
+      </Section>
+      <Section title={t('beta.title')}>
+        <Segmented value={p.beta ? 'on' : 'off'} onChange={(k) => p.setBeta(k === 'on')} options={[{ key: 'off', label: t('beta.off') }, { key: 'on', label: t('beta.on') }]} />
+        <p className="mut sm">{t('beta.note')}</p>
+      </Section>
       <Collapsible title={t('chains.title')}>
         <p className="mut sm" style={{ marginBottom: 8 }}>{t('chains.hint')}</p>
-        <div className="chain-pick">{CHAIN_LIST.map((c) => { const on = (p.chains ?? []).includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
+        <div className="chain-pick">{chainsFor(p.country).map((c) => { const on = (p.chains ?? []).includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
         <p className="mut sm">{(p.chains ?? []).length ? t('chains.some', { n: (p.chains ?? []).length }) : t('chains.all')}{(p.chains ?? []).length > 0 && <> · <a onClick={() => p.clearChains()} style={{ cursor: 'pointer' }}>{t('chains.clear')}</a></>}</p>
       </Collapsible>
       <Section title={t('profile.priorities')}><Chips>{PRIORITY_KEYS.map((k) => <Chip key={k} on={p.priorities.includes(k)} onPress={() => p.togglePriority(k)}>{t('priorities.' + k)}</Chip>)}</Chips></Section>

@@ -1,6 +1,8 @@
 """Approximate prices when no observed price exists. Everything returned here is an ESTIMATE and is always labelled as such;
 estimates are never used for verified-saving claims. The chain indices and category prices are rough assumptions, not data."""
 from statistics import median
+
+from . import market
 from typing import Any, Dict, List, Optional, Tuple
 
 # Paris supermarkets and a rough price level relative to a national supermarket average (1.00). Assumption, not a measurement.
@@ -33,12 +35,16 @@ def estimate_per100(product: Dict[str, Any], observed_peers: List[float]) -> Opt
     """(cents per 100 g/ml, basis) with basis 'peers' (median of >=3 observed comparable prices) or 'category' (static table)."""
     if len(observed_peers) >= 3:
         return round(median(observed_peers), 1), "peers"
+    if market.current() != "FR":  # the category table is a French euro assumption: outside France only observed prices may be used
+        return None
     c = category_price_per100(product.get("categories", []))
     return (round(c, 1), "category") if c else None
 
 
 def chain_prices(per100_cents: float, qty_amount: Optional[float]) -> List[Dict[str, Any]]:
     """Estimated price per Paris chain = estimate x chain index. Cheapest first."""
+    if market.current() != "FR":
+        return []
     out = []
     for name, idx in PARIS_CHAINS:
         p100 = per100_cents * idx

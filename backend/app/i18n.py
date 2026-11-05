@@ -1,6 +1,8 @@
 """Server-generated sentences (explanations, trade-offs, notes) in French and English. Client UI strings live in shared/i18n."""
 from typing import Any
 
+from . import market
+
 FR = {
     "est_note": "Estimation approximative (hypothèse), non vérifiée : médiane de produits comparables, ou prix moyen de la catégorie. À confirmer en magasin.",
     "tr_same": "Même produit dans un autre format : comparez le prix au kilo, pas le prix du paquet",
@@ -90,4 +92,4 @@ EN = {
 def tr(lang: str, key: str, **kw: Any) -> str:
     if lang == "fr":  # French decimal comma for numbers passed as already-formatted text
         kw = {k: (v.replace(".", ",") if isinstance(v, str) and v.replace(".", "", 1).isdigit() else v) for k, v in kw.items()}
-    return (FR if lang == "fr" else EN)[key].format(**kw)
+    return market.localize_money((FR if lang == "fr" else EN)[key].format(**kw))

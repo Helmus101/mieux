@@ -1,8 +1,8 @@
 // Shared formatting utilities
 
-export const formatCents = (cents: number): string => {
-  return (cents / 100).toFixed(2).replace('.', ',') + ' €';
-};
+import { formatMoney } from './money';
+
+export const formatCents = (cents: number): string => formatMoney(cents);
 
 export const formatNutrient = (value: number | null, unit: string): string => {
   if (value === null) return '–';

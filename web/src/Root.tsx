@@ -13,10 +13,10 @@ const Usage = lazy(() => import('./screens/Usage'));
 /** `/stats`: the plain count of people using Mieux, openable by anyone with the link. */
 const atStats = () => window.location.pathname.replace(/\/+$/, '') === '/stats';
 
-/** Landing page at `/` for computers and iPads; everywhere else goes straight to the app at /app. */
+/** Landing page at `/` on every device except the installed phone app; everywhere else goes straight to the app at /app. */
 function start(): boolean {
   const landing = wantsLanding();
-  // Root reached without the landing page (?app, or a phone): go to the app and drop the marker from the URL.
+  // Root reached without the landing page (?app, or the installed phone app): go to the app and drop the marker from the URL.
   if (!landing && window.location.pathname === '/') {
     const { search, hash } = window.location;
     const q = new URLSearchParams(search); q.delete('app');

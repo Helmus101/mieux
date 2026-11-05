@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from . import market
 from .value import parse_quantity
 from .score import quality
 from .taxonomy import classify
@@ -86,12 +87,12 @@ def _sold_in_france(raw):
     tags = raw.get("countries_tags") or []
     if not tags:
         return None
-    return "en:france" in tags
+    return market.tag() in tags  # the name is historical: it means "sold in the market of this request" (France by default)
 
 
 def _fr_evidence(raw):
     code = str(raw.get("code") or "")
-    if "en:france" not in (raw.get("countries_tags") or []):
+    if market.current() != "FR" or "en:france" not in (raw.get("countries_tags") or []):
         return None
     return "gs1_fr" if (code[:3].isdigit() and 300 <= int(code[:3]) <= 379) or len(code) < 8 else "off_tag"
 

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useProfile } from '@shared/stores';
-import { CHAIN_LIST } from '@shared/chains';
+import { chainsFor } from '@shared/chains';
 import { Bar, Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
@@ -20,7 +20,8 @@ export default function Alternatives() {
   const saved = useProfile((s) => s.priorities), estimates = useProfile((s) => s.estimates);
   const home = useProfile((s) => s.place);
   const hasHome = home?.lat != null;
-  const myChains = (useProfile((s) => s.chains) ?? []).filter((id) => CHAIN_LIST.some((c) => c.id === id));
+  const country = useProfile((s) => s.country);
+  const myChains = (useProfile((s) => s.chains) ?? []).filter((id) => chainsFor(country).some((c) => c.id === id));
   // "Today" filters start from the saved profile and never write back to it.
   // Quality is judged on nutrition only; the price tabs come from the price rankings, so no price priority is sent.
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();

@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
 
 from . import chains as ch
+from . import market
 from . import db
 
 SEED = [  # id, name, website, has_catalogue, catalogue_access
@@ -19,10 +20,29 @@ SEED = [  # id, name, website, has_catalogue, catalogue_access
     ("franprix", "Franprix", "https://www.franprix.fr", True, "none"), ("casino", "Casino", "https://www.casino.fr", True, "none"), ("superu", "Super U", "https://www.coursesu.com", True, "blocked"),
     ("picard", "Picard", "https://www.picard.fr", True, "none"), ("biocoop", "Biocoop", "https://www.biocoop.fr", False, "none"),
     ("naturalia", "Naturalia", "https://www.naturalia.fr", True, "none"), ("lavieclaire", "La Vie Claire", "https://www.lavieclaire.com", True, "none"), ("grandfrais", "Grand Frais", "https://www.grandfrais.com", False, "none"), ("cora", "Cora", "https://www.cora.fr", True, "none"), ("match", "Match", "https://www.supermarchesmatch.fr", False, "none"),
+    ("walmart", "Walmart", "https://www.walmart.com", False, "none"), ("kroger", "Kroger", "https://www.kroger.com", False, "none"), ("costco", "Costco", "https://www.costco.com", False, "none"),
+    ("target", "Target", "https://www.target.com", False, "none"), ("albertsons", "Albertsons", "https://www.albertsons.com", False, "none"), ("safeway", "Safeway", "https://www.safeway.com", False, "none"),
+    ("publix", "Publix", "https://www.publix.com", False, "none"), ("wholefoods", "Whole Foods", "https://www.wholefoodsmarket.com", False, "none"),
+    ("traderjoes", "Trader Joe's", "https://www.traderjoes.com", False, "none"), ("heb", "H-E-B", "https://www.heb.com", False, "none"), ("wegmans", "Wegmans", "https://www.wegmans.com", False, "none"),
+    ("sprouts", "Sprouts", "https://www.sprouts.com", False, "none"), ("foodlion", "Food Lion", "https://www.foodlion.com", False, "none"), ("stopshop", "Stop & Shop", "https://www.stopandshop.com", False, "none"),
+    ("meijer", "Meijer", "https://www.meijer.com", False, "none"), ("sams", "Sam's Club", "https://www.samsclub.com", False, "none"), ("bjs", "BJ's", "https://www.bjs.com", False, "none"),
+    ("hyvee", "Hy-Vee", "https://www.hy-vee.com", False, "none"), ("shoprite", "ShopRite", "https://www.shoprite.com", False, "none"), ("harristeeter", "Harris Teeter", "https://www.harristeeter.com", False, "none"),
+    ("winndixie", "Winn-Dixie", "https://www.winndixie.com", False, "none"),
 ]
 ID_OF = {"Carrefour": "carrefour", "Monoprix": "monoprix", "Intermarché": "intermarche", "E.Leclerc": "leclerc", "Auchan": "auchan", "Lidl": "lidl", "Aldi": "aldi", "Franprix": "franprix",
-         "Casino": "casino", "Super U": "superu", "Picard": "picard", "Biocoop": "biocoop", "Naturalia": "naturalia", "La Vie Claire": "lavieclaire", "Grand Frais": "grandfrais", "Cora": "cora", "Match": "match"}
+         "Casino": "casino", "Super U": "superu", "Picard": "picard", "Biocoop": "biocoop", "Naturalia": "naturalia", "La Vie Claire": "lavieclaire", "Grand Frais": "grandfrais", "Cora": "cora", "Match": "match",
+         "Walmart": "walmart", "Kroger": "kroger", "Costco": "costco", "Target": "target", "Albertsons": "albertsons", "Safeway": "safeway", "Publix": "publix", "Whole Foods": "wholefoods",
+         "Trader Joe's": "traderjoes", "H-E-B": "heb", "Wegmans": "wegmans", "Sprouts": "sprouts", "Food Lion": "foodlion", "Stop & Shop": "stopshop", "Meijer": "meijer", "Sam's Club": "sams",
+         "BJ's": "bjs", "Hy-Vee": "hyvee", "ShopRite": "shoprite", "Harris Teeter": "harristeeter", "Winn-Dixie": "winndixie"}
 NAME_OF = {v: k for k, v in ID_OF.items()}
+US_IDS = {"walmart", "kroger", "costco", "target", "albertsons", "safeway", "publix", "wholefoods", "traderjoes", "heb", "wegmans", "sprouts", "foodlion", "stopshop", "meijer", "sams", "bjs",
+          "hyvee", "shoprite", "harristeeter", "winndixie", "aldi", "lidl"}  # Aldi and Lidl trade in both countries
+FR_ONLY = {"carrefour", "monoprix", "intermarche", "leclerc", "auchan", "franprix", "casino", "superu", "picard", "biocoop", "naturalia", "lavieclaire", "grandfrais", "cora", "match"}
+
+
+def in_market(chain_id: str, code: str = "FR") -> bool:
+    """Is this chain one the shoppers of this market know? French shoppers never see US chains, and the other way round."""
+    return chain_id in US_IDS if code == "US" else chain_id not in (US_IDS - {"aldi", "lidl"})
 _EMPTY: Dict[Any, float] = {}
 CATALOGUES: Dict[str, Any] = {}  # chain id -> adapter(product) -> {"retailer_product_id", "url", "price_per100_cents"} | None. Empty: no chain currently allows automated access.
 
@@ -114,7 +134,7 @@ def _fetch_and_store(s: Session, chain_id: str, lat: float, lon: float, radius_k
     for r_km in (sorted({min(radius_km, x) for x in (1.5, radius_km)}) if widen else [radius_km]):  # widening boxes: the first one that holds a branch holds the nearest
         dlat, dlon = r_km / 111.0, r_km / (111.0 * max(0.2, math.cos(math.radians(lat))))
         try:
-            res = ch._get_json(ch._NOMINATIM, {"q": ch.QUERY.get(cname, cname), "format": "jsonv2", "limit": 40, "addressdetails": 1, "countrycodes": "fr",
+            res = ch._get_json(ch._NOMINATIM, {"q": ch.QUERY.get(cname, cname), "format": "jsonv2", "limit": 40, "addressdetails": 1, "countrycodes": market.current().lower(),
                                                "viewbox": f"{lon - dlon},{lat + dlat},{lon + dlon},{lat - dlat}", "bounded": 1})
         except Exception:
             res = []

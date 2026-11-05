@@ -1,10 +1,13 @@
-"""Build Mieux's own copy of the French Open Prices data from the official daily exports (no API, no rate limit).
+"""Build Mieux's own copy of the Open Prices data for one country (France by default) from the official daily exports (no API, no rate limit).
 
     cd backend && .venv/bin/python -m scripts.import_prices_dump            # downloads prices.jsonl.gz + locations.jsonl.gz, then imports
     cd backend && .venv/bin/python -m scripts.import_prices_dump data/prices.jsonl.gz data/locations.jsonl.gz
 
 The two files are published at https://prices.openfoodfacts.org/data/ and refreshed daily; run this daily or weekly (it replaces the table atomically).
-Only prices recorded in French shops are kept. Source and licence: Open Prices / Open Food Facts contributors (ODbL)."""
+Only prices recorded in shops of that country are kept. For the United States, with the files already in backend/data:
+
+    OP_COUNTRY=US OP_LOCAL=$PWD/op_local_us.db .venv/bin/python -m scripts.import_prices_dump data/prices.jsonl.gz data/locations.jsonl.gz
+ Source and licence: Open Prices / Open Food Facts contributors (ODbL)."""
 import gzip
 import json
 import os
@@ -15,6 +18,7 @@ import urllib.request
 
 BASE = "https://prices.openfoodfacts.org/data/"
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+COUNTRY = os.environ.get("OP_COUNTRY", "FR").upper()  # ISO code of the shops to keep
 OUT = os.environ.get("OP_LOCAL", os.path.join(HERE, "op_local.db"))
 
 
@@ -33,8 +37,8 @@ def main(prices_path: str, locations_path: str, out: str = OUT) -> None:
     with gzip.open(locations_path, "rt", encoding="utf-8") as f:
         for line in f:
             L = json.loads(line)
-            if (L.get("osm_address_country_code") or "").upper() == "FR":
-                locs[L["id"]] = {"id": L["id"], "osm_id": L.get("osm_id"), "osm_brand": L.get("osm_brand"), "osm_name": L.get("osm_name"), "osm_address_country_code": "FR",
+            if (L.get("osm_address_country_code") or "").upper() == COUNTRY:
+                locs[L["id"]] = {"id": L["id"], "osm_id": L.get("osm_id"), "osm_brand": L.get("osm_brand"), "osm_name": L.get("osm_name"), "osm_address_country_code": COUNTRY,
                                  "osm_lat": L.get("osm_lat"), "osm_lon": L.get("osm_lon"), "osm_address_city": L.get("osm_address_city")}
     tmp = out + ".tmp"
     if os.path.exists(tmp):
@@ -49,7 +53,7 @@ def main(prices_path: str, locations_path: str, out: str = OUT) -> None:
             loc = locs.get(p.get("location_id"))
             if not loc or not p.get("product_code") or p.get("price") in (None, ""):
                 continue
-            item = {"id": p["id"], "product_code": p["product_code"], "price": p["price"], "currency": p.get("currency") or "EUR", "price_per": p.get("price_per"),
+            item = {"id": p["id"], "product_code": p["product_code"], "price": p["price"], "currency": p.get("currency") or ("USD" if COUNTRY == "US" else "EUR"), "price_per": p.get("price_per"),
                     "date": p.get("date"), "price_is_discounted": bool(p.get("price_is_discounted")), "location": loc}
             batch.append((p["product_code"], p.get("date") or "", json.dumps(item, separators=(",", ":"))))
             n += 1
@@ -61,7 +65,7 @@ def main(prices_path: str, locations_path: str, out: str = OUT) -> None:
     db.commit()
     db.close()
     os.replace(tmp, out)
-    print(f"done: {n:,} prices in {len(locs):,} French shops -> {out}  ({time.time() - t0:0.0f}s)")
+    print(f"done: {n:,} prices in {len(locs):,} {COUNTRY} shops -> {out}  ({time.time() - t0:0.0f}s)")
 
 
 if __name__ == "__main__":
