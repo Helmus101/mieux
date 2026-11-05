@@ -13,15 +13,16 @@ const posts: Record<string, { title: string; content: string; date: string; cate
       <h2>Ce que les deux font</h2>
       <ul>
         <li>Scanner un code-barres et noter le produit sur 100.</li>
-        <li>Prendre en compte la nutrition, les additifs et le bio. Le mode sévère de Mieux utilise la même pondération que celle publiée par Yuka : 60 % nutrition, 30 % additifs, 10 % bio.</li>
+        <li>Prendre en compte la nutrition, les additifs et le bio. Yuka publie une pondération de 60 % nutrition, 30 % additifs et 10 % bio ; Mieux fait un autre choix : 40 % nutrition, 25 % additifs, 25 % qualité des ingrédients et 10 % bio.</li>
         <li>Proposer des alternatives plus saines quand la note est mauvaise.</li>
       </ul>
 
       <h2>Ce que Mieux ajoute</h2>
       <p><strong>1. Le prix.</strong> Yuka ne compare pas les prix. Mieux affiche le prix au 100 g quand il est connu (source : Open Prices et vos propres tickets, jamais inventé) et classe les alternatives selon l'argent économisé.</p>
       <p><strong>2. Trois alternatives, trois façons de choisir.</strong> La moins chère, la meilleure en qualité et le meilleur rapport qualité-prix, avec la différence de prix et de note pour chacune.</p>
-      <p><strong>3. Des additifs expliqués.</strong> Pour chaque additif : à quoi il sert, dans quels aliments on le trouve et la note santé, avec la source.</p>
-      <p><strong>4. Vos données restent chez vous.</strong> Vos scans, vos préférences et vos tickets sont stockés sur votre téléphone. Le compte ne garde que le nombre de vos scans.</p>
+      <p><strong>3. La qualité des ingrédients compte.</strong> Une boisson zéro calorie n'est pas « propre » pour autant : sucre ajouté, édulcorants, colorants et ultra-transformation font baisser la note, et les calories ne comptent que pour moitié dans la partie nutrition.</p>
+      <p><strong>4. Des additifs expliqués.</strong> Pour chaque additif : à quoi il sert, dans quels aliments on le trouve et la note santé, avec la source.</p>
+      <p><strong>5. Vos données restent chez vous.</strong> Vos scans, vos préférences et vos tickets sont stockés sur votre téléphone. Le compte ne garde que le nombre de vos scans.</p>
 
       <h2>Là où Yuka est plus fort</h2>
       <ul>

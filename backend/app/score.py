@@ -7,7 +7,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from .additives_db import T as ADDITIVES, USE as ADDITIVE_USE
+from .additives_db import T as ADDITIVES, USE as ADDITIVE_USE, FAMILY as ADDITIVE_FAMILY
 
 VERSION = "3.0"
 
@@ -324,13 +324,32 @@ def d_additives(adds: List[str], strict: bool = False):
     return max(0.0, 100.0 - pen), {"items": items, "count": len(items)}
 
 
-def d_ingredients(ing, adds):
+# Artificial additives say something about the recipe even when each one is "allowed": the more a product relies on them, the lower its ingredient quality.
+ARTIFICIAL_FAMILY_PENALTY = {"intense_sweetener": 14, "colour_synth": 10, "flavour_enhancer": 8, "antiox_synth": 6, "emulsifier": 6, "emulsifier_bread": 6, "polyol": 4}
+CARAMEL_ARTIFICIAL = {"e150c", "e150d"}  # ammonia / sulphite caramels: industrial colouring, unlike plain caramel (e150a)
+
+
+def artificial_penalty(adds) -> Tuple[float, List[str]]:
+    seen: Dict[str, float] = {}
+    for a in adds:
+        code = a.lower().replace("en:", "")
+        fam = ADDITIVE_FAMILY.get(code)
+        if code in CARAMEL_ARTIFICIAL:
+            seen["caramel"] = 8
+        elif fam in ARTIFICIAL_FAMILY_PENALTY:
+            key = "emulsifier" if fam == "emulsifier_bread" else fam  # all emulsifiers count once
+            seen[key] = ARTIFICIAL_FAMILY_PENALTY[fam]
+    return min(32.0, float(sum(seen.values()))), sorted(seen)
+
+
+def d_ingredients(ing, adds, strict: bool = False, n=None, drink: bool = False, nova=None, sugar_kind=None):
     if not ing:
         return None, {"missing": "ingredients"}
     low = ing.lower()
     parts = [x for x in re.split(r"[,;]", re.sub(r"\([^)]*\)", "", low)) if x.strip()]
-    n = len(parts)
-    score = 65.0 - min(30, max(0, n - 8) * 2) + (10 if n <= 5 else 0)
+    count = len(parts)
+    # A short list of recognisable ingredients is the best sign of quality: one or two ingredients (pasta, plain skyr, flour) reach the top of the scale.
+    score = 70.0 - min(30, max(0, count - 8) * 2) + (25 if count <= 3 else 15 if count <= 5 else 0)
     notes = []
     if re.search(r"complet|wholegrain|whole grain|intégral|integral", low):
         score += 15; notes.append("wholegrain")
@@ -344,7 +363,19 @@ def d_ingredients(ing, adds):
         score -= 12; notes.append("glucose_syrup")
     if re.search(r"\b(sucre|sugar|saccharose)\b", low.split(",")[0]):
         score -= 10; notes.append("sugar_first")  # sugar is the first (largest) ingredient
-    return max(0.0, min(100.0, score)), {"count": n, "notes": notes}
+    if strict:
+        # How much added sugar is in the product, not just whether sugar is listed: a soda or a spread built on sugar loses most of its ingredient mark.
+        sug = (n or {}).get("sugars100g")
+        if sug is not None and sugar_kind in ("added", "mixed", "unknown"):
+            pen = min(35.0, max(0.0, sug - 2.5) * 2.0) if drink else min(35.0, max(0.0, sug - 5.0) * 0.8)
+            if pen > 0:
+                score -= pen; notes.append("added_sugar_amount")
+        art, fams = artificial_penalty(adds)
+        if art:
+            score -= art; notes.extend("artificial_" + f for f in fams)
+        if nova == 4:
+            score -= 10; notes.append("ultra_processed")
+    return max(0.0, min(100.0, score)), {"count": count, "notes": notes}
 
 
 # ---------------------------------------------------------------- scales: the real amount placed on labelled zones (what is excellent, what is too much)
@@ -441,8 +472,12 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
     pts["drink"] = drink
     dscore = {"fat": d_fat(n, pts, extra, pid), "sugar": d_sugar(n, pts, ing_s, extra), "salt": d_salt(n, pts), "energy": d_energy(n, pts, drink),
               "protein": d_protein(n), "fibre": d_fibre(n), "plant": d_plant(fvn, fvn_est), "micro": d_micro(p.get("micronutrients")), "additives": d_additives(adds, strict), "ingredients": d_ingredients(ing, adds)}
-    # 1. nutritional quality: Nutri-Score points (negatives minus the positives that are relevant here), then safeguards
-    nq = interp(pts["points"], _NQ_FATS) if "sat_ratio" in pts else nq_from_points(pts["points"], drink and not MILK_OR_PLANT.search(" ".join(cats)))
+    if strict:
+        dscore["ingredients"] = d_ingredients(ing, adds, True, n, drink, p.get("novaGroup"), (dscore["sugar"][1] or {}).get("sugar", {}).get("kind"))
+    # 1. nutritional quality: Nutri-Score points (negatives minus the positives that are relevant here), then safeguards.
+    # Strict mode counts calories at half weight: energy alone must not decide the mark (a nut or an oil is not junk because it is dense, and a zero-calorie soda is not clean because it is empty).
+    pts_nq = pts["points"] - (pts["energy"] // 2 if strict and "sat_ratio" not in pts else 0)
+    nq = interp(pts["points"], _NQ_FATS) if "sat_ratio" in pts else nq_from_points(pts_nq, drink and not MILK_OR_PLANT.search(" ".join(cats)))
     if drink and "sat_ratio" not in pts and (n.get("sugars100g") or 0) <= .5 and (n.get("energyKcal100g") or 0) <= 4 and (n.get("saturatedFat100g") or 0) <= .1 and (n.get("salt100g") or 0) <= .1:
         nq = 100.0  # water, plain tea, coffee: nothing to penalise, so the full nutrition mark
     # 2. ingredient quality: additives + ingredient composition (profile weights, renormalised)
@@ -458,14 +493,17 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
     # 3. overall = 80 % nutritional + 20 % ingredient, with safeguards: good ingredients cannot lift the total far above the nutrition,
     #    and serious weaknesses cap it whatever else the product does well
     total = nq if iq is None else .8 * nq + .2 * iq
-    if strict:  # Yuka-like: 60 % nutrition + 30 % additives + 10 % organic (a flagged additive pulls its 30 points down; no ingredient-quality term)
-        total = .6 * nq + .3 * dscore["additives"][0] + (10 if organic else 0)
+    if strict:  # 40 % nutrition + 25 % additives + 25 % ingredient quality + 10 % organic (a flagged additive pulls its points down; ingredient quality carries added sugar, artificial additives and ultra-processing)
+        ing_mark = dscore["ingredients"][0] if dscore["ingredients"][0] is not None else 50.0  # no ingredient list: neither a bonus nor a penalty, and confidence drops
+        total = .40 * nq + .25 * dscore["additives"][0] + .25 * ing_mark + (10 if organic else 0)
     caps = []
     total2 = total if strict else min(total, nq + 8)
     if total2 < total:
         caps.append("ingredients_cannot_mask_nutrition")
     if any(f["key"] == "additive_d" for f in flags):
         total2 = min(total2, 49); caps.append("additive_d")
+    if strict and any(i["level"] in ("C", "D") for i in dscore["additives"][1]["items"]):
+        total2 = min(total2, 64); caps.append("risky_additive")  # a moderate- or high-risk additive: never "excellent"
     if strict and not drink and "sat_ratio" not in pts and ns_letter(pts["points"]) in ("D", "E"):
         total2 = min(total2, 49); caps.append("nutriscore_d_e")  # Yuka: a product rated D or E cannot exceed 49/100
     if len(bad) >= 2:
@@ -474,7 +512,8 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
         total2 = min(total2, 64); caps.append("serious_weakness")
     total = round(max(0.0, total2))
     if strict:
-        parts = [{"key": "nutrition", "got": round(.6 * nq, 1), "of": 60}, {"key": "additives", "got": round(.3 * dscore["additives"][0], 1), "of": 30}, {"key": "organic", "got": 10 if organic else 0, "of": 10}]
+        parts = [{"key": "nutrition", "got": round(.40 * nq, 1), "of": 40}, {"key": "additives", "got": round(.25 * dscore["additives"][0], 1), "of": 25},
+                 {"key": "ingredients", "got": round(.25 * ing_mark, 1), "of": 25}, {"key": "organic", "got": 10 if organic else 0, "of": 10}]
     else:
         parts = [{"key": "nutrition", "got": round(.8 * nq, 1), "of": 80}, {"key": "ingredients", "got": round(.2 * (iq if iq is not None else nq), 1), "of": 20}]
     uncapped = round(sum(x["got"] for x in parts))

@@ -21,7 +21,7 @@ Honest outlook: as a consumer subscription app, Mieux is a small business unless
 
 One scan, one screen:
 
-1. Score out of 100 from nutrition, additives and organic status. The strict mode uses the same 60/30/10 weighting Yuka publishes **[source]**, so the verdict is comparable.
+1. Score out of 100: 40% nutrition (calories at half weight), 25% additives, 25% ingredient quality (added sugar, artificial additives, ultra-processing), 10% organic. Yuka publishes a 60/30/10 split of nutrition, additives and organic **[source]**; Mieux deliberately weighs ingredient quality more.
 2. Three alternatives in the same category: cheapest (per 100 g), best quality, best value, each with the price and score difference.
 3. Every additive explained: what it does, where it is usually found, health note and source.
 4. Privacy by design: scans, preferences and history stay on the phone; the account stores only a scan count.

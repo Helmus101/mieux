@@ -295,7 +295,7 @@ class AltReq(BaseModel):
     limit: int = Field(5, ge=1, le=10)
     chains: List[str] = []  # chain ids the user shops at (empty = all)
     nearby_only: bool = False  # with a location: keep only products listed at a chain that has a branch within the radius (and within the user's chains)
-    strict_additives: bool = True  # Yuka-like additive mode (60 % nutrition + 30 % additives, every concern one level higher)
+    strict_additives: bool = True  # strict mode (40 % nutrition + 25 % additives + 25 % ingredient quality, every additive concern one level higher)
     same_size: bool = False  # only products whose pack size is within half to double of the scanned one
     substitution_max: int = Field(3, ge=1, le=4)  # 1 almost identical ... 4 broader alternative
 

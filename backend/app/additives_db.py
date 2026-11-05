@@ -257,3 +257,5 @@ _ONE: Dict[str, Tuple[str, str]] = {
 }
 USE: Dict[str, Tuple[str, str]] = {code: _FAMILY[fam] for fam, codes in _MEMBERS.items() for code in codes.split()}
 USE.update(_ONE)
+
+FAMILY: Dict[str, str] = {code: fam for fam, codes in _MEMBERS.items() for code in codes.split()}

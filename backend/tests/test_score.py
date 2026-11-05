@@ -297,3 +297,37 @@ def test_every_additive_has_a_use_and_where_it_is_found():
     items = {i["code"]: i for i in p["score"]["additives"]["items"]}
     assert items["e330"]["use"] and items["e330"]["found"] and items["e330"]["note"]
     assert "interdit" in items["e171"]["found"].lower()
+
+
+def _strict(p, organic=False):
+    from app.score import quality
+    return quality(p, organic, {**p["scoreInputs"], "strict": True})
+
+
+def test_zero_calorie_does_not_mean_clean_artificial_additives_and_sugar_are_penalised():
+    drink = ("en:beverages", "en:carbonated-drinks", "en:sodas")
+    zero = {"energy-kcal_100g": 0.2, "sugars_100g": 0, "saturated-fat_100g": 0, "fat_100g": 0, "salt_100g": 0.01}
+    clean = prod(zero, "eau gazéifiée, arôme naturel de citron", cats=drink)
+    fake = prod(zero, "eau gazéifiée, colorant : caramel E150d, acidifiant : acide citrique, édulcorants : aspartame, acésulfame K, arôme", adds=("en:e150d", "en:e951", "en:e950", "en:e330"), cats=drink)
+    sugary = prod({"energy-kcal_100g": 42, "sugars_100g": 10.6, "saturated-fat_100g": 0, "fat_100g": 0, "salt_100g": 0.01}, "eau gazéifiée, sucre, arôme", cats=drink)
+    c, f, s = _strict(clean), _strict(fake), _strict(sugary)
+    assert f["total"] <= 55 and "risky_additive" in f["caps"]          # a sweetened, coloured zero soda is not "good"
+    assert c["total"] - f["total"] >= 30                               # same calories, very different ingredient quality
+    assert s["total"] < c["total"] - 30 and any(x["key"] == "ingredients" and x["of"] == 25 for x in s["parts"])  # sugar costs the ingredient mark too
+    assert "artificial_intense_sweetener" in f["dimensions"][-1]["detail"]["notes"] and "added_sugar_amount" in s["dimensions"][-1]["detail"]["notes"]
+
+
+def test_calories_alone_do_not_decide_a_dense_natural_food():
+    nuts = {"energy-kcal_100g": 620, "sugars_100g": 4, "saturated-fat_100g": 5, "fat_100g": 54, "salt_100g": 0.01, "fiber_100g": 8, "proteins_100g": 21}
+    plain = prod(nuts, "amandes", cats=("en:nuts", "en:almonds", "en:plant-based-foods"))
+    glazed = prod({**nuts, "sugars_100g": 22}, "amandes, sucre, sirop de glucose, huile de palme, arôme, émulsifiant : E471, colorant : E102", adds=("en:e471", "en:e102"), cats=("en:nuts", "en:plant-based-foods"))
+    assert _strict(plain)["total"] >= 70                               # energy-dense but a single ingredient
+    assert _strict(plain)["total"] - _strict(glazed)["total"] >= 25    # ingredient quality is what separates them
+
+
+def test_a_short_clean_ingredient_list_reaches_the_top_of_the_ingredient_scale():
+    from app.score import d_ingredients
+    assert d_ingredients("semoule de blé dur", [])[0] >= 90
+    assert d_ingredients("blé, eau, sel", [])[0] >= 90
+    long = d_ingredients("farine, eau, sucre, huile de palme, sel, arôme, émulsifiant, conservateur, colorant, lait, oeuf, levure, amidon, sirop de glucose", [])
+    assert long[0] < 50
