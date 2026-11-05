@@ -13,6 +13,7 @@ function seo(siteUrl: string) {
   const base = siteUrl.replace(/\/+$/, '');
   const abs = (p: string) => (base ? base + p : p);
   const blogPosts = [
+    { slug: 'yuka-ou-mieux', title: 'Yuka ou Mieux : ce qui change vraiment', date: '2026-11-05' },
     { slug: 'aliments-sains-qui-ne-le-sont-pas', title: 'Ces aliments "sains" qui cachent des additifs préoccupants', date: '2026-11-02' },
     { slug: 'comprendre-additifs-alimentaires', title: 'Comprendre les additifs alimentaires: guide complet', date: '2026-11-01' },
     { slug: 'nutri-score-explique', title: 'Le Nutri-Score expliqué: comment ça marche?', date: '2026-10-28' },

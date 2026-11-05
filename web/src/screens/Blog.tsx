@@ -4,6 +4,13 @@ import { routes, useNav } from '../nav';
 
 const posts = [
   {
+    slug: 'yuka-ou-mieux',
+    title: 'Yuka ou Mieux : ce qui change vraiment',
+    excerpt: 'Les deux notent vos produits. Une seule compare aussi les prix. Ce que chaque appli fait, ce qu’elle ne fait pas, et laquelle choisir selon votre besoin.',
+    date: '5 novembre 2026',
+    category: 'Comparatif',
+  },
+  {
     slug: 'aliments-sains-qui-ne-le-sont-pas',
     title: 'Ces aliments "sains" qui cachent des additifs préoccupants',
     excerpt: 'Pain complet, yaourts, jus de fruits... Certains aliments réputés sains contiennent des additifs à surveiller. Décryptage.',

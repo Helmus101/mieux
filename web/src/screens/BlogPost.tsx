@@ -3,6 +3,45 @@ import { NavBar, Screen, Card, Muted } from '../ui';
 import { useNav } from '../nav';
 
 const posts: Record<string, { title: string; content: string; date: string; category: string }> = {
+  'yuka-ou-mieux': {
+    title: 'Yuka ou Mieux : ce qui change vraiment',
+    date: '5 novembre 2026',
+    category: 'Comparatif',
+    content: `
+      <p>Yuka est l'application de scan la plus connue : selon la BBC en juillet 2026, elle compterait 85 millions d'utilisateurs. Mieux fait le même geste (scanner un code-barres) mais ne répond pas tout à fait à la même question. Voici une comparaison honnête, limitée à ce qui se vérifie.</p>
+
+      <h2>Ce que les deux font</h2>
+      <ul>
+        <li>Scanner un code-barres et noter le produit sur 100.</li>
+        <li>Prendre en compte la nutrition, les additifs et le bio. Le mode sévère de Mieux utilise la même pondération que celle publiée par Yuka : 60 % nutrition, 30 % additifs, 10 % bio.</li>
+        <li>Proposer des alternatives plus saines quand la note est mauvaise.</li>
+      </ul>
+
+      <h2>Ce que Mieux ajoute</h2>
+      <p><strong>1. Le prix.</strong> Yuka ne compare pas les prix. Mieux affiche le prix au 100 g quand il est connu (source : Open Prices et vos propres tickets, jamais inventé) et classe les alternatives selon l'argent économisé.</p>
+      <p><strong>2. Trois alternatives, trois façons de choisir.</strong> La moins chère, la meilleure en qualité et le meilleur rapport qualité-prix, avec la différence de prix et de note pour chacune.</p>
+      <p><strong>3. Des additifs expliqués.</strong> Pour chaque additif : à quoi il sert, dans quels aliments on le trouve et la note santé, avec la source.</p>
+      <p><strong>4. Vos données restent chez vous.</strong> Vos scans, vos préférences et vos tickets sont stockés sur votre téléphone. Le compte ne garde que le nombre de vos scans.</p>
+
+      <h2>Là où Yuka est plus fort</h2>
+      <ul>
+        <li>Une très grande base de produits et une communauté bien plus large.</li>
+        <li>Le scan des cosmétiques, que Mieux ne fait pas.</li>
+        <li>Des options premium (recherche avancée, mode hors ligne).</li>
+      </ul>
+      <p>Mieux s'appuie sur Open Food Facts : un produit absent ou incomplet dans cette base sera signalé comme tel, jamais noté à tort. Et les prix ne sont pas connus pour tous les produits : quand il manque, Mieux le dit.</p>
+
+      <h2>Laquelle choisir ?</h2>
+      <ul>
+        <li><strong>Un avis santé rapide sur un produit :</strong> les deux conviennent.</li>
+        <li><strong>Un budget courses à tenir :</strong> Mieux, pour savoir quoi acheter à la place et ce que cela change sur le ticket.</li>
+        <li><strong>Des cosmétiques :</strong> Yuka.</li>
+      </ul>
+      <p>Vous pouvez aussi utiliser les deux : ce sont des outils, pas des dogmes.</p>
+
+      <p class="mut sm">Mieux n'est pas affilié à Yuka. Sources : <a target="_blank" rel="noopener noreferrer" href="https://help.yuka.io/l/en/article/zrgtb8f2ka-yuka-financing">Yuka, financement et offre premium</a> · <a target="_blank" rel="noopener noreferrer" href="https://www.the-star.co.ke/news/world/2026-07-15-is-tracking-your-food-purchases-good-for-your-health">BBC (reprise par The Star), juillet 2026</a> · <a target="_blank" rel="noopener noreferrer" href="https://www.foodnavigator.com/Article/2019/08/20/Evaluating-the-Yuka-phenomenon-How-effective-is-the-scanning-app-in-practice/">FoodNavigator, 2019</a>.</p>
+`,
+  },
   'aliments-sains-qui-ne-le-sont-pas': {
     title: 'Ces aliments "sains" qui cachent des additifs préoccupants',
     date: '2 novembre 2026',
