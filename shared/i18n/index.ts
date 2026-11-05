@@ -1,5 +1,6 @@
 import { fr } from './fr';
 import { en } from './en';
+import { localizeMoney } from '../utils/money';
 
 // French is the default UI language; English also supported
 const dicts: Record<string, any> = { fr, en };
@@ -12,7 +13,7 @@ export function t(path: string, vars?: Record<string, string | number>): string 
   const d = dicts[locale] ?? fr;
   const v = path.split('.').reduce((o: any, k) => (o == null ? o : o[k]), d) ?? path.split('.').reduce((o: any, k) => (o == null ? o : o[k]), fr);
   if (typeof v !== 'string') return path;
-  if (!vars) return v;
+  if (!vars) return localizeMoney(v);
   const plural = typeof vars.n === 'number' ? vars.n > 1 : Number(vars.n) > 1;
-  return v.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? '')).replace(/\(s\)/g, plural ? 's' : '');
+  return localizeMoney(v.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? '')).replace(/\(s\)/g, plural ? 's' : ''));
 }

@@ -35,7 +35,7 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-from . import budget as bud, db, engine, estimate, explain as exp, receipts, retail, score, taxonomy, value
+from . import budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value, vision
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
@@ -183,6 +183,7 @@ async def security_headers(request: Request, call_next):
 async def log_requests(request: Request, call_next):
     start = time.time()
     REQ_PREFS.set(None)
+    market.set_current(request.headers.get("x-country"))  # FR unless the app says it is a US shopper
     raw = request.headers.get("x-prefs")
     if raw and len(raw) < 2000:
         try:
@@ -194,8 +195,17 @@ async def log_requests(request: Request, call_next):
     logger.info(f"req {request.method} {request.url.path} status={response.status_code} ms={duration:.0f}")
     return response
 
-app.state.off = OFFClient()
-app.state.prices = value.OpenPricesClient()
+_HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# One local Open Food Facts copy per market (scripts/import_off_dump.py, OFF_COUNTRY); app.state.off forwards to the request's market.
+app.state.off = market.PerMarket({
+    "FR": OFFClient(),
+    "US": OFFClient(cache_path=os.path.join(_HERE, "off_cache_us.db"), local_path=os.path.join(_HERE, "off_local_us.db"),
+                    quick_path=os.path.join(_HERE, "off_quick_us.db"), country="united-states"),
+})
+app.state.prices = market.PerMarket({
+    "FR": value.OpenPricesClient(),
+    "US": value.OpenPricesClient(local_path=os.path.join(_HERE, "op_local_us.db"), country="US", base="USD"),
+})
 app.state.llm = None  # no language model: explanations are always built from the computed facts
 app.state.sessions = db.make_session_factory()
 visit_batcher.set_app_state(app.state)  # Enable background visit batching
@@ -365,6 +375,13 @@ def load_product(s: Session, barcode: str, refresh: bool = False) -> Dict[str, A
     s.add(db.ProductSnapshot(product_id=p["id"], source_updated_at=p["dataQuality"]["lastUpdatedAt"], raw=json.dumps(raw)[:200000]))
     s.commit()
     return p
+
+
+def _ctx_map(ex: ThreadPoolExecutor, fn, items) -> list:
+    """ThreadPoolExecutor.map, but every call runs in a copy of the caller's context, so worker threads see the request's market and preferences."""
+    items = list(items)
+    ctxs = [contextvars.copy_context() for _ in items]
+    return list(ex.map(lambda cx_x: cx_x[0].run(fn, cx_x[1]), zip(ctxs, items)))
 
 
 REQ_PREFS: "contextvars.ContextVar[Optional[Prefs]]" = contextvars.ContextVar("req_prefs", default=None)
@@ -557,7 +574,7 @@ def _record_price(s: Session, product_id: str, user_id: Optional[str], source: s
         return
     s.add(db.ProductPrice(product_id=product_id, user_id=user_id, source=source, observed_on=observed_on, pack_cents=pack_cents, per100_cents=per100,
                           qty_amount=qty["amount"] if qty else None, qty_unit=qty["unit"] if qty else None, receipt_id=receipt_id, confidence=confidence,
-                          currency=(native or {}).get("currency", "EUR"), price_native=(native or {}).get("price_native"), fx=(native or {}).get("fx"), stale=bool((native or {}).get("stale"))))
+                          currency=(native or {}).get("currency", market.currency()), price_native=(native or {}).get("price_native"), fx=(native or {}).get("fx"), stale=bool((native or {}).get("stale"))))
 
 
 def _price_history(s: Session, uid: str, product_id: str, limit: int = 12) -> List[Dict[str, Any]]:
@@ -566,7 +583,7 @@ def _price_history(s: Session, uid: str, product_id: str, limit: int = 12) -> Li
             .filter((db.ProductPrice.user_id == uid) | (db.ProductPrice.user_id.is_(None)))
             .order_by(db.ProductPrice.observed_on.desc(), db.ProductPrice.id.desc()).limit(limit).all())
     return [{"id": r.id, "date": r.observed_on, "source": r.source, "pack_cents": r.pack_cents, "per100_cents": r.per100_cents, "confidence": r.confidence, "mine": r.user_id == uid,
-             "currency": r.currency or "EUR", "price_native": r.price_native, "fx": r.fx, "stale": bool(r.stale)} for r in rows]
+             "currency": r.currency or market.currency(), "price_native": r.price_native, "fx": r.fx, "stale": bool(r.stale)} for r in rows]
 
 
 def _own_price(s: Session, uid: str, product_id: str) -> Optional[Dict[str, Any]]:
@@ -657,7 +674,7 @@ def insights(request: Request, uid: str = Depends(user), s: Session = Depends(ge
             own = _own_price(s, uid, alt["id"]) if aq else None
             prep.append((alt, aq, own, aq is not None and not (own and value.fresh(own["date"]))))
         with ThreadPoolExecutor(max_workers=6) as ex:
-            comms = list(ex.map(lambda t: app.state.prices.latest(t[0]["barcode"], (t[1]["amount"], t[1]["unit"]), value.FRESH_DAYS) if t[3] else None, prep))
+            comms = _ctx_map(ex, lambda t: app.state.prices.latest(t[0]["barcode"], (t[1]["amount"], t[1]["unit"]), value.FRESH_DAYS) if t[3] else None, prep)
         pts = [value.price_point(alt, own, comm) if aq else None for (alt, aq, own, _), comm in zip(prep, comms)]
         best = None
         for a, pt in zip(res["alternatives"], pts):
@@ -949,7 +966,7 @@ def retailers(request: Request, barcode: str, body: RetailersReq, uid: str = Dep
                      "nearest_store": near[0] if near else None, "second_store": near[1] if len(near) > 1 else None, "stores": near})
     rows.sort(key=lambda r: (r["nearest_store"] is None, (r["nearest_store"] or {}).get("distance_m", 0)))
     return {"barcode": barcode, "product": p["name"], "size": q, "retailers": rows, "radius_km": body.radius_km,
-            "other_chains": [{"chain": n, "chain_id": i} for n, i in retail.ID_OF.items() if i not in {r["chain_id"] for r in rows}],
+            "other_chains": [{"chain": n, "chain_id": i} for n, i in retail.ID_OF.items() if i not in {r["chain_id"] for r in rows} and retail.in_market(i, market.current())],
             "far_chains": far_chains, "filtered_out": len([ls for ls in listings if body.chains and ls.chain_id not in body.chains and ls.listing_status in ("listed", "unverified")]),
             "note": "A chain listing does not guarantee that the nearest branch has the product in stock."}
 
@@ -1015,6 +1032,40 @@ def search(q: str, uid: str = Depends(user)):
         return {"products": [normalize(r) for r in app.state.off.search_name(q) if r.get("product_name")]}
     except OFFError as e:
         raise HTTPException(503, str(e))
+
+
+class PhotoIn(BaseModel):
+    image: str = Field(max_length=int(vision.MAX_BYTES * 1.4))  # base64
+    media_type: str = "image/jpeg"
+
+
+@app.post("/v1/vision/identify")
+@limiter.limit("10/minute")
+def vision_identify(request: Request, body: PhotoIn, uid: str = Depends(user), x_beta: Optional[str] = Header(None)):
+    """Beta: read the brand and name off a photo of a pack and look up its barcode. Off unless the app sends X-Beta: 1 (the beta switch in Profile).
+    The photo is sent to Anthropic for this one request and is not stored by Mieux."""
+    if x_beta != "1":
+        raise HTTPException(403, "Beta feature")
+    if body.media_type not in vision.MEDIA_TYPES:
+        raise HTTPException(422, "Unsupported image type")
+    try:
+        import base64
+        raw = base64.b64decode(body.image, validate=True)
+    except ValueError:
+        raise HTTPException(422, "Invalid image")
+    if not raw or len(raw) > vision.MAX_BYTES:
+        raise HTTPException(413, "Image too large")
+    try:
+        ident = vision.identify(raw, body.media_type)
+    except RuntimeError:
+        raise HTTPException(503, "Photo identification is not configured")
+    except Exception as e:  # SDK errors (rate limit, overload, network): never leak details to the client
+        logger.warning({"event": "vision_failed", "error": type(e).__name__})
+        raise HTTPException(502, "Photo identification failed")
+    matches = vision.match(app.state.off, ident) if ident["identified"] or ident["barcode_digits"] else []
+    logger.info({"event": "vision_identify", "user_id": uid, "identified": ident["identified"], "confidence": ident["confidence"], "matches": len(matches)})
+    return {"identified": ident["identified"], "confidence": ident["confidence"], "brand": ident["brand"] or None, "name": ident["product_name"] or None,
+            "variant": ident["variant"] or None, "size": ident["size"] or None, "matches": matches}
 
 
 @app.post("/v1/scans")
@@ -1142,7 +1193,7 @@ def _raw_candidate(r: Dict[str, Any], priorities: List[str], allergens: List[str
     if not r.get("product_name"):
         return False
     countries = r.get("countries_tags")
-    if countries and "en:france" not in countries:
+    if countries and market.tag() not in countries:
         return False
     if not (r.get("categories_tags") or []):
         return False
@@ -1292,7 +1343,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
         ownc = _own_price(s, uid, c["id"]) if ok else None
         prep.append((c, cq, ownc, ok and not (ownc and value.fresh(ownc["date"]))))
     with ThreadPoolExecutor(max_workers=6) as ex:
-        comms = list(ex.map(lambda t: _community(t[0], loc, 730, only) if t[3] else None, prep))
+        comms = _ctx_map(ex, lambda t: _community(t[0], loc, 730, only) if t[3] else None, prep)
     for (c, cq, ownc, _), comm in zip(prep, comms):
         pt = value.price_point(c, ownc, comm) if cq else None
         if pt and (not oq or cq["unit"] == oq["unit"]):
@@ -1356,7 +1407,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     if body.nearby_only and body.location and chain_of:
         # "only what I can buy near me": a product stays if one of its chains (among the user's chains, if any) has a branch within the radius. Exact distances from the full store list.
         loc0 = body.location
-        close = {cid for cid in retail.NAME_OF if retail._near(s, cid, loc0.lat, loc0.lon, loc0.radius_km)}
+        close = {cid for cid in retail.NAME_OF if retail.in_market(cid, market.current()) and retail._near(s, cid, loc0.lat, loc0.lon, loc0.radius_km)}
         allowed = close & set(body.chains) if body.chains else close
         peers = [c for c in peers if set(c.get("chains") or []) & allowed]
         res_filter = {"radius_km": loc0.radius_km, "chains_near": sorted(retail.NAME_OF[c] for c in allowed)}
@@ -1465,7 +1516,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     res["original_indicators"] = engine.indicators(orig, orig_price)
     res["original_sold_in_france"] = orig.get("soldInFrance")
     if engine.is_liquid(orig):  # liquids: say 100 ml and litre, not 100 g and kilo
-        liq = lambda t_: t_.replace("pour 100 g", "pour 100 ml").replace("per 100 g", "per 100 ml").replace("le kilo", "le litre").replace("EUR/kg", "EUR/L")
+        liq = lambda t_: t_.replace("pour 100 g", "pour 100 ml").replace("per 100 g", "per 100 ml").replace("le kilo", "le litre").replace("EUR/kg", "EUR/L").replace("/kg", "/L")
         for a_ in res["alternatives"]:
             a_["improvements"] = [liq(x) for x in a_["improvements"]]
             a_["tradeoffs"] = [liq(x) for x in a_["tradeoffs"]]
@@ -1555,7 +1606,7 @@ def receipts_preview(request: Request, body: PreviewReq, uid: str = Depends(user
         except OFFError:
             return None
     with ThreadPoolExecutor(max_workers=4) as ex:
-        found = list(ex.map(lookup, todo))
+        found = _ctx_map(ex, lookup, todo)
     for i, raw_p in zip(todo, found):
         if raw_p:
             p = normalize(raw_p)

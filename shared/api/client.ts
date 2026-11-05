@@ -15,11 +15,15 @@ import type {
 export interface IdentityInput { name: string | null; city: string | null; postcode: string | null; platform: string | null }
 export interface Identity extends IdentityInput { first_seen: string | null; last_seen: string | null }
 
+export interface PhotoMatch { barcode: string; name: string | null; brand: string | null; quantity: string | null; image: string | null; match: number; exact: boolean }
+export interface PhotoIdentification { identified: boolean; confidence: 'high' | 'medium' | 'low'; brand: string | null; name: string | null; variant: string | null; size: string | null; matches: PhotoMatch[] }
+
 export class MieuxAPI {
   private client: AxiosInstance;
   private token: string | null = null;
   private sessionId: string | null = null;
   private prefsHeader: string | null = null;
+  private country = 'FR';  // which market the shopper is in: picks the product database on the server
 
   // Anonymous session so scanning works without an account; persisted through the platform storage adapter.
   private static anonymousSession(): string {
@@ -39,6 +43,7 @@ export class MieuxAPI {
     this.client.interceptors.request.use((config) => {
       config.baseURL = getApiBase();
       config.headers['X-Lang'] = getLocale();
+      config.headers['X-Country'] = this.country;
       this.sessionId = this.sessionId ?? MieuxAPI.anonymousSession();
       config.headers['X-Session-Id'] = this.sessionId;  // always sent: if the server cannot verify the token it falls back to this anonymous session instead of failing
       if (this.token) {
@@ -189,6 +194,14 @@ export class MieuxAPI {
 
   async geocode(postcode: string) {
     const response = await this.client.post('/geocode', { postcode });
+    return response.data;
+  }
+
+  setCountry(c: string) { this.country = c === 'US' ? 'US' : 'FR'; }
+
+  /** Beta: read brand and name off a photo of a pack (JPEG, base64) and look up its barcode. */
+  async identifyPhoto(image: string, mediaType = 'image/jpeg'): Promise<PhotoIdentification> {
+    const response = await this.client.post('/vision/identify', { image, media_type: mediaType }, { headers: { 'X-Beta': '1' }, timeout: 70000 });
     return response.data;
   }
 

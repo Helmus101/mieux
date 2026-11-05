@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
+import { currencySymbol } from '@shared/utils/money';
 import { Button, Card, Muted, Segmented } from './ui';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -34,7 +35,7 @@ export default function BudgetForm({ initial, onSaved, compact }: { initial?: an
       {!compact && <details style={{ margin: '8px 0' }}><summary><b>{t('fc.catTitle')}</b></summary><p className="mut sm">{t('fc.catHint')}</p>
         {['dairy', 'meat_fish', 'fruit_veg', 'bakery_cereals', 'snacks_sweets', 'drinks'].map((g) => <div className="field card" key={g} style={{ margin: '6px 0' }}><Muted>{t('grp.' + g)}</Muted><input inputMode="decimal" placeholder="—" value={cats[g] ?? ''} onChange={(e) => setCats({ ...cats, [g]: e.target.value })} /></div>)}</details>}
       {err && <p style={{ color: 'var(--bad)' }}>{err}</p>}
-      <Card tint><Muted>{t('bud.config')}</Muted><b style={{ fontSize: 24 }}>{amount || '—'} €</b> <span className="mut">{t('bud.' + period)}</span></Card>
+      <Card tint><Muted>{t('bud.config')}</Muted><b style={{ fontSize: 24 }}>{amount || '—'} {currencySymbol()}</b> <span className="mut">{t('bud.' + period)}</span></Card>
       <Button primary onPress={save}>{t('bud.save')}</Button>
     </div>
   );

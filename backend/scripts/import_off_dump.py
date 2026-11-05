@@ -1,6 +1,11 @@
-"""Build Mieux's own copy of the French part of Open Food Facts from the official CSV export.
+"""Build Mieux's own copy of one country's part of Open Food Facts from the official CSV export.
 
     cd backend && .venv/bin/python -m scripts.import_off_dump ~/Downloads/en.openfoodfacts.org.products.csv
+
+France is the default. The United States gets its own file, so the two markets never mix:
+
+    OFF_COUNTRY=united-states OFF_LOCAL=off_local_us.db .venv/bin/python -m scripts.import_off_dump ~/Downloads/en.openfoodfacts.org.products.csv
+    OFF_LOCAL=off_local_us.db OFF_QUICK=off_quick_us.db .venv/bin/python scripts/build_quick_index.py
 
 Why: the live Open Food Facts API allows only ~10 searches and ~100 product reads per minute per address and blocks clients that push, so a
 product used by hundreds of people cannot depend on it. With this copy, product lookups, category searches and name searches are local
@@ -16,6 +21,7 @@ import time
 
 import duckdb
 
+COUNTRY = os.environ.get("OFF_COUNTRY", "france")  # Open Food Facts country tag without the "en:" prefix
 OUT = os.environ.get("OFF_LOCAL", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "off_local.db"))
 NUTRI = ["energy-kcal", "fat", "saturated-fat", "trans-fat", "carbohydrates", "sugars", "fiber", "proteins", "salt", "sodium", "vitamin-a", "vitamin-d", "vitamin-e", "vitamin-k", "vitamin-c",
          "vitamin-b1", "vitamin-b2", "vitamin-pp", "vitamin-b6", "vitamin-b9", "vitamin-b12", "calcium", "iron", "magnesium", "potassium", "zinc", "added-sugars",
@@ -46,7 +52,7 @@ def main(csv_path: str, out: str = OUT) -> None:
     cols = [c for c in TEXT + [n + "_100g" for n in NUTRI] if c in have]
     q = ", ".join(f'"{c}"' for c in cols)
     cur = con.execute(f"""select {q} from read_csv('{csv_path}', delim='\\t', header=true, quote='', escape='', all_varchar=true, ignore_errors=true, parallel=true)
-                          where countries_tags like '%en:france%' and code is not null and product_name is not null and product_name <> ''""")
+                          where countries_tags like '%en:{COUNTRY}%' and code is not null and product_name is not null and product_name <> ''""")
     idx = {c: i for i, c in enumerate(cols)}
     n = 0
     while True:
@@ -75,12 +81,12 @@ def main(csv_path: str, out: str = OUT) -> None:
         db.executemany("insert into off_names values (?,?)", fts)
         n += len(prod)
         if n % 50000 < 5000:
-            print(f"  {n:,} French products  ({time.time() - t0:0.0f}s)", flush=True)
+            print(f"  {n:,} {COUNTRY} products  ({time.time() - t0:0.0f}s)", flush=True)
     db.execute("create index off_cat_tag on off_cat (tag, scans desc)")
     db.commit()
     db.close()
     os.replace(tmp, out)  # atomic swap: the running app switches to the new copy on its next query
-    print(f"done: {n:,} French products -> {out}  ({time.time() - t0:0.0f}s)")
+    print(f"done: {n:,} {COUNTRY} products -> {out}  ({time.time() - t0:0.0f}s)")
 
 
 if __name__ == "__main__":

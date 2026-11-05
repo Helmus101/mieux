@@ -10,16 +10,26 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
+from . import market
+
 # canonical chain -> regex matched against OSM brand/name and Open Prices shop names
 CHAINS: Dict[str, str] = {
     "Carrefour": r"carrefour", "Auchan": r"auchan", "E.Leclerc": r"leclerc", "Intermarché": r"intermarch", "Lidl": r"\blidl\b", "Aldi": r"\baldi\b",
     "Monoprix": r"monoprix", "Franprix": r"franprix", "Casino": r"casino|petit casino|spar\b", "Super U": r"super u|hyper u|u express|syst[eè]me u|\bu\b",
     "Picard": r"picard", "Biocoop": r"biocoop", "Naturalia": r"naturalia", "La Vie Claire": r"vie claire", "Grand Frais": r"grand frais", "Cora": r"\bcora\b", "Match": r"\bmatch\b",
+    # United States (Aldi and Lidl above also trade there)
+    "Walmart": r"wal-?mart", "Kroger": r"\bkroger\b", "Costco": r"costco", "Target": r"\btarget\b", "Albertsons": r"albertsons", "Safeway": r"safeway", "Publix": r"publix",
+    "Whole Foods": r"whole foods", "Trader Joe's": r"trader joe", "H-E-B": r"\bh-?e-?b\b", "Wegmans": r"wegmans", "Sprouts": r"sprouts", "Food Lion": r"food lion",
+    "Stop & Shop": r"stop ?(&|and) ?shop", "Meijer": r"meijer", "Sam's Club": r"sam'?s club", "BJ's": r"\bbj'?s\b", "Hy-Vee": r"hy-?vee", "ShopRite": r"shop-?rite",
+    "Harris Teeter": r"harris teeter", "Winn-Dixie": r"winn-?dixie",
 }
 # plain words for the Overpass brand filter
 TOKENS: Dict[str, str] = {"Carrefour": "Carrefour", "Auchan": "Auchan", "E.Leclerc": "Leclerc", "Intermarché": "Intermarch", "Lidl": "Lidl", "Aldi": "Aldi", "Monoprix": "Monoprix",
                           "Franprix": "Franprix", "Casino": "Casino", "Super U": "Super U|Hyper U|U Express|Marché U", "Picard": "Picard", "Biocoop": "Biocoop", "Naturalia": "Naturalia", "La Vie Claire": "La Vie Claire",
-                          "Grand Frais": "Grand Frais", "Cora": "Cora", "Match": "Match"}
+                          "Grand Frais": "Grand Frais", "Cora": "Cora", "Match": "Match",
+                          "Walmart": "Walmart", "Kroger": "Kroger", "Costco": "Costco", "Target": "Target", "Albertsons": "Albertsons", "Safeway": "Safeway", "Publix": "Publix", "Whole Foods": "Whole Foods",
+                          "Trader Joe's": "Trader Joe", "H-E-B": "H-E-B", "Wegmans": "Wegmans", "Sprouts": "Sprouts", "Food Lion": "Food Lion", "Stop & Shop": "Stop & Shop", "Meijer": "Meijer",
+                          "Sam's Club": "Sam's Club", "BJ's": "BJ's", "Hy-Vee": "Hy-Vee", "ShopRite": "ShopRite", "Harris Teeter": "Harris Teeter", "Winn-Dixie": "Winn-Dixie"}
 # what to type in the OpenStreetMap search box (the regex tokens above are for matching, not searching)
 QUERY: Dict[str, str] = {"E.Leclerc": "Leclerc", "Intermarché": "Intermarché", "Super U": "Super U", "Grand Frais": "Grand Frais"}
 # own brands that only a chain sells (lower-case brand fragments)
@@ -28,6 +38,12 @@ OWN_BRANDS: Dict[str, str] = {
     "paturages": "Intermarché", "pâturages": "Intermarché", "top budget": "Intermarché", "marque u": "Super U", "u bio": "Super U", "u tout petits": "Super U",
     "milbona": "Lidl", "dulano": "Lidl", "freeway": "Lidl", "mamia": "Aldi", "monoprix": "Monoprix", "franprix": "Franprix", "casino": "Casino", "picard": "Picard",
     "biocoop": "Biocoop", "cora": "Cora", "naturalia": "Naturalia", "la vie claire": "La Vie Claire",
+    # United States: store brands only that chain sells
+    "great value": "Walmart", "marketside": "Walmart", "kirkland": "Costco", "good & gather": "Target", "good and gather": "Target", "market pantry": "Target", "favorite day": "Target",
+    "simple truth": "Kroger", "private selection": "Kroger", "kroger": "Kroger", "trader joe": "Trader Joe's", "whole foods market": "Whole Foods", "365 by": "Whole Foods",
+    "o organics": "Albertsons", "signature select": "Safeway", "signature farms": "Safeway", "publix": "Publix", "greenwise": "Publix", "h-e-b": "H-E-B", "wegmans": "Wegmans",
+    "sprouts": "Sprouts", "food lion": "Food Lion", "nature's promise": "Stop & Shop", "meijer": "Meijer", "member's mark": "Sam's Club", "wellsley farms": "BJ's", "hy-vee": "Hy-Vee",
+    "harris teeter": "Harris Teeter", "winn-dixie": "Winn-Dixie", "simply nature": "Aldi", "specially selected": "Aldi", "friendly farms": "Aldi", "preferred selection": "Lidl",
 }
 _NOMINATIM = "https://nominatim.openstreetmap.org/search"
 _cache: Dict[Any, Any] = {}
@@ -86,7 +102,7 @@ def nearest_branches(lat: float, lon: float, chains: List[str], radius_km: int =
                 time.sleep(1.0)  # Nominatim usage policy: at most one request per second
             first = False
             try:
-                res = _get_json(_NOMINATIM, {"q": QUERY.get(ch, ch), "format": "jsonv2", "limit": 40, "addressdetails": 1, "countrycodes": "fr",
+                res = _get_json(_NOMINATIM, {"q": QUERY.get(ch, ch), "format": "jsonv2", "limit": 40, "addressdetails": 1, "countrycodes": market.current().lower(),
                                              "viewbox": f"{lon - dlon},{lat + dlat},{lon + dlon},{lat - dlat}", "bounded": 1})
             except Exception:
                 continue

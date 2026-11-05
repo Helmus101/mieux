@@ -17,7 +17,7 @@ describe('install hint platform detection', () => {
 
 describe('who gets the landing page', () => {
   afterEach(() => { vi.unstubAllGlobals(); });
-  it('treats every touch device as app-first', () => {
+  it('recognises every touch device', () => {
     ua('Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) Safari/604.1'); expect(isPhone()).toBe(true);
     ua('Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/124.0 Mobile Safari/537.36'); expect(isPhone()).toBe(true);
     ua('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1', { platform: 'MacIntel', maxTouchPoints: 5 }); expect(isPhone()).toBe(true); // iPad
@@ -37,13 +37,21 @@ describe('landing page vs app', () => {
     at('/app'); expect(wantsLanding()).toBe(false);            // the app's own URL never shows the landing
     at('/', '?app'); expect(wantsLanding()).toBe(false);       // ?app skips it on purpose
   });
-  it('a phone goes straight to the app', () => {
+  it('a phone and an iPad in a browser tab see the landing page at the root', () => {
     ua('Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) Safari/604.1');
-    at('/'); expect(wantsLanding()).toBe(false);
-  });
-  it('an iPad goes straight to the app', () => {
+    at('/'); expect(wantsLanding()).toBe(true);
+    at('/app'); expect(wantsLanding()).toBe(false);
+    at('/', '?app'); expect(wantsLanding()).toBe(false);
     ua('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1', { platform: 'MacIntel', maxTouchPoints: 5 });
-    at('/'); expect(wantsLanding()).toBe(false);
+    at('/'); expect(wantsLanding()).toBe(true);
+  });
+  it('the installed app on a phone skips the landing page', () => {
+    ua('Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) Safari/604.1');
+    vi.stubGlobal('window', { location: { pathname: '/', search: '' }, matchMedia: () => ({ matches: true }) });
+    expect(wantsLanding()).toBe(false);
+    ua('Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) Safari/604.1', { standalone: true });
+    vi.stubGlobal('window', { location: { pathname: '/', search: '' }, matchMedia: () => ({ matches: false }) });
+    expect(wantsLanding()).toBe(false);                    // iOS home-screen app without display-mode support
   });
   it('a computer gets the landing page even after opening the app, and in an installed window', () => {
     ua('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/124.0 Safari/537.36', { platform: 'MacIntel' });

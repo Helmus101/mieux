@@ -64,9 +64,9 @@ class _Disk:
 class _Local:
     """Mieux's own copy of the French Open Food Facts data (built by scripts/import_off_dump.py). No network, no rate limit, safe for many users.
     The file is swapped atomically by the monthly import; this class notices the new file and reopens it."""
-    def __init__(self, path: str):
+    def __init__(self, path: str, quick_path: Optional[str] = None):
         self.path = path
-        self.quick_path = os.environ.get("OFF_QUICK", os.path.join(os.path.dirname(path), "off_quick.db"))
+        self.quick_path = quick_path or os.environ.get("OFF_QUICK", os.path.join(os.path.dirname(path), "off_quick.db"))
         self._conn: Optional[sqlite3.Connection] = None
         self._sig = None
         self._quick = False
@@ -201,9 +201,10 @@ class _Local:
 class OFFClient:
     base = "https://world.openfoodfacts.org"
 
-    def __init__(self, cache_path: Optional[str] = None):
+    def __init__(self, cache_path: Optional[str] = None, local_path: Optional[str] = None, quick_path: Optional[str] = None, country: str = "france"):
+        self.country = country  # Open Food Facts country tag (without "en:") used for the live-API fallback searches
         self.disk = _Disk(cache_path or CACHE_PATH)
-        self.local = _Local(LOCAL_PATH)
+        self.local = _Local(local_path or LOCAL_PATH, quick_path)
         self._mem: Dict[str, Any] = {}
         self._lock = threading.Lock()
         self._last_search = 0.0
@@ -285,9 +286,9 @@ class OFFClient:
         if local:
             return local
         def go():
-            j = self._get(f"{self.base}/api/v2/search", {"categories_tags": tag, "countries_tags": "en:france", "sort_by": "unique_scans_n", "page_size": size, "fields": FIELDS}, 2, search=True)
+            j = self._get(f"{self.base}/api/v2/search", {"categories_tags": tag, "countries_tags": f"en:{self.country}", "sort_by": "unique_scans_n", "page_size": size, "fields": FIELDS}, 2, search=True)
             return j.get("products") or []
-        return self._cached(f"cat|{tag}|{size}", go)
+        return self._cached(f"cat|{self.country}|{tag}|{size}", go)
 
     # -- whole-category selection (compact side index, see scripts/build_quick_index.py) --------------------------------
     def quick_available(self) -> bool:
@@ -320,6 +321,6 @@ class OFFClient:
         if local:
             return local
         def go():
-            j = self._get(f"{self.base}/cgi/search.pl", {"search_simple": 1, "action": "process", "json": 1, "page_size": 15, "fields": FIELDS, "search_terms": q, "tagtype_0": "countries", "tag_contains_0": "contains", "tag_0": "france"}, 2, search=True)
+            j = self._get(f"{self.base}/cgi/search.pl", {"search_simple": 1, "action": "process", "json": 1, "page_size": 15, "fields": FIELDS, "search_terms": q, "tagtype_0": "countries", "tag_contains_0": "contains", "tag_0": self.country}, 2, search=True)
             return j.get("products") or []
-        return self._cached(f"name|{q}", go)
+        return self._cached(f"name|{self.country}|{q}", go)

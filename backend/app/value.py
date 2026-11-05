@@ -66,21 +66,26 @@ class FX:
     def __init__(self):
         self._c: Dict[str, Tuple[float, Optional[float]]] = {}
 
-    def to_eur(self, cur: str) -> Optional[float]:
-        if cur == "EUR":
+    def rate(self, cur: str, base: str = "EUR") -> Optional[float]:
+        """How many units of `base` one unit of `cur` is worth."""
+        if cur == base:
             return 1.0
-        hit = self._c.get(cur)
+        key = f"{cur}>{base}"
+        hit = self._c.get(key)
         if hit and time.time() - hit[0] < 43200:
             return hit[1]
         rate = None
         try:
-            r = httpx.get("https://api.frankfurter.dev/v1/latest", params={"base": cur, "symbols": "EUR"}, timeout=8, follow_redirects=True)
+            r = httpx.get("https://api.frankfurter.dev/v1/latest", params={"base": cur, "symbols": base}, timeout=8, follow_redirects=True)
             if r.status_code == 200:
-                rate = float(r.json()["rates"]["EUR"])
+                rate = float(r.json()["rates"][base])
         except (httpx.HTTPError, ValueError, KeyError):
             rate = None
-        self._c[cur] = (time.time(), rate)
+        self._c[key] = (time.time(), rate)
         return rate
+
+    def to_eur(self, cur: str) -> Optional[float]:
+        return self.rate(cur, "EUR")
 
 
 class _LocalPrices:
@@ -125,7 +130,8 @@ class OpenPricesClient:
     """Community price observations (Open Food Facts / Open Prices). Kept separate from the user's own receipts."""
     base = "https://prices.openfoodfacts.org/api/v1/prices"
 
-    def __init__(self, local_path: Optional[str] = None):
+    def __init__(self, local_path: Optional[str] = None, country: str = "FR", base: str = "EUR"):
+        self.country, self.base = country, base  # market of the shops that count, and the currency every price is expressed in
         self.local = _LocalPrices(local_path or os.environ.get("OP_LOCAL", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "op_local.db")))
         self._raw: Dict[str, Tuple[float, List[Dict[str, Any]]]] = {}
         self.fx = FX()
@@ -159,8 +165,8 @@ class OpenPricesClient:
                     self._raw[c] = (time.time(), its)
 
     def seen_in_france(self, barcode: str) -> bool:
-        """A community price was recorded for this exact barcode in a shop located in France."""
-        return any(((it.get("location") or {}).get("osm_address_country_code") or "").upper() == "FR" for it in self._items(barcode))
+        """A community price was recorded for this exact barcode in a shop located in this client's country (France unless built for another market)."""
+        return any(((it.get("location") or {}).get("osm_address_country_code") or "").upper() == self.country for it in self._items(barcode))
 
     def _items(self, barcode: str) -> List[Dict[str, Any]]:
         if self.local.available():  # our own copy of the French prices: instant and unlimited
@@ -203,13 +209,14 @@ class OpenPricesClient:
         n_obs = sum(c["observations"] for c in chains)
         newest = max(c["newest"] for c in chains)
         packs = [c["pack_cents"] for c in chains if c["pack_cents"] is not None]
-        return {"source": "open_prices", "per100_cents": round(avg, 2), "date": newest, "where": None, "currency": "EUR", "price_native": None, "fx": 1.0,
+        return {"source": "open_prices", "per100_cents": round(avg, 2), "date": newest, "where": None, "currency": self.base, "price_native": None, "fx": 1.0,
                 "stale": all(c["stale"] for c in chains), "pack_cents": round(sum(packs) / len(packs)) if packs else None, "n_observations": n_obs, "n_chains": len(chains)}
 
-    def _observations(self, barcode: str, qty, max_age_days: int = 1095, country: str = "FR"):
+    def _observations(self, barcode: str, qty, max_age_days: int = 1095, country: Optional[str] = None):
         """Open Prices observations made in French shops, with a canonical chain, a price per 100 g/ml in EUR (when the pack size is known) and an age."""
         from . import chains as ch
         out = []
+        country = country or self.country
         for it in self._items(barcode):
             loc = it.get("location") or {}
             if (loc.get("osm_address_country_code") or "").upper() != country:
@@ -218,7 +225,7 @@ class OpenPricesClient:
             if age is None or age > max_age_days:
                 continue
             chain = ch.canon(loc.get("osm_brand")) or ch.canon(loc.get("osm_name"))
-            rate = self.fx.to_eur((it.get("currency") or "EUR").upper())
+            rate = self.fx.rate((it.get("currency") or self.base).upper(), self.base)
             native = self._per100(it, qty) if qty else None
             unit = (it.get("price_per") or "").upper() in ("", "UNIT")
             out.append({"chain": chain, "shop": loc.get("id") or loc.get("osm_id"), "age": age, "date": it["date"][:10],
@@ -255,6 +262,8 @@ class OpenPricesClient:
         for it in self._items(barcode):
             loc = it.get("location") or {}
             if not fresh(it.get("date")) or loc.get("osm_lat") is None or loc.get("osm_lon") is None:
+                continue
+            if (it.get("currency") or self.base).upper() != self.base:  # a price in another currency is not comparable here
                 continue
             d = haversine_km(lat, lon, float(loc["osm_lat"]), float(loc["osm_lon"]))
             p100 = self._per100(it, qty)

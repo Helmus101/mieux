@@ -3,7 +3,7 @@ import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { formatCents } from '@shared/utils/format';
 import { useProfile } from '@shared/stores';
-import { CHAIN_LIST } from '@shared/chains';
+import { chainsFor } from '@shared/chains';
 import { directionsUrl } from './place';
 import { friendlyError } from './errors';
 import { Button, ChainLogo, Muted, Row, Segmented, haptic } from './ui';
@@ -17,7 +17,8 @@ const dist = (m: number) => (m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1).repl
  *  The position (current, else home) is used once for the search and not stored by the app. */
 export default function Where({ barcode, liquid }: { barcode: string; liquid?: boolean }) {
   const home = useProfile((st) => st.place);
-  const mine = (useProfile((st) => st.chains) ?? []).filter((id) => CHAIN_LIST.some((c) => c.id === id));
+  const country = useProfile((st) => st.country);
+  const mine = (useProfile((st) => st.chains) ?? []).filter((id) => chainsFor(country).some((c) => c.id === id));
   const [res, setRes] = useState<any | null>(null), [pos, setPos] = useState<{ lat: number; lon: number } | null>(null), [useHere, setUseHere] = useState(false);
   const all = false;
   const [more, setMore] = useState(false), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false), [adding, setAdding] = useState(false);
