@@ -1431,7 +1431,9 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             a["value"] = engine.value_card(orig, a["product"], orig_price, a["price_per_100_cents"])
     for a in res["alternatives"]:
         a["indicators"] = engine.indicators(a["product"], prices.get(a["product"]["barcode"]))
-    res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"])
+    est_codes = frozenset(k for k, v in points.items() if (v or {}).get("source") == "estimate" and k != orig["barcode"])
+    orig_est = (points.get(orig["barcode"]) or {}).get("source") == "estimate"
+    res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"], est_codes, orig_est)
     for key in ("budget", "value"):
         for r in res["rankings"][key]:
             r["price_source"] = _with_confidence(points.get(r["product"]["barcode"]))

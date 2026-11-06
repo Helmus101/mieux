@@ -1,0 +1,15 @@
+{
+  "_readme": "Each case is a scanned product (by query or barcode) plus HUMAN labels for the alternatives Mieux returns, keyed by barcode: substitute (true/false), cheaper (true/false), better_quality (true/false), good_value (true/false), price_ok (true/false). Labels are written by a person, ideally two reviewers. Run: python scripts/benchmark.py --template to list candidates to label, python scripts/benchmark.py to score.",
+  "cases": [
+    {"query": "yaourt nature", "labels": {}},
+    {"query": "pain de mie complet", "labels": {}},
+    {"query": "corn flakes", "labels": {}},
+    {"query": "jus d'orange", "labels": {}},
+    {"query": "spaghetti", "labels": {}},
+    {"query": "biscuits chocolat", "labels": {}},
+    {"query": "sauce tomate", "labels": {}},
+    {"query": "fromage blanc", "labels": {}},
+    {"query": "pâte à tartiner", "labels": {}},
+    {"query": "chips", "labels": {}}
+  ]
+}

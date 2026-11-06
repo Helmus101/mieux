@@ -316,6 +316,22 @@ def compare(products: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {"basis": "per 100 g / 100 ml", "rows": rows, "nova": [p.get("novaGroup") for p in products], "micro": micro, "note": "Highlights are per-nutrient only; no product is declared the overall winner."}
 
 
+def data_issues(p: Dict[str, Any]) -> List[str]:
+    """Problems in a product's own data that make a comparison unreliable (empty list = usable). Checked before a product can be recommended."""
+    n = p.get("nutriments") or {}
+    issues = []
+    macro = sum(n.get(k) or 0 for k in ("fat100g", "carbohydrates100g", "protein100g", "fiber100g", "salt100g"))
+    if macro > 115:                                              # more than 100 g of nutrients in 100 g of product: a unit or typing error
+        issues.append("nutrition_implausible")
+    if (n.get("sugars100g") or 0) > 100 or (n.get("salt100g") or 0) > 100 or (n.get("saturatedFat100g") or 0) > 100:
+        issues.append("nutrition_implausible")
+    if n.get("sugars100g") is not None and n.get("carbohydrates100g") is not None and n["sugars100g"] > n["carbohydrates100g"] + 1:
+        issues.append("sugars_exceed_carbohydrates")
+    if (p.get("score") or {}).get("total") is None:
+        issues.append("no_score")
+    return sorted(set(issues))
+
+
 def prefilter(orig: Dict[str, Any], peers: List[Dict[str, Any]], allergens: List[str], diet: Optional[str], mode: str,
               n: int = 40, priorities: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """Candidates that pass hard restrictions and similarity, kept for the price comparison.
@@ -326,6 +342,8 @@ def prefilter(orig: Dict[str, Any], peers: List[Dict[str, Any]], allergens: List
     out = []
     for c in peers:
         if c["barcode"] == orig["barcode"] or c.get("soldInFrance") is not True or restriction_status(c, allergens, diet) != "ok":
+            continue
+        if {"nutrition_implausible", "sugars_exceed_carbohydrates"} & set(data_issues(c)):   # a typing/unit error in the data must not turn into a recommendation
             continue
         sim = deep_similarity(orig, c)
         if mode == "similar" and sim < 0.45:
@@ -444,7 +462,7 @@ def nutrient_limits(orig):
     return _SUGAR_LIMIT.get(fam, 5.0), _SALT_LIMIT.get(fam, 0.5)
 
 
-def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match_list):
+def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match_list, estimated=frozenset(), orig_estimated=False):
     """Three separate rankings. Budget: cheapest that keeps minimum nutrition. Value: the quality-price score (overall quality score against price, measured
     against the scanned product), without big sugar/salt penalties; it does not depend on a single nutrient. Match: the user's own priority order (computed by choose)."""
     out = {"budget": [], "value": [], "match": match_list[:10]}
@@ -455,6 +473,8 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
     med = sorted(ref)[len(ref) // 2] if ref else None
     for c in pool:
         p = prices.get(c["barcode"])
+        if c["barcode"] in estimated:  # an estimated price is indicative only: it never wins the cheapest or best-value list
+            continue
         if p is None or c["barcode"] == orig["barcode"] or p < 3:  # under 0.30 EUR/kg is a mis-scaled community price, not a real shelf price
             continue
         if med and len(ref) >= 5 and (p > med * 6 or p < med / 8):  # far outside what this kind of product costs: a mis-scaled price, never a cheapest/best-value pick
@@ -477,7 +497,7 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
         min_ok = min_ok and not big_penalty
         rows.append({"product": c, "price_per_100_cents": round(p, 1), "similarity": round(sim, 2), "min_ok": min_ok, "big_penalty": big_penalty,
                      "indicators": indicators(c, p), "tradeoffs": _tradeoffs(orig, c, sim, lang)})
-    if orig_price is None:
+    if orig_price is None or orig_estimated:   # an estimated price of your own product proves no saving either
         # Your own product has no known price, so nothing can be PROVEN cheaper or better value than it. Still useful: the comparable products that do have a real price,
         # cheapest first (and best quality-for-price first), flagged 'no_baseline' so the screen says the comparison is by price, not against yours.
         good = [r for r in rows if r["min_ok"]]

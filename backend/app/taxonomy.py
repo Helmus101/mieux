@@ -118,15 +118,15 @@ def classify(p: Dict[str, Any]) -> Dict[str, Any]:
     # name beats tags for the specific form (a toasted brioche is tagged as breads and brioches), tags beat the name for the general kind
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if nr.search(name) and tid in ("brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee"):
-            return {"type": tid, **_META[tid], "source": "name"}
+            return {"type": tid, **_META[tid], "source": "name", "confidence": "high", "reason": "name matches the specific form: " + nr.pattern[:40]}
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tr.search(tags):
-            return {"type": tid, **_META[tid], "source": "tags"}
+            return {"type": tid, **_META[tid], "source": "tags", "confidence": "high" if nr.search(name) else "medium", "reason": "category tags match: " + tr.pattern[:40]}
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if nr.search(name):
-            return {"type": tid, **_META[tid], "source": "name"}
+            return {"type": tid, **_META[tid], "source": "name", "confidence": "low", "reason": "name only, no category tag agrees"}
     leaf = (p.get("categories") or [None])[-1]
-    return {"type": None, "family": None, "category": None, "subcategory": None, "form": None, "use": None, "leaf": leaf, "source": "none"}
+    return {"type": None, "family": None, "category": None, "subcategory": None, "form": None, "use": None, "leaf": leaf, "source": "none", "confidence": "none", "reason": "unclassified: only the exact same leaf category is accepted as a substitute"}
 
 
 def level_between(a: str, b: str) -> Optional[int]:
