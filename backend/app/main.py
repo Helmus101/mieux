@@ -1439,9 +1439,22 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             r["price_source"] = _with_confidence(points.get(r["product"]["barcode"]))
             r["stores"] = shops.get(r["product"]["barcode"], [])
     if body.category_mode == "similar":  # "closest": the most interchangeable products first, whatever their price or score
-        close = sorted(pool_src, key=lambda c: ((c.get("substitution") or {}).get("level", 9), -engine.deep_similarity(orig, c)))[:10]
+        ranked = sorted(pool_src, key=lambda c: ((c.get("substitution") or {}).get("level", 9), -engine.deep_similarity(orig, c)))
+        close, seen_variant, per_brand = [], set(), {}
+        for c in ranked:                      # one entry per product (pack sizes merged); at most two per brand while other brands remain
+            vk = engine.variant_key(c)
+            brand = (c.get("brand") or "").split(",")[0].strip().lower()
+            if vk in seen_variant:
+                continue
+            seen_variant.add(vk)
+            if per_brand.get(brand, 0) >= 2 and any(per_brand.get((x.get("brand") or "").split(",")[0].strip().lower(), 0) < 2 for x in ranked[len(close):]):
+                continue
+            per_brand[brand] = per_brand.get(brand, 0) + 1
+            close.append(c)
+            if len(close) >= 10:
+                break
         res["rankings"]["closest"] = [{"product": c, "why": tr(lang, "closest_" + (c.get("substitution") or {}).get("label", "broader")), "tradeoffs": engine._tradeoffs(orig, c, engine.deep_similarity(orig, c), lang),
-                                       "price_per_100_cents": prices.get(c["barcode"]), "similarity": round(engine.deep_similarity(orig, c), 2), "estimated": False} for c in close]
+                                       "price_source": _with_confidence(points.get(c["barcode"])), "price_per_100_cents": prices.get(c["barcode"]), "similarity": round(engine.deep_similarity(orig, c), 2), "estimated": False} for c in close]
     # "quality": your priorities' picks first (products that beat yours), then the other same-type products by quality score, so the tab is never empty when comparable products exist
     def _qrow(c, why, trade, better):
         pt_ = points.get(c["barcode"]) or {}
@@ -1449,10 +1462,6 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     imp = {a["product"]["id"]: ("; ".join(a["improvements"]), a["tradeoffs"]) for a in res["alternatives"]}
     o_sc = (orig.get("score") or {}).get("total")
     scored = sorted([c for c in pool_src if (c.get("score") or {}).get("total") is not None and (o_sc is None or c["score"]["total"] > o_sc)], key=lambda c: (-c["score"]["total"], prices.get(c["barcode"]) is None, prices.get(c["barcode"]) or 0, -engine.deep_similarity(orig, c)))  # only products of better quality than yours
-    if len(scored) < 5 and o_sc is not None:  # fewer than 5 strictly better: add equally rated products, so the list is still worth browsing
-        have_ = {c["barcode"] for c in scored}
-        scored += sorted([c for c in pool_src if (c.get("score") or {}).get("total") == o_sc and c["barcode"] not in have_ and c["barcode"] != orig["barcode"]],
-                         key=lambda c: (prices.get(c["barcode"]) is None, prices.get(c["barcode"]) or 0, -engine.deep_similarity(orig, c)))
     qrows = []
     for c in scored[:10]:  # strictly by quality score, highest first (price plays no part here)
         why, trade = imp.get(c["id"]) or (tr(lang, "quality_note", s=c["score"]["total"], o=o_sc if o_sc is not None else "?"), engine._tradeoffs(orig, c, engine.deep_similarity(orig, c), lang))
