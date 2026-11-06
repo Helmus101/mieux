@@ -9,7 +9,9 @@ const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https:
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 /** Supabase is used for sign-in only; null until the anon key is configured, in which case the app stays account-free. */
-export const supabase: SupabaseClient | null = KEY ? createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
+/** Sign-in is switched off for now: the app is account-free (anonymous session, history and profile stay on the device). Set to true to bring sign-in back; nothing else changes. */
+const AUTH_ENABLED = false;
+export const supabase: SupabaseClient | null = AUTH_ENABLED && KEY ? createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
 export const accountEnabled = !!supabase;
 
 interface Account { email: string | null; uid: string | null; ready: boolean; scans: number | null; pending: number; syncError: string | null }

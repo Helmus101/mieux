@@ -340,3 +340,14 @@ td .nova{padding:4px 8px}
 .ob-points li{position:relative;padding-left:24px;font-size:15.5px;font-weight:600;line-height:1.35}
 .ob-points li::before{content:"";position:absolute;left:0;top:.35em;width:12px;height:12px;border-radius:50%;background:var(--accent)}
 .ob-points li:nth-child(2)::before{background:var(--clay)}.ob-points li:nth-child(3)::before{background:var(--olive)}
+
+/* Native-app feel: no text selection or callouts on the interface, no double-tap zoom, no scrollbars, no image dragging, visible press states. Typing and reading fields stay selectable. */
+html{-webkit-text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select,[contenteditable],.selectable{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+img,svg{-webkit-user-drag:none;user-select:none}
+*::-webkit-scrollbar{display:none}
+*{scrollbar-width:none}
+button,a,[role=button],.chain-chip{cursor:pointer;transition:transform .12s ease,opacity .12s ease}
+.chain-chip:active,a:active{transform:scale(.97);opacity:.8}
+@media (display-mode: standalone){body{padding-top:0}.landing-only{display:none}}
