@@ -226,8 +226,7 @@ def _tradeoffs(o, c, sim, lang="fr", price_unknown=False) -> List[str]:
 def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[str], allergens: List[str], diet: Optional[str],
            mode: str = "similar", limit: int = 5, prices: Optional[Dict[str, float]] = None,
            orig_price: Optional[float] = None, lang: str = "fr") -> Dict[str, Any]:
-    ex = {"conflict": 0, "unverified": 0, "incomplete": 0, "not_better": 0, "dissimilar": 0, "not_in_france": 0}
-    cats = set(orig["categories"])
+    ex = {"conflict": 0, "unverified": 0, "incomplete": 0, "not_better": 0, "dissimilar": 0, "not_in_france": 0, "not_substitute": 0}
     found = []
     for c in peers:
         if c["barcode"] == orig["barcode"]:
@@ -241,6 +240,11 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
         if st != "ok":
             ex[st] += 1
             continue
+        substitution = c.get("substitution") or taxonomy.substitution(orig, c)
+        if substitution is None:
+            ex["not_substitute"] += 1
+            continue
+        c = {**c, "substitution": substitution}
         d = {k: _diff(orig, c, k, prices, orig_price, priorities) for k in priorities}
         for k in priorities[1:]:
             if k in ("budget", "value") and d[k] is None:
@@ -248,8 +252,10 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
         if any(v is None for v in d.values()):
             ex["incomplete"] += 1
             continue
-        first = priorities[0]
-        if not d[first] > PRIORITIES[first][2]:
+        # Discovery is independent from improvement. A closest substitute remains useful
+        # even when it does not beat the scanned product on the user's first priority.
+        first = priorities[0] if priorities else None
+        if first and mode != "similar" and not d[first] > PRIORITIES[first][2]:
             ex["not_better"] += 1
             continue
         sim = deep_similarity(orig, c)
@@ -266,6 +272,18 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
         if k not in seen:
             seen.add(k); uniq.append(it)
     found = uniq
+    # Prefer cross-brand discovery without making diversity a hard eligibility rule.
+    # Keep at most two products from one brand in the first five when alternatives exist.
+    if len(found) > 1:
+        selected, deferred, brand_counts = [], [], {}
+        for item in found:
+            brand = (item[2].get("brand") or "__unknown__").split(",")[0].strip().lower()
+            if len(selected) < min(limit, 5) and brand_counts.get(brand, 0) >= 2:
+                deferred.append(item)
+                continue
+            selected.append(item)
+            brand_counts[brand] = brand_counts.get(brand, 0) + 1
+        found = selected + deferred
     alts = []
     for rank, sim, c, d in found[:limit]:
         imp = []
