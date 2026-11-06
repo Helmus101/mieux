@@ -146,3 +146,8 @@ def test_lotus_biscoff_leads_to_other_speculoos_not_crackers_spreads_or_sweets()
     assert sub(lotus, cracker) is None and sub(lotus, gum) is None
     assert sub(lotus, spread) is None or sub(lotus, spread)["level"] >= 4
     assert "speculoos" in taxonomy.search_terms(lotus)
+
+
+def test_speculoos_flavoured_desserts_are_not_speculoos_biscuits():
+    for name in ("Pommes morceaux speculoos", "Dessert lacté saveur spéculoos", "Fromage blanc spéculoos", "Céréales spéculoos"):
+        assert taxonomy.classify({"name": name, "brand": "X", "categories": []})["type"] != "speculoos", name
