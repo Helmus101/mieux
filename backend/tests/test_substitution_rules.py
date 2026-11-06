@@ -209,3 +209,10 @@ def test_roasted_vs_raw_tradeoff_text_renders():
     c["substitution"] = taxonomy.substitution(o, c)
     assert c["substitution"]["variant_diff"] == ["raw", "roasted"]
     assert "grillé" in " ".join(engine._tradeoffs(o, c, 0.9, "fr"))
+
+
+def test_every_variant_has_a_label_in_both_languages():
+    from app import taxonomy, i18n
+    names = {n for rules in taxonomy._VARIANTS.values() for n, _ in rules} | {"standard", "raw", "roasted", "plain", "salted"}
+    for n in names:
+        assert "var_" + n in i18n.FR and "var_" + n in i18n.EN, n
