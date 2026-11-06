@@ -5,19 +5,20 @@ import { colors } from '@shared/theme';
 import { useColorScheme } from 'react-native';
 import { select } from '../../src/haptics';
 
-// expo-router: the tab group opens on the scanner
-export const unstable_settings = { initialRouteName: 'scan' };
+// expo-router: the tab group opens on Home
+export const unstable_settings = { initialRouteName: 'index' };
 
 export default function TabsLayout() {
   const c = colors[useColorScheme() === 'dark' ? 'dark' : 'light'];
   const icon = (name: keyof typeof Ionicons.glyphMap) => ({ color, size }: { color: string | unknown; size: number }) => <Ionicons name={name} color={color as string} size={size} />;
   return (
     <Tabs screenListeners={{ tabPress: () => select() }} screenOptions={{ headerShown: false, tabBarActiveTintColor: c.accent, tabBarInactiveTintColor: c.mut, tabBarStyle: { backgroundColor: c.card } }}>
-      <Tabs.Screen name="index" options={{ href: null }} />
-      <Tabs.Screen name="compare" options={{ href: null }} />
+      <Tabs.Screen name="index" options={{ title: t('tabs.home'), tabBarIcon: icon('home-outline') }} />
       <Tabs.Screen name="scan" options={{ tabBarStyle: { display: 'none' }, title: t('tabs.scan'), tabBarIcon: icon('barcode-outline') }} />
+      <Tabs.Screen name="history" options={{ title: t('history.title'), tabBarIcon: icon('time-outline') }} />
       <Tabs.Screen name="purchases" options={{ title: t('tabs.purchases'), tabBarIcon: icon('receipt-outline') }} />
       <Tabs.Screen name="profile" options={{ title: t('tabs.profile'), tabBarIcon: icon('person-outline') }} />
+      <Tabs.Screen name="compare" options={{ href: null }} />
     </Tabs>
   );
 }

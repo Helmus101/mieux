@@ -188,3 +188,13 @@ def test_a_pack_size_without_a_price_takes_the_price_of_its_sibling():
     est_only = {"pack-small": 40.0}; est_points = {"pack-small": {"source": "estimate", "date": None}}
     main._fill_pack_prices([a, b], est_only, est_points)
     assert "pack-big" not in est_only                                      # estimates are never copied
+
+
+def test_nuts_keep_shell_and_roast_apart():
+    from app import taxonomy
+    base = {"categories": ["en:nuts", "en:pistachios"]}
+    raw = {**base, "name": "Pistaches décortiquées non grillées"}
+    roasted = {**base, "name": "Pistaches grillées"}
+    inshell = {**base, "name": "Pistaches en coque grillées"}
+    assert taxonomy.substitution(raw, inshell) is None
+    assert taxonomy.substitution(raw, roasted)["level"] > taxonomy.substitution(raw, {**base, "name": "Pistaches décortiquées crues"})["level"]

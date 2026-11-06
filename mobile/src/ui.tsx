@@ -26,7 +26,7 @@ export const Section = ({ title, children }: { title?: string; children: ReactNo
   const c = useTheme();
   return (<View>{title ? <Text style={{ color: c.mut, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 22, marginBottom: 8, marginLeft: 6 }}>{title}</Text> : null}{children}</View>);
 };
-export const Muted = ({ children, small }: { children: ReactNode; small?: boolean }) => <Text style={{ color: useTheme().mut, fontSize: small ? 13 : 15 }}>{children}</Text>;
+export const Muted = ({ children, small, style }: { children: ReactNode; small?: boolean; style?: ViewStyle }) => <Text style={[{ color: useTheme().mut, fontSize: small ? 13 : 15 }, style]}>{children}</Text>;
 export const Body = ({ children, bold }: { children: ReactNode; bold?: boolean }) => <Text style={{ color: useTheme().ink, fontSize: 16, fontWeight: bold ? '600' : '400' }}>{children}</Text>;
 export const Card = ({ children, tint }: { children: ReactNode; tint?: boolean }) => {
   const c = useTheme();

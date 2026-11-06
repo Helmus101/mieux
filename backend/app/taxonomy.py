@@ -168,6 +168,14 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
         diff = [vo, vc] if co["type"] == cc["type"] and vo and vc and vo != vc else None
         if diff and co["type"] in _HARD_VARIANT_TYPES and "standard" not in diff:
             return None    # hazelnuts lead to hazelnuts, not to almonds or mixed fruit
+        if co["type"] == cc["type"] == "nuts":
+            po, pc = nut_prep(orig), nut_prep(cand)
+            if po["shell"] != pc["shell"]:
+                return None     # in-shell nuts are sold by the weight of the shell: not a like-for-like price or a substitute for shelled ones
+            odd = [k for k in ("roast", "salt") if po[k] and pc[k] and po[k] != pc[k]]
+            if odd:
+                lv = min(4, lv + 1)     # raw vs roasted, plain vs salted: still nuts, but no longer the same product
+                diff = (diff or []) + [f"{k}:{po[k]}>{pc[k]}" for k in odd]
         return {"level": lv, "label": LABELS[lv], "type": cc["type"], "same_type": co["type"] == cc["type"], "variant_diff": diff}
     # at least one side unclassified: only the same specific category (leaf tag) is accepted, as 'almost identical'
     lo, lc = (orig.get("categories") or [None])[-1], (cand.get("categories") or [None])[-1]
@@ -200,6 +208,15 @@ def variant(p: Dict[str, Any], type_id: Optional[str]) -> Optional[str]:
         if re.search(rx, text):
             return name
     return "standard"
+
+
+def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
+    """How a nut product is prepared, from its name: in shell or shelled, raw or roasted, salted or plain. None = the name does not say."""
+    t = ((p.get("name") or "") + " " + (p.get("quantity") or "")).lower()
+    shell = bool(re.search(r"en coque|in[- ]shell|\bcoque\b", t)) and not re.search(r"d[ée]cortiqu|shelled|sans coque", t)
+    roast = "raw" if re.search(r"non grill|crue?s?\b|nature|raw|unroasted|non torr", t) else "roasted" if re.search(r"grill|torr[ée]f|roast", t) else None
+    salt = "plain" if re.search(r"sans sel|non sal|unsalted|no salt", t) else "salted" if re.search(r"\bsal[ée]e?s?\b|salted", t) else None
+    return {"shell": shell, "roast": roast, "salt": salt}
 
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
