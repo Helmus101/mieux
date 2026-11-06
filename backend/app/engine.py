@@ -232,6 +232,8 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
     for c in peers:
         if c["barcode"] == orig["barcode"]:
             continue
+        if {"nutrition_implausible", "sugars_exceed_carbohydrates"} & set(data_issues(c)):   # the same hard rule as prefilter(): no path may recommend impossible data
+            continue
         if c.get("soldInFrance") is not True:  # recommend only what can be bought in France; unknown availability is not assumed
             ex["not_in_france"] += 1
             continue
@@ -464,7 +466,7 @@ def nutrient_limits(orig):
 
 def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match_list, estimated=frozenset(), orig_estimated=False):
     """Three separate rankings. Budget: cheapest that keeps minimum nutrition. Value: the quality-price score (overall quality score against price, measured
-    against the scanned product), without big sugar/salt penalties; it does not depend on a single nutrient. Match: the user's own priority order (computed by choose)."""
+    against the scanned product) behind a quality-score floor; a large sugar/salt rise does not exclude it, it is shown as a trade-off. Match: the user's own priority order (computed by choose)."""
     out = {"budget": [], "value": [], "match": match_list[:10]}
     on = orig["nutriments"]
     cats = set(orig["categories"])
@@ -494,8 +496,9 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
             min_ok = (not _gap(on.get("sugars100g"), n.get("sugars100g"), 3) and not _gap(on.get("salt100g"), n.get("salt100g"), 0.3)
                       and not (on.get("protein100g") and n.get("protein100g") is not None and n["protein100g"] < 0.8 * on["protein100g"])
                       and not (on.get("fiber100g") and n.get("fiber100g") is not None and n["fiber100g"] < 0.8 * on["fiber100g"]))
-        min_ok = min_ok and not big_penalty
-        rows.append({"product": c, "price_per_100_cents": round(p, 1), "similarity": round(sim, 2), "min_ok": min_ok, "big_penalty": big_penalty,
+        quality_ok = min_ok                      # the quality-score floor only: what Best value requires
+        min_ok = min_ok and not big_penalty      # plus the category-specific sugar/salt safeguard: what Cheapest requires
+        rows.append({"product": c, "price_per_100_cents": round(p, 1), "similarity": round(sim, 2), "min_ok": min_ok, "quality_ok": quality_ok, "big_penalty": big_penalty,
                      "indicators": indicators(c, p), "tradeoffs": _tradeoffs(orig, c, sim, lang)})
     if orig_price is None or orig_estimated:   # an estimated price of your own product proves no saving either
         # Your own product has no known price, so nothing can be PROVEN cheaper or better value than it. Still useful: the comparable products that do have a real price,
@@ -506,7 +509,7 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
         for r in rows:
             r["value_score"], r["price_score"] = vs.get(r["product"]["barcode"]), ps.get(r["product"]["barcode"])
         budget = sorted(good, key=lambda r: r["price_per_100_cents"])
-        value = sorted([r for r in good if r["value_score"] is not None], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
+        value = sorted([r for r in rows if r["quality_ok"] and r["value_score"] is not None], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
         for r in budget: r["why"] = tr(lang, "rk_known", p=f"{r['price_per_100_cents']/100:.2f}")
         for r in value: r["why"] = tr(lang, "rk_qp_known", s=r["product"]["score"]["total"], p=f"{r['price_per_100_cents']*10/100:.2f}", v=r["value_score"])
         out["budget"], out["value"] = budget[:10], value[:10]
@@ -522,7 +525,7 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
     for r in rows: r["price_score"] = ps.get(r["product"]["barcode"])
     # Quality-price: more quality (score /100) per euro than the scanned product, without losing more than 5 quality points.
     value = sorted([r for r in rows if r["value_score"] is not None and o_vs is not None and r["value_score"] >= o_vs + 3
-                    and r["min_ok"] and (o_sc is None or r["product"]["score"]["total"] >= o_sc - 5)], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
+                    and r["quality_ok"] and (o_sc is None or r["product"]["score"]["total"] >= o_sc - 5)], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
     for r in budget: r["why"] = tr(lang, "rk_budget", d=f"{(orig_price - r['price_per_100_cents'])/100:.2f}")
     for r in value:
         r["why"] = tr(lang, "rk_qp", s=r["product"]["score"]["total"], p=f"{r['price_per_100_cents']*10/100:.2f}", o=f"{orig_price*10/100:.2f}", os=o_sc if o_sc is not None else "?", v=r["value_score"], ov=o_vs)

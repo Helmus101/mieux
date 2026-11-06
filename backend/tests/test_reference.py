@@ -35,7 +35,7 @@ def test_old_observation_is_stale_not_fresh():
 
 # ---------- comparable vs non-comparable pairs ----------
 def prod(code, name, cats, protein=None, sugars=None, fibre=None, salt=0.1, kcal=100, ing="x", allergens=(), grade=None):
-    nm = {"energy-kcal_100g": kcal, "fat_100g": 2, "saturated-fat_100g": 1, "carbohydrates_100g": 8, "salt_100g": salt}
+    nm = {"energy-kcal_100g": kcal, "fat_100g": 2, "saturated-fat_100g": 1, "carbohydrates_100g": max(8, (sugars or 0) + 1), "salt_100g": salt}   # sugars are part of the carbohydrates
     for k, v in (("proteins_100g", protein), ("sugars_100g", sugars), ("fiber_100g", fibre)):
         if v is not None: nm[k] = v
     return normalize({"code": code, "product_name": name, "brands": "B", "categories_tags": cats, "nutriments": nm, "ingredients_text": ing,

@@ -69,3 +69,27 @@ def test_rankings_are_deterministic():
     a, b = _rank(), _rank()
     key = lambda r: {k: [(x["product"]["name"], x.get("value_score"), x["price_per_100_cents"]) for x in r[k]] for k in ("budget", "value")}  # noqa: E731
     assert key(a) == key(b)
+
+
+def test_choose_also_refuses_impossible_data():
+    from app.products import normalize
+
+    def real(code, name, protein, fat, carbs):
+        return normalize({"code": code, "product_name": name, "brands": "B", "categories_tags": ["en:yogurts", "en:plain-yogurts"], "ingredients_text": "lait",
+                          "nutriments": {"energy-kcal_100g": 90, "fat_100g": fat, "saturated-fat_100g": 1, "carbohydrates_100g": carbs, "sugars_100g": 4, "proteins_100g": protein,
+                                         "fiber_100g": 0, "salt_100g": 0.1},
+                          "allergens_tags": [], "ingredients_analysis_tags": [], "nutriscore_grade": "b", "quantity": "400 g", "countries_tags": ["en:france"]})
+    orig, good, bad = real("1", "Original", 3, 2, 8), real("2", "Bon", 9, 2, 8), real("3", "Faute de frappe", 60, 80, 70)
+    out = engine.choose(orig, [bad, good], ["protein"], [], None, "similar", 5, lang="en")
+    names = [a["product"]["name"] for a in out["alternatives"]]
+    assert "Bon" in names and "Faute de frappe" not in names
+
+
+def test_best_value_is_not_excluded_by_the_sugar_rule_that_limits_cheapest():
+    orig = P("Original", ["en:breakfast-cereals"], sugars100g=10)
+    sweeter = P("Plus sucré mais bien noté", ["en:breakfast-cereals"], sugars100g=22)   # +12 g: over the cereal limit
+    sweeter["score"] = {"total": 66}
+    r = engine.build_rankings(orig, [sweeter], {"Plus sucré mais bien noté": 25.0}, 60.0, ["value"], "similar", "fr", [])
+    assert not r["budget"]                                  # Cheapest keeps the safeguard
+    assert r["value"] and r["value"][0]["product"]["name"] == "Plus sucré mais bien noté"
+    assert any("sucres" in x for x in r["value"][0]["tradeoffs"])   # and the cost is shown, not hidden
