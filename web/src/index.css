@@ -145,7 +145,7 @@ h2{font-size:12px;letter-spacing:.06em;margin:22px 2px 8px}
 .spec{margin:10px 0 4px}.spec-bar{position:relative;display:flex;gap:2px;height:8px}.spec-bar i{flex:1;border-radius:99px;opacity:.9}
 .spec-bar b{position:absolute;top:-5px;width:4px;height:18px;margin-left:-2px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--bg)}
 .spec-tk{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:6px}.sr{position:absolute;left:-9999px}
-.scorebig{font-size:44px;font-weight:800;letter-spacing:-1px;line-height:1}.scorebig small{font-size:16px;font-weight:500;color:var(--mut);margin-left:2px}
+.scorebig{font-size:56px;font-weight:800;letter-spacing:-1px;line-height:1}.scorebig small{font-size:16px;font-weight:500;color:var(--mut);margin-left:2px}
 .subs{display:grid;grid-template-columns:1fr auto;gap:6px 12px;margin-top:12px}.subs span{font-size:15px}.subs b{text-align:right}
 
 .nrow{margin:10px 0}.nrow-top{display:flex;justify-content:space-between;font-size:15px}
@@ -383,3 +383,6 @@ h1{font-size:30px;margin:8px 0 6px}
 .cmp-card img{width:56px;height:56px;object-fit:contain;border-radius:10px}
 .cmp-card small{font-size:13px;line-height:1.25;color:var(--mut)}
 .cmp-score{font-size:34px;letter-spacing:-1px;line-height:1}.cmp-score i{font-size:14px;font-style:normal;color:var(--mut);font-weight:500}
+/* Alternatives call-to-action: the one distinctive block of the result screen */
+.altcta{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink);padding:18px 20px;margin:12px 0;cursor:pointer}
+.altcta b{display:block;font-size:19px;letter-spacing:-.2px}.altcta small{display:block;margin-top:2px;font-size:14px;opacity:.85}.altcta i{font-style:normal;font-size:26px}

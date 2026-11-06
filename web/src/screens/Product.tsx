@@ -6,8 +6,7 @@ import { t } from '@shared/i18n';
 import { formatCents, isLiquid } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
 import { priceHeadline } from '@shared/verdict';
-import { haptic } from '../ui';
-import { Bar, Button, Card, Collapsible, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader } from '../ui';
+import { Bar, Button, Card, Collapsible, haptic, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader } from '../ui';
 import { routes, useNav } from '../nav';
 import SaveButton from '../SaveButton';
 import KnowCard from '../KnowCard';
@@ -73,8 +72,8 @@ export default function Product() {
       {offline && <Pill tone="w">{t('history.offline')}</Pill>}
       {p.soldInFrance !== true && <Card><Pill tone="w">{p.soldInFrance === false ? t(country === 'US' ? 'simple.notUs' : 'simple.notFr') : t(country === 'US' ? 'simple.usUnknown' : 'simple.frUnknown')}</Pill></Card>}
       <Row>
-        {p.imageUrl && <img src={p.imageUrl} alt="" decoding="async" fetchPriority="high" width={88} height={88} style={{ objectFit: 'contain', borderRadius: 16, background: '#fff' }} />}
-        <div><Muted>{p.brand}</Muted><h1 style={{ fontSize: 24 }}>{p.name}</h1><Muted>{p.quantityText}</Muted></div>
+        {p.imageUrl && <img src={p.imageUrl} alt="" decoding="async" fetchPriority="high" width={112} height={112} style={{ objectFit: 'contain', borderRadius: 16, background: '#fff' }} />}
+        <div><Muted>{p.brand}</Muted><h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1.12 }}>{p.name}</h1><Muted>{p.quantityText}</Muted></div>
       </Row>
 
       {(() => {
@@ -103,7 +102,7 @@ export default function Product() {
         {head.kind !== 'none' ? <p style={{ margin: '10px 0 0' }}><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('simple.noPrice')}</p>}
       </Card>
       <KnowCard p={p} />
-      <Button primary onPress={() => go(routes.alternatives(p.id))}>{t('simple.findBetter')}</Button>
+      <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
       {p.score && priorities.length > 0 && (
         <Card>
           <p className="mut sm" style={{ margin: '0 0 8px' }}>{t('priorities.title')}</p>
