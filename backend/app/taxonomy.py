@@ -212,7 +212,7 @@ def variant(p: Dict[str, Any], type_id: Optional[str]) -> Optional[str]:
 
 def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
     """How a nut product is prepared, from its name: in shell or shelled, raw or roasted, salted or plain. None = the name does not say."""
-    t = ((p.get("name") or "") + " " + (p.get("quantity") or "")).lower()
+    t = str(p.get("name") or "").lower()
     shell = bool(re.search(r"en coque|in[- ]shell|\bcoque\b", t)) and not re.search(r"d[ée]cortiqu|shelled|sans coque", t)
     roast = "raw" if re.search(r"non grill|crue?s?\b|nature|raw|unroasted|non torr", t) else "roasted" if re.search(r"grill|torr[ée]f|roast", t) else None
     salt = "plain" if re.search(r"sans sel|non sal|unsalted|no salt", t) else "salted" if re.search(r"\bsal[ée]e?s?\b|salted", t) else None
