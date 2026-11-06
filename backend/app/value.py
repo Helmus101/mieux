@@ -297,7 +297,12 @@ def price_point(product: Dict[str, Any], own: Optional[Dict[str, Any]], communit
 
 
 def price_confidence(point: Optional[Dict[str, Any]], today: Optional[date] = None) -> Optional[str]:
-    """How far a price can be trusted: 'high' (your own receipt, under 90 days), 'medium' (community observation under 90 days), 'low' (older), 'estimate' (never a verified price)."""
+    """How far a price can be trusted:
+    - 'high': your own receipt under 90 days, or fresh receipt under 30 days
+    - 'medium': community observation under 90 days
+    - 'low': older than 90 days or stale
+    - 'estimate': modelled or inferred (never a verified shelf price)
+    """
     if not point:
         return None
     if point.get("source") == "estimate":
@@ -306,3 +311,18 @@ def price_confidence(point: Optional[Dict[str, Any]], today: Optional[date] = No
     if age is None or age > 90 or point.get("stale"):
         return "low"
     return "high" if point.get("source") == "your_receipt" else "medium"
+
+
+def is_ranking_eligible_price(point: Optional[Dict[str, Any]], price100: Optional[float], max_age_days: int = 90, today: Optional[date] = None) -> bool:
+    """Only observed, sufficiently recent prices (age <= 90 days, not estimated, not stale) qualify to win Cheapest or Best Value."""
+    if not point or price100 is None or price100 <= 0:
+        return False
+    if point.get("source") == "estimate":
+        return False
+    if point.get("stale"):
+        return False
+    d = point.get("date")
+    if not d:
+        return False
+    age = age_days(d, today)
+    return age is not None and age <= max_age_days

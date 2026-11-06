@@ -119,7 +119,6 @@ class _Local:
         if ingredients:
             cond += " and q.ing = 1"
         order = ("q.grade is null, q.grade asc" if field == "grade" else f"q.{field} {'asc' if low else 'desc'}") if field else "c.scans desc"
-        win = f"select code, scans from off_cat where tag=? order by scans desc limit {int(window)}"
         seen, out = set(), []
 
         def run(sql: str, args: tuple) -> None:
@@ -129,11 +128,12 @@ class _Local:
                     out.append(code)
 
         for tag in tags:
-            run(f"select q.code from ({win}) c join quick.quick q on q.code=c.code where 1=1{cond} order by {order} limit ?", (tag, per_tag))
+            # Full indexed retrieval across the category, not truncated by an arbitrary popularity window
+            run(f"select q.code from off_cat c join quick.quick q on q.code=c.code where c.tag=?{cond} order by {order}, c.scans desc limit ?", (tag, per_tag))
             if len(out) >= total:
                 return out[:total]
         for tag in tags:
-            run(f"select q.code from ({win}) c join quick.quick q on q.code=c.code where 1=1{cond} order by c.scans desc limit ?", (tag, max(20, per_tag // 2)))
+            run(f"select q.code from off_cat c join quick.quick q on q.code=c.code where c.tag=?{cond} order by c.scans desc limit ?", (tag, max(20, per_tag // 2)))
             if len(out) >= total:
                 break
         return out[:total]

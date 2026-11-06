@@ -1,6 +1,6 @@
 """Choice Engine: deterministic, explainable. Candidates -> hard restrictions -> completeness -> rank by priority order -> explain."""
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from . import taxonomy
 from .i18n import tr
@@ -226,7 +226,7 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
            orig_price: Optional[float] = None, lang: str = "fr") -> Dict[str, Any]:
     ex = {"conflict": 0, "unverified": 0, "incomplete": 0, "not_better": 0, "dissimilar": 0, "not_in_france": 0, "france_unknown": 0, "not_substitute": 0}
     funnel = {"raw_candidates_retrieved": len(peers), "usable_product_data": 0, "confirmed_sold_in_france": 0,
-              "passing_allergens": 0, "passing_compatibility": 0, "with_sufficient_nutrition": 0,
+              "france_unknown": 0, "passing_allergens": 0, "passing_compatibility": 0, "with_sufficient_nutrition": 0,
               "with_verified_prices": 0, "by_substitution_level": {str(level): 0 for level in range(1, 5)}}
     found = []
     for c in peers:
@@ -374,38 +374,29 @@ def data_issues(p: Dict[str, Any]) -> List[str]:
 
 
 def prefilter(orig: Dict[str, Any], peers: List[Dict[str, Any]], allergens: List[str], diet: Optional[str], mode: str,
-              n: int = 120, priorities: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-    """Candidates that pass hard restrictions and similarity, kept for the price comparison.
-
-    It is the union of the closest n products and the n products that are furthest ahead on the first priority: a product
-    that is clearly better on what the person cares about must not be dropped before prices are compared just because it
-    is a little less similar. Prices are attached to this list, so it is the only place where a good candidate can be lost."""
+              n: Optional[int] = None, priorities: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """Candidates that pass hard restrictions and compatibility, kept for price enrichment and ranking.
+    Full indexed retrieval: replaces the destructive top-N cutoff so that cheaper, equally good products
+    are not dropped before their prices are checked.
+    """
     out = []
     for c in peers:
-        if c["barcode"] == orig["barcode"] or c.get("soldInFrance") is not True or restriction_status(c, allergens, diet) != "ok":
+        if c["barcode"] == orig["barcode"] or c.get("soldInFrance") is False or restriction_status(c, allergens, diet) != "ok":
             continue
         if {"nutrition_implausible", "sugars_exceed_carbohydrates"} & set(data_issues(c)):   # a typing/unit error in the data must not turn into a recommendation
             continue
+        sub = c.get("substitution") or taxonomy.substitution(orig, c)
+        if sub is None:
+            continue
+        c = {**c, "substitution": sub}
         sim = deep_similarity(orig, c)
-        if mode == "similar" and sim < 0.45 and ((c.get("substitution") or {}).get("level") or 4) > 2:
+        if mode == "similar" and sim < 0.45 and (sub.get("level") or 4) > 2:
             continue
         out.append((sim, c))
-    out.sort(key=lambda x: (((x[1].get("substitution") or {}).get("level") or 4), -x[0]))   # the same kind of product first: those are the ones worth a price lookup
-    keep: List[Dict[str, Any]] = [c for _, c in out[:n]]
-    first = (priorities or [None])[0]
-    if first in PRIORITIES and len(out) > n:
-        ahead = []
-        for sim, c in out:
-            d = _diff(orig, c, first, None, None, priorities)
-            if d is not None and d > PRIORITIES[first][2]:
-                ahead.append((d, sim, c))
-        ahead.sort(key=lambda x: (-x[0], -x[1]))
-        seen = {c["barcode"] for c in keep}
-        for _, _, c in ahead[:n]:
-            if c["barcode"] not in seen:
-                seen.add(c["barcode"])
-                keep.append(c)
-    return keep
+    out.sort(key=lambda x: (((x[1].get("substitution") or {}).get("level") or 4), -x[0]))
+    if n is not None and len(out) > n:
+        return [c for _, c in out[:n]]
+    return [c for _, c in out]
 
 
 def indicators(p: Dict[str, Any], price100: Optional[float]) -> Optional[Dict[str, Any]]:
@@ -487,15 +478,15 @@ def pe_of(r, field):
     return per_euro(r["product"]["nutriments"], field, r["price_per_100_cents"])
 
 
-# Largest quality-score drop (out of 100) a 'cheaper' pick may have against the scanned product.
-QUALITY_FLOOR = 8
+# Largest quality-score drop (out of 100) a 'cheaper' or 'best value' pick may have against the scanned product.
+QUALITY_FLOOR = 5
 
 
 def close_only(items, level_of, min_close: int = 3):
-    """Substitutes for the money and quality tabs: only the closest kinds of product (level 1-2) when there are at least `min_close` of them, else up to level 3.
-    Level 4 (a broad alternative) never appears in a tab that promises cheaper, better or better value."""
-    close = [x for x in items if (level_of(x) or 3) <= 2]      # no level known (a bare product): treated as level 3
-    return close if len(close) >= min_close else [x for x in items if (level_of(x) or 3) <= 3]
+    """Substitutes for the money and quality tabs: only the closest kinds of product (level 1-2).
+    Level 3 or 4 must never appear in a price or value comparison.
+    """
+    return [x for x in items if (level_of(x) or 3) <= 2]
 
 
 def brand_variety(items, brand_of, first: int = 5, per: int = 2):
@@ -523,96 +514,350 @@ def nutrient_limits(orig):
     return _SUGAR_LIMIT.get(fam, 5.0), _SALT_LIMIT.get(fam, 0.5)
 
 
-def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match_list, estimated=frozenset(), orig_estimated=False):
-    """Three separate rankings. Budget: cheapest that keeps minimum nutrition. Value: the quality-price score (overall quality score against price, measured
-    against the scanned product) behind a quality-score floor; a large sugar/salt rise does not exclude it, it is shown as a trade-off. Match: the user's own priority order (computed by choose)."""
-    out = {"budget": [], "value": [], "match": match_list[:10]}
-    on = orig["nutriments"]
-    cats = set(orig["categories"])
+def percentile_value_scores(items: List[Tuple[Any, Optional[float], Optional[float]]]) -> Dict[Any, Optional[Dict[str, Any]]]:
+    """Constrained, percentile-based quality-price index across cohort:
+    items = [(key, quality_total, price100)].
+    For items with known quality and price > 0:
+    Quality percentile Q_pct = rank position in cohort quality distribution (higher score -> higher percentile).
+    Affordability percentile A_pct = rank position in cohort price distribution (lower price -> higher percentile).
+    Value Index = round(100 * sqrt(Q_pct * A_pct))
+    Returns dict mapping key -> {
+        "value_score": int,
+        "quality_percentile": float,
+        "affordability_percentile": float,
+    } or None.
+    """
+    usable = [(k, float(q), float(p)) for k, q, p in items if q is not None and p is not None and q > 0 and p > 0]
+    out: Dict[Any, Optional[Dict[str, Any]]] = {k: None for k, _, _ in items}
+    if not usable:
+        return out
+    n = len(usable)
+    scores = [q for _, q, _ in usable]
+    prices = [p for _, _, p in usable]
+    for k, q, p in usable:
+        q_less = sum(1 for s in scores if s < q)
+        q_eq = sum(1 for s in scores if s == q)
+        q_pct = max(0.01, min(1.0, (q_less + 0.5 * q_eq) / n))
+
+        p_more = sum(1 for pr in prices if pr > p)
+        p_eq = sum(1 for pr in prices if pr == p)
+        a_pct = max(0.01, min(1.0, (p_more + 0.5 * p_eq) / n))
+
+        val = round(100.0 * math.sqrt(q_pct * a_pct))
+        out[k] = {
+            "value_score": max(1, min(100, val)),
+            "quality_percentile": round(q_pct * 100, 1),
+            "affordability_percentile": round(a_pct * 100, 1),
+        }
+    return out
+
+
+def rank_cheapest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict[str, float],
+                  orig_price: Optional[float] = None, points: Optional[Dict[str, Any]] = None,
+                  estimated: frozenset = frozenset(), orig_estimated: bool = False,
+                  lang: str = "fr", max_age_days: int = 90) -> Dict[str, Any]:
+    """Lowest verified unit price among genuinely close substitutes (level 1-2) that meet the quality floor.
+    No fillers: only products that are genuinely cheaper and qualify are returned.
+    """
+    on = orig.get("nutriments") or {}
+    sug_lim, salt_lim = nutrient_limits(orig)
+    o_sc0 = (orig.get("score") or {}).get("total")
+    no_baseline = bool(orig_price is None or orig_estimated)
+    
     rows = []
-    ref = [v for v in list(prices.values()) + [orig_price] if v]
-    med = sorted(ref)[len(ref) // 2] if ref else None
     for c in pool:
-        p = prices.get(c["barcode"])
-        if c["barcode"] in estimated:  # an estimated price is indicative only: it never wins the cheapest or best-value list
+        bc = c.get("barcode")
+        if bc == orig.get("barcode") or bc in estimated:
             continue
-        if p is None or c["barcode"] == orig["barcode"] or p < 3:  # under 0.30 EUR/kg is a mis-scaled community price, not a real shelf price
+        p = prices.get(bc)
+        if p is None or p < 3:
             continue
-        if med and len(ref) >= 5 and (p > med * 6 or p < med / 8):  # far outside what this kind of product costs: a mis-scaled price, never a cheapest/best-value pick
+        pt = (points or {}).get(bc) or {}
+        if pt.get("source") == "estimate" or pt.get("stale"):
             continue
-        sim = deep_similarity(orig, c)
-        if mode == "similar" and sim < 0.45:
+        d = pt.get("date")
+        if d:
+            from .value import age_days
+            age = age_days(d)
+            if age is not None and age > max_age_days:
+                continue
+        
+        # Hard substitution level requirement: level 1 or 2 ONLY
+        sub = c.get("substitution") or taxonomy.substitution(orig, c)
+        if sub is None or sub.get("level") not in (1, 2):
             continue
-        n = c["nutriments"]
-        sug_lim, salt_lim = nutrient_limits(orig)
-        big_penalty = (sug_lim is not None and _gap(on.get("sugars100g"), n.get("sugars100g"), sug_lim)) or (salt_lim is not None and _gap(on.get("salt100g"), n.get("salt100g"), salt_lim))
-        # "cheaper" must not mean "much worse": judged on the whole quality score (nutrition, additives, ingredients), not on each nutrient separately,
-        # which silently dropped almost every real candidate over a gram of fibre. Without scores, the old nutrient floor is the fallback.
-        c_sc, o_sc0 = (c.get("score") or {}).get("total"), (orig.get("score") or {}).get("total")
+        c = {**c, "substitution": sub}
+        
+        # Market relevance: must not be explicitly not in market
+        if c.get("soldInFrance") is False:
+            continue
+        
+        n = c.get("nutriments") or {}
+        big_penalty = (sug_lim is not None and _gap(on.get("sugars100g"), n.get("sugars100g"), sug_lim)) or \
+                      (salt_lim is not None and _gap(on.get("salt100g"), n.get("salt100g"), salt_lim))
+        if big_penalty:
+            continue
+        
+        # Quality floor: candidate score >= orig score - 5
+        c_sc = (c.get("score") or {}).get("total")
         if c_sc is not None and o_sc0 is not None:
             min_ok = c_sc >= o_sc0 - QUALITY_FLOOR
         else:
             min_ok = (not _gap(on.get("sugars100g"), n.get("sugars100g"), 3) and not _gap(on.get("salt100g"), n.get("salt100g"), 0.3)
                       and not (on.get("protein100g") and n.get("protein100g") is not None and n["protein100g"] < 0.8 * on["protein100g"])
                       and not (on.get("fiber100g") and n.get("fiber100g") is not None and n["fiber100g"] < 0.8 * on["fiber100g"]))
-        quality_ok = min_ok                      # the quality-score floor only: what Best value requires
-        min_ok = min_ok and not big_penalty      # plus the category-specific sugar/salt safeguard: what Cheapest requires
-        rows.append({"product": c, "price_per_100_cents": round(p, 1), "similarity": round(sim, 2), "min_ok": min_ok, "quality_ok": quality_ok, "big_penalty": big_penalty,
-                     "indicators": indicators(c, p), "tradeoffs": _tradeoffs(orig, c, sim, lang)})
-    rows = close_only(rows, lambda r: (r["product"].get("substitution") or {}).get("level"))
-    if orig_price is None or orig_estimated:   # an estimated price of your own product proves no saving either
-        # Your own product has no known price, so nothing can be PROVEN cheaper or better value than it. Still useful: the comparable products that do have a real price,
-        # cheapest first (and best quality-for-price first), flagged 'no_baseline' so the screen says the comparison is by price, not against yours.
-        good = [r for r in rows if r["min_ok"]]
-        vs = value_scores([(r["product"]["barcode"], (r["product"].get("score") or {}).get("total"), r["price_per_100_cents"]) for r in rows])
-        ps = price_scores({r["product"]["barcode"]: r["price_per_100_cents"] for r in rows})
-        for r in rows:
-            r["value_score"], r["price_score"] = vs.get(r["product"]["barcode"]), ps.get(r["product"]["barcode"])
-        budget = sorted(good, key=lambda r: r["price_per_100_cents"])
-        value = sorted([r for r in rows if r["quality_ok"] and r["value_score"] is not None], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
-        for r in budget: r["why"] = tr(lang, "rk_known", p=f"{r['price_per_100_cents']/100:.2f}")
-        for r in value: r["why"] = tr(lang, "rk_qp_known", s=r["product"]["score"]["total"], p=f"{r['price_per_100_cents']*10/100:.2f}", v=r["value_score"])
-        out["budget"], out["value"] = brand_variety(budget, lambda r: r["product"].get("brand"))[:10], brand_variety(value, lambda r: r["product"].get("brand"))[:10]
-        out["no_baseline"] = True
-        return out
-    # Precision over quantity: a list holds only what really qualifies, however short. Nothing is added to reach a number.
-    budget = sorted([r for r in rows if r["min_ok"] and r["price_per_100_cents"] < orig_price * 0.98], key=lambda r: r["price_per_100_cents"])
-    o_sc = (orig.get("score") or {}).get("total")
-    vs = value_scores([(r["product"]["barcode"], (r["product"].get("score") or {}).get("total"), r["price_per_100_cents"]) for r in rows] + [("__orig", o_sc, orig_price)], orig_price)
-    o_vs = vs.get("__orig")
-    for r in rows: r["value_score"] = vs.get(r["product"]["barcode"])
-    ps = price_scores({r["product"]["barcode"]: r["price_per_100_cents"] for r in rows}, orig_price)
-    for r in rows: r["price_score"] = ps.get(r["product"]["barcode"])
-    # Quality-price: more quality (score /100) per euro than the scanned product, without losing more than 5 quality points.
-    value = sorted([r for r in rows if r["value_score"] is not None and o_vs is not None and r["value_score"] >= o_vs
-                    and r["quality_ok"] and (o_sc is None or r["product"]["score"]["total"] >= o_sc - 5)], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
-    # Fill to five: the next-cheapest / next-best-value substitutes of the same kind follow the ones that really beat the scanned product, each flagged so the screen can say so.
-    MIN_SHOWN = 5
-    if len(budget) < MIN_SHOWN:
-        have = {r["product"]["barcode"] for r in budget}
-        extra = sorted([r for r in rows if r["min_ok"] and r["product"]["barcode"] not in have], key=lambda r: r["price_per_100_cents"])
-        for r in extra[:MIN_SHOWN - len(budget)]:
-            r["not_cheaper"] = r["price_per_100_cents"] >= orig_price * 0.98
-        budget += extra[:MIN_SHOWN - len(budget)]
-    if len(value) < MIN_SHOWN and o_vs is not None:
-        have = {r["product"]["barcode"] for r in value}
-        extra = sorted([r for r in rows if r["value_score"] is not None and r["quality_ok"] and r["product"]["barcode"] not in have], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
-        for r in extra[:MIN_SHOWN - len(value)]:
-            r["not_better_value"] = r["value_score"] < o_vs
-        value += extra[:MIN_SHOWN - len(value)]
-    for r in budget: r["why"] = tr(lang, "rk_not_cheaper") if r.get("not_cheaper") else tr(lang, "rk_budget", d=f"{(orig_price - r['price_per_100_cents'])/100:.2f}")
-    for r in value:
-        if r.get("not_better_value"):
-            r["why"] = tr(lang, "rk_not_better")
+        if not min_ok:
             continue
-        r["why"] = tr(lang, "rk_qp", s=r["product"]["score"]["total"], p=f"{r['price_per_100_cents']*10/100:.2f}", o=f"{orig_price*10/100:.2f}", os=o_sc if o_sc is not None else "?", v=r["value_score"], ov=o_vs)
-    # Pareto flag: a product that is not more expensive, not less nutritious (per euro), not worse on Nutri-Score/NOVA and not less similar, for every key,
-    # than another candidate is "dominated"; the flag lets the UI prefer the efficient ones. Nothing is hidden.
-    keys = [lambda r: -r["price_per_100_cents"], lambda r: r.get("value_score"), lambda r: NS_RANK.get(r["product"]["nutriScore"] or "", None),
-            lambda r: -(r["product"].get("novaGroup") or 9) if r["product"].get("novaGroup") else None, lambda r: r["similarity"]]
-    for group in (budget, value):
-        for r, dom in zip(group, dominated(group, keys)):
-            r["dominated"] = dom
-        group.sort(key=lambda r: bool(r["dominated"]))   # efficient options first (stable: the existing order holds within each part)
-    out["budget"], out["value"] = brand_variety(budget, lambda r: r["product"].get("brand"))[:10], brand_variety(value, lambda r: r["product"].get("brand"))[:10]
+        
+        # If original price is known, candidate must actually be cheaper
+        if not no_baseline and orig_price is not None:
+            if p >= orig_price * 0.98:
+                continue
+        
+        sim = deep_similarity(orig, c)
+        conf = pt.get("confidence") or "medium"
+        conf_rank = 2 if conf == "high" else 1 if conf == "medium" else 0
+        
+        diff_cents = (orig_price - p) if (orig_price is not None and not no_baseline) else None
+        why = tr(lang, "rk_budget", d=f"{diff_cents/100:.2f}") if diff_cents is not None else tr(lang, "rk_known", p=f"{p/100:.2f}")
+        
+        rows.append({
+            "product": c,
+            "price_per_100_cents": round(p, 1),
+            "similarity": round(sim, 2),
+            "indicators": indicators(c, p),
+            "tradeoffs": _tradeoffs(orig, c, sim, lang),
+            "why": why,
+            "conf_rank": conf_rank,
+            "price_source": pt if pt else None,
+            "quality_score": c_sc,
+        })
+    
+    # Sort: lowest unit price first, higher price confidence, higher quality score
+    rows.sort(key=lambda r: (r["price_per_100_cents"], -r["conf_rank"], -(r["quality_score"] or 0)))
+    result = brand_variety(rows, lambda r: r["product"].get("brand"))[:10]
+    return {"items": result, "no_baseline": no_baseline}
+
+
+def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optional[Dict[str, float]] = None,
+                 points: Optional[Dict[str, Any]] = None, lang: str = "fr") -> List[Dict[str, Any]]:
+    """Highest reliable Mieux quality score among genuinely close substitutes (level 1-2).
+    Requires meaningful improvement over scanned product. Price does not affect ranking.
+    No fillers: only genuinely better-quality candidates are returned.
+    """
+    o_sc = (orig.get("score") or {}).get("total")
+    rows = []
+    for c in pool:
+        bc = c.get("barcode")
+        if bc == orig.get("barcode"):
+            continue
+        sub = c.get("substitution") or taxonomy.substitution(orig, c)
+        if sub is None or sub.get("level") not in (1, 2):
+            continue
+        c = {**c, "substitution": sub}
+        c_sc = (c.get("score") or {}).get("total")
+        if c_sc is None:
+            continue
+        # Meaningful improvement: must beat original quality score
+        if o_sc is not None and c_sc <= o_sc:
+            continue
+        
+        sim = deep_similarity(orig, c)
+        p = (prices or {}).get(bc)
+        pt = (points or {}).get(bc) or {}
+        comp = 1 if c.get("dataQuality", {}).get("nutritionComplete") else 0
+        why = tr(lang, "quality_note", s=c_sc, o=o_sc if o_sc is not None else "?")
+        
+        rows.append({
+            "product": c,
+            "quality_score": c_sc,
+            "price_per_100_cents": round(p, 1) if p is not None else None,
+            "similarity": round(sim, 2),
+            "indicators": indicators(c, p) if p else None,
+            "tradeoffs": _tradeoffs(orig, c, sim, lang),
+            "why": why,
+            "better": True,
+            "price_source": pt if pt else None,
+            "completeness": comp,
+            "estimated": False,
+        })
+    
+    # Sort strictly by Mieux quality score descending, then completeness, then similarity
+    rows.sort(key=lambda r: (-r["quality_score"], -r["completeness"], -r["similarity"]))
+    return brand_variety(rows, lambda r: r["product"].get("brand"))[:10]
+
+
+def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict[str, float],
+                    orig_price: Optional[float] = None, points: Optional[Dict[str, Any]] = None,
+                    estimated: frozenset = frozenset(), orig_estimated: bool = False,
+                    lang: str = "fr", max_age_days: int = 90) -> Dict[str, Any]:
+    """Constrained, percentile-based quality-price index across the comparable cohort.
+    Quality floor (Candidate quality >= Original quality - 5).
+    Dominated items on Pareto frontier (quality vs price) are deprioritized.
+    No fillers: only genuinely eligible candidates are returned.
+    """
+    on = orig.get("nutriments") or {}
+    sug_lim, salt_lim = nutrient_limits(orig)
+    o_sc0 = (orig.get("score") or {}).get("total")
+    no_baseline = bool(orig_price is None or orig_estimated)
+    
+    candidates = []
+    for c in pool:
+        bc = c.get("barcode")
+        if bc == orig.get("barcode") or bc in estimated:
+            continue
+        p = prices.get(bc)
+        if p is None or p < 3:
+            continue
+        pt = (points or {}).get(bc) or {}
+        if pt.get("source") == "estimate" or pt.get("stale"):
+            continue
+        d = pt.get("date")
+        if d:
+            from .value import age_days
+            age = age_days(d)
+            if age is not None and age > max_age_days:
+                continue
+        
+        # Substitution level 1 or 2 only
+        sub = c.get("substitution") or taxonomy.substitution(orig, c)
+        if sub is None or sub.get("level") not in (1, 2):
+            continue
+        c = {**c, "substitution": sub}
+        
+        if c.get("soldInFrance") is False:
+            continue
+        
+        c_sc = (c.get("score") or {}).get("total")
+        if c_sc is None:
+            continue
+        
+        # Quality floor: cannot drop more than 5 points
+        if o_sc0 is not None and c_sc < o_sc0 - QUALITY_FLOOR:
+            continue
+        
+        sim = deep_similarity(orig, c)
+        candidates.append((c, c_sc, p, sim, pt))
+    
+    if not candidates:
+        return {"items": [], "no_baseline": no_baseline}
+    
+    # Cohort for percentile calculation: include original if known and usable
+    cohort_items = [(c.get("barcode"), sc, p) for c, sc, p, _, _ in candidates]
+    include_orig = not no_baseline and o_sc0 is not None and orig_price is not None and orig_price >= 3
+    if include_orig:
+        cohort_items.append(("__orig", float(o_sc0), float(orig_price)))
+    
+    pct_map = percentile_value_scores(cohort_items)
+    orig_pct = pct_map.get("__orig")
+    orig_val_score = orig_pct["value_score"] if orig_pct else None
+    
+    # Calculate Pareto dominance (quality vs price)
+    temp_rows = [{"product": c, "price_per_100_cents": p} for c, _, p, _, _ in candidates]
+    pareto_keys = [lambda r: -r["price_per_100_cents"], lambda r: (r["product"].get("score") or {}).get("total")]
+    dom_flags = dominated(temp_rows, pareto_keys, min_common=2)
+    
+    rows = []
+    for (c, c_sc, p, sim, pt), is_dom in zip(candidates, dom_flags):
+        pinfo = pct_map.get(c.get("barcode"))
+        if not pinfo:
+            continue
+        val_score = pinfo["value_score"]
+        
+        # If original product has a baseline value score, candidate must be at least as good value
+        if orig_val_score is not None and not no_baseline:
+            if val_score < orig_val_score:
+                continue
+        
+        conf = pt.get("confidence") or "medium"
+        conf_rank = 2 if conf == "high" else 1 if conf == "medium" else 0
+        
+        if no_baseline:
+            why = tr(lang, "rk_qp_known", s=c_sc, p=f"{p*10/100:.2f}", v=val_score)
+        else:
+            why = tr(lang, "rk_qp", s=c_sc, p=f"{p*10/100:.2f}", o=f"{orig_price*10/100:.2f}",
+                     os=o_sc0 if o_sc0 is not None else "?", v=val_score, ov=orig_val_score)
+        
+        rows.append({
+            "product": c,
+            "price_per_100_cents": round(p, 1),
+            "similarity": round(sim, 2),
+            "indicators": indicators(c, p),
+            "tradeoffs": _tradeoffs(orig, c, sim, lang),
+            "why": why,
+            "value_score": val_score,
+            "quality_percentile": pinfo["quality_percentile"],
+            "affordability_percentile": pinfo["affordability_percentile"],
+            "dominated": is_dom,
+            "conf_rank": conf_rank,
+            "price_source": pt if pt else None,
+            "quality_score": c_sc,
+        })
+    
+    # Sort: non-dominated first, then value index descending, then confidence, then quality
+    rows.sort(key=lambda r: (bool(r["dominated"]), -r["value_score"], -r["conf_rank"], -(r["quality_score"] or 0)))
+    result = brand_variety(rows, lambda r: r["product"].get("brand"))[:10]
+    return {"items": result, "no_baseline": no_baseline}
+
+
+def rank_closest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optional[Dict[str, float]] = None,
+                 points: Optional[Dict[str, Any]] = None, lang: str = "fr") -> List[Dict[str, Any]]:
+    """Closest alternatives: genuine substitutes regardless of price or quality score.
+    Pack sizes of the same product deduplicated, ordered by closeness (level 1-4) then similarity.
+    """
+    ranked = sorted(pool, key=lambda c: (((c.get("substitution") or {}).get("level") or 4), -deep_similarity(orig, c)))
+    close, seen_variant, per_brand = [], set(), {}
+    for c in ranked:
+        vk = variant_key(c)
+        brand = (c.get("brand") or "").split(",")[0].strip().lower()
+        if vk in seen_variant:
+            continue
+        seen_variant.add(vk)
+        if per_brand.get(brand, 0) >= 2 and any(per_brand.get((x.get("brand") or "").split(",")[0].strip().lower(), 0) < 2 for x in ranked[len(close):]):
+            continue
+        per_brand[brand] = per_brand.get(brand, 0) + 1
+        close.append(c)
+        if len(close) >= 10:
+            break
+    out = []
+    for c in close:
+        sim = deep_similarity(orig, c)
+        sub = c.get("substitution") or taxonomy.substitution(orig, c) or {}
+        p = (prices or {}).get(c.get("barcode"))
+        pt = (points or {}).get(c.get("barcode")) or {}
+        out.append({
+            "product": c,
+            "why": tr(lang, "closest_" + sub.get("label", "broader")),
+            "tradeoffs": _tradeoffs(orig, c, sim, lang),
+            "price_source": pt if pt else None,
+            "price_per_100_cents": round(p, 1) if p is not None else None,
+            "similarity": round(sim, 2),
+            "estimated": False,
+        })
     return out
+
+
+def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict[str, float],
+                   orig_price: Optional[float], priorities: List[str], mode: str, lang: str,
+                   match_list: List[Dict[str, Any]], estimated: frozenset = frozenset(),
+                   orig_estimated: bool = False, points: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Build three separate rankings from one complete, shared search:
+    - Budget: Cheapest comparable (lowest verified unit price above quality floor)
+    - Quality: Best quality (highest reliable Mieux quality score)
+    - Value: Best value (percentile-based quality-price index, Pareto frontier, quality floor)
+    - Closest: Genuine close substitutes (levels 1-4)
+    """
+    cheapest = rank_cheapest(orig, pool, prices, orig_price, points, estimated, orig_estimated, lang)
+    quality = rank_quality(orig, pool, prices, points, lang)
+    best_val = rank_best_value(orig, pool, prices, orig_price, points, estimated, orig_estimated, lang)
+    closest = rank_closest(orig, pool, prices, points, lang)
+    no_baseline = bool(orig_price is None or orig_estimated)
+    
+    return {
+        "budget": cheapest["items"],
+        "value": best_val["items"],
+        "quality": quality,
+        "closest": closest,
+        "match": match_list[:10],
+        "no_baseline": no_baseline,
+    }
