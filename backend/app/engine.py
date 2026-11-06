@@ -387,11 +387,11 @@ def price_position(price100, ref):
 
 
 def reference_price(prices, orig_price=None):
-    """Typical (median) price of the comparable products, your own included; needs at least 4 priced products, else your own price is the reference."""
-    allp = [p for p in prices if p] + ([orig_price] if orig_price else [])
-    if orig_price is None:
-        return _median(allp)  # no baseline of your own: the typical price of the comparable products
-    return _median(allp) if len(allp) >= 4 else orig_price
+    """The price a score is measured against. With a known price for the scanned product, that is the reference: a candidate's score then depends only on its own
+    price and quality and on the scanned product, never on which other candidates were returned. Without it, the median of the comparable products (needs a pool)."""
+    if orig_price:
+        return orig_price
+    return _median([p for p in prices if p])
 
 
 def value_scores(items, orig_price=None):
@@ -499,6 +499,7 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
     for group in (budget, value):
         for r, dom in zip(group, dominated(group, keys)):
             r["dominated"] = dom
+        group.sort(key=lambda r: bool(r["dominated"]))   # efficient options first (stable: the existing order holds within each part)
     out["budget"], out["value"] = budget[:10], value[:10]
     out["basis"] = basis
     return out

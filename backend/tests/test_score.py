@@ -331,3 +331,10 @@ def test_a_short_clean_ingredient_list_reaches_the_top_of_the_ingredient_scale()
     assert d_ingredients("blé, eau, sel", [])[0] >= 90
     long = d_ingredients("farine, eau, sucre, huile de palme, sel, arôme, émulsifiant, conservateur, colorant, lait, oeuf, levure, amidon, sirop de glucose", [])
     assert long[0] < 50
+
+
+def test_a_candidates_value_score_does_not_depend_on_the_other_candidates():
+    from app.engine import value_scores
+    alone = value_scores([("a", 80, 90)], orig_price=100)["a"]
+    crowd = value_scores([("a", 80, 90), ("b", 60, 20), ("c", 95, 400), ("d", 70, 60), ("e", 50, 300)], orig_price=100)["a"]
+    assert alone == crowd
