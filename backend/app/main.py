@@ -307,7 +307,7 @@ class AltReq(BaseModel):
     nearby_only: bool = False  # with a location: keep only products listed at a chain that has a branch within the radius (and within the user's chains)
     strict_additives: bool = True  # strict mode (40 % nutrition + 25 % additives + 25 % ingredient quality, every additive concern one level higher)
     same_size: bool = False  # only products whose pack size is within half to double of the scanned one
-    substitution_max: int = Field(3, ge=1, le=4)  # 1 almost identical ... 4 broader alternative
+    substitution_max: int = Field(4, ge=1, le=4)  # 1 almost identical ... 4 broader alternative
 
 
 class CmpReq(BaseModel):
@@ -1259,12 +1259,8 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
     for r in raws:
         if not _raw_candidate(r, prio, alg, orig):
             continue
-        # Strict filter: must have at least 1 shared name word OR be in same leaf category
-        r_name_words = engine._tok(r.get("product_name") or "", r.get("brands"))
-        rc = set(r.get("categories_tags") or [])
-        leaf = orig["categories"][-1] if orig["categories"] else None
-        if not (orig_name_words & r_name_words) and (not leaf or leaf not in rc):
-            continue
+        # Retrieval is intentionally broader than ranking. Products with different names
+        # and brands still reach taxonomy.substitution before being rejected or ranked.
         p = normalize(r)
         pool.setdefault(p["barcode"], p)
     # Online searches only when there is no local copy: it covers the whole dataset, so a thin pool there means the
