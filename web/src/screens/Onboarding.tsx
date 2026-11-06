@@ -23,7 +23,7 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
           <AuthForm /></>}
       </Card>}
       <InstallCard />
-      <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />
+      {COUNTRIES.length > 1 && <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />}
       {!gate && <Button primary disabled={accountEnabled && ACCOUNT_REQUIRED && !email} onPress={() => setStep(0)}>{t('welcome.start')}</Button>}
     </div>
   );

@@ -3,7 +3,7 @@ import { api } from '../api/client';
 import { load, save } from '../storage';
 import { PARIS_DEFAULT } from '../zones';
 import { setStrict } from '../config';
-import { chainsFor, MARKET, type Country } from '../chains';
+import { chainsFor, COUNTRIES, MARKET, type Country } from '../chains';
 import { setMoneyCountry } from '../utils/money';
 import { setLocale } from '../i18n';
 
@@ -46,7 +46,7 @@ const detectCountry = (): Country => {
     const lang = (typeof navigator !== 'undefined' && navigator.language) || '';
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     const usZone = /^(America\/(New_York|Chicago|Denver|Los_Angeles|Phoenix|Anchorage|Detroit|Boise|Indiana|Kentucky|Menominee|North_Dakota|Juneau|Sitka|Nome|Adak)|Pacific\/Honolulu)/.test(tz);
-    if (/-US$/i.test(lang) || (/^en/i.test(lang) && usZone)) return 'US';
+    if (COUNTRIES.includes('US') && (/-US$/i.test(lang) || (/^en/i.test(lang) && usZone))) return 'US';
   } catch { /* no Intl: stay with France */ }
   return 'FR';
 };
@@ -60,7 +60,7 @@ const persist = (s: Profile) => {
 };
 
 export const useProfile = create<State>((set, get) => {
-  const loaded = load<Profile>('fiq_profile', init);
+  const loaded = load<Profile>('fiq_profile', init); if (loaded.country && !COUNTRIES.includes(loaded.country)) loaded.country = 'FR';
   api.setCountry(loaded.country ?? 'FR'); setMoneyCountry(loaded.country);
   return {
     ...loaded,
@@ -82,7 +82,7 @@ export const useProfile = create<State>((set, get) => {
     setChains: (ids) => { set({ chains: ids }); persist({ ...get(), chains: ids }); },
     clearChains: () => { set({ chains: [] }); persist({ ...get(), chains: [] }); },
     setPlace: (p) => { set({ place: p }); persist({ ...get(), place: p }); },
-    hydrate: () => { const p = load<Profile>('fiq_profile', init); api.setCountry(p.country ?? 'FR'); setMoneyCountry(p.country); setStrict(true); set({ ...p, zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), estimates: load<boolean>('fiq_estimates', false), compare: load<string[]>('fiq_compare', []), priorities: p.priorities ?? [], strictAdditives: true, autoCamera: p.autoCamera === true, language: p.language ?? 'fr', country: p.country ?? 'FR' }); },
+    hydrate: () => { const p = load<Profile>('fiq_profile', init); if (p.country && !COUNTRIES.includes(p.country)) p.country = 'FR'; api.setCountry(p.country ?? 'FR'); setMoneyCountry(p.country); setStrict(true); set({ ...p, zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), estimates: load<boolean>('fiq_estimates', false), compare: load<string[]>('fiq_compare', []), priorities: p.priorities ?? [], strictAdditives: true, autoCamera: p.autoCamera === true, language: p.language ?? 'fr', country: p.country ?? 'FR' }); },
     togglePriority: (k) => { if (k === 'eco') return; const p = get().priorities; const n = p.includes(k) ? p.filter((x) => x !== k) : [...p, k].slice(-2); set({ priorities: n }); persist({ ...get(), priorities: n }); },
     setPriorities: (ks) => { set({ priorities: ks }); persist({ ...get(), priorities: ks }); },
     setDiet: (d) => { set({ diet: d }); persist({ ...get(), diet: d }); },

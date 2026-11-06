@@ -39,10 +39,10 @@ export default function Profile() {
       <Section title={t('profile.language')}>
         <Segmented value={p.language ?? 'fr'} onChange={(k) => { p.setLanguage(k as 'fr' | 'en'); setLocale(k as 'fr' | 'en'); setTick((n) => n + 1); }} options={[{ key: 'fr', label: 'Français' }, { key: 'en', label: 'English' }]} />
       </Section>
-      <Section title={t('profile.country')}>
-        <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />
+      {COUNTRIES.length > 1 && <Section title={t('profile.country')}>
+        {COUNTRIES.length > 1 && <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />}
         {p.country === 'US' && <p className="mut sm">{t('country.usNote')}</p>}
-      </Section>
+      </Section>}
       <Collapsible title={t('chains.title')}>
         <p className="mut sm" style={{ marginBottom: 8 }}>{t('chains.hint')}</p>
         <div className="chain-pick">{chainsFor(p.country).map((c) => { const on = (p.chains ?? []).includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>

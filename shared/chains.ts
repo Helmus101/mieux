@@ -21,7 +21,8 @@ export const MARKET: Record<Country, { currency: string; chains: { id: string; n
   FR: { currency: 'EUR', chains: FR_CHAINS },
   US: { currency: 'USD', chains: US_CHAINS, autoLanguage: 'en' },
 };
-export const COUNTRIES = Object.keys(MARKET) as Country[];
+/** Markets offered in the app. The US data and chains stay in the code but are switched off: add 'US' here to bring it back. */
+export const COUNTRIES: Country[] = ['FR'];
 export const chainsFor = (country?: Country | null) => MARKET[country ?? 'FR']?.chains ?? FR_CHAINS;
 /** Kept for existing imports: the French list. Prefer chainsFor(country). */
 export const CHAIN_LIST = FR_CHAINS;
