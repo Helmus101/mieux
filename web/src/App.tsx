@@ -5,7 +5,6 @@ import { t, setLocale } from '@shared/i18n';
 import { useProfile, apiPrefs } from '@shared/stores';
 import { Loader, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
-import InstallPrompt from './InstallPrompt';
 import ErrorBoundary from './ErrorBoundary';
 import { ACCOUNT_REQUIRED, accountEnabled, initAccount, useAccount } from './account';
 import { APP_PATH } from './install';
@@ -17,7 +16,6 @@ type Screen = { default: ComponentType<any> };
 const lazy = (load: () => Promise<Screen>) => reactLazy(() => load().catch(() => new Promise<void>((ok) => setTimeout(ok, 600)).then(load)));
 
 const Onboarding = lazy(() => import('./screens/Onboarding'));
-const Home = lazy(() => import('./screens/Home'));
 const Scan = lazy(() => import('./screens/Scan'));
 const Product = lazy(() => import('./screens/Product'));
 const Alternatives = lazy(() => import('./screens/Alternatives'));
@@ -42,11 +40,11 @@ const sectionOf = (pathname: string) => pathname.replace(/^\/app\/?/, '').split(
 function TabBar() {
   const { go } = useNav();
   const cur = sectionOf(useLocation().pathname);
-  const items: [keyof typeof I, string][] = [['home', routes.home], ['scan', routes.scan], ['list', routes.list]];
+  const items: [keyof typeof I, string][] = [['scan', routes.scan], ['list', routes.list], ['profile', routes.profile]];
   return (
     <nav className="tabbar"><div className="in">
       {items.map(([k, path]) => (
-        <button key={k} className={'tab' + (k === 'scan' ? ' fab' : '') + (cur === k || (k === 'scan' && cur === 'product') || (k === 'list' && (cur === 'compare' || cur === 'history')) || (k === 'home' && cur === 'profile') ? ' on' : '')} onClick={() => { haptic(k === 'scan' ? 'tap' : 'select'); go(path); }}>
+        <button key={k} className={'tab' + (k === 'scan' ? ' fab' : '') + (cur === k || (k === 'scan' && (cur === 'product' || cur === 'alternatives')) || (k === 'list' && (cur === 'compare' || cur === 'history')) ? ' on' : '')} onClick={() => { haptic(k === 'scan' ? 'tap' : 'select'); go(path); }}>
           {k === 'scan' ? <span className="disc"><svg viewBox="0 0 24 24">{I[k]}</svg></span> : <svg viewBox="0 0 24 24">{I[k]}</svg>}
           <span>{t('tabs.' + k)}</span>
         </button>
@@ -67,13 +65,13 @@ function Shell() {
   const signedIn = useAccount((a) => a.email), accountReady = useAccount((a) => a.ready);
   if (accountEnabled && ACCOUNT_REQUIRED && !accountReady) return <Screen><Loader /></Screen>;
   // The add-to-home-screen banner shows from the very first screen (sign-in, onboarding), not only inside the app.
-  if (accountEnabled && ACCOUNT_REQUIRED && !signedIn) return <><Suspense fallback={null}><Onboarding gate /></Suspense><InstallPrompt /></>;  // an account is required to use the app
-  if (!onboarded) return <><Suspense fallback={null}><Onboarding /></Suspense><InstallPrompt /></>;
+  if (accountEnabled && ACCOUNT_REQUIRED && !signedIn) return <><Suspense fallback={null}><Onboarding gate /></Suspense></>;  // an account is required to use the app
+  if (!onboarded) return <><Suspense fallback={null}><Onboarding /></Suspense></>;
   return (
     <div className="app">
       <ErrorBoundary resetKey={pathname}><Suspense fallback={<Screen><Loader /></Screen>}>
         <Routes>
-          <Route index element={<Home />} />
+          <Route index element={<Navigate to="scan" replace />} />
           <Route path="scan" element={<Scan />} />
           <Route path="product/:barcode" element={<Product />} />
           <Route path="alternatives/:barcode" element={<Alternatives />} />
@@ -84,7 +82,6 @@ function Shell() {
           <Route path="*" element={<Navigate to={routes.home} replace />} />
         </Routes>
       </Suspense></ErrorBoundary>
-      <InstallPrompt />
       <TabBar />
     </div>
   );

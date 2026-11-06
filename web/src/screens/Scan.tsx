@@ -39,7 +39,7 @@ export default function Scan() {
     const c = await decodeImage(f).catch(() => null);
     if (c) { scanClick(); haptic('success'); stop(); open(c); } else { haptic('error'); setErr(t('scan.noCode')); }
   };
-  const close = () => { haptic('tap'); stop(); go(forCompare ? routes.compare : routes.home); };
+  const close = () => { haptic('tap'); stop(); go(forCompare ? routes.compare : routes.list); };
   return (
     <div className="cam">
       <video ref={video} muted playsInline />

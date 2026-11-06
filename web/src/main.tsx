@@ -13,7 +13,7 @@ setStrict(true);
 
 // Start downloading the app's first screens in parallel with the shell instead of one after the other (phones skip the landing page).
 if (/iPhone|iPod|Android/i.test(navigator.userAgent) || window.location.pathname.startsWith('/app')) {
-  void import('./App'); void import('./screens/Home'); void import('./screens/Onboarding');
+  void import('./App'); void import('./screens/Scan'); void import('./screens/Onboarding');
   // Once the first screen is up, fetch the scanner too so the Scan button opens at once.
   const idle = (window as unknown as { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1500));
   idle(() => {
