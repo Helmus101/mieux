@@ -302,7 +302,7 @@ class AltReq(BaseModel):
     price_constraint: str = "any"
     excluded_allergens: Optional[List[str]] = None
     diet: Optional[str] = None
-    limit: int = Field(5, ge=1, le=10)
+    limit: int = Field(10, ge=1, le=10)
     chains: List[str] = []  # chain ids the user shops at (empty = all)
     nearby_only: bool = False  # with a location: keep only products listed at a chain that has a branch within the radius (and within the user's chains)
     strict_additives: bool = True  # strict mode (40 % nutrition + 25 % additives + 25 % ingredient quality, every additive concern one level higher)

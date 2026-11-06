@@ -54,6 +54,10 @@ R = [
     ("chocolate_bar", "sweet", "chocolate", "bar", "bar", "snacking", r"chocolates|chocolate-bars|dark-chocolates|milk-chocolates", r"chocolat (noir|au lait|blanc)|tablette"),
     ("sweet_biscuits", "sweet", "biscuit", "biscuit", "biscuit", "snacking", r"biscuits|cookies|shortbread|sweet-biscuits|biscuits-and-cakes|butter-biscuits", r"biscuit|cookie|sabl[ée]|petit beurre|galette bretonne|palet"),
     ("cakes", "sweet", "cake", "cake", "cake", "snacking", r"cakes|madeleines|pound-cakes|pancakes|crepes|waffles|muffins", r"gâteau|gateau|madeleine|cake|cr[êe]pe|gaufre|muffin|quatre-quarts"),
+    ("herbal_lozenge", "sweet", "candy", "lozenge", "lozenge", "throat", r"throat-lozenges|cough-drops|herbal-candies|lozenges|pastilles", r"ricola|valda|fisherman|halls\b|strepsils|pastilles? (pour la gorge|menthol|eucalyptus|aux plantes|au miel|\w+ miel)|bonbons? (aux )?(plantes|herbes|gorge|menthol|eucalyptus)|\bmenthol|eucalyptus|\bgorge\b|lozenge|cough"),
+    ("chewing_gum", "sweet", "candy", "gum", "gum", "snacking", r"chewing-gums?|chewing gums?", r"chewing[- ]?gum|\btrident\b|hollywood|freedent"),
+    ("licorice", "sweet", "candy", "licorice", "licorice", "snacking", r"liquorice|licorice|r[ée]glisse", r"r[ée]glisse|liquorice|licorice|amarelli"),
+    ("gummies", "sweet", "candy", "gummy", "gummy", "snacking", r"gummies|jelly-candies|fruit-gums|marshmallows", r"gomm(e|es) (fruit|ours)|gummi|gummies|ourson|haribo|jelly|marshmallow|guimauve|fruits? gums?"),
     ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops", r"bonbon|gomme|r[ée]glisse|sucette"),
     # ---- savoury snacks, meals
     ("chips", "snacks", "chips", "chips", "chips", "snacking", r"chips|crisps|potato-crisps|tortilla-chips|puffs", r"chips|tortilla|croustill|soufflé|souffle"),
@@ -98,7 +102,8 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "spreads_sweet": {"chocolate_spread": 1, "peanut_butter": 3, "jam": 3, "honey": 4},
     "biscuits": {"sweet_biscuits": 1, "cakes": 2},
     "chocolate": {"chocolate_bar": 1},
-    "candy": {"candy": 1},
+    "candy": {"candy": 1, "gummies": 2, "licorice": 3}, "herbal_lozenge": {"herbal_lozenge": 1}, "chewing_gum": {"chewing_gum": 1},
+    "gummies": {"gummies": 1, "licorice": 2},
     "chips": {"chips": 1, "crackers": 3, "nuts": 4},
     "nuts": {"nuts": 1},
     "cheese": {"cheese": 1},
@@ -117,7 +122,7 @@ def classify(p: Dict[str, Any]) -> Dict[str, Any]:
     name = (p.get("name") or "")
     # name beats tags for the specific form (a toasted brioche is tagged as breads and brioches), tags beat the name for the general kind
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if nr.search(name) and tid in ("brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee"):
+        if nr.search(name) and tid in ("brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice"):
             return {"type": tid, **_META[tid], "source": "name", "confidence": "high", "reason": "name matches the specific form: " + nr.pattern[:40]}
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tr.search(tags):
@@ -151,6 +156,8 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
             return None
         vo, vc = variant(orig, co["type"]), variant(cand, cc["type"])
         diff = [vo, vc] if co["type"] == cc["type"] and vo and vc and vo != vc else None
+        if diff and co["type"] in _HARD_VARIANT_TYPES and "standard" not in diff:
+            return None    # hazelnuts lead to hazelnuts, not to almonds or mixed fruit
         return {"level": lv, "label": LABELS[lv], "type": cc["type"], "same_type": co["type"] == cc["type"], "variant_diff": diff}
     # at least one side unclassified: only the same specific category (leaf tag) is accepted, as 'almost identical'
     lo, lc = (orig.get("categories") or [None])[-1], (cand.get("categories") or [None])[-1]
@@ -165,6 +172,10 @@ _VARIANTS = {
     "baguette": [("wholemeal", r"complet|int[ée]gral|wholemeal|whole[- ]?wheat|seigle|c[ée]r[ée]ales|graines")],
     "sandwich_bread": [("wholemeal", r"complet|int[ée]gral|wholemeal|whole[- ]?wheat|seigle|c[ée]r[ée]ales|graines")],
     "oil": [("olive", r"olive|oliva")],
+    "nuts": [("hazelnut", r"noisette|hazelnut"), ("almond", r"amande|almond"), ("walnut", r"\bnoix\b(?! de (coco|cajou|p[ée]can))|walnut"), ("peanut", r"cacahu|peanut|arachide"),
+             ("cashew", r"cajou|cashew"), ("pistachio", r"pistache|pistachio"), ("pecan", r"p[ée]can|pecan"), ("coconut", r"noix de coco|coconut"),
+             ("dried_fruit", r"fruits? secs?|raisin|abricot|datte|figue|cranberr|pruneau|dried[- ]fruit"), ("seeds", r"graines|seeds|tournesol|courge|s[ée]same|lin\b|chia"),
+             ("mixed", r"m[ée]lange|mix|cocktail|assorti")],
     "milk": [("skimmed", r"[ée]cr[ée]m|skimmed"), ("whole", r"entier|whole")],
 }
 
@@ -179,3 +190,7 @@ def variant(p: Dict[str, Any], type_id: Optional[str]) -> Optional[str]:
         if re.search(rx, text):
             return name
     return "standard"
+
+
+# Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
+_HARD_VARIANT_TYPES = {"nuts"}

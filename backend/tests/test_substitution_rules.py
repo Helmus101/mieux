@@ -108,3 +108,25 @@ def test_french_availability_states_are_counted_apart():
     out = engine.choose(real("1", "Original", True), [real("2", "Confirmé", True), real("3", "Inconnu", None), real("4", "Étranger", False)], ["protein"], [], None, "similar", 5, lang="en")
     assert [a["product"]["name"] for a in out["alternatives"]] == ["Confirmé"]
     assert out["excluded"]["not_in_france"] == 2 and out["excluded"]["france_unknown"] == 1   # unknown is part of the total, counted apart too
+
+
+def test_ricola_lozenges_lead_to_lozenges_not_gummies_or_gum():
+    ricola = {"name": "Ricola Citron Mélisse", "brand": "Ricola", "categories": ["en:snacks", "en:sweet-snacks", "en:confectioneries", "en:candies"]}
+    valda = {"name": "Valda pastilles menthe eucalyptus", "brand": "Valda", "categories": ["en:confectioneries", "en:candies"]}
+    gummies = {"name": "Gommes fruits rouges", "brand": "X", "categories": ["en:confectioneries", "en:candies", "en:gummi-candies"]}
+    gum = {"name": "Chewing-gum menthe", "brand": "X", "categories": ["en:confectioneries", "en:chewing-gum"]}
+    biscuit = {"name": "Petit beurre", "brand": "X", "categories": ["en:biscuits"]}
+    assert taxonomy.classify(ricola)["type"] == "herbal_lozenge"
+    assert sub(ricola, valda)["level"] == 1
+    assert sub(ricola, gummies) is None and sub(ricola, gum) is None and sub(ricola, biscuit) is None
+
+
+def test_hazelnuts_lead_to_hazelnuts_not_other_nuts_or_snacks():
+    hazel = {"name": "Noisettes décortiquées", "brand": "A", "categories": ["en:nuts", "en:hazelnuts"]}
+    hazel2 = {"name": "Noisettes grillées", "brand": "B", "categories": ["en:nuts", "en:hazelnuts"]}
+    almond = {"name": "Amandes entières", "brand": "C", "categories": ["en:nuts", "en:almonds"]}
+    raisins = {"name": "Mélange fruits secs et raisins", "brand": "D", "categories": ["en:nuts", "en:dried-fruits"]}
+    spread = {"name": "Pâte à tartiner noisettes et cacao", "brand": "E", "categories": ["en:spreads", "en:chocolate-spreads"]}
+    assert sub(hazel, hazel2) is not None
+    assert sub(hazel, almond) is None and sub(hazel, raisins) is None
+    assert sub(hazel, spread) is None
