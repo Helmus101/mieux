@@ -19,7 +19,7 @@ export default function Alternatives() {
   const saved = useProfile((s) => s.priorities), estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare);
   const addSearch = useHistory((s) => s.addSearch);
   const [prios, setPrios] = useState<string[]>(saved.length ? saved : ['value']);
-  const [mode, setMode] = useState('similar'), [pc, setPc] = useState('any'), [rk, setRk] = useState('match'), [touched, setTouched] = useState(false);
+  const [mode, setMode] = useState('similar'), [pc, setPc] = useState('any'), [rk, setRk] = useState('budget'), [touched, setTouched] = useState(false);
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState('');
   const [expl, setExpl] = useState<Record<string, any>>({}), [chosen, setChosen] = useState<string[]>([]), [note, setNote] = useState<string | null>(null);
   const toggle = (k: string) => setPrios((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k].slice(-2)));
@@ -55,8 +55,14 @@ export default function Alternatives() {
             <Row>{e.product.imageUrl ? <Image source={{ uri: e.product.imageUrl }} style={{ width: 60, height: 60, borderRadius: 14, backgroundColor: '#fff' }} resizeMode="contain" /> : null}
               <View style={{ flex: 1 }}><Text style={{ color: c.ink, fontWeight: '700', fontSize: 16 }}>{i === 0 ? '★ ' : ''}{e.product.name}</Text><Muted small>{e.product.brand}</Muted></View></Row>
             <Row wrap style={{ marginTop: 8 }}><NutriScore grade={e.product.nutriScore} /><NovaBadge group={e.product.novaGroup} estimated={e.product.novaEstimated} />{e.estimated ? <Pill tone="w">{t('est.pill')}</Pill> : null}{e.dominated ? <Pill tone="g">{t('simple.dominated')}</Pill> : null}</Row>
-            {sv > 0 ? <Text style={{ color: c.accent, fontSize: 24, fontWeight: '800', marginTop: 8 }}>−{eur(sv / 100)} <Text style={{ fontSize: 14, fontWeight: '500' }}>{t('simple.perPack')}</Text></Text>
-              : e.price100 != null ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700', marginTop: 8 }}>{eur(e.price100 / 100 * 10)} / kg</Text> : null}
+            {e.price100 != null ? (
+              <Row spread style={{ marginTop: 8, alignItems: 'baseline' }}>
+                <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>{eur(e.price100 / 100 * 10)} / kg</Text>
+                {sv > 0 ? <Text style={{ color: c.accent, fontSize: 16, fontWeight: '700' }}>−{eur(sv / 100)} {t('simple.perPack')}</Text> : null}
+              </Row>
+            ) : sv > 0 ? (
+              <Text style={{ color: c.accent, fontSize: 20, fontWeight: '800', marginTop: 8 }}>−{eur(sv / 100)} <Text style={{ fontSize: 14, fontWeight: '500' }}>{t('simple.perPack')}</Text></Text>
+            ) : null}
             <Text style={{ color: c.ink, marginTop: 6 }}>{e.why || '—'}.</Text>
             <Collapsible title={t('simple.moreInfo')}>
               <Muted small>{t('alt.tradeoffs')} : {e.tradeoffs.join(' ; ')}.</Muted>

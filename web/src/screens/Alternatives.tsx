@@ -26,7 +26,7 @@ export default function Alternatives() {
   // "Today" filters start from the saved profile and never write back to it.
   // Quality is judged on nutrition only; the price tabs come from the price rankings, so no price priority is sent.
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
-  const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy, setDiffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 4, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('closest');
+  const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy, setDiffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 4, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('budget');
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
@@ -37,24 +37,22 @@ export default function Alternatives() {
       .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
   const rowOf = (e: any) => ({ notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio });
-  // What each tab shows: close alternatives are never filtered by score or price; the other tabs show only what really beats the scanned product.
+  // What each tab shows: sorted strictly by category requirements.
   const os = r?.original?.score?.total;
-  const QUALITY_MARGIN = 5;   // a "better quality" tab needs at least this many points more than the scanned product
   const listOf = (k: string) => (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
     const q = os != null && e.product.score?.total != null ? e.product.score.total - os : null;
-    if (k === 'closest') return true;
-    if (k === 'budget') return e.price100 != null;                 // the backend puts the really cheaper ones first and flags the others (notCheaper)
-    if (k === 'match') return q == null || q >= 0;                 // equal or better quality; the tab itself needs a +5 point gain (below)
-    return e.price100 != null;                                     // value: needs a real price; notBetterValue rows are flagged
+    if (k === 'budget') return e.price100 != null;                 // ordered by unit price: cheapest first
+    if (k === 'match') return q == null || q >= 0;                 // equal or better quality
+    return e.price100 != null;                                     // value: quality-price score
   });
   const shown = listOf(rk);
-  const hasReal = (k: string, real: (e: any) => boolean) => listOf(k).some(real);
-  const tabs = [{ key: 'closest', label: t('rank.closest') },
-    ...(hasReal('budget', (e) => !e.notCheaper) ? [{ key: 'budget', label: t('rank.budget') }] : []),
-    ...(hasReal('match', (e) => os != null && e.product.score?.total != null && e.product.score.total - os >= QUALITY_MARGIN) ? [{ key: 'match', label: t('rank.match') }] : []),
-    ...(listOf('value').length >= 2 && hasReal('value', (e) => !e.notBetterValue) ? [{ key: 'value', label: t('rank.value') }] : [])];
-  useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk('closest'); }, [r, tabs.map((x) => x.key).join()]);
+  const tabs = [
+    { key: 'budget', label: t('rank.budget') },
+    ...(listOf('value').length > 0 ? [{ key: 'value', label: t('rank.value') }] : []),
+    ...(listOf('match').length > 0 ? [{ key: 'match', label: t('rank.match') }] : []),
+  ];
+  useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'budget'); }, [r, tabs.map((x) => x.key).join()]);
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
   const diffOf = (e: any): { text: string; tone: string; sub?: string } | null => {
@@ -100,8 +98,18 @@ export default function Alternatives() {
     <Screen>
       <NavBar onBack={back} title={t('alt.title')} />
       <h1>{t('alt.title')}</h1>
-      {r?.original && <Muted>{r.original.name}</Muted>}
+      {r?.original && (
+        <div style={{ margin: '2px 0 8px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Muted>{r.original.name}</Muted>
+          {r?.original?.categories?.length > 0 && (
+            <span className="pill" style={{ fontSize: 12 }}>
+              {r.original.categories[r.original.categories.length - 1].replace(/^en:|^fr:/, '').replace(/-/g, ' ')}
+            </span>
+          )}
+        </div>
+      )}
       {tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
+      <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}</p>
       {r?.original_price && <Segmented value={diffBy} onChange={(k) => setDiffBy(k as 'kg' | 'pack')} options={[{ key: 'kg', label: t('diff.byKg') }, { key: 'pack', label: t('diff.byPack') }]} />}
       {r?.original_price?.per100_cents != null && <p className="sm" style={{ margin: '2px 0 8px' }}>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</p>}
       {busy && <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} /><Skeleton h={120} /></>}
@@ -131,12 +139,31 @@ export default function Alternatives() {
             <Row spread>
               {e.product.score ? <span><b style={{ fontSize: 28, letterSpacing: -.5 }}>{e.product.score.total}</b><span className="mut sm">{t('score.outOf')} · {t('score.' + e.product.score.band)}</span>
                 {r?.original?.score && (() => { const d = e.product.score.total - r.original.score.total; return <span className="sm" style={{ marginLeft: 8, fontWeight: 600, color: d > 0 ? 'var(--accent)' : d < 0 ? 'var(--bad)' : 'var(--mut)' }}>{d === 0 ? t('score.same') : `${d > 0 ? '+' : '−'}${Math.abs(d)} ${t('score.pts')}`}</span>; })()}</span> : <span />}
-              {(() => {
-                const d = diffOf(e);
-                if (d) return <b style={{ fontSize: 20, color: d.tone }}>{d.text}</b>;
-                const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
-                return u ? <b style={{ fontSize: 20 }}>{t(u.unit === 'L' ? 'simple.perL' : 'simple.perKg', { p: formatCents(u.perUnitCents) })}</b> : null;
-              })()}
+              <div style={{ textAlign: 'right' }}>
+                {(() => {
+                  const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
+                  const d = diffOf(e);
+                  return (
+                    <>
+                      {u ? (
+                        <div style={{ fontSize: 18, fontWeight: 700 }}>
+                          {formatCents(u.perUnitCents)}/{u.unit}
+                          {e.pack != null && <span className="mut sm" style={{ fontWeight: 400, marginLeft: 6 }}>({formatCents(e.pack)})</span>}
+                        </div>
+                      ) : e.pack != null ? (
+                        <div style={{ fontSize: 18, fontWeight: 700 }}>{formatCents(e.pack)}</div>
+                      ) : null}
+                      {d && (
+                        <div style={{ marginTop: 2 }}>
+                          <span className="sm" style={{ fontWeight: 600, color: d.tone }}>
+                            {d.text}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
             </Row>
             {(() => {
               const why = [e.why && String(e.why).length <= 120 ? e.why : '', e.conf && !e.estimated && e.price100 != null ? t('alt.conf_' + e.conf) : ''].filter(Boolean).join(' · ');

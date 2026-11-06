@@ -113,9 +113,17 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "soup": {"soup": 1}, "pizza": {"pizza": 1}, "ready": {"ready_meal": 1, "pizza": 3},
     "cold_cuts": {"ham": 1, "sausage": 3}, "fish": {"fish_canned": 1},
     "produce": {"fruits_veg": 1, "legumes": 2}, "legumes": {"legumes": 1},
-    "sauces": {"ketchup": 1, "mayonnaise": 1, "mustard": 2, "tomato_sauce": 3},
+    "ketchup": {"ketchup": 1}, "mayonnaise": {"mayonnaise": 1},
+    "mustard": {"mustard": 1}, "tomato_sauce": {"tomato_sauce": 1},
 }
 LABELS = {1: "almost_identical", 2: "very_similar", 3: "reasonable", 4: "broader"}
+
+_BROAD_LEAFS = {
+    "en:groceries", "en:foods", "en:plant-based-foods-and-beverages", "en:meals",
+    "en:snacks", "en:sweet-snacks", "en:salty-snacks", "en:sauces", "en:condiments",
+    "en:dairies", "en:beverages", "fr:epicerie", "en:canned-foods", "en:fats",
+    "en:spreads", "en:cereals-and-potatoes", "en:desserts",
+}
 
 
 def classify(p: Dict[str, Any]) -> Dict[str, Any]:
@@ -163,7 +171,7 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
         return {"level": lv, "label": LABELS[lv], "type": cc["type"], "same_type": co["type"] == cc["type"], "variant_diff": diff}
     # at least one side unclassified: only the same specific category (leaf tag) is accepted, as 'almost identical'
     lo, lc = (orig.get("categories") or [None])[-1], (cand.get("categories") or [None])[-1]
-    if lo and lo == lc:
+    if lo and lo == lc and lo not in _BROAD_LEAFS:
         return {"level": 1, "label": LABELS[1], "type": cc["type"], "same_type": True}
     return None
 
