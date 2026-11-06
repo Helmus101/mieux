@@ -130,3 +130,19 @@ def test_hazelnuts_lead_to_hazelnuts_not_other_nuts_or_snacks():
     assert sub(hazel, hazel2) is not None
     assert sub(hazel, almond) is None and sub(hazel, raisins) is None
     assert sub(hazel, spread) is None
+
+
+def test_lotus_biscoff_leads_to_other_speculoos_not_crackers_spreads_or_sweets():
+    lotus = {"name": "Spéculoos Biscoff", "brand": "Lotus", "categories": ["en:snacks", "en:sweet-snacks", "en:biscuits-and-cakes", "en:biscuits", "en:crackers"]}
+    carrefour = {"name": "Spéculoos original", "brand": "Carrefour", "categories": ["en:biscuits"]}
+    bastogne = {"name": "LU Bastogne Original", "brand": "LU", "categories": ["en:biscuits-and-cakes", "en:biscuits"]}
+    plain = {"name": "Petit beurre", "brand": "LU", "categories": ["en:biscuits"]}
+    cracker = {"name": "Galettes au bon beurre", "brand": "St Michel", "categories": ["en:crackers"]}
+    spread = {"name": "Pâte à tartiner spéculoos", "brand": "X", "categories": ["en:spreads", "en:sweet-spreads"]}
+    gum = {"name": "Chewing-gum menthe", "brand": "X", "categories": ["en:chewing-gum"]}
+    assert taxonomy.classify(lotus)["type"] == "speculoos"
+    assert sub(lotus, carrefour)["level"] == 1 and sub(lotus, bastogne)["level"] == 1
+    assert sub(lotus, plain)["level"] == 3                     # a plain biscuit is only a broader alternative
+    assert sub(lotus, cracker) is None and sub(lotus, gum) is None
+    assert sub(lotus, spread) is None or sub(lotus, spread)["level"] >= 4
+    assert "speculoos" in taxonomy.search_terms(lotus)

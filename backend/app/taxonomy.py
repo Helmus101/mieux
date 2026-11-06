@@ -52,6 +52,7 @@ R = [
     ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre de cacahu|peanut butter|pur[ée]e d.(amande|noisette)"),
     ("honey", "sweet", "spread", "spread", "spread", "breakfast", r"honeys", r"\bmiel\b"),
     ("chocolate_bar", "sweet", "chocolate", "bar", "bar", "snacking", r"chocolates|chocolate-bars|dark-chocolates|milk-chocolates", r"chocolat (noir|au lait|blanc)|tablette"),
+    ("speculoos", "sweet", "biscuit", "biscuit", "biscuit", "snacking", r"speculoos|speculaas|sp[ée]culoos", r"^(?!.*(tartiner|spread|p[âa]te\\b|cr[èe]me|glace|ice cream|yaourt|yogurt|chocolat|boisson|drink|sirop|caf[ée]|latte))(?=.*(sp[ée]culoos|speculaas|biscoff|bastogne|des flandres|lotus))"),
     ("sweet_biscuits", "sweet", "biscuit", "biscuit", "biscuit", "snacking", r"biscuits|cookies|shortbread|sweet-biscuits|biscuits-and-cakes|butter-biscuits", r"biscuit|cookie|sabl[ée]|petit beurre|galette bretonne|palet"),
     ("cakes", "sweet", "cake", "cake", "cake", "snacking", r"cakes|madeleines|pound-cakes|pancakes|crepes|waffles|muffins", r"gâteau|gateau|madeleine|cake|cr[êe]pe|gaufre|muffin|quatre-quarts"),
     ("herbal_lozenge", "sweet", "candy", "lozenge", "lozenge", "throat", r"throat-lozenges|cough-drops|herbal-candies|lozenges|pastilles", r"ricola|valda|fisherman|halls\b|strepsils|pastilles? (pour la gorge|menthol|eucalyptus|aux plantes|au miel|\w+ miel)|bonbons? (aux )?(plantes|herbes|gorge|menthol|eucalyptus)|\bmenthol|eucalyptus|\bgorge\b|lozenge|cough"),
@@ -101,6 +102,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "instant_coffee": {"instant_coffee": 1}, "tea": {"tea": 1}, "herbal_tea": {"herbal_tea": 1},
     "spreads_sweet": {"chocolate_spread": 1, "peanut_butter": 3, "jam": 3, "honey": 4},
     "biscuits": {"sweet_biscuits": 1, "cakes": 2},
+    "speculoos": {"speculoos": 1, "sweet_biscuits": 3},   # other speculoos first; any sweet biscuit only as a broader alternative; never crackers, spreads or sweets
     "chocolate": {"chocolate_bar": 1},
     "candy": {"candy": 1, "gummies": 2, "licorice": 3}, "herbal_lozenge": {"herbal_lozenge": 1}, "chewing_gum": {"chewing_gum": 1},
     "gummies": {"gummies": 1, "licorice": 2},
@@ -122,7 +124,7 @@ def classify(p: Dict[str, Any]) -> Dict[str, Any]:
     name = (p.get("name") or "")
     # name beats tags for the specific form (a toasted brioche is tagged as breads and brioches), tags beat the name for the general kind
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if nr.search(name) and tid in ("brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice"):
+        if nr.search(name) and tid in ("brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos"):
             return {"type": tid, **_META[tid], "source": "name", "confidence": "high", "reason": "name matches the specific form: " + nr.pattern[:40]}
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tr.search(tags):
@@ -194,3 +196,17 @@ def variant(p: Dict[str, Any], type_id: Optional[str]) -> Optional[str]:
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
 _HARD_VARIANT_TYPES = {"nuts"}
+
+
+# Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.
+# Used only to widen the candidate pool; compatibility is still decided by substitution().
+TYPE_TERMS: Dict[str, List[str]] = {
+    "speculoos": ["speculoos", "spéculoos", "speculaas", "biscoff"],
+    "herbal_lozenge": ["pastilles gorge", "ricola", "valda", "bonbons plantes menthol"],
+    "chocolate_spread": ["pâte à tartiner"],
+    "nuts": [],
+}
+
+
+def search_terms(p: Dict[str, Any]) -> List[str]:
+    return TYPE_TERMS.get(classify(p).get("type") or "", [])

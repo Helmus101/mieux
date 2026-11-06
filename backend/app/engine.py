@@ -279,12 +279,12 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
             ex["not_better"] += 1
             continue
         sim = deep_similarity(orig, c)
-        if mode == "similar" and sim < 0.45:
+        if mode == "similar" and sim < 0.45 and (substitution.get("level") or 4) > 2:   # a confirmed same-type product is not dropped for having different words, nutrition or pack size
             ex["dissimilar"] += 1
             continue
         rank = [round((d[k] or 0) / (PRIORITIES[k][2] or 1)) for k in priorities]
         found.append((rank, sim, c, d))
-    found.sort(key=lambda x: (tuple(-r for r in x[0]), -((x[2].get("score") or {}).get("total") or 0), -x[1]))  # your priorities first, then overall quality score, then similarity
+    found.sort(key=lambda x: ((x[2].get("substitution") or {}).get("level") or 4, tuple(-r for r in x[0]), -((x[2].get("score") or {}).get("total") or 0), -x[1]))   # closest kind of product first, then your priorities  # your priorities first, then overall quality score, then similarity
     seen, uniq, nvar = set(), [], {}
     for it in found:  # the same product in several pack sizes is one recommendation (best ranked kept)
         k = variant_key(it[2])
@@ -374,7 +374,7 @@ def data_issues(p: Dict[str, Any]) -> List[str]:
 
 
 def prefilter(orig: Dict[str, Any], peers: List[Dict[str, Any]], allergens: List[str], diet: Optional[str], mode: str,
-              n: int = 40, priorities: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+              n: int = 80, priorities: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """Candidates that pass hard restrictions and similarity, kept for the price comparison.
 
     It is the union of the closest n products and the n products that are furthest ahead on the first priority: a product
@@ -387,7 +387,7 @@ def prefilter(orig: Dict[str, Any], peers: List[Dict[str, Any]], allergens: List
         if {"nutrition_implausible", "sugars_exceed_carbohydrates"} & set(data_issues(c)):   # a typing/unit error in the data must not turn into a recommendation
             continue
         sim = deep_similarity(orig, c)
-        if mode == "similar" and sim < 0.45:
+        if mode == "similar" and sim < 0.45 and ((c.get("substitution") or {}).get("level") or 4) > 2:
             continue
         out.append((sim, c))
     out.sort(key=lambda x: -x[0])
@@ -563,7 +563,7 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
     ps = price_scores({r["product"]["barcode"]: r["price_per_100_cents"] for r in rows}, orig_price)
     for r in rows: r["price_score"] = ps.get(r["product"]["barcode"])
     # Quality-price: more quality (score /100) per euro than the scanned product, without losing more than 5 quality points.
-    value = sorted([r for r in rows if r["value_score"] is not None and o_vs is not None and r["value_score"] >= o_vs + 3
+    value = sorted([r for r in rows if r["value_score"] is not None and o_vs is not None and r["value_score"] >= o_vs
                     and r["quality_ok"] and (o_sc is None or r["product"]["score"]["total"] >= o_sc - 5)], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
     for r in budget: r["why"] = tr(lang, "rk_budget", d=f"{(orig_price - r['price_per_100_cents'])/100:.2f}")
     for r in value:

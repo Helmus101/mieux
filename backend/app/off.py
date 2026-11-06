@@ -198,6 +198,20 @@ class _Local:
         return [json.loads(r[0]) for r in rows or []]
 
 
+    def name_any(self, terms: List[str], limit: int = 120) -> List[Dict[str, Any]]:
+        """Products whose name matches ANY of the terms (each term: all its words). Most scanned first. Widens the candidate pool; never decides comparability."""
+        import re
+        parts = []
+        for term in terms:
+            toks = re.findall(r"\w+", term.lower())
+            if toks:
+                parts.append("(" + " ".join(f'"{t}"' for t in toks[:4]) + ")")
+        if not parts:
+            return []
+        rows = self._q("select p.data from off_names n join off_products p on p.code=n.code where off_names match ? order by p.scans desc limit ?", (" OR ".join(parts), limit))
+        return [json.loads(r[0]) for r in rows or []]
+
+
 class OFFClient:
     base = "https://world.openfoodfacts.org"
 
@@ -315,6 +329,13 @@ class OFFClient:
             except OFFError:
                 continue
         return []
+
+    def search_any(self, terms: List[str], limit: int = 120) -> List[Dict[str, Any]]:
+        """OR search over product names in the local copy (no online fallback: this only widens the pool)."""
+        try:
+            return self.local.name_any(terms, limit)
+        except Exception:
+            return []
 
     def search_name(self, q: str) -> List[Dict[str, Any]]:
         local = self.local.name(q)

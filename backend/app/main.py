@@ -1260,6 +1260,11 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
         # and brands still reach taxonomy.substitution before being rejected or ranked.
         p = normalize(r)
         pool.setdefault(p["barcode"], p)
+    # Candidates found by what the product IS (its type's names, OR-matched), whatever their brand calls them and however rarely they are scanned.
+    for r in app.state.off.search_any(taxonomy.search_terms(orig)) if taxonomy.search_terms(orig) else []:
+        if r.get("product_name") and _raw_candidate(r, prio, alg, orig):
+            p = normalize(r)
+            pool.setdefault(p["barcode"], p)
     # Online searches only when there is no local copy: it covers the whole dataset, so a thin pool there means the
     # product really has few neighbours, and going online would just wait out the search rate limit (7 s per level).
     if len(pool) < 40 and not local:
