@@ -1443,7 +1443,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     # "quality": your priorities' picks first (products that beat yours), then the other same-type products by quality score, so the tab is never empty when comparable products exist
     def _qrow(c, why, trade, better):
         pt_ = points.get(c["barcode"]) or {}
-        return {"product": c, "why": why, "tradeoffs": trade, "price_per_100_cents": prices.get(c["barcode"]), "price_date": pt_.get("date"), "price_stale": bool(pt_.get("stale")), "estimated": False, "better": better, "similarity": round(engine.deep_similarity(orig, c), 2)}
+        return {"product": c, "why": why, "tradeoffs": trade, "price_source": _with_confidence(points.get(c["barcode"])), "price_per_100_cents": prices.get(c["barcode"]), "price_date": pt_.get("date"), "price_stale": bool(pt_.get("stale")), "estimated": False, "better": better, "similarity": round(engine.deep_similarity(orig, c), 2)}
     imp = {a["product"]["id"]: ("; ".join(a["improvements"]), a["tradeoffs"]) for a in res["alternatives"]}
     o_sc = (orig.get("score") or {}).get("total")
     scored = sorted([c for c in pool_src if (c.get("score") or {}).get("total") is not None and (o_sc is None or c["score"]["total"] > o_sc)], key=lambda c: (-c["score"]["total"], prices.get(c["barcode"]) is None, prices.get(c["barcode"]) or 0, -engine.deep_similarity(orig, c)))  # only products of better quality than yours
