@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, Dimensions } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { api } from '@shared/api/client';
 import { validBarcode } from '@shared/barcode';
@@ -27,7 +27,7 @@ export default function Scan() {
       {!perm?.granted ? (
         <Card><Text style={{ color: c.ink, fontSize: 17, fontWeight: '600' }}>{t('simple.camNeeded')}</Text><Muted>{t('scan.hint')}</Muted><Button primary onPress={ask}>{t('scan.open')}</Button></Card>
       ) : (<>
-        <View style={{ height: 380, borderRadius: 28, overflow: 'hidden', backgroundColor: '#000' }}>
+        <View style={{ height: Math.round(Dimensions.get('window').height * 0.62), borderRadius: 28, overflow: 'hidden', backgroundColor: '#000' }}>
           <CameraView style={{ flex: 1 }} facing="back" enableTorch={torch} onBarcodeScanned={onCode} barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }} />
           <View pointerEvents="none" style={{ position: 'absolute', left: '10%', right: '10%', top: '30%', bottom: '30%', borderWidth: 3, borderColor: '#ffffffe6', borderRadius: 18 }} />
         </View>

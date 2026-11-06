@@ -9,8 +9,8 @@ export default function TabsLayout() {
   const c = colors[useColorScheme() === 'dark' ? 'dark' : 'light'];
   const icon = (name: keyof typeof Ionicons.glyphMap) => ({ color, size }: { color: string | unknown; size: number }) => <Ionicons name={name} color={color as string} size={size} />;
   return (
-    <Tabs screenListeners={{ tabPress: () => select() }} screenOptions={{ headerShown: false, tabBarActiveTintColor: c.accent, tabBarInactiveTintColor: c.mut, tabBarStyle: { backgroundColor: c.card } }}>
-      <Tabs.Screen name="index" options={{ title: t('tabs.home'), tabBarIcon: icon('home-outline') }} />
+    <Tabs initialRouteName="scan" screenListeners={{ tabPress: () => select() }} screenOptions={{ headerShown: false, tabBarActiveTintColor: c.accent, tabBarInactiveTintColor: c.mut, tabBarStyle: { backgroundColor: c.card } }}>
+      <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="compare" options={{ href: null }} />
       <Tabs.Screen name="scan" options={{ title: t('tabs.scan'), tabBarIcon: icon('barcode-outline') }} />
       <Tabs.Screen name="purchases" options={{ title: t('tabs.purchases'), tabBarIcon: icon('receipt-outline') }} />

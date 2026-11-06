@@ -72,7 +72,7 @@ export default function Product() {
       {offline && <Pill tone="w">{t('history.offline')}</Pill>}
       {p.soldInFrance !== true && <Card><Pill tone="w">{p.soldInFrance === false ? t(country === 'US' ? 'simple.notUs' : 'simple.notFr') : t(country === 'US' ? 'simple.usUnknown' : 'simple.frUnknown')}</Pill></Card>}
       <Row>
-        {p.imageUrl && <img src={p.imageUrl} alt="" decoding="async" fetchPriority="high" width={112} height={112} style={{ objectFit: 'contain', borderRadius: 16, background: '#fff' }} />}
+        {p.imageUrl && <img src={p.imageUrl} alt="" decoding="async" fetchPriority="high" width={136} height={136} style={{ objectFit: 'contain', borderRadius: 16, background: '#fff' }} />}
         <div><Muted>{p.brand}</Muted><h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1.12 }}>{p.name}</h1><Muted>{p.quantityText}</Muted></div>
       </Row>
 
