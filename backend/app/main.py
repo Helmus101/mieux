@@ -1177,14 +1177,11 @@ def _raw_candidate(r: Dict[str, Any], priorities: List[str], allergens: List[str
         return False
     if not (r.get("categories_tags") or []):
         return False
-    nm, onm = r.get("nutriments") or {}, orig["nutriments"]
-    for p in priorities:
-        keys = _NEEDED.get(p)
-        field = engine.PRIORITIES.get(p, (None,))[0]
-        if keys and field and onm.get(field) is not None and all(nm.get(k) is None for k in keys):
-            return False
-    if allergens and not r.get("ingredients_text"):
-        return False
+    # Nutritional completeness is a ranking concern, not a discovery concern. A
+    # close substitute with an unknown value must reach the engine so the UI can
+    # show an honest "unknown" comparison instead of silently hiding it.
+    # Ingredient completeness is kept here only when allergens cannot otherwise
+    # be checked safely; the hard restriction is repeated after normalization.
     return True
 
 
@@ -1203,9 +1200,9 @@ def _raw_relevance(orig: Dict[str, Any], words: set):
         name = engine._tok(r.get("product_name") or "", r.get("brands"))
         name_similarity = len(name & orig_name)
         category_match = 0 if leaf and leaf in rc else 1 if parent and parent in rc else 2
-        # Require at least 1 shared name word for relevance
-        name_boost = 0 if name_similarity >= 1 else 10
-        return (category_match, name_boost, -len(rc & allc), -name_similarity)
+        # Product names are supporting evidence only. Competing products often
+        # use a completely different name, so category/taxonomy evidence leads.
+        return (category_match, -len(rc & allc), -name_similarity)
     return key
 
 
@@ -1245,7 +1242,7 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             elif orig["nutriments"].get(engine.PRIORITIES[p][0]) is not None:
                 required.append(s[0])
         codes = app.state.off.quick_candidates(tags[:3], spec[0] if spec else None, spec[1] if spec else True,
-                                               tuple(required), bool(alg), per_tag=200, total=260)
+                                               tuple(required), bool(alg), per_tag=300, total=500)
         if codes:
             raws = app.state.off.quick_products(codes)
     if not raws:
@@ -1253,7 +1250,7 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             raw = app.state.off.categories(tags[:4], per_tag=350, total=700)
         except Exception:  # a missing or unreadable local copy must never break a scan
             raw = []
-        raws = sorted([r for r in raw if _raw_candidate(r, prio, alg, orig)], key=_raw_relevance(orig, engine._tok(orig["name"], orig["brand"])))[:220]
+        raws = sorted([r for r in raw if _raw_candidate(r, prio, alg, orig)], key=_raw_relevance(orig, engine._tok(orig["name"], orig["brand"])))[:500]
     pool: Dict[str, Dict[str, Any]] = {}
     orig_name_words = engine._tok(orig["name"], orig["brand"])
     for r in raws:
@@ -1277,6 +1274,8 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             if len(pool) >= 60:
                 break
     if len(pool) < 40:
+        # Name search is a last-resort supplement, never the primary way to
+        # discover substitutes with different brand/product names.
         words = sorted(engine._tok(orig["name"], orig["brand"]), key=len, reverse=True)[:3]
         if words:
             try:
