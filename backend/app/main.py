@@ -1559,7 +1559,7 @@ def comparisons(request: Request, body: CmpReq, uid: str = Depends(user), s: Ses
         else:
             e = estimate.estimate_per100(p, []) if body.approximate else None
             prices[p["id"]] = {"per100_cents": e[0], "pack_cents": round(e[0] * q["amount"] / 100) if q else None, "source": "estimate", "date": None} if e else None
-    return {"products": [{"id": p["id"], "name": p["name"], "nutriScore": p["nutriScore"], "price": prices[p["id"]]} for p in P], **engine.compare(P)}
+    return {"products": [{"id": p["id"], "name": p["name"], "nutriScore": p["nutriScore"], "brand": p.get("brand"), "imageUrl": p.get("imageUrl"), "score": (p.get("score") or {}).get("total"), "price": prices[p["id"]]} for p in P], **engine.compare(P)}
 
 
 def _known(s: Session, uid: str) -> List[Dict[str, Any]]:

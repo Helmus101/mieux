@@ -3,7 +3,7 @@ import { api } from '../api/client';
 import { load, save } from '../storage';
 import { PARIS_DEFAULT } from '../zones';
 import { setStrict } from '../config';
-import { chainsFor, type Country } from '../chains';
+import { chainsFor, MARKET, type Country } from '../chains';
 import { setMoneyCountry } from '../utils/money';
 import { setLocale } from '../i18n';
 
@@ -18,7 +18,7 @@ export interface Zone { lat: number; lon: number; label: string; radius_km: numb
 interface State extends Profile {
   estimates: boolean; setEstimates: (v: boolean) => void;
   zone: Zone | null; setZone: (z: Zone | null) => void;
-  setName: (n: string) => void; setPlace: (p: Place | null) => void; setStrictAdditives: (v: boolean) => void; setAutoCamera: (v: boolean) => void; setLanguage: (l: Language) => void; setCountry: (c: Country) => void; toggleChain: (id: string) => void; removeChain: (id: string) => void; setChains: (ids: string[]) => void; clearChains: () => void; hydrate: () => void; togglePriority: (k: string) => void; setDiet: (d: Diet) => void; toggleAllergen: (k: string) => void; finish: () => void; reset: () => void;
+  setName: (n: string) => void; setPlace: (p: Place | null) => void; setStrictAdditives: (v: boolean) => void; setAutoCamera: (v: boolean) => void; setLanguage: (l: Language) => void; setCountry: (c: Country) => void; toggleChain: (id: string) => void; removeChain: (id: string) => void; setChains: (ids: string[]) => void; clearChains: () => void; hydrate: () => void; togglePriority: (k: string) => void; setPriorities: (ks: string[]) => void; setDiet: (d: Diet) => void; toggleAllergen: (k: string) => void; finish: () => void; reset: () => void;
   compare: string[]; addCompare: (id: string) => void; removeCompare: (id: string) => void; clearCompare: () => void;
 }
 const platformOf = (): string => {
@@ -74,7 +74,7 @@ export const useProfile = create<State>((set, get) => {
     setAutoCamera: (v) => { set({ autoCamera: v }); persist({ ...get(), autoCamera: v }); },
     setLanguage: (l) => { set({ language: l }); persist({ ...get(), language: l }); },
     // Switching country drops chains that do not exist there, so a French chain never filters US results.
-    setCountry: (c) => { const ids = new Set(chainsFor(c).map((x) => x.id)); const chains = (get().chains ?? []).filter((id) => ids.has(id)); const language: Language = c === 'US' ? 'en' : get().language ?? 'fr';  // choosing the United States switches the app to English; the language can still be changed afterwards
+    setCountry: (c) => { const ids = new Set(chainsFor(c).map((x) => x.id)); const chains = (get().chains ?? []).filter((id) => ids.has(id)); const language: Language = MARKET[c].autoLanguage ?? get().language ?? 'fr';  // choosing the United States switches the app to English; the language can still be changed afterwards
       api.setCountry(c); setMoneyCountry(c); setLocale(language); set({ country: c, chains, language }); persist({ ...get(), country: c, chains, language }); },
     setStrictAdditives: () => { setStrict(true); set({ strictAdditives: true }); persist({ ...get(), strictAdditives: true }); },
     toggleChain: (id) => { const cur = get().chains ?? []; const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]; set({ chains: next }); persist({ ...get(), chains: next }); },
@@ -84,6 +84,7 @@ export const useProfile = create<State>((set, get) => {
     setPlace: (p) => { set({ place: p }); persist({ ...get(), place: p }); },
     hydrate: () => { const p = load<Profile>('fiq_profile', init); api.setCountry(p.country ?? 'FR'); setMoneyCountry(p.country); setStrict(true); set({ ...p, zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), estimates: load<boolean>('fiq_estimates', false), compare: load<string[]>('fiq_compare', []), priorities: p.priorities ?? [], strictAdditives: true, autoCamera: p.autoCamera === true, language: p.language ?? 'fr', country: p.country ?? 'FR' }); },
     togglePriority: (k) => { if (k === 'eco') return; const p = get().priorities; const n = p.includes(k) ? p.filter((x) => x !== k) : [...p, k].slice(-2); set({ priorities: n }); persist({ ...get(), priorities: n }); },
+    setPriorities: (ks) => { set({ priorities: ks }); persist({ ...get(), priorities: ks }); },
     setDiet: (d) => { set({ diet: d }); persist({ ...get(), diet: d }); },
     toggleAllergen: (k) => { const a = get().allergens; const n = a.includes(k) ? a.filter((x) => x !== k) : [...a, k]; set({ allergens: n }); persist({ ...get(), allergens: n }); },
     finish: () => { set({ onboarded: true }); persist({ ...get(), onboarded: true }); },

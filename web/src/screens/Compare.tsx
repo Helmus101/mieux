@@ -9,10 +9,42 @@ import { routes, useNav } from '../nav';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const LABEL: Record<string, string> = { energyKcal100g: 'kcal', protein100g: 'protein', sugars100g: 'sugars', saturatedFat100g: 'sat', salt100g: 'salt', fiber100g: 'fibre' };
 
+/** The default view: each product's score and price, then what actually differs, with the trade-off said plainly (never a bare "winner"). */
+function Summary({ products }: { products: any[] }) {
+  const scored = products.filter((p) => typeof p.score === 'number');
+  const priced = products.filter((p) => p.price);
+  const top = scored.length > 1 ? scored.reduce((a, b) => (b.score > a.score ? b : a)) : null;
+  const cheap = priced.length > 1 ? priced.reduce((a, b) => (b.price.per100_cents < a.price.per100_cents ? b : a)) : null;
+  const tied = (list: any[], key: (p: any) => number, best: any) => list.filter((p) => key(p) === key(best)).length > 1;
+  const q = top && !tied(scored, (p) => p.score, top) ? top : null, c = cheap && !tied(priced, (p) => p.price.per100_cents, cheap) ? cheap : null;
+  const short = (p: any) => p.name.length > 28 ? p.name.slice(0, 27) + '…' : p.name;
+  return (
+    <>
+      <div className="cmp-cards">{products.map((p) => (
+        <div key={p.id} className="cmp-card">
+          {p.imageUrl && <img src={p.imageUrl} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+          <small>{short(p)}</small>
+          <b className="cmp-score">{typeof p.score === 'number' ? p.score : '—'}<i>/100</i></b>
+          <span className="mut sm">{p.price ? formatCents(Math.round(p.price.per100_cents * 10)) + ' ' + t('compare.perKgShort') : t('compare.noPrice')}{p.price?.source === 'estimate' && ' · ' + t('est.pill')}</span>
+        </div>
+      ))}</div>
+      <Card>
+        <h3>{t('compare.diffTitle')}</h3>
+        {q && <p>{t('compare.winQuality', { n: short(q) })}</p>}
+        {c && <p>{t('compare.winPrice', { n: short(c) })}</p>}
+        {q && c && q.id !== c.id && <p className="mut sm">{t('compare.tradeoff')}</p>}
+        {q && c && q.id === c.id && <p className="mut sm">{t('compare.bothWin')}</p>}
+        {!q && !c && <p className="mut">{t('compare.close')}</p>}
+      </Card>
+    </>
+  );
+}
+
 export default function Compare() {
   const { go } = useNav();
   const { compare, addCompare, removeCompare, clearCompare, estimates } = useProfile();
   const [r, setR] = useState<any>(null);
+  const [full, setFull] = useState(false);
   // most recent distinct scans first (stored on this device); a product scanned ten times appears once
   const scans = useHistory((s) => s.scans);
   const recent = scans.map((x) => x.product).filter((p, i, a) => a.findIndex((q) => q.id === p.id) === i);
@@ -23,7 +55,9 @@ export default function Compare() {
       <LargeTitle>{t('compare.title')}</LargeTitle>
       {compare.length < 2 && <Card><Muted>{t('compare.empty')}</Muted></Card>}
       {compare.length >= 2 && !r && <Loader />}
-      {r && (
+      {r && <Summary products={r.products} />}
+      {r && !full && <Button plain onPress={() => setFull(true)}>{t('compare.full')}</Button>}
+      {r && full && (
         <Card>
           <div style={{ overflowX: 'auto' }}>
             <table><tbody>

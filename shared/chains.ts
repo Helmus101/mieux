@@ -15,7 +15,13 @@ export const US_CHAINS: { id: string; name: string }[] = [
 ];
 
 export type Country = 'FR' | 'US';
-export const COUNTRIES: Country[] = ['FR', 'US'];
-export const chainsFor = (country?: Country | null) => (country === 'US' ? US_CHAINS : FR_CHAINS);
+/** One entry per market: adding a country is a new entry here (plus its data on the server), not new logic.
+ *  autoLanguage: the language the app switches to when the shopper picks this market (France leaves their choice alone). */
+export const MARKET: Record<Country, { currency: string; chains: { id: string; name: string }[]; autoLanguage?: 'fr' | 'en' }> = {
+  FR: { currency: 'EUR', chains: FR_CHAINS },
+  US: { currency: 'USD', chains: US_CHAINS, autoLanguage: 'en' },
+};
+export const COUNTRIES = Object.keys(MARKET) as Country[];
+export const chainsFor = (country?: Country | null) => MARKET[country ?? 'FR']?.chains ?? FR_CHAINS;
 /** Kept for existing imports: the French list. Prefer chainsFor(country). */
 export const CHAIN_LIST = FR_CHAINS;

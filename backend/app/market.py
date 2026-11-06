@@ -4,7 +4,12 @@ import contextvars
 import re
 from typing import Any
 
-MARKETS = {"FR": "france", "US": "united-states"}
+# One entry per market: adding a country is a new line here (plus its data files and chains), not new logic.
+CONFIG = {
+    "FR": {"off": "france", "currency": "EUR"},
+    "US": {"off": "united-states", "currency": "USD"},
+}
+MARKETS = {code: c["off"] for code, c in CONFIG.items()}   # market code -> Open Food Facts country
 _current: "contextvars.ContextVar[str]" = contextvars.ContextVar("market", default="FR")
 
 
@@ -24,7 +29,7 @@ def tag(code: str = "") -> str:
     return "en:" + MARKETS.get(code or current(), "france")
 
 
-CURRENCY = {"FR": "EUR", "US": "USD"}
+CURRENCY = {code: c["currency"] for code, c in CONFIG.items()}
 
 
 def currency(code: str = "") -> str:

@@ -378,3 +378,8 @@ h1{font-size:30px;margin:8px 0 6px}
 .know-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--line);font-size:16px}
 .know-row:first-of-type{border-top:0}.know-row b{display:flex;align-items:center;font-weight:600}
 .tabbar .tab{font-size:10.5px}
+.cmp-cards{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:10px;margin:8px 0 12px}
+.cmp-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:4px;align-items:flex-start;min-width:0}
+.cmp-card img{width:56px;height:56px;object-fit:contain;border-radius:10px}
+.cmp-card small{font-size:13px;line-height:1.25;color:var(--mut)}
+.cmp-score{font-size:34px;letter-spacing:-1px;line-height:1}.cmp-score i{font-size:14px;font-style:normal;color:var(--mut);font-weight:500}
