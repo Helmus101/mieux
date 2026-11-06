@@ -145,7 +145,7 @@ def test_dominated_products_are_flagged_not_hidden():
     a, b, c = {"p": 3, "q": 3}, {"p": 2, "q": 2}, {"p": 4, "q": 1}
     keys = [lambda x: x["p"], lambda x: x["q"]]
     assert engine.dominated([a, b, c], keys) == [False, True, False]      # b is beaten by a on both; c trades q for p
-    assert engine.dominated([{"p": None, "q": 1}, {"p": 1, "q": 1}], keys) == [True, False]
+    assert engine.dominated([{"p": None, "q": 1}, {"p": 1, "q": 1}], keys) == [False, False]   # a missing value is not compared: it never makes an item look dominated
 
 
 # ---------- availability in France ----------

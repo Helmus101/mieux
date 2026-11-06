@@ -71,13 +71,15 @@ def variant_key(p: Dict[str, Any]) -> str:
     return (p.get("brand") or "").lower().split(",")[0].strip() + "|" + " ".join(sorted(_tok(p["name"], p.get("brand"))))
 
 
-def dominated(items: List[Dict[str, Any]], keys) -> List[bool]:
-    """True for items that another item beats or ties on every key (larger is better) and strictly beats on one. Unknown keys count as -inf."""
-    vec = [[(k(i) if k(i) is not None else float("-inf")) for k in keys] for i in items]
-    out = []
-    for a in vec:
-        out.append(any(all(b[j] >= a[j] for j in range(len(a))) and any(b[j] > a[j] for j in range(len(a))) for b in vec if b is not a))
-    return out
+def dominated(items: List[Dict[str, Any]], keys, min_common: int = 2) -> List[bool]:
+    """True for items that another item beats or ties on every key (larger is better) and strictly beats on one.
+    Only keys known for both items are compared, and at least `min_common` of them: missing data never makes an item look dominated."""
+    vec = [[k(i) for k in keys] for i in items]
+
+    def beats(b, a):
+        common = [j for j in range(len(a)) if a[j] is not None and b[j] is not None]
+        return len(common) >= min_common and all(b[j] >= a[j] for j in common) and any(b[j] > a[j] for j in common)
+    return [any(beats(b, a) for b in vec if b is not a) for a in vec]
 
 
 def restriction_status(p: Dict[str, Any], allergens: List[str], diet: Optional[str]) -> str:

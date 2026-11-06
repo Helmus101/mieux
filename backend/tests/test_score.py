@@ -338,3 +338,16 @@ def test_a_candidates_value_score_does_not_depend_on_the_other_candidates():
     alone = value_scores([("a", 80, 90)], orig_price=100)["a"]
     crowd = value_scores([("a", 80, 90), ("b", 60, 20), ("c", 95, 400), ("d", 70, 60), ("e", 50, 300)], orig_price=100)["a"]
     assert alone == crowd
+
+
+def test_pareto_dominated_options_are_flagged_only_on_known_data():
+    from app.engine import dominated
+    keys = [lambda r: -r["price"], lambda r: r.get("q"), lambda r: r.get("nova")]
+    a = {"price": 4.0, "q": 82, "nova": 2}
+    b = {"price": 3.8, "q": 85, "nova": 2}      # cheaper and better than a: a is dominated
+    c = {"price": 6.0, "q": 90, "nova": 1}      # dearer but better: dominated by nobody
+    assert dominated([a, b, c], keys) == [True, False, False]
+    d = {"price": 5.0, "q": 70, "nova": None}   # unknown NOVA: compared on price and quality only
+    assert dominated([b, d], keys) == [False, True]
+    e = {"price": 5.0, "q": None, "nova": None}  # one known key is not enough to call anything dominated
+    assert dominated([b, e], keys) == [False, False]
