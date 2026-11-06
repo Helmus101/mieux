@@ -95,6 +95,7 @@ export default function Product() {
         {p.score ? <>
           <Row spread><div className="scorebig" style={{ color: p.score.tone === 'b' ? 'var(--bad)' : p.score.tone === 'w' ? 'var(--warn)' : 'var(--accent)' }}>{p.score.total}<small>{t('score.outOf')}</small></div><span style={{ textAlign: 'right' }}><b>{t('score.' + p.score.band)}</b><br /><span className="mut sm">{t('score.title')}</span></span></Row>
           <ScoreBar total={p.score.total} label={t('score.spectrum')} />
+          <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('score.indicative')}</p>
           {(p.score.additives?.items ?? []).some((x: any) => x.level === 'C' || x.level === 'D') && <div className="flags">{(p.score.additives.items as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 4).map((x) => <span key={x.code} className={'pill ' + (x.level === 'D' ? 'b' : 'w')} onClick={() => setSheet(x.code)}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</span>)}</div>}
           {p.score.incomplete && <div className="flags"><span className="pill g">{t('sdim.incomplete')}</span></div>}
           {p.score.flags?.length > 0 && <div className="flags">{p.score.flags.slice(0, 3).map((f: any) => <span key={f.key} className={'pill ' + (f.level === 'bad' ? 'b' : 'w')}>{t('flag.' + f.key)}</span>)}</div>}
@@ -102,6 +103,7 @@ export default function Product() {
         {head.kind !== 'none' ? <p style={{ margin: '10px 0 0' }}><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('simple.noPrice')}</p>}
       </Card>
       <KnowCard p={p} />
+      <Button primary onPress={() => go(routes.alternatives(p.id))}>{t('simple.findBetter')}</Button>
       {p.score && priorities.length > 0 && (
         <Card>
           <p className="mut sm" style={{ margin: '0 0 8px' }}>{t('priorities.title')}</p>
@@ -143,7 +145,6 @@ export default function Product() {
           })}
         </Card>
       )}
-      <Button primary onPress={() => go(routes.alternatives(p.id))}>{t('simple.findBetter')}</Button>
       {p.score && <Collapsible open={false} title={t('sdim.title')}>
           {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
         <Row wrap><NutriScore grade={p.nutriScore} /></Row>

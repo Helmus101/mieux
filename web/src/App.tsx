@@ -40,7 +40,7 @@ const sectionOf = (pathname: string) => pathname.replace(/^\/app\/?/, '').split(
 function TabBar() {
   const { go } = useNav();
   const cur = sectionOf(useLocation().pathname);
-  const items: [keyof typeof I, string][] = [['scan', routes.scan], ['list', routes.list], ['profile', routes.profile]];
+  const items: [keyof typeof I, string][] = [['list', routes.list], ['scan', routes.scan], ['profile', routes.profile]];
   return (
     <nav className="tabbar"><div className="in">
       {items.map(([k, path]) => (
