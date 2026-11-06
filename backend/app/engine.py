@@ -586,8 +586,25 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
     # Quality-price: more quality (score /100) per euro than the scanned product, without losing more than 5 quality points.
     value = sorted([r for r in rows if r["value_score"] is not None and o_vs is not None and r["value_score"] >= o_vs
                     and r["quality_ok"] and (o_sc is None or r["product"]["score"]["total"] >= o_sc - 5)], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
-    for r in budget: r["why"] = tr(lang, "rk_budget", d=f"{(orig_price - r['price_per_100_cents'])/100:.2f}")
+    # Fill to five: the next-cheapest / next-best-value substitutes of the same kind follow the ones that really beat the scanned product, each flagged so the screen can say so.
+    MIN_SHOWN = 5
+    if len(budget) < MIN_SHOWN:
+        have = {r["product"]["barcode"] for r in budget}
+        extra = sorted([r for r in rows if r["min_ok"] and r["product"]["barcode"] not in have], key=lambda r: r["price_per_100_cents"])
+        for r in extra[:MIN_SHOWN - len(budget)]:
+            r["not_cheaper"] = r["price_per_100_cents"] >= orig_price * 0.98
+        budget += extra[:MIN_SHOWN - len(budget)]
+    if len(value) < MIN_SHOWN and o_vs is not None:
+        have = {r["product"]["barcode"] for r in value}
+        extra = sorted([r for r in rows if r["value_score"] is not None and r["quality_ok"] and r["product"]["barcode"] not in have], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
+        for r in extra[:MIN_SHOWN - len(value)]:
+            r["not_better_value"] = r["value_score"] < o_vs
+        value += extra[:MIN_SHOWN - len(value)]
+    for r in budget: r["why"] = tr(lang, "rk_not_cheaper") if r.get("not_cheaper") else tr(lang, "rk_budget", d=f"{(orig_price - r['price_per_100_cents'])/100:.2f}")
     for r in value:
+        if r.get("not_better_value"):
+            r["why"] = tr(lang, "rk_not_better")
+            continue
         r["why"] = tr(lang, "rk_qp", s=r["product"]["score"]["total"], p=f"{r['price_per_100_cents']*10/100:.2f}", o=f"{orig_price*10/100:.2f}", os=o_sc if o_sc is not None else "?", v=r["value_score"], ov=o_vs)
     # Pareto flag: a product that is not more expensive, not less nutritious (per euro), not worse on Nutri-Score/NOVA and not less similar, for every key,
     # than another candidate is "dominated"; the flag lets the UI prefer the efficient ones. Nothing is hidden.

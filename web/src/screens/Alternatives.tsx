@@ -36,24 +36,24 @@ export default function Alternatives() {
       .then((x: any) => { setR(x); })
       .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
-  const rowOf = (e: any) => ({ product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio });
+  const rowOf = (e: any) => ({ notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio });
   // What each tab shows: close alternatives are never filtered by score or price; the other tabs show only what really beats the scanned product.
-  const os = r?.original?.score?.total, ops = r?.original_price?.per100_cents;
+  const os = r?.original?.score?.total;
   const QUALITY_MARGIN = 5;   // a "better quality" tab needs at least this many points more than the scanned product
   const listOf = (k: string) => (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
     const q = os != null && e.product.score?.total != null ? e.product.score.total - os : null;
-    const c = ops != null && e.price100 != null && e.price100 < ops - 0.05;
     if (k === 'closest') return true;
-    if (k === 'budget') return ops == null ? e.price100 != null : c;
-    if (k === 'match') return q != null && q >= QUALITY_MARGIN;
-    return e.price100 != null && (ops == null || q == null || q > 0 || c);   // value: needs a real price
+    if (k === 'budget') return e.price100 != null;                 // the backend puts the really cheaper ones first and flags the others (notCheaper)
+    if (k === 'match') return q == null || q >= 0;                 // equal or better quality; the tab itself needs a +5 point gain (below)
+    return e.price100 != null;                                     // value: needs a real price; notBetterValue rows are flagged
   });
   const shown = listOf(rk);
+  const hasReal = (k: string, real: (e: any) => boolean) => listOf(k).some(real);
   const tabs = [{ key: 'closest', label: t('rank.closest') },
-    ...(listOf('budget').length ? [{ key: 'budget', label: t('rank.budget') }] : []),
-    ...(listOf('match').length ? [{ key: 'match', label: t('rank.match') }] : []),
-    ...(listOf('value').length >= 2 || (listOf('value').length === 1 && ops != null) ? [{ key: 'value', label: t('rank.value') }] : [])];
+    ...(hasReal('budget', (e) => !e.notCheaper) ? [{ key: 'budget', label: t('rank.budget') }] : []),
+    ...(hasReal('match', (e) => os != null && e.product.score?.total != null && e.product.score.total - os >= QUALITY_MARGIN) ? [{ key: 'match', label: t('rank.match') }] : []),
+    ...(listOf('value').length >= 2 && hasReal('value', (e) => !e.notBetterValue) ? [{ key: 'value', label: t('rank.value') }] : [])];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk('closest'); }, [r, tabs.map((x) => x.key).join()]);
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
@@ -139,7 +139,7 @@ export default function Alternatives() {
               })()}
             </Row>
             {(() => {
-              const why = [e.why && String(e.why).length <= 110 ? e.why : '', e.conf && !e.estimated && e.price100 != null ? t('alt.conf_' + e.conf) : ''].filter(Boolean).join(' · ');
+              const why = [e.why && String(e.why).length <= 120 ? e.why : '', e.conf && !e.estimated && e.price100 != null ? t('alt.conf_' + e.conf) : ''].filter(Boolean).join(' · ');
               return why ? <p className="mut sm" style={{ margin: '6px 0 0' }}>{why}</p> : null;
             })()}
             {e.product.chains?.length > 0 && <div className="logos" style={{ marginTop: 8 }}>{e.product.chains.slice(0, 6).map((c: string) => <ChainLogo key={c} id={c} size={22} />)}{e.product.chains.length > 6 && <span className="mut sm">+{e.product.chains.length - 6}</span>}</div>}

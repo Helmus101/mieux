@@ -204,6 +204,11 @@ TYPE_TERMS: Dict[str, List[str]] = {
     "speculoos": ["speculoos", "spéculoos", "speculaas", "biscoff"],
     "herbal_lozenge": ["pastilles gorge", "ricola", "valda", "bonbons plantes menthol"],
     "chocolate_spread": ["pâte à tartiner"],
+    "fish_canned": ["thon", "sardines", "maquereau", "saumon conserve"],
+    "butter": ["beurre"], "baguette": ["baguette", "pain de campagne"], "sandwich_bread": ["pain de mie"],
+    "plain_yogurt": ["yaourt nature", "yaourt grec", "skyr"], "milk": ["lait demi-écrémé", "lait entier", "lait écrémé", "lait uht"],
+    "cheese": ["emmental", "gruyère", "comté", "camembert", "mozzarella", "fromage râpé"],
+    "ham": ["jambon", "lardons"], "soup": ["soupe", "velouté"], "pizza": ["pizza"], "chips": ["chips"], "tea": ["thé", "infusion"],
     "nuts": [],
 }
 

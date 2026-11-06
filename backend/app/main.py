@@ -1206,6 +1206,18 @@ def _raw_relevance(orig: Dict[str, Any], words: set):
     return key
 
 
+def _search_any(orig: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Products found by the names of the scanned product's type (OR search); empty when the type has no names or the data source cannot do it."""
+    terms = taxonomy.search_terms(orig)
+    fn = getattr(app.state.off, "search_any", None)
+    if not terms or fn is None:
+        return []
+    try:
+        return fn(terms)
+    except Exception:
+        return []
+
+
 def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[List[str]] = None,
            allergens: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """Candidate pool for the deep search, read from the whole local copy of Open Food Facts when it is there.
@@ -1219,7 +1231,13 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
     """
     base = [t for t in orig["categories"] if t not in _TOO_BROAD]
     if not base:
-        return []
+        # No usable category tags (common on thin Open Food Facts records): find candidates by what the product is called, through its type's names.
+        found: Dict[str, Dict[str, Any]] = {}
+        for r in _search_any(orig):
+            if r.get("product_name") and _raw_candidate(r, priorities or [], allergens or [], orig):
+                p = normalize(r)
+                found.setdefault(p["barcode"], p)
+        return list(found.values())
     tags = list(reversed(base))  # most specific first
     if mode != "similar":
         tags = tags[2:] or tags  # "any category": the leaf level is too narrow, start from the parent
@@ -1261,7 +1279,7 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
         p = normalize(r)
         pool.setdefault(p["barcode"], p)
     # Candidates found by what the product IS (its type's names, OR-matched), whatever their brand calls them and however rarely they are scanned.
-    for r in app.state.off.search_any(taxonomy.search_terms(orig)) if taxonomy.search_terms(orig) else []:
+    for r in _search_any(orig):
         if r.get("product_name") and _raw_candidate(r, prio, alg, orig):
             p = normalize(r)
             pool.setdefault(p["barcode"], p)
@@ -1480,6 +1498,10 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     imp = {a["product"]["id"]: ("; ".join(a["improvements"]), a["tradeoffs"]) for a in res["alternatives"]}
     o_sc = (orig.get("score") or {}).get("total")
     scored = sorted([c for c in engine.close_only(pool_src, lambda c: (c.get("substitution") or {}).get("level")) if (c.get("score") or {}).get("total") is not None and (o_sc is None or c["score"]["total"] > o_sc)], key=lambda c: (-c["score"]["total"], prices.get(c["barcode"]) is None, prices.get(c["barcode"]) or 0, -engine.deep_similarity(orig, c)))  # only products of better quality than yours
+    if len(scored) < 5:   # fill to five with the best-scoring remaining substitutes of the same kind; they are not "better", and carry better=False
+        have_ = {c["barcode"] for c in scored}
+        scored += sorted([c for c in engine.close_only(pool_src, lambda c: (c.get("substitution") or {}).get("level")) if (c.get("score") or {}).get("total") is not None and c["barcode"] not in have_ and c["barcode"] != orig["barcode"]],
+                         key=lambda c: (-c["score"]["total"], -engine.deep_similarity(orig, c)))[:5 - len(scored)]
     qrows = []
     for c in scored[:10]:  # strictly by quality score, highest first (price plays no part here)
         why, trade = imp.get(c["id"]) or (tr(lang, "quality_note", s=c["score"]["total"], o=o_sc if o_sc is not None else "?"), engine._tradeoffs(orig, c, engine.deep_similarity(orig, c), lang))
