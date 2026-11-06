@@ -93,3 +93,18 @@ def test_best_value_is_not_excluded_by_the_sugar_rule_that_limits_cheapest():
     assert not r["budget"]                                  # Cheapest keeps the safeguard
     assert r["value"] and r["value"][0]["product"]["name"] == "Plus sucré mais bien noté"
     assert any("sucres" in x for x in r["value"][0]["tradeoffs"])   # and the cost is shown, not hidden
+
+
+def test_french_availability_states_are_counted_apart():
+    from app.products import normalize
+
+    def real(code, name, sold):
+        p = normalize({"code": code, "product_name": name, "brands": "B", "categories_tags": ["en:yogurts", "en:plain-yogurts"], "ingredients_text": "lait",
+                       "nutriments": {"energy-kcal_100g": 90, "fat_100g": 2, "saturated-fat_100g": 1, "carbohydrates_100g": 8, "sugars_100g": 4, "proteins_100g": 5 if name == "Original" else 9,
+                                      "fiber_100g": 0, "salt_100g": 0.1},
+                       "allergens_tags": [], "ingredients_analysis_tags": [], "nutriscore_grade": "b", "quantity": "400 g", "countries_tags": []})
+        p["soldInFrance"] = sold
+        return p
+    out = engine.choose(real("1", "Original", True), [real("2", "Confirmé", True), real("3", "Inconnu", None), real("4", "Étranger", False)], ["protein"], [], None, "similar", 5, lang="en")
+    assert [a["product"]["name"] for a in out["alternatives"]] == ["Confirmé"]
+    assert out["excluded"]["not_in_france"] == 2 and out["excluded"]["france_unknown"] == 1   # unknown is part of the total, counted apart too

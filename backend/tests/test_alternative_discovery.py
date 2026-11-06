@@ -54,6 +54,7 @@ def test_unknown_and_explicitly_unavailable_france_are_not_recommended():
     original = product("Yaourt nature", "Danone", ["en:yogurts"])
     unknown = product("Yaourt nature", "Unknown", ["en:yogurts"], sold=None)
     unavailable = product("Yaourt nature", "US Brand", ["en:yogurts"], sold=False)
+    unknown["barcode"], unavailable["barcode"] = "unknown-code", "unavailable-code"   # distinct from the original, or they are skipped as "the same product"
     result = engine.choose(original, [unknown, unavailable], ["overall"], [], None, "similar", 5)
     assert result["alternatives"] == []
     assert result["excluded"]["not_in_france"] == 2

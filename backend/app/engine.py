@@ -209,8 +209,6 @@ def _tradeoffs(o, c, sim, lang="fr", price_unknown=False) -> List[str]:
     less("protein100g", 2, "tr_less_prot"); less("fiber100g", 1.5, "tr_less_fibre")
     if a["energyKcal100g"] is not None and b["energyKcal100g"] is not None and b["energyKcal100g"] - a["energyKcal100g"] >= 50:
         T.append(tr(lang, "tr_more_kcal", d=f"{b['energyKcal100g']-a['energyKcal100g']:.0f}"))
-    if (o["name"] or "").strip().lower() == (c["name"] or "").strip().lower() or (o["name"] or "").strip().lower() in (c["name"] or "").strip().lower():
-        T.append(tr(lang, "tr_same"))
     on, cn = o.get("novaGroup"), c.get("novaGroup")
     if on and cn and cn > on:
         T.append(tr(lang, "tr_nova", a=on, b=cn))
@@ -226,7 +224,7 @@ def _tradeoffs(o, c, sim, lang="fr", price_unknown=False) -> List[str]:
 def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[str], allergens: List[str], diet: Optional[str],
            mode: str = "similar", limit: int = 5, prices: Optional[Dict[str, float]] = None,
            orig_price: Optional[float] = None, lang: str = "fr") -> Dict[str, Any]:
-    ex = {"conflict": 0, "unverified": 0, "incomplete": 0, "not_better": 0, "dissimilar": 0, "not_in_france": 0, "not_substitute": 0}
+    ex = {"conflict": 0, "unverified": 0, "incomplete": 0, "not_better": 0, "dissimilar": 0, "not_in_france": 0, "france_unknown": 0, "not_substitute": 0}
     funnel = {"raw_candidates_retrieved": len(peers), "usable_product_data": 0, "confirmed_sold_in_france": 0,
               "passing_allergens": 0, "passing_compatibility": 0, "with_sufficient_nutrition": 0,
               "with_verified_prices": 0, "by_substitution_level": {str(level): 0 for level in range(1, 5)}}
@@ -239,6 +237,8 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
         funnel["usable_product_data"] += 1
         if c.get("soldInFrance") is not True:  # recommend only what can be bought in France; unknown availability is not assumed
             ex["not_in_france"] += 1
+            if c.get("soldInFrance") is None:
+                ex["france_unknown"] += 1   # of those, how many only lack country data (as opposed to being listed as sold elsewhere)
             continue
         funnel["confirmed_sold_in_france"] += 1
         st = restriction_status(c, allergens, diet)
@@ -324,7 +324,7 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
                 if d[k] is not None and d[k] > 0: imp.append(tr(lang, "imp_additives", n=int(d[k]), a=len(orig["additives"]), b=len(c["additives"])))
             elif d[k] is not None and d[k] > PRIORITIES[k][2]:
                 f = PRIORITIES[k][0]
-                imp.append(tr(lang, "imp_more" if PRIORITIES[k][1] > 0 else "imp_less", d=f"{abs(d[k]):.1f}", what=tr(lang, "n_" + NAME_KEY[k]), a=f"{orig['nutriments'][f]:.1f}", b=f"{c['nutriments'][f]:.1f}"))
+                imp.append(tr(lang, "imp_more" if PRIORITIES[k][1] > 0 else "imp_less", d=f"{abs(d[k]):.1f}", what=tr(lang, NAME_KEY[k]), a=f"{orig['nutriments'][f]:.1f}", b=f"{c['nutriments'][f]:.1f}"))
         alts.append({"product_id": c["id"], "product": c, "comparison": {DIFF_KEY[k]: (d[k] if k == "overall" or d[k] is None else round(d[k] * PRIORITIES[k][1], 2)) for k in priorities},
                      "price_per_100_cents": (prices or {}).get(c["barcode"]),
                      "value": value_card(orig, c, orig_price, (prices or {}).get(c["barcode"])),

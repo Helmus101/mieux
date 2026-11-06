@@ -1311,7 +1311,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
     orig_price = None
     if oq:
         own = _own_price(s, uid, orig["id"])
-        comm = None if (own and value.fresh(own["date"])) else _community(orig, loc, 730, only)
+        comm = None if (own and value.fresh(own["date"])) else (_community(orig, loc, 730, only) or (_community(orig, loc, 730, None) if only else None))   # the scanned product's own price must not vanish just because it was not seen at the chosen chains: the product page shows the same unrestricted price
         pt = value.price_point(orig, own, comm)
         if pt:
             orig_price, points[orig["barcode"]] = pt["per100_cents"], pt

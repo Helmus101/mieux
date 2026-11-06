@@ -47,13 +47,30 @@ const doFlush = async () => {
   }
 };
 
+/* The global total: every scan adds one, signed in or not. Only a number is sent (no account, device or product). A failed write keeps the scans
+ * waiting on the device and they go out with the next one. */
+const GKEY = 'fiq_scans_global_pending';
+const readG = (): number => { try { return Math.max(0, Number(localStorage.getItem(GKEY)) || 0); } catch { return 0; } };
+const writeG = (n: number) => { try { localStorage.setItem(GKEY, String(Math.max(0, n))); } catch { /* storage unavailable */ } };
+let gFlushing: Promise<void> | null = null;
+const flushGlobal = (): Promise<void> => (gFlushing ??= (async () => {
+  if (!supabase) return;
+  const n = Math.min(readG(), 1000);
+  if (n <= 0) return;
+  const { error } = await supabase.rpc('add_global_scans', { n });
+  if (error) { console.warn('add_global_scans failed', error); return; }
+  writeG(readG() - n);
+})().finally(() => { gFlushing = null; }));
+
 let lastCounted = { code: '', at: 0 };
 /** Counts one scan and sends it. The same product within 30 s is one scan (a screen can render its effect twice). */
 export const countScan = (code: string) => {
-  const uid = useAccount.getState().uid;
-  if (!uid) return;
   if (code === lastCounted.code && Date.now() - lastCounted.at < 30000) return;
   lastCounted = { code, at: Date.now() };
+  writeG(readG() + 1);
+  void flushGlobal();
+  const uid = useAccount.getState().uid;
+  if (!uid) return;   // signed in: the scan also goes to this account's own total
   const l = readLocal(uid);
   l.total += 1; l.pending += 1;
   writeLocal(uid, l);

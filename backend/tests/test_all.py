@@ -51,7 +51,7 @@ def test_unknown_barcode_and_auth():
 
 
 def test_alternatives_rank_and_explain():
-    r = c.post("/v1/products/1/alternatives", headers=H, json={"priorities": ["protein", "sugars"], "limit": 5, "excluded_allergens": ["peanuts"]}).json()
+    r = c.post("/v1/products/1/alternatives", headers=H, json={"category_mode": "any", "priorities": ["protein", "sugars"], "limit": 5, "excluded_allergens": ["peanuts"]}).json()
     ids = [a["product_id"] for a in r["alternatives"]]
     assert ids[0] == "2" and "3" in ids                      # skyr: +6 g protein beats greek +5
     assert "5" not in ids and "6" not in ids and "7" not in ids   # incomplete / unverified... / wrong category
@@ -62,7 +62,7 @@ def test_alternatives_rank_and_explain():
 
 def test_allergen_hard_exclusion_and_unverified():
     c.put("/v1/me/preferences", headers=H, json={"diet": "omnivore", "priorities": ["protein"], "allergens": ["peanuts"]})
-    r = c.post("/v1/products/1/alternatives", headers=H, json={"priorities": ["protein"]}).json()
+    r = c.post("/v1/products/1/alternatives", headers=H, json={"category_mode": "any", "priorities": ["protein"]}).json()
     ids = [a["product_id"] for a in r["alternatives"]]
     assert "4" not in ids and "6" not in ids                      # peanut conflict; no ingredients => cannot verify
     assert r["excluded"]["conflict"] >= 1 and r["excluded"]["unverified"] >= 1
@@ -70,7 +70,7 @@ def test_allergen_hard_exclusion_and_unverified():
 
 
 def test_no_recommendation():
-    r = c.post("/v1/products/4/alternatives", headers=H, json={"priorities": ["protein"]}).json()
+    r = c.post("/v1/products/4/alternatives", headers=H, json={"category_mode": "any", "priorities": ["protein"]}).json()
     assert r["alternatives"] == [] and r["no_recommendation_reason"]
 
 
@@ -169,15 +169,15 @@ def test_budget_priority_ranks_by_verified_price_only():
     assert r2["alternatives"][0]["product_id"] == "5"        # protein first: 12 g beats 10 g; price breaks ties
     assert all("price_per_100_cents" in a for a in r2["alternatives"])
     main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None})()
-    r3 = c.post("/v1/products/1/alternatives", headers=Hb, json={"priorities": ["budget"]}).json()
+    r3 = c.post("/v1/products/1/alternatives", headers=Hb, json={"category_mode": "any", "priorities": ["budget"]}).json()
     assert r3["alternatives"] == [] and "price" in (r3["price_note"] or "").lower()
 
 
 def test_french_by_default():
-    r = c.post("/v1/products/1/alternatives", headers={"X-Session-Id": "fr-user-001"}, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"]}).json()
+    r = c.post("/v1/products/1/alternatives", headers={"X-Session-Id": "fr-user-001"}, json={"category_mode": "any", "priorities": ["protein"], "excluded_allergens": ["peanuts"]}).json()
     txt = " ".join(r["alternatives"][0]["improvements"] + r["alternatives"][0]["tradeoffs"])
     assert "protéines" in txt and "en plus" in txt
-    r = c.post("/v1/products/4/alternatives", headers={"X-Session-Id": "fr-user-001"}, json={"priorities": ["protein"]}).json()
+    r = c.post("/v1/products/4/alternatives", headers={"X-Session-Id": "fr-user-001"}, json={"category_mode": "any", "priorities": ["protein"]}).json()
     assert r["no_recommendation_reason"].startswith("Aucune alternative")
 
 
