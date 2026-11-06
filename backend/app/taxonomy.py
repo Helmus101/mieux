@@ -175,7 +175,7 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
             odd = [k for k in ("roast", "salt") if po[k] and pc[k] and po[k] != pc[k]]
             if odd:
                 lv = min(4, lv + 1)     # raw vs roasted, plain vs salted: still nuts, but no longer the same product
-                diff = (diff or []) + [f"{k}:{po[k]}>{pc[k]}" for k in odd]
+                diff = diff or [po[odd[0]], pc[odd[0]]]
         return {"level": lv, "label": LABELS[lv], "type": cc["type"], "same_type": co["type"] == cc["type"], "variant_diff": diff}
     # at least one side unclassified: only the same specific category (leaf tag) is accepted, as 'almost identical'
     lo, lc = (orig.get("categories") or [None])[-1], (cand.get("categories") or [None])[-1]

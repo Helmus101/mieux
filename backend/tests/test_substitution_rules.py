@@ -198,3 +198,14 @@ def test_nuts_keep_shell_and_roast_apart():
     inshell = {**base, "name": "Pistaches en coque grillées"}
     assert taxonomy.substitution(raw, inshell) is None
     assert taxonomy.substitution(raw, roasted)["level"] > taxonomy.substitution(raw, {**base, "name": "Pistaches décortiquées crues"})["level"]
+
+
+def test_roasted_vs_raw_tradeoff_text_renders():
+    from app import engine
+    base = {"categories": ["en:nuts", "en:pistachios"], "nutriments": {"energyKcal100g": 600}, "score": {"total": 80}}
+    o = {**base, "barcode": "1", "name": "Pistaches non grillées"}
+    c = {**base, "barcode": "2", "name": "Pistaches grillées", "brand": "X"}
+    from app import taxonomy
+    c["substitution"] = taxonomy.substitution(o, c)
+    assert c["substitution"]["variant_diff"] == ["raw", "roasted"]
+    assert "grillé" in " ".join(engine._tradeoffs(o, c, 0.9, "fr"))
