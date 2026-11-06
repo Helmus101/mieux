@@ -13,7 +13,6 @@ import AuthForm from '../AuthForm';
 
 export default function Profile() {
   const p = useProfile();
-  const estimates = useProfile((st) => st.estimates), setEstimates = useProfile((st) => st.setEstimates);
   const { go } = useNav();
   const hist = useHistory();
   const [, setTick] = useState(0);
@@ -43,10 +42,6 @@ export default function Profile() {
       <Section title={t('profile.country')}>
         <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />
         {p.country === 'US' && <p className="mut sm">{t('country.usNote')}</p>}
-      </Section>
-      <Section title={t('est.setTitle')}>
-        <Segmented value={estimates ? 'on' : 'off'} onChange={(k) => setEstimates(k === 'on')} options={[{ key: 'off', label: t('est.setOff') }, { key: 'on', label: t('est.setOn') }]} />
-        <p className="mut sm">{t('est.setNote')}</p>
       </Section>
       <Collapsible title={t('chains.title')}>
         <p className="mut sm" style={{ marginBottom: 8 }}>{t('chains.hint')}</p>

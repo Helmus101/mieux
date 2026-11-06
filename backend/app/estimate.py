@@ -22,26 +22,12 @@ CATEGORY_EUR_PER_KG: List[Tuple[str, float]] = [
 ]
 
 
-# United States: national average retail prices in USD per kg (per litre for milk), from the US Bureau of Labor Statistics "Average Price Data",
-# September 2026, converted from per-lb / per-gallon / per-dozen. Public-domain figures for staples only (series APU0000701111 flour, 701312 rice, 701322 pasta,
-# 702111 bread, 703112 ground beef, 704111 bacon, 706111 whole chicken, FF1101 chicken breast, FD3101 pork chops, 708111 eggs, 709112 milk, 710212 cheddar,
-# 711211 bananas, 711311 oranges, 711415 lemons, 712112 potatoes, 712311 tomatoes, 715211 sugar, 717311 coffee). A national average, not a store price.
-CATEGORY_USD_PER_KG: List[Tuple[str, float]] = [
-    ("ground-beef", 14.97), ("minced-beef", 14.97), ("bacons", 14.90), ("chicken-breasts", 9.27), ("pork-chops", 9.30), ("whole-chickens", 4.55),
-    ("cheddar", 13.52), ("chicken-eggs", 3.34), ("-eggs", 3.34), ("whole-milks", 1.08), ("semi-skimmed-milks", 1.08), ("skimmed-milks", 1.08), ("cow-milks", 1.08),
-    ("white-breads", 4.03), ("sliced-breads", 4.03), ("spaghetti", 3.03), ("pastas", 3.03), ("long-grain-rices", 2.46), ("white-rices", 2.46), ("rices", 2.46),
-    ("wheat-flours", 1.20), ("white-sugars", 2.25), ("ground-coffees", 20.57), ("coffees", 20.57), ("bananas", 1.45), ("oranges", 3.80), ("lemons", 6.26),
-    ("potatoes", 2.18), ("tomatoes", 4.39),
-]
-
-
 def category_price_per100(categories: List[str]) -> Optional[float]:
-    """Cents per 100 g/ml from the market's category table, using the most specific matching category."""
-    table = CATEGORY_USD_PER_KG if market.current() == "US" else CATEGORY_EUR_PER_KG
+    """Cents per 100 g/ml from the category table, using the most specific matching category."""
     for tag in reversed(categories):
-        for key, per_kg in table:
+        for key, eur_kg in CATEGORY_EUR_PER_KG:
             if key in tag:
-                return per_kg * 10.0
+                return eur_kg * 10.0
     return None
 
 
@@ -49,6 +35,8 @@ def estimate_per100(product: Dict[str, Any], observed_peers: List[float]) -> Opt
     """(cents per 100 g/ml, basis) with basis 'peers' (median of >=3 observed comparable prices) or 'category' (static table)."""
     if len(observed_peers) >= 3:
         return round(median(observed_peers), 1), "peers"
+    if market.current() != "FR":  # the category table is a French euro assumption: outside France only observed prices may be used
+        return None
     c = category_price_per100(product.get("categories", []))
     return (round(c, 1), "category") if c else None
 
