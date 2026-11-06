@@ -10,6 +10,7 @@ import { haptic } from '../ui';
 import { Bar, Button, Card, Collapsible, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader } from '../ui';
 import { routes, useNav } from '../nav';
 import SaveButton from '../SaveButton';
+import KnowCard from '../KnowCard';
 import Where from '../Where';
 import { InstallCard } from '../InstallPrompt';
 import DesktopQRBanner from '../DesktopQRBanner';
@@ -101,6 +102,7 @@ export default function Product() {
         </> : <Muted>{t('score.na')}</Muted>}
         {head.kind !== 'none' ? <p style={{ margin: '10px 0 0' }}><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('simple.noPrice')}</p>}
       </Card>
+      <KnowCard p={p} />
       {p.score && priorities.length > 0 && (
         <Card>
           <p className="mut sm" style={{ margin: '0 0 8px' }}>{t('priorities.title')}</p>

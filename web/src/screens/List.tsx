@@ -3,14 +3,19 @@ import { useHistory } from '@shared/stores';
 import { Screen, NavBar, LargeTitle, Card, Button, Muted, Group, Cell } from '../ui';
 import { routes, useNav } from '../nav';
 
-/** The saved list: every product the person bookmarked, from a product page or from the alternatives. */
+/** Courses: the shopping destination. Saved products (from a product page or from the alternatives), plus the tools that work on them. */
 export default function List() {
-  const { go, back } = useNav();
+  const { go } = useNav();
   const saved = useHistory((s) => s.saved), remove = useHistory((s) => s.removeSaved), clearSaved = useHistory((s) => s.clearSaved);
   return (
     <Screen>
-      <NavBar onBack={back} title={t('list.title')} />
-      <LargeTitle sub={saved.length ? t('list.count', { n: saved.length }) : undefined}>{t('list.title')}</LargeTitle>
+      <NavBar title={t('tabs.list')} />
+      <LargeTitle sub={saved.length ? t('list.count', { n: saved.length }) : undefined}>{t('tabs.list')}</LargeTitle>
+      <Group>
+        <Cell chevron onPress={() => go(routes.compare)}><b>{t('list.compareTool')}</b></Cell>
+        <Cell chevron onPress={() => go(routes.history)}><b>{t('list.historyTool')}</b></Cell>
+      </Group>
+      <div className="sechead"><h2>{t('list.savedTitle')}</h2></div>
       {saved.length ? <>
         <Group>{saved.map((s) => (
           <Cell key={s.id} image={s.product.imageUrl || null} chevron onPress={() => go(routes.product(s.id))}>

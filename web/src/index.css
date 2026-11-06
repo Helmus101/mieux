@@ -1,9 +1,9 @@
 /* Mieux design system: warm paper, ink, leaf green, the same palette as the landing page. Tokens mirror shared/theme.ts. */
-:root{--bg:#FFFFFF;--card:#F4F7F5;--ink:#0F1A15;--mut:#5A6660;--line:rgba(15,26,21,.12);
+:root{--bg:#FAFAF7;--surface:#FFFFFF;--card:#F1F4F1;--ink:#17251D;--mut:#5A6660;--line:rgba(15,26,21,.12);
   --leaf:#1F4D3A;--olive:#7FA65A;--clay:#F26B3A;--sage:#EAF1ED;
   --accent:#1F4D3A;--accent-ink:#FFFFFF;--tint:#EAF1ED;--warn:#D95A22;--bad:#A33B2B;--blue:#1F4D3A;
-  --glass:rgba(255,255,255,.85);--shadow:none;--ease:cubic-bezier(.32,.72,0,1)}
-@media(prefers-color-scheme:dark){:root{--bg:#0D1210;--card:#151C18;--ink:#F2F5F3;--mut:#A3AFA8;--line:#24302A;
+  --glass:rgba(250,250,247,.88);--shadow:none;--ease:cubic-bezier(.32,.72,0,1)}
+@media(prefers-color-scheme:dark){:root{--bg:#0D1210;--surface:#151C18;--card:#151C18;--ink:#F2F5F3;--mut:#A3AFA8;--line:#24302A;
   --leaf:#2C6350;--olive:#9CBE77;--clay:#FF8A5C;--sage:#1A2620;
   --accent:#6FCF97;--accent-ink:#07140D;--tint:rgba(111,207,151,.14);--warn:#FF9A6B;--bad:#E4695A;--blue:#9CBE77;
   --glass:rgba(13,18,16,.85);--shadow:none}}
@@ -102,31 +102,21 @@ video{width:100%;border-radius:20px;background:#000;max-height:360px;object-fit:
 .nova{display:inline-block;color:#fff;font-weight:800;font-size:13px;padding:5px 11px;border-radius:8px}
 
 /* simplification pass: flat cards, details sections, hero */
-.card,.group{box-shadow:none;border-radius:18px}
-.coll{background:var(--card);border-radius:18px;margin:8px 0;box-shadow:none;overflow:hidden}
 .coll>summary{list-style:none;cursor:pointer;padding:15px 16px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
 .coll>summary::-webkit-details-marker{display:none}
 .coll>summary::after{content:"+";color:var(--mut);font-size:22px;line-height:1;transition:transform .25s var(--ease)}
 .coll[open]>summary::after{content:"−"}
 .coll-body{padding:0 16px 16px;animation:enter .3s var(--ease)}
-.hero{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 70%,#0a84ff));color:var(--accent-ink);border-radius:26px;padding:22px 20px;margin:6px 0 14px;box-shadow:0 14px 34px color-mix(in srgb,var(--accent) 38%,transparent)}
-.hero h1{margin:0;color:inherit;font-size:30px}.hero p{margin:4px 0 0;opacity:.88}
-.hero .btn{margin-top:14px;background:#fff;color:#0a7a35;box-shadow:none}
 .verdict{font-weight:700;font-size:18px;margin:2px 0 8px}
 .pricebig{font-size:34px;font-weight:800;letter-spacing:-.8px;line-height:1.1}
-.btn.primary{padding:17px 18px;font-size:17px}
 
 /* minimalist pass: flat, hairlines, one accent (colours come from the palette in :root) */
 html,body{font-size:16px}
-.card,.group,.coll{box-shadow:none;border:1px solid var(--line);border-radius:14px;background:var(--card)}
 .card.tint{background:var(--tint);border-color:var(--line)}
-.group{border-radius:14px}
-.btn{box-shadow:none;border:1px solid var(--line);background:var(--card);color:var(--ink);font-weight:600;border-radius:12px}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:none}
 .btn.plain{border:0;color:var(--mut)}
 .chip{box-shadow:none;border:1px solid var(--line)}.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .seg{background:var(--tint);border:1px solid var(--line)}.seg .thumb{box-shadow:none;border:1px solid var(--line)}
-h1{font-size:28px;letter-spacing:-.3px}
 h2{font-size:12px;letter-spacing:.06em;margin:22px 2px 8px}
 .hero{background:none;color:var(--ink);padding:6px 0;margin:0 0 8px;box-shadow:none;border-radius:0}
 .hero h1{font-size:20px;line-height:1.3;letter-spacing:-.02em;font-weight:700}
@@ -140,7 +130,6 @@ h2{font-size:12px;letter-spacing:.06em;margin:22px 2px 8px}
 .tab.on{color:var(--accent)}
 .bar{height:4px}.bar i{background:var(--accent)}
 .scrim{background:rgba(0,0,0,.25)}
-.navbar.scrolled{background:var(--bg);backdrop-filter:none}
 .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:middle}
 .dot.g{background:var(--accent)}.dot.w{background:var(--warn)}.dot.b{background:var(--bad)}
 .verdict .pill{background:none;border:0;padding:0;font-size:18px;font-weight:700;color:var(--ink)}
@@ -202,24 +191,16 @@ h2{font-size:12px;letter-spacing:.06em;margin:22px 2px 8px}
 .chain-chip.off{opacity:.4;text-decoration:line-through}
 
 /* roomier, calmer layout (these rules come last on purpose) */
-.screen{padding:calc(env(safe-area-inset-top) + 20px) 24px calc(140px + env(safe-area-inset-bottom))}
-.navbar{margin:0 -24px;padding-left:24px;padding-right:24px;padding-top:10px;padding-bottom:10px}
-h1{margin:16px 0 12px;line-height:1.15}
-h2{margin:48px 6px 16px}
+h2{margin:28px 4px 8px}
 h3{margin:0 0 12px}
 p{margin:14px 0;line-height:1.6}
 .mut{line-height:1.5}
-.card{padding:24px;margin:20px 0;border-radius:20px}
-.group{margin:20px 0}
-.cell{padding:16px 22px;min-height:56px}
 .row{gap:16px}
 .chips{gap:12px}
-.btn{padding:17px 20px;margin-top:12px}
 .btn.sm{padding:11px 18px;margin-top:0}
 .btn.plain{margin-top:4px}
 .seg{margin:16px 0}
-.coll{margin:18px 0;border-radius:20px}
-.coll>summary{padding:20px 22px;font-size:17px;min-height:56px}
+.coll>summary{padding:14px 16px;font-size:16px;min-height:52px}
 /* how many people use Mieux: a calm report page in the paper/leaf palette */
 .stats{max-width:760px;margin:0 auto;padding-bottom:28px}
 .stats-head{padding:4px 0 22px;border-bottom:1px solid var(--line)}
@@ -279,7 +260,6 @@ td .nova{padding:4px 8px}
 .trio .mut{font-size:12px;letter-spacing:-.2px}.trio div{padding-left:2px;padding-right:2px}
 
 /* settings: calmer rhythm, one control per row */
-.screen h2{margin:36px 4px 12px}
 .screen input+.btn,.screen input+.cell{margin-top:12px}
 .seg button{padding:12px 6px;font-size:15px;min-height:44px}
 .chain-pick{margin:12px 0}
@@ -352,14 +332,17 @@ button,a,[role=button],.chain-chip{cursor:pointer;transition:transform .12s ease
 .chain-chip:active,a:active{transform:scale(.97);opacity:.8}
 @media (display-mode: standalone){body{padding-top:0}.landing-only{display:none}}
 
-/* ===== Native app layer: last, so it wins over the earlier passes. iOS-style grouped surfaces, a real app bar, a brand header, 16 px type. ===== */
+/* ===== Design system, final form. The earlier gradient / simplification / minimalist / roomier passes were merged into this block.
+   Tokens live in :root: warm white background, forest green accent, terracotta highlight, white bordered surfaces, 12-18 px radius, system type. ===== */
 body{font-size:16px}
 .screen{padding:calc(env(safe-area-inset-top) + 2px) 16px calc(96px + env(safe-area-inset-bottom))}
-.card,.group,.coll{border:0;box-shadow:none;border-radius:16px;background:var(--card)}
+.card,.group,.coll{border:1px solid var(--line);box-shadow:none;border-radius:16px;background:var(--surface)}
+.coll{margin:10px 0;overflow:hidden}
 .card{padding:16px;margin:12px 0}
 .group{margin:12px 0}
 .cell{padding:12px 16px;min-height:52px}
-.btn{border:0;border-radius:14px;min-height:52px;padding:14px 18px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;border-radius:14px;min-height:52px;padding:14px 18px;margin-top:10px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 h1{font-size:30px;margin:8px 0 6px}
 .navbar{margin:0 -16px;padding:calc(env(safe-area-inset-top) + 2px) 8px 2px;min-height:44px;background:var(--glass);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);box-shadow:0 .5px 0 var(--line)}
 .navbar .back{display:flex;align-items:center;padding:8px 10px 8px 0;border:0;background:none;font-size:17px;color:var(--accent)}
@@ -378,3 +361,20 @@ h1{font-size:30px;margin:8px 0 6px}
 .hsteps b{display:flex;align-items:center;justify-content:center;width:28px;height:28px;margin:0 auto 8px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:14px}
 .listrow{display:flex;align-items:center;gap:8px;width:100%}.listrow .grow{flex:1;min-width:0}
 .about{text-align:center;margin:28px 0 8px;color:var(--mut)}.about .brand{font-size:24px}.about p{margin:6px 0}
+.greet{font-size:30px;margin:10px 0 2px}.greet-sub{margin:0 0 6px;font-size:15px}
+.scancard{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;align-items:center;width:100%;text-align:left;border:0;border-radius:20px;background:var(--accent);color:var(--accent-ink);padding:18px;margin:14px 0 8px;cursor:pointer}
+.scancard-icon{grid-row:span 2;width:50px;height:50px;border-radius:14px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center}
+.scancard-icon svg{width:28px;height:28px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.scancard b{font-size:19px;letter-spacing:-.2px}.scancard small{font-size:14px;line-height:1.3;opacity:.82}
+.scancard em{grid-column:1/-1;font-style:normal;font-weight:600;font-size:15px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 12px 10px}
+.stats b{display:block;font-size:26px;letter-spacing:-.6px;line-height:1.1}.stats span{display:block;margin-top:2px;font-size:12px;color:var(--mut);line-height:1.25}
+.sechead{display:flex;align-items:baseline;justify-content:space-between;margin:22px 4px 6px}.sechead h2{margin:0}
+.link{border:0;background:none;color:var(--accent);font-size:15px;font-weight:600;padding:0}
+.scorepill{min-width:42px;text-align:center;font-weight:700;font-size:15px;padding:5px 8px;border-radius:10px;background:var(--tint)}
+.scorepill.g{color:var(--accent)}.scorepill.w{color:var(--warn)}.scorepill.b{color:var(--bad)}
+.know-title{margin:0 0 4px}
+.know-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-top:1px solid var(--line);font-size:16px}
+.know-row:first-of-type{border-top:0}.know-row b{display:flex;align-items:center;font-weight:600}
+.tabbar .tab{font-size:10.5px}

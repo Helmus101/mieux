@@ -35,7 +35,7 @@ export const Group = ({ children }: { children: ReactNode }) => <div className="
 export function Cell({ children, onPress, chevron, image }: { children: ReactNode; onPress?: () => void; chevron?: boolean; image?: string | null }) {
   return (
     <div className={'cell' + (onPress ? ' tap' : '')} onClick={onPress ? () => { haptic(); onPress(); } : undefined}>
-      {image !== undefined && image !== null && <img src={image} alt="" loading="lazy" decoding="async" />}
+      {image !== undefined && image !== null && <img src={image} alt="" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
       <div className="grow">{children}</div>{chevron && <span className="chev">›</span>}
     </div>
   );

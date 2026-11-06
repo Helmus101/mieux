@@ -1,6 +1,6 @@
 export const en = {
   appName: 'Mieux',
-  tabs: { home: 'Home', compare: 'Compare', scan: 'Scan', purchases: 'My Purchases', profile: 'Profile' },
+  tabs: { list: 'Shopping', home: 'Home', compare: 'Compare', scan: 'Scan', purchases: 'My Purchases', profile: 'Profile' },
   common: { stepsProduct: 'Finding the product…|Reading the ingredients…|Computing the score…', stepsAlt: 'Finding similar products…|Comparing quality…|Comparing prices…|Ranking the best options…', back: 'Back', cancel: 'Cancel', save: 'Save', done: 'OK', loading: 'Loading…', slow: 'This is taking longer than expected.', reload: 'Reload', loadingProduct: 'Analysing the product…', retry: 'Retry', delete: 'Delete', continue: 'Continue', skip: 'Skip', error: 'Something went wrong', notAvailable: 'n/a', missing: 'missing', perPurchase: 'per purchase', per100g: 'per 100g' },
   onboarding: {
     t1: 'What matters most when shopping?', s1: 'Choose up to two priorities.', selected: '{n}/2 selected',
@@ -11,7 +11,7 @@ export const en = {
   },
   priorities: { title: 'Match your priorities', eco: 'Environmental impact (coming soon)', value: 'Best nutrition-price ratio', budget: 'Save money', overall: 'Best nutritional balance', sugars: 'Less sugar', protein: 'More protein', fibre: 'More fiber', additives: 'Fewer additives', salt: 'Less salt', saturated_fat: 'Less saturated fat' },
   diets: { peanuts: 'Peanut allergy', nuts: 'Tree nut allergy', omnivore: 'None', vegetarian: 'Vegetarian', vegan: 'Vegan', gluten: 'Gluten-free', milk: 'Dairy-free' },
-  home: { s1: 'Scan', s2: 'Read the score', s3: 'Compare',
+  home: { tagline: 'Make better choices, every shop.', scanTitle: 'Scan a product', scanSub: 'See its quality and find better alternatives.', scanGo: 'Open the scanner', statAnalysed: 'Products analysed', statSaved: 'In my list', statAvg: 'Average score', seeAll: 'See all', s1: 'Scan', s2: 'Read the score', s3: 'Compare',
     kicker: 'MIEUX', title: 'Eat better, simply', sub: 'Sugar, salt, additives: what the label really says.', howTitle: 'How it works', how1: 'Scan the barcode: the button above opens your camera.', how2: 'Read the score out of 100, sugar, salt and additives — in plain language.', how3: 'See a healthier alternative sold near you, then decide.', spend: 'RECORDED SPENDING · {m}', basedOn: 'Based on {n} confirmed receipt(s) this month',
     scanReceipt: 'Scan a receipt', scanProduct: 'Scan a product', opportunities: 'Your opportunities', potential: 'Potential savings if you switched everything once',
     estimate: 'Estimate on comparable products with dated price. Not guaranteed.', savePer: 'savings per purchase', boughtN: 'bought {n} times', youBuy: 'You buy', alternative: 'Alternative',
@@ -198,7 +198,8 @@ export const en = {
     reviewTitle: 'Check your receipt', needsConfirm: 'To confirm', shop: 'Store', date: 'Date (YYYY-MM-DD)', total: 'Receipt total', sum: 'Sum of items', matchOk: 'Total matches', mismatch: 'Gap of {d} between items and total. Check for missing lines or discounts.',
     linkTo: 'Match to "{n}" (likely match)', unmatchedHint: 'An unrecognized product can stay unmatched. A receipt line proves a purchase, not the exact variant.', confirm: 'Save receipt', saved: 'Receipt saved', dup: 'Possible duplicate: same store, date, total. Save anyway?', lowConf: 'low confidence, check', empty: 'No receipt to verify.', saving: 'Saving…',
   },
-  list: { title: 'My list', save: 'Save', saved: 'Saved', saveAll: 'Save all ({n})', allSaved: 'All saved', savedN: '{n} products saved', count: '{n} product(s)', remove: 'Remove', clear: 'Clear list', clearConfirm: 'Remove every product from the list?', empty: 'Nothing saved yet. Tap the bookmark on a product or an alternative to keep it here.', open: 'My list' },
+  know: { title: 'What to know', nutrition: 'Nutrition', additives: 'Additives', processing: 'Processing', good: 'Good', ok: 'Fair', poor: 'Could be better', none: 'None', fine: 'Low concern', watch: 'Worth watching' },
+  list: { tools: 'Tools', compareTool: 'Compare products', historyTool: 'Scan history', savedTitle: 'Saved products', title: 'My list', save: 'Save', saved: 'Saved', saveAll: 'Save all ({n})', allSaved: 'All saved', savedN: '{n} products saved', count: '{n} product(s)', remove: 'Remove', clear: 'Clear list', clearConfirm: 'Remove every product from the list?', empty: 'Nothing saved yet. Tap the bookmark on a product or an alternative to keep it here.', open: 'My list' },
   brand: { tagline: 'Eat better. Buy better.', credit: 'Data: Open Food Facts (ODbL), Open Prices. Scores are information, not medical advice.' },
   country: { FR: 'France', US: 'United States', usNote: 'Test version: US prices and stores are still very incomplete.' },
   profile: {

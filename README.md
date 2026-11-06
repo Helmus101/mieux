@@ -25,7 +25,9 @@ A personalized grocery decision-support product helping users make smarter food 
   - Receipt OCR with Tesseract.js
   - All backend features accessible via shared API client
 
-### Mobile App (Expo + React Native)
+### Mobile App (Expo + React Native): planned, not built yet
+The web app (installable PWA) is the product today and covers iOS and Android; `mobile/` is a starting skeleton for a future native client (see ARCHITECTURE.md, "Not built yet"). The bundle identifier and scheme still say `foodiq` and should be changed before any store release.
+
 - **Location**: `mobile/`
 - **Tech Stack**: Expo SDK 50, React Native 0.73, Expo Router
 - **Platform**: iOS first (managed workflow)

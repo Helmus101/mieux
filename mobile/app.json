@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FoodIQ",
+    "name": "Mieux",
     "slug": "foodiq",
     "scheme": "foodiq",
     "version": "1.0.0",
@@ -10,8 +10,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.foodiq.mobile",
       "infoPlist": {
-        "NSCameraUsageDescription": "FoodIQ utilise la caméra pour lire les codes-barres et photographier vos tickets. Les images restent sur votre appareil.",
-        "NSLocationWhenInUseUsageDescription": "FoodIQ utilise votre position approximative pour connaître votre ville. Les coordonnées ne sont pas conservées."
+        "NSCameraUsageDescription": "Mieux utilise la caméra pour lire les codes-barres et photographier vos tickets. Les images restent sur votre appareil.",
+        "NSLocationWhenInUseUsageDescription": "Mieux utilise votre position approximative pour connaître votre ville. Les coordonnées ne sont pas conservées."
       },
       "config": {
         "usesNonExemptEncryption": false
@@ -32,14 +32,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "FoodIQ utilise la caméra pour lire les codes-barres et photographier vos tickets."
+          "cameraPermission": "Mieux utilise la caméra pour lire les codes-barres et photographier vos tickets."
         }
       ],
       "expo-status-bar",
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "FoodIQ utilise votre position approximative pour connaître votre ville. Les coordonnées ne sont pas conservées."
+          "locationWhenInUsePermission": "Mieux utilise votre position approximative pour connaître votre ville. Les coordonnées ne sont pas conservées."
         }
       ]
     ],

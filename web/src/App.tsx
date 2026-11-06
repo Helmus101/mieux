@@ -31,6 +31,7 @@ const BlogPost = lazy(() => import('./screens/BlogPost'));
 const I = {
   home: <path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" />,
   compare: <path d="M8 3L4 7l4 4M4 7h13M16 21l4-4-4-4M20 17H7" />,
+  list: <path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />,
   scan: <path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3M7 12h10" />,
   profile: <path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0" />,
 };
@@ -41,7 +42,7 @@ const sectionOf = (pathname: string) => pathname.replace(/^\/app\/?/, '').split(
 function TabBar() {
   const { go } = useNav();
   const cur = sectionOf(useLocation().pathname);
-  const items: [keyof typeof I, string][] = [['home', routes.home], ['scan', routes.scan], ['profile', routes.profile]];
+  const items: [keyof typeof I, string][] = [['home', routes.home], ['list', routes.list], ['scan', routes.scan], ['compare', routes.compare], ['profile', routes.profile]];
   return (
     <nav className="tabbar"><div className="in">
       {items.map(([k, path]) => (
