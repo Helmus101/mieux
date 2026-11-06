@@ -3,15 +3,18 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { api } from '@shared/api/client';
 import { hydrateProfile, useProfile } from '@shared/stores/profileStore';
 import { hydrateHistory } from '@shared/stores/historyStore';
-import { setAccountId } from '@shared/storage';
+import { load, save, setAccountId } from '@shared/storage';
+
+const CARRY_KEYS = ['fiq_h_saved', 'fiq_profile', 'fiq_estimates', 'fiq_zone', 'fiq_compare', 'fiq_h_scans', 'fiq_h_searches', 'fiq_h_comparisons', 'fiq_h_receipts'];
 
 const URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://nhlazqawxthoaymwrrze.supabase.co';
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 /** Supabase is used for sign-in only; null until the anon key is configured, in which case the app stays account-free. */
-/** Sign-in is switched off for now: the app is account-free (anonymous session, history and profile stay on the device). Set to true to bring sign-in back; nothing else changes. */
-const AUTH_ENABLED = false;
-export const supabase: SupabaseClient | null = AUTH_ENABLED && KEY ? createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
+/** Signing in is optional: the app works without an account (anonymous session, history and profile stay on the device) and Profile offers to sign in.
+ *  Set ACCOUNT_REQUIRED to true to put the sign-in gate back in front of the app. */
+export const ACCOUNT_REQUIRED = false;
+export const supabase: SupabaseClient | null = KEY ? createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }) : null;
 export const accountEnabled = !!supabase;
 
 interface Account { email: string | null; uid: string | null; ready: boolean; scans: number | null; pending: number; syncError: string | null }
@@ -72,7 +75,10 @@ export function initAccount() {
     // Switching account: point local storage at that account's keys, then reload the stores from them. Language chosen before signing in carries over.
     const lang = useProfile.getState().language;
     current = uid;
+    // Signing in from Profile: bring what was done without an account along, so the person does not land on an empty profile and history.
+    const carry = uid ? CARRY_KEYS.map((k) => [k, load<unknown>(k, null)] as const) : [];
     setAccountId(uid);
+    for (const [k, v] of carry) if (v != null && load<unknown>(k, null) == null) save(k, v);
     hydrateProfile();
     hydrateHistory();
     if (uid && !useProfile.getState().onboarded && lang) useProfile.getState().setLanguage(lang);

@@ -2,8 +2,8 @@ import { useRef, useState } from 'react';
 import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { useProfile, PRIORITY_KEYS } from '@shared/stores';
-import { Button, Card, Cell, Muted, ChainLogo, Segmented } from '../ui';
-import { accountEnabled, useAccount } from '../account';
+import { Button, Card, Cell, Muted, ChainLogo, Segmented, Brand } from '../ui';
+import { ACCOUNT_REQUIRED, accountEnabled, useAccount } from '../account';
 import AuthForm from '../AuthForm';
 import { InstallCard } from '../InstallPrompt';
 import { chainsFor, COUNTRIES, type Country } from '@shared/chains';
@@ -29,15 +29,15 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
     <div className="ob">
       <Segmented value={p.language ?? 'fr'} onChange={(k) => { p.setLanguage(k as 'fr' | 'en'); setLocale(k as 'fr' | 'en'); }} options={[{ key: 'fr', label: 'Français' }, { key: 'en', label: 'English' }]} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div className="kicker">MIEUX</div><h1 style={{ fontSize: 38 }}>{t('welcome.title')}</h1><ul className="ob-points"><li>{t('welcome.p1')}</li><li>{t('welcome.p2')}</li><li>{t('welcome.p3')}</li></ul>
+        <Brand size={52} big /><p className="mut" style={{ margin: '6px 0 18px' }}>{t('brand.tagline')}</p><h1 style={{ fontSize: 34 }}>{t('welcome.title')}</h1><ul className="ob-points"><li>{t('welcome.p1')}</li><li>{t('welcome.p2')}</li><li>{t('welcome.p3')}</li></ul>
       </div>
-      {accountEnabled && <Card>
+      {accountEnabled && ACCOUNT_REQUIRED && <Card>
         {email ? <b>{t('account.as', { x: email })}</b> : <>
           <p className="mut sm" style={{ margin: '0 0 10px' }}>{t('account.hint')}</p>
           <AuthForm /></>}
       </Card>}
       <InstallCard />
-      {!gate && <Button primary disabled={accountEnabled && !email} onPress={() => setStep(0)}>{t('welcome.start')}</Button>}
+      {!gate && <Button primary disabled={accountEnabled && ACCOUNT_REQUIRED && !email} onPress={() => setStep(0)}>{t('welcome.start')}</Button>}
     </div>
   );
   return (

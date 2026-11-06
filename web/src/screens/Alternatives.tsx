@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
-import { useProfile } from '@shared/stores';
+import { useHistory, useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
 import { Bar, Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
 import Where from '../Where';
+import SaveButton from '../SaveButton';
 import { friendlyError } from '../errors';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -105,11 +106,18 @@ export default function Alternatives() {
           : { title: t('emptyAlt.valueTitle'), why: t('emptyAlt.valueWhy') };
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
       })()}
+      {r && !busy && shown.length > 0 && (() => {
+        const savedIds = useHistory.getState().saved.map((s) => s.id);
+        const orig = useHistory.getState().productById(barcode ?? '') ?? (r.original ? { ...r.original, id: r.original.id ?? barcode } : null);
+        const all = [orig, ...shown.map((e: any) => e.product)].filter(Boolean);
+        const done = all.every((p: any) => savedIds.includes(p.id));
+        return <Button small plain disabled={done} onPress={() => { haptic('success'); useHistory.getState().saveMany(all); setNote(t('list.savedN', { n: all.length })); setTimeout(() => setNote(''), 2500); }}>{done ? t('list.allSaved') : t('list.saveAll', { n: all.length })}</Button>;
+      })()}
       {r && !busy && shown.map((e: any, i: number) => {
         return (
           <Card key={e.product.id}>
             <Row>{e.product.imageUrl && <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={56} height={56} style={{ objectFit: 'contain', borderRadius: 12, background: '#fff' }} />}
-              <div className="grow"><b>{i + 1}. {e.product.name}</b><Muted>{e.product.brand}</Muted></div></Row>
+              <div className="grow"><b>{i + 1}. {e.product.name}</b><Muted>{e.product.brand}</Muted></div><SaveButton product={e.product} /></Row>
             <Row spread>
               {e.product.score ? <span><b style={{ fontSize: 28, letterSpacing: -.5 }}>{e.product.score.total}</b><span className="mut sm">{t('score.outOf')} · {t('score.' + e.product.score.band)}</span>
                 {r?.original?.score && (() => { const d = e.product.score.total - r.original.score.total; return <span className="sm" style={{ marginLeft: 8, fontWeight: 600, color: d > 0 ? 'var(--accent)' : d < 0 ? 'var(--bad)' : 'var(--mut)' }}>{d === 0 ? t('score.same') : `${d > 0 ? '+' : '−'}${Math.abs(d)} ${t('score.pts')}`}</span>; })()}</span> : <span />}

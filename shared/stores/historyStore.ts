@@ -10,22 +10,29 @@ export interface CompareEntry { at: string; ids: string[]; names: string[] }
 export interface ReceiptEntry { id: string; at: string; retailer: string | null; date: string | null; totalCents: number; items: { raw: string; lineTotalCents: number; matched: string | null }[] }
 
 interface State {
-  scans: ScanEntry[]; searches: SearchEntry[]; comparisons: CompareEntry[]; receipts: ReceiptEntry[];
+  saved: ScanEntry[]; scans: ScanEntry[]; searches: SearchEntry[]; comparisons: CompareEntry[]; receipts: ReceiptEntry[];
+  toggleSaved: (product: any) => void; saveMany: (products: any[]) => void; removeSaved: (id: string) => void; clearSaved: () => void;
   addScan: (product: any) => void; addSearch: (s: Omit<SearchEntry, 'id' | 'at'>) => void; addComparison: (ids: string[], names: string[]) => void; addReceipt: (r: Omit<ReceiptEntry, 'id' | 'at'>) => void;
   productById: (id: string) => any | null; removeScan: (at: string) => void; clear: () => void; exportAll: () => unknown;
 }
 const now = () => new Date().toISOString();
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-const K = { scans: 'fiq_h_scans', searches: 'fiq_h_searches', comparisons: 'fiq_h_comparisons', receipts: 'fiq_h_receipts' };  // load/save add the account id to every key
+const K = { saved: 'fiq_h_saved', scans: 'fiq_h_scans', searches: 'fiq_h_searches', comparisons: 'fiq_h_comparisons', receipts: 'fiq_h_receipts' };  // load/save add the account id to every key
 
 const read = () => ({
+  saved: load<ScanEntry[]>(K.saved, []),
   scans: load<ScanEntry[]>(K.scans, []), searches: load<SearchEntry[]>(K.searches, []), comparisons: load<CompareEntry[]>(K.comparisons, []),
   receipts: load<ReceiptEntry[]>(K.receipts, []),
 });
 
 export const useHistory = create<State>((set, get) => ({
   ...read(),
+  // The saved list ("Ma liste"): kept until the person removes a product; clearing the history does not touch it.
+  toggleSaved: (product) => { const cur = get().saved; const l = cur.some((s) => s.id === product.id) ? cur.filter((s) => s.id !== product.id) : [{ id: product.id, at: now(), product }, ...cur]; set({ saved: l }); save(K.saved, l); },
+  saveMany: (products) => { const have = new Set(get().saved.map((s) => s.id)); const add = products.filter((p) => p?.id && !have.has(p.id)).map((p) => ({ id: p.id, at: now(), product: p })); if (!add.length) return; const l = [...add, ...get().saved]; set({ saved: l }); save(K.saved, l); },
+  removeSaved: (id) => { const l = get().saved.filter((s) => s.id !== id); set({ saved: l }); save(K.saved, l); },
+  clearSaved: () => { set({ saved: [] }); save(K.saved, []); },
   addScan: (product) => { const l = [{ id: product.id, at: now(), product }, ...get().scans.filter((s) => s.id !== product.id)].slice(0, 200); set({ scans: l }); save(K.scans, l); },
   addSearch: (s) => { const l = [{ ...s, id: uid(), at: now() }, ...get().searches].slice(0, 60); set({ searches: l }); save(K.searches, l); },
   addComparison: (ids, names) => { const l = [{ at: now(), ids, names }, ...get().comparisons].slice(0, 40); set({ comparisons: l }); save(K.comparisons, l); },
@@ -33,7 +40,7 @@ export const useHistory = create<State>((set, get) => ({
   productById: (id) => get().scans.find((s) => s.id === id)?.product ?? null,
   removeScan: (at) => { const l = get().scans.filter((s) => s.at !== at); set({ scans: l }); save(K.scans, l); },
   clear: () => { set({ scans: [], searches: [], comparisons: [], receipts: [] }); [K.scans, K.searches, K.comparisons, K.receipts].forEach((k) => save(k, [])); },
-  exportAll: () => { const s = get(); return { scans: s.scans, searches: s.searches, comparisons: s.comparisons, receipts: s.receipts }; },
+  exportAll: () => { const s = get(); return { saved: s.saved, scans: s.scans, searches: s.searches, comparisons: s.comparisons, receipts: s.receipts }; },
 }));
 
 /** Re-read persisted data after the platform storage adapter or the signed-in account changed. */

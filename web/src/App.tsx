@@ -7,7 +7,7 @@ import { Loader, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
 import InstallPrompt from './InstallPrompt';
 import ErrorBoundary from './ErrorBoundary';
-import { accountEnabled, initAccount, useAccount } from './account';
+import { ACCOUNT_REQUIRED, accountEnabled, initAccount, useAccount } from './account';
 import { APP_PATH } from './install';
 import './index.css';
 
@@ -24,6 +24,7 @@ const Alternatives = lazy(() => import('./screens/Alternatives'));
 const Compare = lazy(() => import('./screens/Compare'));
 const Profile = lazy(() => import('./screens/Profile'));
 const History = lazy(() => import('./screens/History'));
+const List = lazy(() => import('./screens/List'));
 const Blog = lazy(() => import('./screens/Blog'));
 const BlogPost = lazy(() => import('./screens/BlogPost'));
 
@@ -63,9 +64,9 @@ function Shell() {
   // Keep the (local) server in sync so fit checks and price-aware ranking use the saved profile.
   useEffect(() => { api.setPrefs(apiPrefs({ priorities, diet, allergens })); if (onboarded) api.updatePreferences(apiPrefs({ priorities, diet, allergens }) as never).catch(() => undefined); }, [onboarded, priorities, diet, allergens]);
   const signedIn = useAccount((a) => a.email), accountReady = useAccount((a) => a.ready);
-  if (accountEnabled && !accountReady) return <Screen><Loader /></Screen>;
+  if (accountEnabled && ACCOUNT_REQUIRED && !accountReady) return <Screen><Loader /></Screen>;
   // The add-to-home-screen banner shows from the very first screen (sign-in, onboarding), not only inside the app.
-  if (accountEnabled && !signedIn) return <><Suspense fallback={null}><Onboarding gate /></Suspense><InstallPrompt /></>;  // an account is required to use the app
+  if (accountEnabled && ACCOUNT_REQUIRED && !signedIn) return <><Suspense fallback={null}><Onboarding gate /></Suspense><InstallPrompt /></>;  // an account is required to use the app
   if (!onboarded) return <><Suspense fallback={null}><Onboarding /></Suspense><InstallPrompt /></>;
   return (
     <div className="app">
@@ -78,6 +79,7 @@ function Shell() {
           <Route path="compare" element={<Compare />} />
           <Route path="profile" element={<Profile />} />
           <Route path="history" element={<History />} />
+          <Route path="list" element={<List />} />
           <Route path="*" element={<Navigate to={routes.home} replace />} />
         </Routes>
       </Suspense></ErrorBoundary>

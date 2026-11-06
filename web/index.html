@@ -41,9 +41,15 @@
     <meta name="twitter:image" content="%OG_IMAGE%" />
     <meta name="twitter:image:alt" content="Mieux, l'application qui note les produits alimentaires et propose des alternatives" />
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Mieux","applicationCategory":"HealthApplication","operatingSystem":"Any","inLanguage":"fr","description":"Scanner de code-barres qui note les produits alimentaires sur 100 et propose de meilleures alternatives en France avec comparaison de prix en temps réel.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"featureList":["Note de qualité sur 100","Alternatives de la même catégorie","Comparaison à 100 g","Allergènes en exclusion stricte","Prix en temps réel"],"browserRequirements":"Requires JavaScript. Requires HTML5."}</script>
+    <style>
+      #boot{position:fixed;inset:0;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;background:#fff;color:#0F1A15;font:800 30px/1 -apple-system,"SF Pro Display",system-ui,sans-serif;letter-spacing:-1px}
+      #boot img{border-radius:19px;animation:bootpulse 1.4s ease-in-out infinite}#boot i{font-style:normal;color:#F26B3A}
+      @keyframes bootpulse{50%{transform:scale(.94);opacity:.85}}
+      @media (prefers-color-scheme:dark){#boot{background:#0D1210;color:#F2F5F3}}
+    </style>
   </head>
   <body>
-    <div id="root"><div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#fff"><img src="/icon-180.png" width="72" height="72" alt="" style="border-radius:18px"></div></div>
+    <div id="root"><div id="boot"><img src="/icon-180.png" width="76" height="76" alt=""><b>mieux<i>.</i></b></div></div>
     <noscript>
       <h1>Mieux — scannez un produit, sachez s'il est bon pour vous</h1>
       <p>Mieux note les produits alimentaires sur 100 à partir de leurs données nutritionnelles et de leurs ingrédients, explique chaque critère séparément (sans note cachée) et propose des alternatives de la même catégorie, comparées pour 100 g. Les allergènes déclarés sont des exclusions strictes et une donnée manquante reste inconnue, jamais considérée comme sûre.</p>

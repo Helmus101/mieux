@@ -4,7 +4,7 @@ import { clearAll } from '@shared/storage';
 import { useProfile, useHistory, PRIORITY_KEYS } from '@shared/stores';
 import { routes, useNav } from '../nav';
 import { useState } from 'react';
-import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
+import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented, Brand } from '../ui';
 import { chainsFor, COUNTRIES, type Country } from '@shared/chains';
 import { searchAddress, type Home } from '../place';
 import { isInstalled, openInstall } from '../install';
@@ -27,7 +27,7 @@ export default function Profile() {
       <LargeTitle>{t('profile.title')}</LargeTitle>
       {accountEnabled && <Section title={t('account.title')}>
         {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row>{pending > 0 && <p className="mut sm" style={{ margin: '6px 0 0' }}>{t('account.pending', { n: pending })}{syncError ? ` · ${syncError}` : ''}</p>}</Cell><Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
-          <p className="mut sm">{t('account.hint')}</p>
+          <p className="mut sm">{t('account.optional')} {t('account.hint')}</p>
           <AuthForm /></>}
       </Section>}
       <Section title={t('simple.loc')}>
@@ -61,11 +61,13 @@ export default function Profile() {
       </Section>
       <Section title={t('profile.localTitle')}>
         <Group>
+          <Cell onPress={() => go(routes.list)} chevron>{t('list.open')}</Cell>
           <Cell onPress={() => go(routes.history)} chevron>{t('history.open')}</Cell>
           <Cell onPress={exp} chevron>{t('profile.export')}</Cell>
           <Cell onPress={erase}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
         </Group>
       </Section>
+      <div className="about"><Brand size={30} /><p>{t('brand.tagline')}</p><p className="sm">{t('brand.credit')}</p></div>
     </Screen>
   );
 }

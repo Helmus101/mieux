@@ -17,11 +17,15 @@ export function NavBar({ title, onBack, right }: { title?: string; onBack?: () =
   useEffect(() => { const f = () => setS(window.scrollY > 36); f(); window.addEventListener('scroll', f, { passive: true }); return () => window.removeEventListener('scroll', f); }, []);
   return (
     <div className={'navbar' + (s ? ' scrolled' : '')}>
-      {onBack ? <button className="back" onClick={() => { haptic('tap'); onBack(); }}>‹ {t('common.back')}</button> : <span />}
+      {onBack ? <button className="back" onClick={() => { haptic('tap'); onBack(); }}><svg viewBox="0 0 24 24" aria-hidden><path d="M15 5l-7 7 7 7" /></svg>{t('common.back')}</button> : <span />}
       <span className="ttl">{title}</span>
       <span style={{ marginLeft: onBack ? 0 : 'auto' }}>{right}</span>
     </div>
   );
+}
+/** The Mieux mark and wordmark: the app icon, then "mieux" with the orange full stop. */
+export function Brand({ size = 28, big = false }: { size?: number; big?: boolean }) {
+  return <span className={'brand' + (big ? ' big' : '')}><img src="/logo.svg" width={size} height={size} alt="" /><b>mieux<i>.</i></b></span>;
 }
 export const LargeTitle = ({ children, kicker, sub }: { children: ReactNode; kicker?: string; sub?: string }) => (
   <div>{kicker && <div className="kicker">{kicker}</div>}<h1>{children}</h1>{sub && <p className="mut">{sub}</p>}</div>

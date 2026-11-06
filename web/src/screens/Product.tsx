@@ -9,6 +9,7 @@ import { priceHeadline } from '@shared/verdict';
 import { haptic } from '../ui';
 import { Bar, Button, Card, Collapsible, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader } from '../ui';
 import { routes, useNav } from '../nav';
+import SaveButton from '../SaveButton';
 import Where from '../Where';
 import { InstallCard } from '../InstallPrompt';
 import DesktopQRBanner from '../DesktopQRBanner';
@@ -68,7 +69,7 @@ export default function Product() {
   const sItem = sheet ? ((p.score?.additives?.items ?? []) as any[]).find((x) => x.code === sheet) : null;
   return (
     <Screen>
-      <NavBar onBack={back} title={p.name} />
+      <NavBar onBack={back} title={p.name} right={<SaveButton product={p} />} />
       {offline && <Pill tone="w">{t('history.offline')}</Pill>}
       {p.soldInFrance !== true && <Card><Pill tone="w">{p.soldInFrance === false ? t(country === 'US' ? 'simple.notUs' : 'simple.notFr') : t(country === 'US' ? 'simple.usUnknown' : 'simple.frUnknown')}</Pill></Card>}
       <Row>

@@ -351,3 +351,30 @@ img,svg{-webkit-user-drag:none;user-select:none}
 button,a,[role=button],.chain-chip{cursor:pointer;transition:transform .12s ease,opacity .12s ease}
 .chain-chip:active,a:active{transform:scale(.97);opacity:.8}
 @media (display-mode: standalone){body{padding-top:0}.landing-only{display:none}}
+
+/* ===== Native app layer: last, so it wins over the earlier passes. iOS-style grouped surfaces, a real app bar, a brand header, 16 px type. ===== */
+body{font-size:16px}
+.screen{padding:calc(env(safe-area-inset-top) + 2px) 16px calc(96px + env(safe-area-inset-bottom))}
+.card,.group,.coll{border:0;box-shadow:none;border-radius:16px;background:var(--card)}
+.card{padding:16px;margin:12px 0}
+.group{margin:12px 0}
+.cell{padding:12px 16px;min-height:52px}
+.btn{border:0;border-radius:14px;min-height:52px;padding:14px 18px}
+h1{font-size:30px;margin:8px 0 6px}
+.navbar{margin:0 -16px;padding:calc(env(safe-area-inset-top) + 2px) 8px 2px;min-height:44px;background:var(--glass);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);box-shadow:0 .5px 0 var(--line)}
+.navbar .back{display:flex;align-items:center;padding:8px 10px 8px 0;border:0;background:none;font-size:17px;color:var(--accent)}
+.navbar .back svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.navbar .ttl{font-size:17px;font-weight:600;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brand{display:inline-flex;align-items:center;gap:8px;font-size:22px;letter-spacing:-.6px;color:var(--ink)}
+.brand b{font-weight:800}.brand i{font-style:normal;color:var(--clay,#F26B3A)}.brand img{border-radius:8px}
+.brand.big{font-size:40px;gap:12px;letter-spacing:-1.4px}.brand.big img{border-radius:12px}
+.apphead{display:flex;align-items:center;justify-content:space-between;padding:10px 0 2px}
+.iconbtn{position:relative;width:40px;height:40px;flex:none;border:0;border-radius:12px;background:transparent;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.iconbtn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.iconbtn.on{color:var(--accent)}.iconbtn.on svg{fill:currentColor}
+.iconbtn em{position:absolute;top:1px;right:-1px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--clay,#F26B3A);color:#fff;font-style:normal;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.hsteps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.hsteps div{background:var(--card);border-radius:14px;padding:14px 8px;text-align:center;font-size:14px;font-weight:600}
+.hsteps b{display:flex;align-items:center;justify-content:center;width:28px;height:28px;margin:0 auto 8px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:14px}
+.listrow{display:flex;align-items:center;gap:8px;width:100%}.listrow .grow{flex:1;min-width:0}
+.about{text-align:center;margin:28px 0 8px;color:var(--mut)}.about .brand{font-size:24px}.about p{margin:6px 0}
