@@ -71,10 +71,6 @@ export default function Product() {
       <NavBar onBack={back} title={p.name} right={<SaveButton product={p} />} />
       {offline && <Pill tone="w">{t('history.offline')}</Pill>}
       {p.soldInFrance !== true && <Card><Pill tone="w">{p.soldInFrance === false ? t(country === 'US' ? 'simple.notUs' : 'simple.notFr') : t(country === 'US' ? 'simple.usUnknown' : 'simple.frUnknown')}</Pill></Card>}
-      <Row>
-        {p.imageUrl && <img src={p.imageUrl} alt="" decoding="async" fetchPriority="high" width={136} height={136} style={{ objectFit: 'contain', borderRadius: 16, background: '#fff' }} />}
-        <div><Muted>{p.brand}</Muted><h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1.12 }}>{p.name}</h1><Muted>{p.quantityText}</Muted></div>
-      </Row>
 
       {(() => {
         const rf = (d.fit ?? []).filter((x: any) => x.priority.startsWith('allergen:') || x.priority.startsWith('diet:'));
@@ -91,6 +87,10 @@ export default function Product() {
           <div>{lines.length ? lines.map((l) => <p key={l} style={{ margin: '0 0 4px', fontWeight: 600, color: bad ? 'var(--bad)' : 'var(--ink)' }}>{l}</p>) : <p style={{ margin: '0 0 4px', fontWeight: 600 }}>{t('restr.ok')}</p>}<p className="mut sm" style={{ margin: 0 }}>{t('restr.check')}</p></div></div></Card>;
       })()}
       <Card>
+      <Row>
+        {p.imageUrl && <img src={p.imageUrl} alt="" decoding="async" fetchPriority="high" width={136} height={136} style={{ objectFit: 'contain', borderRadius: 16, background: '#fff' }} />}
+        <div><Muted>{p.brand}</Muted><h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1.12 }}>{p.name}</h1><Muted>{p.quantityText}</Muted></div>
+      </Row>
         {p.score ? <>
           <Row spread><div className="scorebig" style={{ color: p.score.tone === 'b' ? 'var(--bad)' : p.score.tone === 'w' ? 'var(--warn)' : 'var(--accent)' }}>{p.score.total}<small>{t('score.outOf')}</small></div><span style={{ textAlign: 'right' }}><b>{t('score.' + p.score.band)}</b><br /><span className="mut sm">{t('score.title')}</span></span></Row>
           <ScoreBar total={p.score.total} label={t('score.spectrum')} />

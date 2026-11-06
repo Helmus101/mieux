@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Text, View, Dimensions } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { api } from '@shared/api/client';
 import { validBarcode } from '@shared/barcode';
@@ -21,18 +21,21 @@ export default function Scan() {
     api.getProduct(data).catch(() => undefined); go(routes.product(data));
     setTimeout(() => { done.current = false; }, 2000);
   };
-  return (
+  if (!perm?.granted) return (
     <Screen>
       <LargeTitle sub={t('simple.scanSub')}>{t('scan.title')}</LargeTitle>
-      {!perm?.granted ? (
-        <Card><Text style={{ color: c.ink, fontSize: 17, fontWeight: '600' }}>{t('simple.camNeeded')}</Text><Muted>{t('scan.hint')}</Muted><Button primary onPress={ask}>{t('scan.open')}</Button></Card>
-      ) : (<>
-        <View style={{ height: Math.round(Dimensions.get('window').height * 0.62), borderRadius: 28, overflow: 'hidden', backgroundColor: '#000' }}>
-          <CameraView style={{ flex: 1 }} facing="back" enableTorch={torch} onBarcodeScanned={onCode} barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }} />
-          <View pointerEvents="none" style={{ position: 'absolute', left: '10%', right: '10%', top: '30%', bottom: '30%', borderWidth: 3, borderColor: '#ffffffe6', borderRadius: 18 }} />
-        </View>
-        <View style={{ alignItems: 'center', marginTop: 12 }}><Muted>{t('scan.point')}</Muted><Button small plain onPress={() => setTorch(!torch)}>{t('scan.torch')}{torch ? ' · on' : ''}</Button></View>
-      </>)}
+      <Card><Text style={{ color: c.ink, fontSize: 17, fontWeight: '600' }}>{t('simple.camNeeded')}</Text><Muted>{t('scan.hint')}</Muted><Button primary onPress={ask}>{t('scan.open')}</Button></Card>
     </Screen>
+  );
+  // Granted: the camera fills the screen (no scrolling); the frame, the one-line instruction and the torch sit on top of it.
+  return (
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <CameraView style={StyleSheet.absoluteFill} facing="back" enableTorch={torch} onBarcodeScanned={onCode} barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }} />
+      <View pointerEvents="none" style={{ position: 'absolute', left: '12%', right: '12%', top: '32%', bottom: '38%', borderWidth: 2, borderColor: '#ffffffd9', borderRadius: 16 }} />
+      <SafeAreaView pointerEvents="box-none" style={{ flex: 1, justifyContent: 'space-between' }}>
+        <Text style={{ color: '#fff', textAlign: 'center', fontSize: 16, fontWeight: '600', marginTop: 16, textShadowColor: '#0008', textShadowRadius: 6 }}>{t('scan.point')}</Text>
+        <View style={{ alignItems: 'center', marginBottom: 20 }}><Button small plain onPress={() => setTorch(!torch)}>{t('scan.torch')}{torch ? ' · on' : ''}</Button></View>
+      </SafeAreaView>
+    </View>
   );
 }
