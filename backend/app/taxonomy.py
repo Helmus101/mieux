@@ -149,9 +149,33 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
         lv = level_between(co["type"], cc["type"])
         if lv is None:
             return None
-        return {"level": lv, "label": LABELS[lv], "type": cc["type"], "same_type": co["type"] == cc["type"]}
+        vo, vc = variant(orig, co["type"]), variant(cand, cc["type"])
+        diff = [vo, vc] if co["type"] == cc["type"] and vo and vc and vo != vc else None
+        return {"level": lv, "label": LABELS[lv], "type": cc["type"], "same_type": co["type"] == cc["type"], "variant_diff": diff}
     # at least one side unclassified: only the same specific category (leaf tag) is accepted, as 'almost identical'
     lo, lc = (orig.get("categories") or [None])[-1], (cand.get("categories") or [None])[-1]
     if lo and lo == lc:
         return {"level": 1, "label": LABELS[1], "type": cc["type"], "same_type": True}
     return None
+
+
+# Variants inside one product type: a real difference the shopper should know about, disclosed as a trade-off (never a reason to hide the product).
+_VARIANTS = {
+    "plain_yogurt": [("greek", r"\bgrec|greek|skyr|\bgrecque")],
+    "baguette": [("wholemeal", r"complet|int[ée]gral|wholemeal|whole[- ]?wheat|seigle|c[ée]r[ée]ales|graines")],
+    "sandwich_bread": [("wholemeal", r"complet|int[ée]gral|wholemeal|whole[- ]?wheat|seigle|c[ée]r[ée]ales|graines")],
+    "oil": [("olive", r"olive|oliva")],
+    "milk": [("skimmed", r"[ée]cr[ée]m|skimmed"), ("whole", r"entier|whole")],
+}
+
+
+def variant(p: Dict[str, Any], type_id: Optional[str]) -> Optional[str]:
+    """Which variant of its type this product is (e.g. greek / plain yogurt), or None when the type has no variants. Looks at the name and the category tags."""
+    rules = _VARIANTS.get(type_id or "")
+    if not rules:
+        return None
+    text = ((p.get("name") or "") + " " + " ".join(p.get("categories") or [])).lower()
+    for name, rx in rules:
+        if re.search(rx, text):
+            return name
+    return "standard"

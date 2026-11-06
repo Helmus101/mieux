@@ -2,6 +2,7 @@
 import math
 from typing import Any, Dict, List, Optional
 
+from . import taxonomy
 from .i18n import tr
 from .products import NS_RANK
 
@@ -215,6 +216,9 @@ def _tradeoffs(o, c, sim, lang="fr", price_unknown=False) -> List[str]:
         T.append(tr(lang, "tr_nova", a=on, b=cn))
     if price_unknown:
         T.append(tr(lang, "tr_price_unknown"))
+    vd = (c.get("substitution") or {}).get("variant_diff")
+    if vd:
+        T.append(tr(lang, "tr_variant", a=tr(lang, "var_" + vd[0]), b=tr(lang, "var_" + vd[1])))
     T.append(tr(lang, "tr_diff_type") if sim < 0.8 else tr(lang, "tr_diff_flavour"))
     return T
 
@@ -428,6 +432,18 @@ def pe_of(r, field):
 QUALITY_FLOOR = 8
 
 
+# Largest rise (g per 100 g/ml) in sugars / salt a cheaper or better-value pick may have, by kind of product. None = not judged on that nutrient
+# (naturally sweet whole foods; fats and oils). The overall quality score stays the main safeguard.
+_SUGAR_LIMIT = {"drinks": 2.5, "dairy": 4.0, "dairy_alt": 4.0, "cereals_bakery": 4.0, "produce": None, "fats_oils": None}
+_SALT_LIMIT = {"cereals_bakery": 0.4, "meat_fish": 0.8, "condiments": 0.8, "meals": 0.8, "fats_oils": None}
+
+
+def nutrient_limits(orig):
+    """(sugar rise, salt rise) tolerated for this kind of product; defaults 5 g and 0.5 g."""
+    fam = taxonomy.classify(orig).get("family")
+    return _SUGAR_LIMIT.get(fam, 5.0), _SALT_LIMIT.get(fam, 0.5)
+
+
 def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match_list):
     """Three separate rankings. Budget: cheapest that keeps minimum nutrition. Value: the quality-price score (overall quality score against price, measured
     against the scanned product), without big sugar/salt penalties; it does not depend on a single nutrient. Match: the user's own priority order (computed by choose)."""
@@ -447,7 +463,8 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
         if mode == "similar" and sim < 0.45:
             continue
         n = c["nutriments"]
-        big_penalty = _gap(on.get("sugars100g"), n.get("sugars100g"), 5) or _gap(on.get("salt100g"), n.get("salt100g"), 0.5)
+        sug_lim, salt_lim = nutrient_limits(orig)
+        big_penalty = (sug_lim is not None and _gap(on.get("sugars100g"), n.get("sugars100g"), sug_lim)) or (salt_lim is not None and _gap(on.get("salt100g"), n.get("salt100g"), salt_lim))
         # "cheaper" must not mean "much worse": judged on the whole quality score (nutrition, additives, ingredients), not on each nutrient separately,
         # which silently dropped almost every real candidate over a gram of fibre. Without scores, the old nutrient floor is the fallback.
         c_sc, o_sc0 = (c.get("score") or {}).get("total"), (orig.get("score") or {}).get("total")

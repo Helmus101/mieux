@@ -179,3 +179,34 @@ def test_prices_seen_abroad_are_ignored():
     assert got and got["per100_cents"] == 50.0                            # the French 2.00 EUR/400 g, not the Norwegian one
     c._raw["456"] = (__import__("time").time(), [item("NO", 1.0), item("DE", 1.5)])
     assert c.latest("456", (400.0, "g")) is None
+
+
+def test_price_confidence_levels():
+    from datetime import date
+    from app import value
+    t = date(2026, 11, 6)
+    assert value.price_confidence(None) is None
+    assert value.price_confidence({"source": "estimate", "date": None}, t) == "estimate"
+    assert value.price_confidence({"source": "your_receipt", "date": "2026-10-20"}, t) == "high"
+    assert value.price_confidence({"source": "open_prices", "date": "2026-10-20"}, t) == "medium"
+    assert value.price_confidence({"source": "open_prices", "date": "2026-01-01"}, t) == "low"
+    assert value.price_confidence({"source": "open_prices", "date": "2026-10-20", "stale": True}, t) == "low"
+
+
+def test_sugar_and_salt_limits_follow_the_kind_of_product():
+    from app import engine
+    soda = {"name": "Cola", "categories": ["en:beverages", "en:sodas"]}
+    fruit = {"name": "Dattes", "categories": ["en:fruits", "en:dried-fruits"]}
+    cereal = {"name": "Corn flakes", "categories": ["en:breakfast-cereals"]}
+    assert engine.nutrient_limits(soda)[0] == 2.5
+    assert engine.nutrient_limits(cereal) == (4.0, 0.4)
+    assert engine.nutrient_limits({"name": "Inconnu", "categories": []}) == (5.0, 0.5)
+
+
+def test_variants_are_disclosed_not_disqualifying():
+    from app import taxonomy
+    plain = {"name": "Yaourt nature", "categories": ["en:yogurts", "en:plain-yogurts"]}
+    greek = {"name": "Yaourt grec nature", "categories": ["en:yogurts", "en:greek-yogurts"]}
+    sub = taxonomy.substitution(plain, greek)
+    assert sub is not None and sub["variant_diff"] == ["standard", "greek"]
+    assert taxonomy.substitution(plain, plain)["variant_diff"] is None

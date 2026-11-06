@@ -1302,6 +1302,10 @@ def _community(p: Dict[str, Any], loc: Optional[Loc] = None, max_age: int = 730,
     return None if not pt else {**pt, "where": None, "scope": "anywhere"}
 
 
+def _with_confidence(pt):
+    return {**pt, "confidence": value.price_confidence(pt)} if pt else None
+
+
 def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str, Any]], loc: Optional[Loc] = None, approximate: bool = False, only: Optional[List[str]] = None):
     """Price per 100 g/ml for the original and a list of products: your own recent receipt/entry first, else a real community observation.
     DB access stays on this thread (sessions are not thread-safe); only the network calls fan out. Estimates only when approximate=True."""
@@ -1430,7 +1434,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"])
     for key in ("budget", "value"):
         for r in res["rankings"][key]:
-            r["price_source"] = points.get(r["product"]["barcode"])
+            r["price_source"] = _with_confidence(points.get(r["product"]["barcode"]))
             r["stores"] = shops.get(r["product"]["barcode"], [])
     if body.category_mode == "similar":  # "closest": the most interchangeable products first, whatever their price or score
         close = sorted(pool_src, key=lambda c: ((c.get("substitution") or {}).get("level", 9), -engine.deep_similarity(orig, c)))[:10]
@@ -1525,7 +1529,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     if orig_price is not None:
         res["paris_estimate"] = estimate.chain_prices(orig_price, (orig.get("quantity") or {}).get("amount"))
     for a in res["alternatives"]:
-        a["price_source"] = points.get(a["product"]["barcode"])
+        a["price_source"] = _with_confidence(points.get(a["product"]["barcode"]))
         a["stores"] = shops.get(a["product"]["barcode"], [])
     oq = orig.get("quantity")
     res["original_price"] = None if orig_price is None else {"per100_cents": round(orig_price, 1), "pack_cents": round(orig_price * oq["amount"] / 100) if oq else None, "source": points.get(orig["barcode"])}

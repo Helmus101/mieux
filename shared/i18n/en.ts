@@ -186,7 +186,7 @@ export const en = {
     perDay: 'Day by day', day: 'Day', people: 'People', refresh: 'Refresh', fail: 'Numbers unavailable now.', offline: 'Server not responding. Check it\'s running, then tap Refresh.', link: 'How many people use it?',
     how: 'No account, no cookies, no name. Your device keeps an anonymous ID, server keeps only its hash: distinct people counted once per 30 days, returning ones counted separately.',
   },
-  alt: { sumQ: 'Quality', sumP: 'Price', sumV: 'Value', seeProduct: 'See product sheet',
+  alt: { conf_high: 'Price: your recent receipt', conf_medium: 'Recently observed price', conf_low: 'Older price', dominated: 'Another product does better on the criteria compared (price, quality, processing).', cheapestNote: 'Cheapest in the data Mieux has, not necessarily at your store.', sumQ: 'Quality', sumP: 'Price', sumV: 'Value', seeProduct: 'See product sheet',
     title: 'Alternatives', today: 'Today I want…', todaySub: 'Temporary, your profile stays unchanged.', mode: 'Type of alternatives', similar: 'As close as possible', any: 'Whole category', run: 'Refresh',
     considered: '{n} products compared', excluded: 'Excluded: {c} conflict with restrictions, {u} unverifiable, {i} incomplete values, {n} not better on your top priority.',
     why: 'Why', tradeoffs: 'Tradeoffs', similarity: 'Closeness', per100: 'price / 100g', original: 'Original', empty: 'No alternative similar enough found.', expand: 'Expand to category',

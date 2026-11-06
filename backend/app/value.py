@@ -294,3 +294,15 @@ def price_point(product: Dict[str, Any], own: Optional[Dict[str, Any]], communit
     if own and q and fresh(own.get("date")):
         return {"source": "your_receipt", "per100_cents": per100(own["unit_price_cents"], (q["amount"], q["unit"])), "date": own["date"], "where": own.get("retailer")}
     return community
+
+
+def price_confidence(point: Optional[Dict[str, Any]], today: Optional[date] = None) -> Optional[str]:
+    """How far a price can be trusted: 'high' (your own receipt, under 90 days), 'medium' (community observation under 90 days), 'low' (older), 'estimate' (never a verified price)."""
+    if not point:
+        return None
+    if point.get("source") == "estimate":
+        return "estimate"
+    age = age_days(point.get("date"), today)
+    if age is None or age > 90 or point.get("stale"):
+        return "low"
+    return "high" if point.get("source") == "your_receipt" else "medium"
