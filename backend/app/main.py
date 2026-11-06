@@ -1302,6 +1302,23 @@ def _community(p: Dict[str, Any], loc: Optional[Loc] = None, max_age: int = 730,
     return None if not pt else {**pt, "where": None, "scope": "anywhere"}
 
 
+def _fill_pack_prices(pool, prices, points):
+    """A product with no price of its own takes the per-100 price of another pack size of the same product (same brand and name), marked as derived.
+    Only observed prices are copied, never estimates."""
+    by_key = {}
+    for c in pool:
+        pt = points.get(c["barcode"])
+        if c["barcode"] in prices and pt and pt.get("source") != "estimate":
+            by_key.setdefault(engine.variant_key(c), c["barcode"])
+    for c in pool:
+        if c["barcode"] in prices:
+            continue
+        src = by_key.get(engine.variant_key(c))
+        if src:
+            prices[c["barcode"]] = prices[src]
+            points[c["barcode"]] = {**points[src], "derived": True}
+
+
 def _with_confidence(pt):
     return {**pt, "confidence": value.price_confidence(pt)} if pt else None
 
@@ -1429,6 +1446,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         for a in res["alternatives"]:
             a["price_per_100_cents"] = prices.get(a["product"]["barcode"])
             a["value"] = engine.value_card(orig, a["product"], orig_price, a["price_per_100_cents"])
+    _fill_pack_prices(pool, prices, points)
     for a in res["alternatives"]:
         a["indicators"] = engine.indicators(a["product"], prices.get(a["product"]["barcode"]))
     est_codes = frozenset(k for k, v in points.items() if (v or {}).get("source") == "estimate" and k != orig["barcode"])
@@ -1461,14 +1479,14 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         return {"product": c, "why": why, "tradeoffs": trade, "price_source": _with_confidence(points.get(c["barcode"])), "price_per_100_cents": prices.get(c["barcode"]), "price_date": pt_.get("date"), "price_stale": bool(pt_.get("stale")), "estimated": False, "better": better, "similarity": round(engine.deep_similarity(orig, c), 2)}
     imp = {a["product"]["id"]: ("; ".join(a["improvements"]), a["tradeoffs"]) for a in res["alternatives"]}
     o_sc = (orig.get("score") or {}).get("total")
-    scored = sorted([c for c in pool_src if (c.get("score") or {}).get("total") is not None and (o_sc is None or c["score"]["total"] > o_sc)], key=lambda c: (-c["score"]["total"], prices.get(c["barcode"]) is None, prices.get(c["barcode"]) or 0, -engine.deep_similarity(orig, c)))  # only products of better quality than yours
+    scored = sorted([c for c in engine.close_only(pool_src, lambda c: (c.get("substitution") or {}).get("level")) if (c.get("score") or {}).get("total") is not None and (o_sc is None or c["score"]["total"] > o_sc)], key=lambda c: (-c["score"]["total"], prices.get(c["barcode"]) is None, prices.get(c["barcode"]) or 0, -engine.deep_similarity(orig, c)))  # only products of better quality than yours
     qrows = []
     for c in scored[:10]:  # strictly by quality score, highest first (price plays no part here)
         why, trade = imp.get(c["id"]) or (tr(lang, "quality_note", s=c["score"]["total"], o=o_sc if o_sc is not None else "?"), engine._tradeoffs(orig, c, engine.deep_similarity(orig, c), lang))
         if c["id"] in imp:
             why = tr(lang, "quality_note", s=c["score"]["total"], o=o_sc if o_sc is not None else "?") + " · " + imp[c["id"]][0]
         qrows.append(_qrow(c, why, trade, c["score"]["total"] > (o_sc or 0)))
-    res["rankings"]["quality"] = qrows[:10]
+    res["rankings"]["quality"] = engine.brand_variety(qrows, lambda r: r["product"].get("brand"))[:10]
     if body.location:
         # A product counts for a chain if it was seen at that chain anywhere in France; what matters here is the closest branch of that chain to the user's reference point.
         loc_, sel = body.location, set(body.chains)

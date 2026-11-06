@@ -151,3 +151,40 @@ def test_lotus_biscoff_leads_to_other_speculoos_not_crackers_spreads_or_sweets()
 def test_speculoos_flavoured_desserts_are_not_speculoos_biscuits():
     for name in ("Pommes morceaux speculoos", "Dessert lacté saveur spéculoos", "Fromage blanc spéculoos", "Céréales spéculoos"):
         assert taxonomy.classify({"name": name, "brand": "X", "categories": []})["type"] != "speculoos", name
+
+
+def _lvl(p, level):
+    return {**p, "substitution": {"level": level}}
+
+
+def test_money_tabs_use_only_the_closest_kinds_of_product():
+    orig = P("Original", ["en:plain-yogurts"], sugars100g=6)
+    near = [_lvl(P(f"Proche {i}", ["en:plain-yogurts"]), 1) for i in range(3)]
+    broad = [_lvl(P("Large", ["en:plain-yogurts"]), 4), _lvl(P("Moyen", ["en:plain-yogurts"]), 3)]
+    prices = {x["name"]: 20.0 for x in near + broad}
+    r = engine.build_rankings(orig, near + broad, prices, 50.0, ["value"], "similar", "fr", [])
+    names = [x["product"]["name"] for x in r["budget"]]
+    assert names and all(n.startswith("Proche") for n in names)           # three close products exist: nothing broader appears
+    few = engine.build_rankings(orig, near[:1] + broad, prices, 50.0, ["value"], "similar", "fr", [])
+    assert "Large" not in [x["product"]["name"] for x in few["budget"]]   # level 4 never appears, level 3 only when too few are closer
+
+
+def test_one_brand_cannot_fill_the_top_of_a_tab():
+    items = [{"b": "Lotus"}, {"b": "Lotus"}, {"b": "Lotus"}, {"b": "Aldi"}, {"b": "Netto"}, {"b": "Delacre"}, {"b": "Lotus"}]
+    out = engine.brand_variety(items, lambda x: x["b"])
+    assert [x["b"] for x in out[:5]].count("Lotus") == 2
+    assert len(out) == len(items)                                          # nothing is dropped, only reordered
+    short = engine.brand_variety([{"b": "Lotus"}] * 3 + [{"b": "Aldi"}], lambda x: x["b"])
+    assert [x["b"] for x in short].count("Lotus") == 3                     # when no other brand is left, the same brand fills the list
+
+
+def test_a_pack_size_without_a_price_takes_the_price_of_its_sibling():
+    from app import main
+    a, b = P("Spéculoos", ["en:biscuits"]), P("Spéculoos", ["en:biscuits"])
+    a["barcode"], b["barcode"] = "pack-small", "pack-big"
+    prices, points = {"pack-small": 40.0}, {"pack-small": {"source": "open_prices", "date": "2026-10-01"}}
+    main._fill_pack_prices([a, b], prices, points)
+    assert prices["pack-big"] == 40.0 and points["pack-big"]["derived"] is True
+    est_only = {"pack-small": 40.0}; est_points = {"pack-small": {"source": "estimate", "date": None}}
+    main._fill_pack_prices([a, b], est_only, est_points)
+    assert "pack-big" not in est_only                                      # estimates are never copied

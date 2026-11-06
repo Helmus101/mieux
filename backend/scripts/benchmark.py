@@ -51,7 +51,41 @@ class Tally:
 LIST_LABEL = {"budget": "cheaper", "quality": "better_quality", "value": "good_value"}
 
 
+SCORECARD_QUERIES = ["lotus biscoff", "ricola", "noisettes décortiquées", "pâte à tartiner", "yaourt nature", "yaourt aux fruits", "corn flakes", "muesli", "pain de mie", "baguette",
+                     "spaghetti", "riz basmati", "sauce tomate", "ketchup", "jus d'orange", "coca cola", "lait demi-écrémé", "fromage blanc", "emmental", "beurre",
+                     "huile d'olive vierge extra", "café moulu", "capsules nespresso", "thé vert", "chips nature", "biscuits chocolat", "chocolat noir", "compote de pommes", "thon en conserve", "pizza surgelée"]
+
+
+def scorecard():
+    """Code-assisted spot check on real products (NOT the human-labelled benchmark): per tab, how many items, how many are the closest kind of product,
+    how many carry a real price, how recent, and how many different brands lead the list."""
+    print(f"{'query':26} {'tab':8} {'n':>3} {'lvl<=2':>7} {'priced':>7} {'recent':>7} {'brands@5':>9}")
+    totals = {}
+    for q in SCORECARD_QUERIES:
+        try:
+            code, r = alternatives({"query": q})
+        except Exception as ex:                                  # noqa: BLE001
+            print(f"{q:26} ERROR {str(ex)[:50]}")
+            continue
+        for key in ("closest", "budget", "quality", "value"):
+            rows = r["rankings"].get(key, [])
+            n = len(rows)
+            lvl = sum(1 for e in rows if ((e["product"].get("substitution") or {}).get("level") or 4) <= 2)
+            priced = sum(1 for e in rows if e.get("price_per_100_cents") is not None)
+            recent = sum(1 for e in rows if (e.get("price_source") or {}).get("confidence") in ("high", "medium"))
+            brands = len({(e["product"].get("brand") or "").split(",")[0].strip().lower() for e in rows[:5]})
+            print(f"{q[:26]:26} {key:8} {n:>3} {lvl:>7} {priced:>7} {recent:>7} {brands:>9}")
+            t = totals.setdefault(key, [0, 0, 0, 0, 0])
+            for i, v in enumerate((n, lvl, priced, recent, 1 if n else 0)):
+                t[i] += v
+    print("\n== TOTALS over", len(SCORECARD_QUERIES), "products ==")
+    for key, (n, lvl, priced, recent, nonempty) in totals.items():
+        print(f"{key:8} items={n} at level<=2={lvl} ({100*lvl/max(n,1):.0f}%) priced={priced} ({100*priced/max(n,1):.0f}%) recent={recent} ({100*recent/max(n,1):.0f}%) non-empty lists={nonempty}")
+
+
 def main():
+    if "--scorecard" in sys.argv:
+        return scorecard()
     data = json.load(open(CASES))
     template = "--template" in sys.argv
     overall, by_cat, det = Tally(), {}, [0, 0]

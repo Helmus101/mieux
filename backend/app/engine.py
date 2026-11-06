@@ -374,7 +374,7 @@ def data_issues(p: Dict[str, Any]) -> List[str]:
 
 
 def prefilter(orig: Dict[str, Any], peers: List[Dict[str, Any]], allergens: List[str], diet: Optional[str], mode: str,
-              n: int = 80, priorities: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+              n: int = 120, priorities: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """Candidates that pass hard restrictions and similarity, kept for the price comparison.
 
     It is the union of the closest n products and the n products that are furthest ahead on the first priority: a product
@@ -390,7 +390,7 @@ def prefilter(orig: Dict[str, Any], peers: List[Dict[str, Any]], allergens: List
         if mode == "similar" and sim < 0.45 and ((c.get("substitution") or {}).get("level") or 4) > 2:
             continue
         out.append((sim, c))
-    out.sort(key=lambda x: -x[0])
+    out.sort(key=lambda x: (((x[1].get("substitution") or {}).get("level") or 4), -x[0]))   # the same kind of product first: those are the ones worth a price lookup
     keep: List[Dict[str, Any]] = [c for _, c in out[:n]]
     first = (priorities or [None])[0]
     if first in PRIORITIES and len(out) > n:
@@ -491,6 +491,26 @@ def pe_of(r, field):
 QUALITY_FLOOR = 8
 
 
+def close_only(items, level_of, min_close: int = 3):
+    """Substitutes for the money and quality tabs: only the closest kinds of product (level 1-2) when there are at least `min_close` of them, else up to level 3.
+    Level 4 (a broad alternative) never appears in a tab that promises cheaper, better or better value."""
+    close = [x for x in items if (level_of(x) or 3) <= 2]      # no level known (a bare product): treated as level 3
+    return close if len(close) >= min_close else [x for x in items if (level_of(x) or 3) <= 3]
+
+
+def brand_variety(items, brand_of, first: int = 5, per: int = 2):
+    """Keeps the order but, within the first `first` places, lets one brand take at most `per` while other brands remain; the rest follow in order."""
+    head, rest, count = [], [], {}
+    for it in items:
+        b = (brand_of(it) or "").split(",")[0].strip().lower()
+        if len(head) < first and count.get(b, 0) < per:
+            head.append(it)
+            count[b] = count.get(b, 0) + 1
+        else:
+            rest.append(it)
+    return head + rest
+
+
 # Largest rise (g per 100 g/ml) in sugars / salt a cheaper or better-value pick may have, by kind of product. None = not judged on that nutrient
 # (naturally sweet whole foods; fats and oils). The overall quality score stays the main safeguard.
 _SUGAR_LIMIT = {"drinks": 2.5, "dairy": 4.0, "dairy_alt": 4.0, "cereals_bakery": 4.0, "produce": None, "fats_oils": None}
@@ -539,6 +559,7 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
         min_ok = min_ok and not big_penalty      # plus the category-specific sugar/salt safeguard: what Cheapest requires
         rows.append({"product": c, "price_per_100_cents": round(p, 1), "similarity": round(sim, 2), "min_ok": min_ok, "quality_ok": quality_ok, "big_penalty": big_penalty,
                      "indicators": indicators(c, p), "tradeoffs": _tradeoffs(orig, c, sim, lang)})
+    rows = close_only(rows, lambda r: (r["product"].get("substitution") or {}).get("level"))
     if orig_price is None or orig_estimated:   # an estimated price of your own product proves no saving either
         # Your own product has no known price, so nothing can be PROVEN cheaper or better value than it. Still useful: the comparable products that do have a real price,
         # cheapest first (and best quality-for-price first), flagged 'no_baseline' so the screen says the comparison is by price, not against yours.
@@ -551,7 +572,7 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
         value = sorted([r for r in rows if r["quality_ok"] and r["value_score"] is not None], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
         for r in budget: r["why"] = tr(lang, "rk_known", p=f"{r['price_per_100_cents']/100:.2f}")
         for r in value: r["why"] = tr(lang, "rk_qp_known", s=r["product"]["score"]["total"], p=f"{r['price_per_100_cents']*10/100:.2f}", v=r["value_score"])
-        out["budget"], out["value"] = budget[:10], value[:10]
+        out["budget"], out["value"] = brand_variety(budget, lambda r: r["product"].get("brand"))[:10], brand_variety(value, lambda r: r["product"].get("brand"))[:10]
         out["no_baseline"] = True
         return out
     # Precision over quantity: a list holds only what really qualifies, however short. Nothing is added to reach a number.
@@ -576,5 +597,5 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
         for r, dom in zip(group, dominated(group, keys)):
             r["dominated"] = dom
         group.sort(key=lambda r: bool(r["dominated"]))   # efficient options first (stable: the existing order holds within each part)
-    out["budget"], out["value"] = budget[:10], value[:10]
+    out["budget"], out["value"] = brand_variety(budget, lambda r: r["product"].get("brand"))[:10], brand_variety(value, lambda r: r["product"].get("brand"))[:10]
     return out
