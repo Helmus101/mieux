@@ -429,12 +429,10 @@ QUALITY_FLOOR = 8
 
 
 def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match_list):
-    """Three separate rankings. Budget: cheapest that keeps minimum nutrition. Value: most nutrient per euro without big sugar/salt
-    penalties. Match: the user's own priority order (already computed by choose)."""
+    """Three separate rankings. Budget: cheapest that keeps minimum nutrition. Value: the quality-price score (overall quality score against price, measured
+    against the scanned product), without big sugar/salt penalties; it does not depend on a single nutrient. Match: the user's own priority order (computed by choose)."""
     out = {"budget": [], "value": [], "match": match_list[:10]}
     on = orig["nutriments"]
-    basis = "fibre" if (value_basis(priorities) == "fibre") else "protein"
-    field = "fiber100g" if basis == "fibre" else "protein100g"
     cats = set(orig["categories"])
     rows = []
     ref = [v for v in list(prices.values()) + [orig_price] if v]
@@ -476,12 +474,9 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
         for r in value: r["why"] = tr(lang, "rk_qp_known", s=r["product"]["score"]["total"], p=f"{r['price_per_100_cents']*10/100:.2f}", v=r["value_score"])
         out["budget"], out["value"] = budget[:10], value[:10]
         out["no_baseline"] = True
-        out["basis"] = basis
         return out
     # Precision over quantity: a list holds only what really qualifies, however short. Nothing is added to reach a number.
     budget = sorted([r for r in rows if r["min_ok"] and r["price_per_100_cents"] < orig_price * 0.98], key=lambda r: r["price_per_100_cents"])
-    o_pe = per_euro(on, field, orig_price)
-    def pe(r): return per_euro(r["product"]["nutriments"], field, r["price_per_100_cents"])
     o_sc = (orig.get("score") or {}).get("total")
     vs = value_scores([(r["product"]["barcode"], (r["product"].get("score") or {}).get("total"), r["price_per_100_cents"]) for r in rows] + [("__orig", o_sc, orig_price)], orig_price)
     o_vs = vs.get("__orig")
@@ -503,5 +498,4 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
             r["dominated"] = dom
         group.sort(key=lambda r: bool(r["dominated"]))   # efficient options first (stable: the existing order holds within each part)
     out["budget"], out["value"] = budget[:10], value[:10]
-    out["basis"] = basis
     return out

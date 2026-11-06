@@ -251,7 +251,7 @@ def test_indicators_and_three_rankings():
     assert ind["price_per_kg_eur"] == 5.0 and ind["price_per_serving_eur"] == 0.62 and ind["cost_per_10g_protein_eur"] == 1.25   # 0.5 EUR/100 g -> 10 g protein costs 1.25
     rk = r["rankings"]
     assert rk["budget"][0]["product"]["barcode"] == "2" and rk["budget"][0]["price_per_100_cents"] == 30.0 and rk["budget"][0]["why"]
-    assert rk["value"][0]["product"]["barcode"] == "2" and rk["basis"] == "protein"
+    assert rk["value"][0]["product"]["barcode"] == "2"
     assert all(x["product"]["barcode"] != "7" for x in rk["budget"] + rk["value"])        # different category never ranked
     assert len(rk["match"]) >= 1
     main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None})()
