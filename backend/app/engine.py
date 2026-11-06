@@ -227,31 +227,51 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
            mode: str = "similar", limit: int = 5, prices: Optional[Dict[str, float]] = None,
            orig_price: Optional[float] = None, lang: str = "fr") -> Dict[str, Any]:
     ex = {"conflict": 0, "unverified": 0, "incomplete": 0, "not_better": 0, "dissimilar": 0, "not_in_france": 0, "not_substitute": 0}
+    funnel = {"raw_candidates_retrieved": len(peers), "usable_product_data": 0, "confirmed_sold_in_france": 0,
+              "passing_allergens": 0, "passing_compatibility": 0, "with_sufficient_nutrition": 0,
+              "with_verified_prices": 0, "by_substitution_level": {str(level): 0 for level in range(1, 5)}}
     found = []
     for c in peers:
         if c["barcode"] == orig["barcode"]:
             continue
         if {"nutrition_implausible", "sugars_exceed_carbohydrates"} & set(data_issues(c)):   # the same hard rule as prefilter(): no path may recommend impossible data
             continue
+        funnel["usable_product_data"] += 1
         if c.get("soldInFrance") is not True:  # recommend only what can be bought in France; unknown availability is not assumed
             ex["not_in_france"] += 1
             continue
+        funnel["confirmed_sold_in_france"] += 1
         st = restriction_status(c, allergens, diet)
         if st != "ok":
             ex[st] += 1
             continue
+        funnel["passing_allergens"] += 1
         substitution = c.get("substitution") or taxonomy.substitution(orig, c)
         if substitution is None:
             ex["not_substitute"] += 1
             continue
         c = {**c, "substitution": substitution}
+        funnel["passing_compatibility"] += 1
+        level = substitution.get("level")
+        if level in funnel["by_substitution_level"]:
+            funnel["by_substitution_level"][str(level)] += 1
         d = {k: _diff(orig, c, k, prices, orig_price, priorities) for k in priorities}
         for k in priorities[1:]:
             if k in ("budget", "value") and d[k] is None:
                 d[k] = 0.0  # price unknown for a secondary priority: keep the product, say so in the trade-offs
         if any(v is None for v in d.values()):
+            # Closest alternatives are discovery results, not improvement
+            # results. Keep a compatible product with incomplete nutrition and
+            # expose unknown comparisons; quality/value modes still require the
+            # data needed by their ranking.
+            if mode != "similar":
+                ex["incomplete"] += 1
+                continue
             ex["incomplete"] += 1
-            continue
+        else:
+            funnel["with_sufficient_nutrition"] += 1
+        if prices and c.get("barcode") in prices:
+            funnel["with_verified_prices"] += 1
         # Discovery is independent from improvement. A closest substitute remains useful
         # even when it does not beat the scanned product on the user's first priority.
         first = priorities[0] if priorities else None
@@ -262,7 +282,7 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
         if mode == "similar" and sim < 0.45:
             ex["dissimilar"] += 1
             continue
-        rank = [round(d[k] / (PRIORITIES[k][2] or 1)) for k in priorities]
+        rank = [round((d[k] or 0) / (PRIORITIES[k][2] or 1)) for k in priorities]
         found.append((rank, sim, c, d))
     found.sort(key=lambda x: (tuple(-r for r in x[0]), -((x[2].get("score") or {}).get("total") or 0), -x[1]))  # your priorities first, then overall quality score, then similarity
     seen, uniq, nvar = set(), [], {}
@@ -289,9 +309,9 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
         imp = []
         for k in priorities:
             if k == "overall":
-                if d[k] > 0: imp.append(tr(lang, "imp_nutriscore", a=orig["nutriScore"].upper(), b=c["nutriScore"].upper()))
+                if d[k] is not None and d[k] > 0: imp.append(tr(lang, "imp_nutriscore", a=(orig.get("nutriScore") or "?").upper(), b=(c.get("nutriScore") or "?").upper()))
             elif k == "value":
-                if d[k] > PRIORITIES[k][2]:
+                if d[k] is not None and d[k] > PRIORITIES[k][2]:
                     b = value_basis(priorities)
                     if b == "floor":
                         imp.append(tr(lang, "imp_value_floor", d=f"{d[k]:.2f}"))
@@ -299,20 +319,21 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
                         f = "protein100g" if b == "protein" else "fiber100g"
                         imp.append(tr(lang, "imp_value", what=tr(lang, "n_" + b), a=f"{per_euro(orig['nutriments'], f, orig_price):.1f}", b=f"{per_euro(c['nutriments'], f, prices[c['barcode']]):.1f}"))
             elif k == "budget":
-                if d[k] > PRIORITIES[k][2]: imp.append(tr(lang, "imp_price", d=f"{d[k]/100:.2f}", a=f"{orig_price/100:.2f}", b=f"{prices[c['barcode']]/100:.2f}"))
+                if d[k] is not None and d[k] > PRIORITIES[k][2]: imp.append(tr(lang, "imp_price", d=f"{d[k]/100:.2f}", a=f"{orig_price/100:.2f}", b=f"{prices[c['barcode']]/100:.2f}"))
             elif k == "additives":
-                if d[k] > 0: imp.append(tr(lang, "imp_additives", n=int(d[k]), a=len(orig["additives"]), b=len(c["additives"])))
-            elif d[k] > PRIORITIES[k][2]:
+                if d[k] is not None and d[k] > 0: imp.append(tr(lang, "imp_additives", n=int(d[k]), a=len(orig["additives"]), b=len(c["additives"])))
+            elif d[k] is not None and d[k] > PRIORITIES[k][2]:
                 f = PRIORITIES[k][0]
-                imp.append(tr(lang, "imp_more" if PRIORITIES[k][1] > 0 else "imp_less", d=f"{abs(d[k]):.1f}", what=tr(lang, NAME_KEY[k]), a=f"{orig['nutriments'][f]:.1f}", b=f"{c['nutriments'][f]:.1f}"))
-        alts.append({"product_id": c["id"], "product": c, "comparison": {DIFF_KEY[k]: (d[k] if k == "overall" else round(d[k] * PRIORITIES[k][1], 2)) for k in priorities},
+                imp.append(tr(lang, "imp_more" if PRIORITIES[k][1] > 0 else "imp_less", d=f"{abs(d[k]):.1f}", what=tr(lang, "n_" + NAME_KEY[k]), a=f"{orig['nutriments'][f]:.1f}", b=f"{c['nutriments'][f]:.1f}"))
+        alts.append({"product_id": c["id"], "product": c, "comparison": {DIFF_KEY[k]: (d[k] if k == "overall" or d[k] is None else round(d[k] * PRIORITIES[k][1], 2)) for k in priorities},
                      "price_per_100_cents": (prices or {}).get(c["barcode"]),
                      "value": value_card(orig, c, orig_price, (prices or {}).get(c["barcode"])),
                      "improvements": imp, "tradeoffs": _tradeoffs(orig, c, sim, lang, bool({"budget", "value"} & set(priorities)) and (prices or {}).get(c["barcode"]) is None), "similarity": round(sim, 2), "other_sizes": nvar[variant_key(c)] - 1,
-                     "data_quality": "complete" if c["dataQuality"]["nutritionComplete"] else "partial"})
-    return {"alternatives": alts, "excluded": ex, "candidates_considered": len(peers),
+                     "data_quality": "complete" if c.get("dataQuality", {}).get("nutritionComplete") else "partial"})
+    return {"alternatives": alts, "excluded": ex,
+            "diagnostics": funnel,
+            "candidates_considered": len(peers),
             "no_recommendation_reason": None if alts else tr(lang, "no_alt")}
-
 
 def compare(products: List[Dict[str, Any]]) -> Dict[str, Any]:
     fields = ["energyKcal100g", "protein100g", "sugars100g", "saturatedFat100g", "salt100g", "fiber100g"]
