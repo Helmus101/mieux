@@ -1,5 +1,6 @@
 import { t, setLocale } from '@shared/i18n';
 import { useProfile } from '@shared/stores';
+import { routes, useNav } from '../nav';
 import { Button, Card, Segmented, Brand } from '../ui';
 import { ACCOUNT_REQUIRED, accountEnabled, useAccount } from '../account';
 import AuthForm from '../AuthForm';
@@ -7,6 +8,7 @@ import { COUNTRIES, type Country } from '@shared/chains';
 
 export default function Onboarding({ gate = false }: { gate?: boolean }) {
   const p = useProfile();
+  const { go } = useNav();   // when onboarding ends the person lands on the scanner, wherever the URL pointed
   const email = useAccount((a) => a.email);
   return (
     <div className="ob">
@@ -20,7 +22,7 @@ export default function Onboarding({ gate = false }: { gate?: boolean }) {
           <AuthForm /></>}
       </Card>}
       {COUNTRIES.length > 1 && <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />}
-      {!gate && <Button primary disabled={accountEnabled && ACCOUNT_REQUIRED && !email} onPress={() => { if (!p.priorities.length) p.setPriorities(['value']); p.finish(); }}>{t('welcome.start')}</Button>}
+      {!gate && <Button primary disabled={accountEnabled && ACCOUNT_REQUIRED && !email} onPress={() => { if (!p.priorities.length) p.setPriorities(['value']); p.finish(); go(routes.scan); }}>{t('welcome.start')}</Button>}
     </div>
   );
 }
