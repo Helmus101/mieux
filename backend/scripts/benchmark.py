@@ -55,7 +55,7 @@ def main():
     pct = lambda a, b: "n/a (no labels yet)" if not b else f"{100 * a / b:.1f} %"  # noqa: E731
     print("\n== METRICS ==")
     print("genuine substitutes in top five :", pct(tot["substitute"], tot["top5"]), "(target >= 95 %)")
-    print("incompatible products in top 5  :", tot["incompatible"], "(target 0)")
+    print("incompatible products in top 5  :", tot["incompatible"] if tot["top5"] else "n/a (no labels yet)", "(target 0)")
     print("price correctness               :", pct(tot["price_ok"], tot["price"]), "(target >= 98 %)")
     print("determinism                     :", pct(tot["determinism"], tot["cases"]), "(target 100 %)")
 
