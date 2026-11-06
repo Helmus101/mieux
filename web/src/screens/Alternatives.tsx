@@ -37,13 +37,15 @@ export default function Alternatives() {
       .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
   const entries = (r?.rankings?.[rk === 'match' ? 'quality' : rk] ?? []).map((e: any) => ({ product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, ps: e.price_score, nearby: e.nearby, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }));
-  // An alternative is shown only if it beats the scanned product on at least one thing: a higher quality score, or a lower price per kilo/litre.
+  // Each tab shows only what really beats the scanned product on that tab's own terms; a value score alone is never enough.
   const better = (e: any) => {
     const os = r?.original?.score?.total, ps = r?.original_price?.per100_cents;
     const q = os != null && e.product.score?.total != null && e.product.score.total > os;
     const c = ps != null && e.price100 != null && e.price100 < ps - 0.05;
-    const v = e.vs != null;
-    return q || c || v || ps == null;  // no price of your own: products with a real price are listed by price, and the note says so
+    if (ps == null) return true;  // no price of your own: products with a real price are listed by price, and the note says so
+    if (rk === 'budget') return c;
+    if (rk === 'match') return os == null || e.product.score?.total == null || q;
+    return q || c;  // value: cheaper or better rated (the backend already required better value overall)
   };
   const shown = entries.filter((e: any) => !hidden.includes(e.product.id) && better(e));
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab

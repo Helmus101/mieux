@@ -422,6 +422,10 @@ def pe_of(r, field):
     return per_euro(r["product"]["nutriments"], field, r["price_per_100_cents"])
 
 
+# Largest quality-score drop (out of 100) a 'cheaper' pick may have against the scanned product.
+QUALITY_FLOOR = 8
+
+
 def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match_list):
     """Three separate rankings. Budget: cheapest that keeps minimum nutrition. Value: most nutrient per euro without big sugar/salt
     penalties. Match: the user's own priority order (already computed by choose)."""
@@ -448,11 +452,12 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
         # which silently dropped almost every real candidate over a gram of fibre. Without scores, the old nutrient floor is the fallback.
         c_sc, o_sc0 = (c.get("score") or {}).get("total"), (orig.get("score") or {}).get("total")
         if c_sc is not None and o_sc0 is not None:
-            min_ok = c_sc >= o_sc0 - 15
+            min_ok = c_sc >= o_sc0 - QUALITY_FLOOR
         else:
             min_ok = (not _gap(on.get("sugars100g"), n.get("sugars100g"), 3) and not _gap(on.get("salt100g"), n.get("salt100g"), 0.3)
                       and not (on.get("protein100g") and n.get("protein100g") is not None and n["protein100g"] < 0.8 * on["protein100g"])
                       and not (on.get("fiber100g") and n.get("fiber100g") is not None and n["fiber100g"] < 0.8 * on["fiber100g"]))
+        min_ok = min_ok and not big_penalty
         rows.append({"product": c, "price_per_100_cents": round(p, 1), "similarity": round(sim, 2), "min_ok": min_ok, "big_penalty": big_penalty,
                      "indicators": indicators(c, p), "tradeoffs": _tradeoffs(orig, c, sim, lang)})
     if orig_price is None:
@@ -471,11 +476,8 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
         out["no_baseline"] = True
         out["basis"] = basis
         return out
-    MIN_LIST = 5  # aim for 5 to 10 picks per list: when a strict rule leaves fewer, the next-closest still-better products are added
+    # Precision over quantity: a list holds only what really qualifies, however short. Nothing is added to reach a number.
     budget = sorted([r for r in rows if r["min_ok"] and r["price_per_100_cents"] < orig_price * 0.98], key=lambda r: r["price_per_100_cents"])
-    if len(budget) < MIN_LIST:
-        have = {r["product"]["barcode"] for r in budget}
-        budget += sorted([r for r in rows if r["min_ok"] and r["price_per_100_cents"] < orig_price and r["product"]["barcode"] not in have], key=lambda r: r["price_per_100_cents"])
     o_pe = per_euro(on, field, orig_price)
     def pe(r): return per_euro(r["product"]["nutriments"], field, r["price_per_100_cents"])
     o_sc = (orig.get("score") or {}).get("total")
@@ -486,11 +488,7 @@ def build_rankings(orig, pool, prices, orig_price, priorities, mode, lang, match
     for r in rows: r["price_score"] = ps.get(r["product"]["barcode"])
     # Quality-price: more quality (score /100) per euro than the scanned product, without losing more than 5 quality points.
     value = sorted([r for r in rows if r["value_score"] is not None and o_vs is not None and r["value_score"] >= o_vs + 3
-                    and (o_sc is None or r["product"]["score"]["total"] >= o_sc - 5)], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
-    if len(value) < MIN_LIST and o_vs is not None:
-        have = {r["product"]["barcode"] for r in value}
-        value += sorted([r for r in rows if r["value_score"] is not None and r["value_score"] > o_vs and (o_sc is None or r["product"]["score"]["total"] >= o_sc - 10)
-                         and r["product"]["barcode"] not in have], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
+                    and r["min_ok"] and (o_sc is None or r["product"]["score"]["total"] >= o_sc - 5)], key=lambda r: (-r["value_score"], r["price_per_100_cents"]))
     for r in budget: r["why"] = tr(lang, "rk_budget", d=f"{(orig_price - r['price_per_100_cents'])/100:.2f}")
     for r in value:
         r["why"] = tr(lang, "rk_qp", s=r["product"]["score"]["total"], p=f"{r['price_per_100_cents']*10/100:.2f}", o=f"{orig_price*10/100:.2f}", os=o_sc if o_sc is not None else "?", v=r["value_score"], ov=o_vs)
