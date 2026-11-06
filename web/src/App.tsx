@@ -42,11 +42,11 @@ const sectionOf = (pathname: string) => pathname.replace(/^\/app\/?/, '').split(
 function TabBar() {
   const { go } = useNav();
   const cur = sectionOf(useLocation().pathname);
-  const items: [keyof typeof I, string][] = [['home', routes.home], ['list', routes.list], ['scan', routes.scan], ['compare', routes.compare], ['profile', routes.profile]];
+  const items: [keyof typeof I, string][] = [['home', routes.home], ['scan', routes.scan], ['list', routes.list]];
   return (
     <nav className="tabbar"><div className="in">
       {items.map(([k, path]) => (
-        <button key={k} className={'tab' + (k === 'scan' ? ' fab' : '') + (cur === k || (k === 'scan' && cur === 'product') ? ' on' : '')} onClick={() => { haptic(k === 'scan' ? 'tap' : 'select'); go(path); }}>
+        <button key={k} className={'tab' + (k === 'scan' ? ' fab' : '') + (cur === k || (k === 'scan' && cur === 'product') || (k === 'list' && (cur === 'compare' || cur === 'history')) || (k === 'home' && cur === 'profile') ? ' on' : '')} onClick={() => { haptic(k === 'scan' ? 'tap' : 'select'); go(path); }}>
           {k === 'scan' ? <span className="disc"><svg viewBox="0 0 24 24">{I[k]}</svg></span> : <svg viewBox="0 0 24 24">{I[k]}</svg>}
           <span>{t('tabs.' + k)}</span>
         </button>

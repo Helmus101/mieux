@@ -1,6 +1,6 @@
 export const fr = {
   appName: 'Mieux',
-  tabs: { list: 'Courses', home: 'Accueil', compare: 'Comparer', scan: 'Scanner', purchases: 'Mes courses', profile: 'Profil' },
+  tabs: { list: 'Enregistrés', home: 'Accueil', compare: 'Comparer', scan: 'Scanner', purchases: 'Mes courses', profile: 'Profil' },
   common: { stepsProduct: 'Recherche du produit…|Lecture des ingrédients…|Calcul de la note…', stepsAlt: 'Recherche de produits similaires…|Comparaison de la qualité…|Comparaison des prix…|Classement des meilleures options…', back: 'Retour', cancel: 'Annuler', save: 'Enregistrer', done: 'OK', loading: 'Chargement…', slow: 'Cela prend plus de temps que prévu.', reload: 'Recharger', loadingProduct: 'Analyse du produit…', retry: 'Réessayer', delete: 'Supprimer', continue: 'Continuer', skip: 'Passer', error: 'Une erreur est survenue', notAvailable: 'n/d', missing: 'manquant', perPurchase: 'par achat', per100g: 'pour 100 g' },
   onboarding: {
     t1: 'Qu\'est-ce qui compte le plus quand vous faites vos courses ?', s1: 'Choisissez jusqu\'à deux priorités.', selected: '{n}/2 sélectionnées',

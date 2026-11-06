@@ -323,7 +323,7 @@ td .nova{padding:4px 8px}
 
 /* Native-app feel: no text selection or callouts on the interface, no double-tap zoom, no scrollbars, no image dragging, visible press states. Typing and reading fields stay selectable. */
 html{-webkit-text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none}
-body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button,.tabbar,.cell.tap,.chip,.seg{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea,select,[contenteditable],.selectable{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 img,svg{-webkit-user-drag:none;user-select:none}
 *::-webkit-scrollbar{display:none}

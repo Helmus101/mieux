@@ -1,6 +1,6 @@
 export const en = {
   appName: 'Mieux',
-  tabs: { list: 'Shopping', home: 'Home', compare: 'Compare', scan: 'Scan', purchases: 'My Purchases', profile: 'Profile' },
+  tabs: { list: 'Saved', home: 'Home', compare: 'Compare', scan: 'Scan', purchases: 'My Purchases', profile: 'Profile' },
   common: { stepsProduct: 'Finding the product…|Reading the ingredients…|Computing the score…', stepsAlt: 'Finding similar products…|Comparing quality…|Comparing prices…|Ranking the best options…', back: 'Back', cancel: 'Cancel', save: 'Save', done: 'OK', loading: 'Loading…', slow: 'This is taking longer than expected.', reload: 'Reload', loadingProduct: 'Analysing the product…', retry: 'Retry', delete: 'Delete', continue: 'Continue', skip: 'Skip', error: 'Something went wrong', notAvailable: 'n/a', missing: 'missing', perPurchase: 'per purchase', per100g: 'per 100g' },
   onboarding: {
     t1: 'What matters most when shopping?', s1: 'Choose up to two priorities.', selected: '{n}/2 selected',

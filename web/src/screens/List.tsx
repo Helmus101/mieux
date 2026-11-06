@@ -11,11 +11,6 @@ export default function List() {
     <Screen>
       <NavBar title={t('tabs.list')} />
       <LargeTitle sub={saved.length ? t('list.count', { n: saved.length }) : undefined}>{t('tabs.list')}</LargeTitle>
-      <Group>
-        <Cell chevron onPress={() => go(routes.compare)}><b>{t('list.compareTool')}</b></Cell>
-        <Cell chevron onPress={() => go(routes.history)}><b>{t('list.historyTool')}</b></Cell>
-      </Group>
-      <div className="sechead"><h2>{t('list.savedTitle')}</h2></div>
       {saved.length ? <>
         <Group>{saved.map((s) => (
           <Cell key={s.id} image={s.product.imageUrl || null} chevron onPress={() => go(routes.product(s.id))}>
@@ -25,6 +20,10 @@ export default function List() {
         ))}</Group>
         <Button danger onPress={() => { if (confirm(t('list.clearConfirm'))) clearSaved(); }}>{t('list.clear')}</Button>
       </> : <Card><Muted>{t('list.empty')}</Muted></Card>}
+      <Group>
+        <Cell chevron onPress={() => go(routes.compare)}><b>{t('list.compareTool')}</b></Cell>
+        <Cell chevron onPress={() => go(routes.history)}><b>{t('list.historyTool')}</b></Cell>
+      </Group>
     </Screen>
   );
 }
