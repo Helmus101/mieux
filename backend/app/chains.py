@@ -38,6 +38,11 @@ OWN_BRANDS: Dict[str, str] = {
     "paturages": "Intermarché", "pâturages": "Intermarché", "top budget": "Intermarché", "marque u": "Super U", "u bio": "Super U", "u tout petits": "Super U",
     "milbona": "Lidl", "dulano": "Lidl", "freeway": "Lidl", "mamia": "Aldi", "monoprix": "Monoprix", "franprix": "Franprix", "casino": "Casino", "picard": "Picard",
     "biocoop": "Biocoop", "cora": "Cora", "naturalia": "Naturalia", "la vie claire": "La Vie Claire",
+    # more French house brands (each is sold only by that chain)
+    "reflets de france": "Carrefour", "les filières carrefour": "Carrefour", "nos régions ont du talent": "E.Leclerc", "monique ranou": "Intermarché", "saint eloi": "Intermarché",
+    "jardin bio": "Intermarché", "mmm!": "Auchan", "pouce": "Auchan", "bien vu": "Monoprix", "monoprix bio": "Monoprix", "monoprix gourmet": "Monoprix",
+    "chef select": "Lidl", "vitasia": "Lidl", "pikok": "Lidl", "sondey": "Lidl", "favorina": "Lidl", "bellarom": "Lidl", "belbake": "Lidl", "combino": "Lidl", "vemondo": "Lidl",
+    "fin carré": "Lidl", "sol & mar": "Lidl", "sol&mar": "Lidl", "eridanous": "Lidl", "biotrend": "Lidl", "moser roth": "Aldi", "gelatelli": "Aldi",
     # United States: store brands only that chain sells
     "great value": "Walmart", "marketside": "Walmart", "kirkland": "Costco", "good & gather": "Target", "good and gather": "Target", "market pantry": "Target", "favorite day": "Target",
     "simple truth": "Kroger", "private selection": "Kroger", "kroger": "Kroger", "trader joe": "Trader Joe's", "whole foods market": "Whole Foods", "365 by": "Whole Foods",

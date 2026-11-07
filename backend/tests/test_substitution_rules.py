@@ -243,3 +243,10 @@ def test_build_rankings_runs_end_to_end_and_keeps_only_close_products():
     r = engine.build_rankings(orig, [cand, cake], {"2": 800.0, "3": 300.0}, 1000.0, ["value"], "similar", "fr", [])
     names = [e["product"]["name"] for k in ("closest", "budget", "quality", "value") for e in r[k]]
     assert "Gâteau marbré au chocolat" not in names
+
+
+def test_house_brands_point_to_their_chain():
+    from app import chains
+    for brand, chain in [("Auchan, Auchan Bio", "Auchan"), ("Milbona", "Lidl"), ("Reflets de France", "Carrefour"), ("Monique Ranou", "Intermarché"),
+                         ("Nos régions ont du talent", "E.Leclerc"), ("Bien Vu", "Monoprix"), ("Nestlé", None)]:
+        assert chains.own_brand_chain(brand) == chain, brand
