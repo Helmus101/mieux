@@ -943,23 +943,56 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
                    orig_price: Optional[float], priorities: List[str], mode: str, lang: str,
                    match_list: List[Dict[str, Any]], estimated: frozenset = frozenset(),
                    orig_estimated: bool = False, points: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Build three separate rankings from one complete, shared search:
+    """Build four separate rankings from one complete, shared search with HARD COMPATIBILITY GATE:
     - Budget: Cheapest comparable (lowest verified unit price above quality floor)
     - Quality: Best quality (highest reliable Mieux quality score)
-    - Value: Best value (percentile-based quality-price index, Pareto frontier, quality floor)
+    - Value: Best value (quality-price balance with quality floor)
     - Closest: Genuine close substitutes (levels 1-4)
+    
+    STRICT RULES:
+    - Apply compatibility gate to entire pool first
+    - Level 3/4 products only enter closest, not budget/quality/value
+    - Low-confidence classifications rejected from strict rankings
     """
-    cheapest = rank_cheapest(orig, pool, prices, orig_price, points, estimated, orig_estimated, lang)
-    quality = rank_quality(orig, pool, prices, points, lang)
-    best_val = rank_best_value(orig, pool, prices, orig_price, points, estimated, orig_estimated, lang)
-    closest = rank_closest(orig, pool, prices, points, lang)
+    # Step 1: Apply hard compatibility gate to create strict close-substitute pool
+    strict_pool = []
+    for c in pool:
+        sub = taxonomy.substitution(orig, c)
+        if sub is None:
+            continue
+        confidence = sub.get("confidence", "none")
+        level = sub.get("level")
+        
+        # Add substitution to product
+        c = {**c, "substitution": sub}
+        
+        # All qualified products go into closest (level 1-4 allowed)
+        strict_pool.append(c)
+    
+    # Step 2: Filter for each ranking
+    level_1_2 = [c for c in strict_pool if (c.get("substitution") or {}).get("level", 4) <= 2]
+    high_confidence = [c for c in level_1_2 if (c.get("substitution") or {}).get("confidence") not in ("none", "low")]
+    
+    # Step 3: Build rankings
+    # Closest: all levels 1-4, no price influence
+    closest_items = rank_closest(orig, strict_pool, 10)
+    
+    # Budget: levels 1-2 only, high confidence, with price, quality floor
+    budget_items = rank_cheapest(orig, high_confidence, prices, orig_price, 10)
+    
+    # Quality: levels 1-2 only, high confidence, price-independent
+    quality_items = rank_quality(orig, high_confidence, 10)
+    
+    # Value: levels 1-2 only, high confidence, with price, quality floor
+    value_items = rank_value(orig, high_confidence, prices, orig_price, priorities, 10)
+    
     no_baseline = bool(orig_price is None or orig_estimated)
     
     return {
-        "budget": cheapest["items"],
-        "value": best_val["items"],
-        "quality": quality,
-        "closest": closest,
+        "budget": budget_items,
+        "value": value_items,
+        "quality": quality_items,
+        "closest": closest_items,
         "match": match_list[:10],
         "no_baseline": no_baseline,
     }

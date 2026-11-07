@@ -216,3 +216,19 @@ def test_every_variant_has_a_label_in_both_languages():
     names = {n for rules in taxonomy._VARIANTS.values() for n, _ in rules} | {"standard", "raw", "roasted", "plain", "salted"}
     for n in names:
         assert "var_" + n in i18n.FR and "var_" + n in i18n.EN, n
+
+
+def test_snack_bar_rejects_tablet_cake_and_filled_biscuits():
+    from app import taxonomy
+    bar = {"name": "Barres chocolat noir amandes cranberries & noix de coco", "categories": ["en:snacks", "en:sweet-snacks", "en:bars", "en:cereal-bars"]}
+    nope = [
+        {"name": "NESTLÉ DESSERT 70% Absolu 170g", "categories": ["en:snacks", "en:sweet-snacks", "en:cocoa-and-its-products", "en:chocolates", "en:dark-chocolates"]},
+        {"name": "Gâteau marbré au chocolat", "categories": ["en:snacks", "en:sweet-snacks", "en:biscuits-and-cakes", "en:cakes"]},
+        {"name": "Fourrés chocolat lait noisettes", "categories": ["en:snacks", "en:sweet-snacks", "en:biscuits-and-cakes", "en:biscuits"]},
+    ]
+    for c in nope:
+        assert taxonomy.substitution(bar, c) is None, c["name"]
+    cereal = {"name": "6 Barres Céréales Pomme Vert", "categories": ["en:snacks", "en:cereal-bars"]}
+    assert taxonomy.substitution(bar, cereal)["level"] == 2
+    sport = {"name": "Energy sport bar multifruits", "categories": ["en:snacks", "en:energy-bars"]}
+    assert taxonomy.substitution(bar, sport)["level"] >= 3
