@@ -26,6 +26,13 @@ def normalise(r: dict, path: str) -> dict:
     if "productId" in r:      # Picard
         return {"chain": "Picard", "storeExtId": "picard-online", "storeName": "Picard.fr", "storeAddress": "France", "ean": r.get("ean"), "price": r.get("price"),
                 "currency": r.get("priceCurrency"), "status": "ACTIVE" if r.get("inStock", True) else "OUT", "updatedAt": date}
+    if "product_name" in r and "ean" in r:     # E.Leclerc online, name/price/ean export
+        try:
+            price = float(str(r.get("price")).replace(",", "."))
+        except ValueError:
+            return {}
+        return {"chain": "E.Leclerc", "storeExtId": "leclerc-online", "storeName": "E.Leclerc en ligne", "storeAddress": "France", "ean": r.get("ean"), "price": price,
+                "currency": "EUR", "status": "ACTIVE", "updatedAt": date}
     if "e.leclerc" in str(r.get("url")):      # E.Leclerc online; marketplace sellers are not Leclerc shelf prices
         if not str(r.get("seller") or "E.Leclerc").lower().startswith("e.leclerc"):
             return {}
@@ -39,11 +46,12 @@ def normalise(r: dict, path: str) -> dict:
 
 def main(paths, out: str = OUT) -> None:
     db = sqlite3.connect(out)
+    by_chain = {}
     for path in paths:
-        rows = [x for x in (normalise(r, path) for r in json.load(open(path, encoding="utf-8"))) if x]
-        chain = rows[0]["chain"] if rows else None
-        if not chain:
-            continue
+        for x in (normalise(r, path) for r in json.load(open(path, encoding="utf-8"))):
+            if x:
+                by_chain.setdefault(x["chain"], []).append(x)
+    for chain, rows in by_chain.items():
         db.execute("delete from op_items where json_extract(data, '$.id') like ?", (f"sc-{chain}-%",))
         batch, seen = [], set()
         for r in rows:
