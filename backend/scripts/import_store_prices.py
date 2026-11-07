@@ -18,10 +18,24 @@ def code_of(ean: str) -> str:
     return e[1:] if len(e) == 14 and e.startswith("0") else e
 
 
+def normalise(r: dict, path: str) -> dict:
+    """Other exports (Picard, Carrefour online) to the common shape: chain, storeExtId, ean, price, updatedAt. Loyalty promotions are ignored: the shelf price is kept."""
+    if "chain" in r:
+        return r
+    date = r.get("scrapedAt") or __import__("datetime").datetime.fromtimestamp(os.path.getmtime(path)).isoformat()
+    if "productId" in r:      # Picard
+        return {"chain": "Picard", "storeExtId": "picard-online", "storeName": "Picard.fr", "storeAddress": "France", "ean": r.get("ean"), "price": r.get("price"),
+                "currency": r.get("priceCurrency"), "status": "ACTIVE" if r.get("inStock", True) else "OUT", "updatedAt": date}
+    if r.get("isMarketplace") or r.get("businessType") == "non-food":
+        return {}
+    return {"chain": "Carrefour", "storeExtId": "carrefour-online", "storeName": "Carrefour.fr", "storeAddress": "France", "ean": r.get("ean"), "price": r.get("price"),
+            "currency": r.get("currency"), "status": "ACTIVE" if r.get("available", True) else "OUT", "updatedAt": date}
+
+
 def main(paths, out: str = OUT) -> None:
     db = sqlite3.connect(out)
     for path in paths:
-        rows = json.load(open(path, encoding="utf-8"))
+        rows = [x for x in (normalise(r, path) for r in json.load(open(path, encoding="utf-8"))) if x]
         chain = rows[0]["chain"] if rows else None
         if not chain:
             continue
