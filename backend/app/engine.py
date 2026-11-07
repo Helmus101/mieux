@@ -975,16 +975,11 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
     
     # Step 3: Build rankings
     # Closest: all levels 1-4, no price influence
-    closest_items = rank_closest(orig, strict_pool, 10)
-    
-    # Budget: levels 1-2 only, high confidence, with price, quality floor
-    budget_items = rank_cheapest(orig, high_confidence, prices, orig_price, 10)
-    
-    # Quality: levels 1-2 only, high confidence, price-independent
-    quality_items = rank_quality(orig, high_confidence, 10)
-    
-    # Value: levels 1-2 only, high confidence, with price, quality floor
-    value_items = rank_value(orig, high_confidence, prices, orig_price, priorities, 10)
+    closest_items = rank_closest(orig, strict_pool, prices, points, lang)   # keeps levels 1-2 only
+    cheapest = rank_cheapest(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang)
+    quality_items = rank_quality(orig, high_confidence, prices, points, lang)
+    best_val = rank_best_value(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang)
+    budget_items, value_items = cheapest["items"], best_val["items"]
     
     no_baseline = bool(orig_price is None or orig_estimated)
     

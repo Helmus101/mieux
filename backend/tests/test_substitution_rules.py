@@ -232,3 +232,14 @@ def test_snack_bar_rejects_tablet_cake_and_filled_biscuits():
     assert taxonomy.substitution(bar, cereal)["level"] == 2
     sport = {"name": "Energy sport bar multifruits", "categories": ["en:snacks", "en:energy-bars"]}
     assert taxonomy.substitution(bar, sport)["level"] >= 3
+
+
+def test_build_rankings_runs_end_to_end_and_keeps_only_close_products():
+    from app import engine, taxonomy
+    base = {"categories": ["en:snacks", "en:bars", "en:cereal-bars"], "nutriments": {"energyKcal100g": 400, "sugars100g": 10, "carbohydrates100g": 60}}
+    orig = {**base, "barcode": "1", "name": "Barres fruits secs amandes", "brand": "A", "score": {"total": 40}}
+    cand = {**base, "barcode": "2", "name": "Barres céréales pomme", "brand": "B", "score": {"total": 50}}
+    cake = {"barcode": "3", "name": "Gâteau marbré au chocolat", "brand": "C", "categories": ["en:cakes"], "nutriments": {"energyKcal100g": 400}, "score": {"total": 60}}
+    r = engine.build_rankings(orig, [cand, cake], {"2": 800.0, "3": 300.0}, 1000.0, ["value"], "similar", "fr", [])
+    names = [e["product"]["name"] for k in ("closest", "budget", "quality", "value") for e in r[k]]
+    assert "Gâteau marbré au chocolat" not in names
