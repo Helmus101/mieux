@@ -177,7 +177,7 @@ export default function Alternatives() {
               </View>
             </Row>
             {why ? <Muted small>{why}</Muted> : null}
-            {e.avail && e.avail.state !== 'unknown' ? <View style={{ marginTop: 6 }}>
+            {e.avail && e.avail.state === 'observed_at_store' ? <View style={{ marginTop: 6 }}>
               <Pill tone={e.avail.state === 'observed_at_store' ? 'g' : 'w'}>
                 {e.avail.state === 'observed_at_store' ? t('avail.observed', { s: e.avail.store ?? '?', d: e.avail.date ?? '' }) : e.avail.state === 'seen_at_chain' ? t('avail.chain', { c: e.avail.chain }) : t('avail.listed')}
               </Pill>

@@ -1526,7 +1526,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             if vk_ in seen_:
                 continue    # the same product under another barcode or pack size is listed once
             seen_.add(vk_); kept_.append(r_)
-            own_ = _chains.own_brand_chain(r_["product"].get("brand")) or _chains.canon(str(r_["product"].get("brand") or "").split(",")[0])
+            own_ = _chains.own_brand_chain(r_["product"].get("brand")) or _chains.canon(str(r_["product"].get("brand") or "")) or _chains.canon(str(r_["product"].get("name") or ""))
             cid_ = retail.ID_OF.get(own_) if own_ else None
             if cid_ and cid_ not in (r_["product"].get("chains") or []):
                 r_["product"]["chains"] = [cid_] + list(r_["product"].get("chains") or [])   # a store brand always shows its chain logo
