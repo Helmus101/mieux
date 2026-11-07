@@ -26,6 +26,11 @@ def normalise(r: dict, path: str) -> dict:
     if "productId" in r:      # Picard
         return {"chain": "Picard", "storeExtId": "picard-online", "storeName": "Picard.fr", "storeAddress": "France", "ean": r.get("ean"), "price": r.get("price"),
                 "currency": r.get("priceCurrency"), "status": "ACTIVE" if r.get("inStock", True) else "OUT", "updatedAt": date}
+    if "e.leclerc" in str(r.get("url")):      # E.Leclerc online; marketplace sellers are not Leclerc shelf prices
+        if not str(r.get("seller") or "E.Leclerc").lower().startswith("e.leclerc"):
+            return {}
+        return {"chain": "E.Leclerc", "storeExtId": "leclerc-online", "storeName": "E.Leclerc en ligne", "storeAddress": "France", "ean": r.get("ean"), "price": r.get("price"),
+                "currency": r.get("currency"), "status": "ACTIVE", "updatedAt": date}
     if r.get("isMarketplace") or r.get("businessType") == "non-food":
         return {}
     return {"chain": "Carrefour", "storeExtId": "carrefour-online", "storeName": "Carrefour.fr", "storeAddress": "France", "ean": r.get("ean"), "price": r.get("price"),
