@@ -224,7 +224,7 @@ def _tradeoffs(o, c, sim, lang="fr", price_unknown=False) -> List[str]:
 def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[str], allergens: List[str], diet: Optional[str],
            mode: str = "similar", limit: int = 5, prices: Optional[Dict[str, float]] = None,
            orig_price: Optional[float] = None, lang: str = "fr") -> Dict[str, Any]:
-    ex = {"conflict": 0, "unverified": 0, "incomplete": 0, "not_better": 0, "dissimilar": 0, "not_in_france": 0, "france_unknown": 0, "not_substitute": 0}
+    ex = {"conflict": 0, "unverified": 0, "incomplete": 0, "not_better": 0, "dissimilar": 0, "not_in_france": 0, "france_unknown": 0, "not_substitute": 0, "low_confidence": 0, "level_3_4_rejected": 0}
     funnel = {"raw_candidates_retrieved": len(peers), "usable_product_data": 0, "confirmed_sold_in_france": 0,
               "france_unknown": 0, "passing_allergens": 0, "passing_compatibility": 0, "with_sufficient_nutrition": 0,
               "with_verified_prices": 0, "by_substitution_level": {str(level): 0 for level in range(1, 5)}}
@@ -253,6 +253,18 @@ def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[s
         c = {**c, "substitution": substitution}
         funnel["passing_compatibility"] += 1
         level = substitution.get("level")
+        confidence = substitution.get("confidence", "none")
+
+        # HARD GATE: Reject low-confidence classifications from strict rankings
+        if confidence in ("none", "low") and mode != "similar":
+            ex["low_confidence"] += 1
+            continue
+
+        # HARD GATE: Level 3/4 products only enter closest tab, not price/quality/value rankings
+        if level and level >= 3 and mode != "similar":
+            ex["level_3_4_rejected"] += 1
+            continue
+
         if level in funnel["by_substitution_level"]:
             funnel["by_substitution_level"][str(level)] += 1
         d = {k: _diff(orig, c, k, prices, orig_price, priorities) for k in priorities}

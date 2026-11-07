@@ -6,6 +6,8 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 # type id -> (family, category, subcategory, form, primary use, tag regex, name regex). First matching rule wins: specific before general.
+# IMPORTANT: Chocolate confectionery (tablets) are NOT snack bars. Cakes are NOT snack bars. Biscuits are NOT snack bars.
+# A product containing chocolate or nuts is not automatically a snack bar - the purchasing purpose matters.
 R = [
     # ---- bakery and cereals
     ("breadsticks", "cereals_bakery", "bread", "breadsticks", "stick", "snacking", r"breadsticks|grissini|gressins", r"grissini|gressin|breadstick"),
@@ -22,11 +24,12 @@ R = [
     ("muesli", "cereals_bakery", "cereal", "muesli", "cereal", "breakfast", r"mueslis|granola|oat-flakes|porridge", r"muesli|granola|porridge|flocons d.avoine"),
     ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles"),
     ("rice", "cereals_bakery", "grain", "grain", "grain", "meal", r"\brices?\b(?!-based)|basmati", r"^riz\b|\briz (basmati|long|complet|thai)"),
-    # ---- snack bars (granular types so a chocolate tablet, cake or filled biscuit is not auto-accepted as a snack bar)
-    ("fruit_nut_bar", "snacks", "snack_bars", "fruit_and_nut_bar", "individual_bar", "snacking", r"snack-bars|fruit-and-nut-bars|fruit-and-nut|barres-fruits-secs|barres aux fruits secs", r"barre aux fruits|barres? (aux )?fruits secs|noix.*fruit|fruit.*noix|amande.*cranberr|cranberr.*amande|mélange.*fruits secs|barre.*noix de coco|barre.*fruit and nut"),
-    ("cereal_bar", "snacks", "snack_bars", "cereal_bar", "individual_bar", "snacking", r"cereal-bars|granola-bars|breakfast-bars", r"barre c[ée]r[ée]ale|barre granola|barre de c[ée]r[ée]ales|granola bar|cereal bar|barre.*c[ée]r[ée]al"),
-    ("protein_bar", "snacks", "snack_bars", "protein_bar", "individual_bar", "snacking", r"protein-bars|protein-shakes-and-bars", r"barre prot[ée]in|protein bar|barre prot[ée]in|barre.*prot[ée]in|proteine.*bar"),
-    ("sports_energy_bar", "snacks", "snack_bars", "sports_energy_bar", "individual_bar", "sports_energy", r"sports-energy-bars|energy-bars|sports-bars", r"energy bar|barre sport|sport bar|energy bar|iso star|isostar|barre d[ée]tente|barre energ[ée]tique"),
+    # ---- snack bars (STRICT: individual bar format for snacking, not confectionery tablets or cakes)
+    # Must match individual_bar format AND snacking use case explicitly
+    ("fruit_nut_bar", "snacks", "snack_bars", "fruit_and_nut_bar", "individual_bar", "snacking", r"snack-bars|fruit-and-nut-bars|fruit-and-nut|barres-fruits-secs|barres aux fruits secs", r"barre aux fruits( secs)?|barres? (aux )?fruits secs|noix.*fruit( secs)?|fruit.*noix|amande.*cranberr|cranberr.*amande|mélange.*fruits secs(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|barre.*noix de coco(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))"),
+    ("cereal_bar", "snacks", "snack_bars", "cereal_bar", "individual_bar", "snacking", r"cereal-bars|granola-bars|breakfast-bars", r"barre c[ée]r[ée]ale(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|barre granola(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|barre de c[ée]r[ée]ales(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|granola bar(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|cereal bar(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|barre.*c[ée]r[ée]al(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))"),
+    ("protein_bar", "snacks", "snack_bars", "protein_bar", "individual_bar", "snacking", r"protein-bars|protein-shakes-and-bars", r"barre prot[ée]in(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|protein bar(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|barre prot[ée]in(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|barre.*prot[ée]in(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|proteine.*bar(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))"),
+    ("sports_energy_bar", "snacks", "snack_bars", "sports_energy_bar", "individual_bar", "sports_energy", r"sports-energy-bars|energy-bars|sports-bars", r"energy bar(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|barre sport(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|sport bar(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|energy bar(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|iso star|isostar|barre d[ée]tente|barre energ[ée]tique"),
     # ---- dairy
     ("plant_yogurt", "dairy_alt", "yogurt", "spoonable", "spoon", "breakfast", r"plant-based-(yogurts|desserts)|soy-yogurts|dairy-substitutes-yogurts", r"(soja|amande|coco|avoine).*(yaourt|dessert)|yaourt.*(soja|amande|coco)"),
     ("flavoured_yogurt", "dairy", "yogurt", "spoonable", "spoon", "dessert", r"flavoured-yogurts|fruit-yogurts|sweetened-yogurts|yogurts-with-fruits", r"(vanille|fruit|fraise|abricot|p[êe]che|coco|caramel|citron|cerise|banane|vanilla|aux fruits)(?![^a-z]*barre|[^a-z]*bar|[^a-z]*barres)"),
@@ -56,11 +59,9 @@ R = [
     ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|compotes|fruit-and-vegetable-preserves|fruit-preserves|fruit-purees|apple-compotes", r"confiture|marmelade|compote|gel[ée]e"),
     ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre de cacahu|peanut butter|pur[ée]e d.(amande|noisette)"),
     ("honey", "sweet", "spread", "spread", "spread", "breakfast", r"honeys", r"\bmiel\b"),
-    # ---- snack bars (granular types so a chocolate tablet, cake or filled biscuit is not auto-accepted as a snack bar)
-    ("cereal_bar", "snacks", "snack_bars", "cereal_bar", "individual_bar", "snacking", r"cereal-bars|granola-bars|breakfast-bars", r"barre c[ée]r[ée]ale|barre granola|barre de c[ée]r[ée]ales|granola bar|cereal bar|barre.*c[ée]r[ée]al"),
-    ("protein_bar", "snacks", "snack_bars", "protein_bar", "individual_bar", "snacking", r"protein-bars|protein-shakes-and-bars", r"barre prot[ée]in|protein bar|barre prot[ée]in|barre.*prot[ée]in|proteine.*bar"),
-    ("sports_energy_bar", "snacks", "snack_bars", "sports_energy_bar", "individual_bar", "sports_energy", r"sports-energy-bars|energy-bars|sports-bars", r"energy bar|barre sport|sport bar|energy bar|iso star|isostar|barre d[ée]tente|barre energ[ée]tique"),
-    ("chocolate_bar", "sweet", "chocolate", "bar", "bar", "snacking", r"chocolates|chocolate-bars|dark-chocolates|milk-chocolates", r"chocolat (noir|au lait|blanc)|tablette"),
+    # ---- chocolate confectionery (tablets, bars for confectionery use - NOT snack bars)
+    # IMPORTANT: Chocolate tablets are confectionery, not snack bars, even if they contain nuts or fruit
+    ("chocolate_bar", "sweet", "chocolate", "bar", "bar", "snacking", r"chocolates|chocolate-bars|dark-chocolates|milk-chocolates", r"chocolat (noir|au lait|blanc)(?!.*(barre|energy|sport|protein|c[ée]r[ée]ale|granola))|tablette"),
     ("speculoos", "sweet", "biscuit", "biscuit", "biscuit", "snacking", r"speculoos|speculaas|sp[ée]culoos", r"^(?!.*(tartiner|spread|p[âa]te\\b|cr[èe]me|glace|ice cream|yaourt|yogurt|chocolat|boisson|drink|sirop|caf[ée]|latte|pomme|compote|dessert|fromage|c[ée]r[ée]ales?|muesli|granola|barre|poudre|mousse|flan|riz au lait))(?=.*(sp[ée]culoos|speculaas|biscoff|bastogne|des flandres|lotus))"),
     ("sweet_biscuits", "sweet", "biscuit", "biscuit", "biscuit", "snacking", r"biscuits|cookies|shortbread|sweet-biscuits|biscuits-and-cakes|butter-biscuits", r"biscuit|cookie|sabl[ée]|petit beurre|galette bretonne|palet"),
     ("cakes", "sweet", "cake", "cake", "cake", "snacking", r"cakes|madeleines|pound-cakes|pancakes|crepes|waffles|muffins", r"gâteau|gateau|madeleine|cake|cr[êe]pe|gaufre|muffin|quatre-quarts"),
@@ -91,12 +92,14 @@ RULES = [(tid, fam, cat, sub, form, use, re.compile(tr, re.I), re.compile(nr, re
 _META = {tid: {"family": fam, "category": cat, "subcategory": sub, "form": form, "use": use} for tid, fam, cat, sub, form, use, *_ in R}
 
 # Clusters of interchangeable types for one purchase decision, ordered by closeness (rank). Types in no common cluster never substitute each other.
+# STRICT: Only products that serve the same purchasing purpose can be in the same cluster.
+# Removed overly broad relationships: cakes are not breakfast pastry substitutes, biscuits are not cake substitutes.
 CLUSTERS: Dict[str, Dict[str, int]] = {
     "breakfast_slices": {"rusks": 1, "toasted_bread": 2, "brioche_toast": 2, "sliced_brioche": 3, "sandwich_bread": 5},
     "table_bread": {"baguette": 1, "sandwich_bread": 4},   # sliced sandwich bread is not a baguette
     "sticks_and_crackers": {"breadsticks": 1, "crackers": 2},
     "buns": {"burger_buns": 1},
-    "pastry_breakfast": {"viennoiserie": 1, "sliced_brioche": 3, "cakes": 5},
+    "pastry_breakfast": {"viennoiserie": 1, "sliced_brioche": 3},  # REMOVED: cakes are not breakfast pastry substitutes
     "cereals": {"breakfast_cereal": 1, "muesli": 2},
     "pasta_grains": {"pasta": 1, "rice": 3},
     "yogurt": {"plain_yogurt": 1, "fromage_blanc": 2, "flavoured_yogurt": 3, "plant_yogurt": 5},
@@ -110,9 +113,9 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "coffee_ground_beans": {"ground_coffee": 1, "coffee_beans": 3},   # beans need a grinder: a reasonable substitute at best, never capsules
     "instant_coffee": {"instant_coffee": 1}, "tea": {"tea": 1}, "herbal_tea": {"herbal_tea": 1},
     "spreads_sweet": {"chocolate_spread": 1, "peanut_butter": 3, "jam": 3, "honey": 4},
-    "biscuits": {"sweet_biscuits": 1},
+    "biscuits": {"sweet_biscuits": 1},  # REMOVED: cakes are not biscuit substitutes
     "speculoos": {"speculoos": 1, "sweet_biscuits": 3},   # other speculoos first; any sweet biscuit only as a broader alternative; never crackers, spreads or sweets
-    "chocolate": {"chocolate_bar": 1},
+    "chocolate": {"chocolate_bar": 1},  # Chocolate confectionery is separate from snack bars
     "candy": {"candy": 1, "gummies": 2, "licorice": 3}, "herbal_lozenge": {"herbal_lozenge": 1}, "chewing_gum": {"chewing_gum": 1},
     "gummies": {"gummies": 1, "licorice": 2},
     "chips": {"chips": 1, "crackers": 3, "nuts": 4},
@@ -124,7 +127,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
         "cereal_bar": 2,
         "protein_bar": 3,
         "sports_energy_bar": 4,
-    },
+    },  # Snack bars are their own cluster - chocolate tablets, cakes, biscuits are NOT in this cluster
 
     "soup": {"soup": 1}, "pizza": {"pizza": 1}, "ready": {"ready_meal": 1, "pizza": 3},
     "cold_cuts": {"ham": 1, "sausage": 3}, "fish": {"fish_canned": 1},
@@ -147,26 +150,47 @@ _JAM_WORDS = re.compile(r"confiture|marmelade|compote|gel[ée]e|pur[ée]e|fruit|
 
 
 def classify(p: Dict[str, Any]) -> Dict[str, Any]:
-    """Structured classification from the category tags, then the name. 'unclassified' keeps the leaf tag so same-leaf products still match."""
+    """Structured classification with improved priority: specific category tags first, then explicit name signals, then broad tags, then fallback name matches.
+    Classification confidence is now explicitly tracked. Low-confidence products should not enter strict rankings."""
     tags = " ".join(p.get("categories") or [])
     name = (p.get("name") or "")
-    # name beats tags for the specific form (a toasted brioche is tagged as breads and brioches), tags beat the name for the general kind
+    brand = (p.get("brand") or "")
+    generic_name = (p.get("generic_name") or "")
+
+    # Priority 1: High-specificity product type tags + name agreement (highest confidence)
+    for tid, fam, cat, sub, form, use, tr, nr in RULES:
+        if tr.search(tags) and nr.search(name):
+            if tid == "jam" and not _JAM_WORDS.search(name):
+                continue   # 'preserves' tag on barley and lentils: a tagging error, never a jam
+            return {"type": tid, **_META[tid], "source": "tags_and_name", "confidence": "high", "reason": f"specific category tag '{tr.pattern[:30]}' and name '{nr.pattern[:30]}' agree"}
+
+    # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
                 "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if nr.search(name) and tid in specific:
-            return {"type": tid, **_META[tid], "source": "name", "confidence": "high", "reason": "name matches the specific form: " + nr.pattern[:40]}
-    for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if nr.search(name) and tid == "snack_bar":
-            return {"type": tid, **_META[tid], "source": "name", "confidence": "low", "reason": "name matches a generic bar term: " + nr.pattern[:40]}
+            return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"name matches specific form: {nr.pattern[:40]}"}
+
+    # Priority 3: Broad category tags with supporting name evidence (medium confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tr.search(tags):
             if tid == "jam" and not _JAM_WORDS.search(name):
                 continue   # 'preserves' tag on barley and lentils: a tagging error, never a jam
-            return {"type": tid, **_META[tid], "source": "tags", "confidence": "high" if nr.search(name) else "medium", "reason": "category tags match: " + tr.pattern[:40]}
+            if nr.search(name) or nr.search(generic_name):
+                return {"type": tid, **_META[tid], "source": "tags_with_name", "confidence": "medium", "reason": f"category tag '{tr.pattern[:30]}' with supporting name evidence"}
+            return {"type": tid, **_META[tid], "source": "tags_only", "confidence": "medium", "reason": f"category tag '{tr.pattern[:30]}' only (no name support)"}
+
+    # Priority 4: Name-only matches for general types (low confidence - may be ambiguous)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if nr.search(name):
-            return {"type": tid, **_META[tid], "source": "name", "confidence": "low", "reason": "name only, no category tag agrees"}
+        if nr.search(name) or nr.search(generic_name):
+            # Reject generic "bar" matches without context
+            if tid in ("fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar"):
+                # Only accept if name clearly indicates snack bar format, not just any bar
+                if not re.search(r"barre|bar", name, re.I):
+                    continue
+            return {"type": tid, **_META[tid], "source": "name_only", "confidence": "low", "reason": f"name only, no category tag agrees: {nr.pattern[:40]}"}
+
+    # Priority 5: Unclassified - rely only on exact leaf category match
     leaf = (p.get("categories") or [None])[-1]
     return {"type": None, "family": None, "category": None, "subcategory": None, "form": None, "use": None, "leaf": leaf, "source": "none", "confidence": "none", "reason": "unclassified: only the exact same leaf category is accepted as a substitute"}
 
@@ -185,30 +209,63 @@ def level_between(a: str, b: str) -> Optional[int]:
 
 
 def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Level 1-4 and why, or None when the candidate is not a substitute (different type/form/use). Independent of nutrition and price."""
+    """HARD COMPATIBILITY GATE: Level 1-4 and why, or None when the candidate is not a substitute.
+    Independent of nutrition and price. Enforces strict rules:
+    - Low-confidence classifications are rejected from strict rankings
+    - Incompatible product forms or purchasing purposes are rejected
+    - Level 3/4 products can enter closest tab but not price/quality/value rankings
+    """
     co, cc = classify(orig), classify(cand)  # always computed fresh: a rule change must reach products that are already cached
-    if co["type"] and cc["type"]:
-        lv = level_between(co["type"], cc["type"])
-        if lv is None:
-            return None
-        vo, vc = variant(orig, co["type"]), variant(cand, cc["type"])
-        diff = [vo, vc] if co["type"] == cc["type"] and vo and vc and vo != vc else None
-        if diff and co["type"] in _HARD_VARIANT_TYPES and "standard" not in diff:
-            return None    # hazelnuts lead to hazelnuts, not to almonds or mixed fruit
-        if co["type"] == cc["type"] == "nuts":
-            po, pc = nut_prep(orig), nut_prep(cand)
-            if po["shell"] != pc["shell"]:
-                return None     # in-shell nuts are sold by the weight of the shell: not a like-for-like price or a substitute for shelled ones
-            odd = [k for k in ("roast", "salt") if po[k] and pc[k] and po[k] != pc[k]]
-            if odd:
-                lv = min(4, lv + 1)     # raw vs roasted, plain vs salted: still nuts, but no longer the same product
-                diff = diff or [po[odd[0]], pc[odd[0]]]
-        return {"level": lv, "label": LABELS[lv], "type": cc["type"], "same_type": co["type"] == cc["type"], "variant_diff": diff}
-    # at least one side unclassified: only the same specific category (leaf tag) is accepted, as 'almost identical'
-    lo, lc = (orig.get("categories") or [None])[-1], (cand.get("categories") or [None])[-1]
-    if lo and lo == lc and lo not in _BROAD_LEAFS:
-        return {"level": 1, "label": LABELS[1], "type": cc["type"], "same_type": True, "leaf_only": True}
-    return None
+
+    # HARD GATE: Reject low-confidence classifications
+    if co["confidence"] in ("none", "low") or cc["confidence"] in ("none", "low"):
+        return None  # Cannot confidently classify one or both products
+
+    # HARD GATE: Both must have a valid type
+    if not co["type"] or not cc["type"]:
+        return None
+
+    # HARD GATE: Check form and use compatibility
+    if co["form"] != cc["form"] and co["use"] != cc["use"]:
+        # Different form AND different use case = not a substitute
+        return None
+
+    # Check type compatibility via clusters
+    lv = level_between(co["type"], cc["type"])
+    if lv is None:
+        return None  # No cluster relationship exists - completely incompatible types
+
+    # Variant handling
+    vo, vc = variant(orig, co["type"]), variant(cand, cc["type"])
+    diff = [vo, vc] if co["type"] == cc["type"] and vo and vc and vo != vc else None
+    if diff and co["type"] in _HARD_VARIANT_TYPES and "standard" not in diff:
+        return None    # hazelnuts lead to hazelnuts, not to almonds or mixed fruit
+
+    # Nut-specific handling
+    if co["type"] == cc["type"] == "nuts":
+        po, pc = nut_prep(orig), nut_prep(cand)
+        if po["shell"] != pc["shell"]:
+            return None     # in-shell nuts are sold by the weight of the shell: not a like-for-like price or a substitute for shelled ones
+        odd = [k for k in ("roast", "salt") if po[k] and pc[k] and po[k] != pc[k]]
+        if odd:
+            lv = min(4, lv + 1)     # raw vs roasted, plain vs salted: still nuts, but no longer the same product
+            diff = diff or [po[odd[0]], pc[odd[0]]]
+
+    # Build structured explanation
+    explanation = {
+        "level": lv,
+        "label": LABELS[lv],
+        "type": cc["type"],
+        "same_type": co["type"] == cc["type"],
+        "variant_diff": diff,
+        "confidence": min(co["confidence"], cc["confidence"]),  # Lower of the two
+        "orig_confidence": co["confidence"],
+        "cand_confidence": cc["confidence"],
+        "form_match": co["form"] == cc["form"],
+        "use_match": co["use"] == cc["use"],
+    }
+
+    return explanation
 
 
 # Variants inside one product type: a real difference the shopper should know about, disclosed as a trade-off (never a reason to hide the product).

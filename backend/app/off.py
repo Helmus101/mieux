@@ -103,14 +103,15 @@ class _Local:
 
     def quick_candidates(self, tags: List[str], field: Optional[str] = None, low: bool = True,
                          required: tuple = (), ingredients: bool = False,
-                         per_tag: int = 220, total: int = 260, window: int = 2000) -> List[str]:
+                         per_tag: Optional[int] = None, total: Optional[int] = None, window: Optional[int] = None) -> List[str]:
         """Codes of the best candidates across these categories, chosen in SQL over the compact side table.
 
-        For each category the `window` most scanned products are taken first (an index read, a few milliseconds even for
-        14 000 products), then ordered by the nutrient the person cares about; the pooled result is topped up with the
-        most scanned products, because the closest substitutes are usually the ones people actually buy. Ordering by the
-        nutrient directly against the whole category means walking a million-row join (0.2-2 s), which the window avoids
-        while still looking at two thousand products per category instead of one page. No product JSON is parsed here.
+        EXHAUSTIVE RETRIEVAL: Removed arbitrary limits (per_tag, total, window defaults). When per_tag/total are None,
+        retrieves all products in the category without truncation. This ensures the compatibility gate decides what
+        qualifies, not arbitrary retrieval limits.
+
+        For each category, products are ordered by the nutrient the person cares about (if specified), then by scans.
+        No product JSON is parsed here.
         """
         if not self.quick_available():
             return []
@@ -127,16 +128,27 @@ class _Local:
                     seen.add(code)
                     out.append(code)
 
-        for tag in tags:
-            # Full indexed retrieval across the category, not truncated by an arbitrary popularity window
-            run(f"select q.code from off_cat c join quick.quick q on q.code=c.code where c.tag=?{cond} order by {order}, c.scans desc limit ?", (tag, per_tag))
-            if len(out) >= total:
-                return out[:total]
-        for tag in tags:
-            run(f"select q.code from off_cat c join quick.quick q on q.code=c.code where c.tag=?{cond} order by c.scans desc limit ?", (tag, max(20, per_tag // 2)))
-            if len(out) >= total:
-                break
-        return out[:total]
+        # If limits are specified, use them for backward compatibility
+        # If not specified, retrieve exhaustively
+        if per_tag is None and total is None:
+            # Exhaustive retrieval: no LIMIT clause
+            for tag in tags:
+                run(f"select q.code from off_cat c join quick.quick q on q.code=c.code where c.tag=?{cond} order by {order}, c.scans desc", (tag,))
+        else:
+            # Backward compatible: use specified limits
+            per_tag = per_tag or 220
+            total = total or 260
+            for tag in tags:
+                run(f"select q.code from off_cat c join quick.quick q on q.code=c.code where c.tag=?{cond} order by {order}, c.scans desc limit ?", (tag, per_tag))
+                if len(out) >= total:
+                    return out[:total]
+            for tag in tags:
+                run(f"select q.code from off_cat c join quick.quick q on q.code=c.code where c.tag=?{cond} order by c.scans desc limit ?", (tag, max(20, per_tag // 2)))
+                if len(out) >= total:
+                    break
+            return out[:total]
+
+        return out
 
     def quick_products(self, codes: List[str]) -> List[Dict[str, Any]]:
         """Full records for these codes (only these are parsed): the expensive step happens on the final shortlist."""

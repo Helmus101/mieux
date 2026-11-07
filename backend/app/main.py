@@ -1223,12 +1223,11 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
            allergens: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """Candidate pool for the deep search, read from the whole local copy of Open Food Facts when it is there.
 
-    Every meaningful category level of the product is read, its own leaf category first then its parents, a few hundred
-    products per level, most scanned first (an indexed query per level). Those records are then filtered on cheap raw
-    fields — French availability, the nutrient the chosen priority needs, ingredients when an allergen must be checked —
-    and only the most relevant ones are normalised and scored, so thousands of products are looked at while the answer
-    still comes back in a few hundred milliseconds. Without the local copy, the same levels are searched online (at most
-    three cached requests). The engine, not the retrieval, decides what is comparable.
+    EXHAUSTIVE RETRIEVAL: Removed arbitrary limits (500/1500/120). Now searches the entire relevant product type cohort
+    without popularity bias. The engine's compatibility gate decides what is comparable, not retrieval limits.
+
+    Every meaningful category level of the product is read, its own leaf category first then its parents. Products are
+    retrieved via pagination to ensure all candidates are considered, not just the most popular ones.
     """
     base = [t for t in orig["categories"] if t not in _TOO_BROAD]
     if not base:
@@ -1248,6 +1247,7 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
     # Whole categories, chosen in SQL: the best products on the chosen priority anywhere in the category, then the most
     # scanned ones, so a good product is not missed just because few people scan it. Falls back to the scanned-first
     # slices below when the compact index has not been built.
+    # REMOVED ARBITRARY LIMITS: No per_tag=500, total=1500 limits. Search exhaustively.
     if local and getattr(app.state.off, "quick_available", lambda: False)():
         spec = _QUICK_ORDER.get(prio[0]) if prio else None
         required = []
@@ -1260,16 +1260,19 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
                     required.append("grade")
             elif orig["nutriments"].get(engine.PRIORITIES[p][0]) is not None:
                 required.append(s[0])
+        # REMOVED LIMITS: No per_tag/total caps - retrieve full type cohort
         codes = app.state.off.quick_candidates(tags[:3], spec[0] if spec else None, spec[1] if spec else True,
-                                               tuple(required), bool(alg), per_tag=500, total=1500)
+                                               tuple(required), bool(alg))
         if codes:
             raws = app.state.off.quick_products(codes)
     if not raws:
         try:
-            raw = app.state.off.categories(tags[:4], per_tag=500, total=1500)
+            # REMOVED LIMITS: No per_tag/total caps - retrieve full type cohort
+            raw = app.state.off.categories(tags[:4])
         except Exception:  # a missing or unreadable local copy must never break a scan
             raw = []
-        raws = sorted([r for r in raw if _raw_candidate(r, prio, alg, orig)], key=_raw_relevance(orig, engine._tok(orig["name"], orig["brand"])))[:1500]
+        # REMOVED LIMIT: No [:1500] slice - process all candidates
+        raws = sorted([r for r in raw if _raw_candidate(r, prio, alg, orig)], key=_raw_relevance(orig, engine._tok(orig["name"], orig["brand"])))
     pool: Dict[str, Dict[str, Any]] = {}
     orig_name_words = engine._tok(orig["name"], orig["brand"])
     for r in raws:
@@ -1417,8 +1420,9 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     allergens = body.excluded_allergens if body.excluded_allergens is not None else pr.allergens
     diet = body.diet if body.diet is not None else (None if pr.diet == "omnivore" else pr.diet)
     peers = [rescore(c, body.strict_additives) for c in _peers(s, orig, body.category_mode, body.priorities, allergens)]
-    # one batched Open Prices request for the whole pool: prices, and proof that a product is on French shelves
-    getattr(app.state.prices, "prefetch", lambda *_: None)([orig["barcode"]] + [c["barcode"] for c in peers[:160]])
+    # EXHAUSTIVE PRICE ENRICHMENT: Batch ALL candidates for price enrichment, not just first 160
+    # Since retrieval is now exhaustive, we must enrich all candidates to avoid bias
+    getattr(app.state.prices, "prefetch", lambda *_: None)([orig["barcode"]] + [c["barcode"] for c in peers])
     seen_fr = getattr(app.state.prices, "seen_in_france", lambda _b: False)
     peers = [({**c, "soldInFrance": True, "frEvidence": "open_prices"} if seen_fr(c["barcode"]) else c) for c in peers]
     body.chains = [c for c in body.chains if c in retail.NAME_OF]  # ids of chains that no longer exist (saved on the device) are ignored
