@@ -178,7 +178,7 @@ export default function Alternatives() {
               const why = [e.why && String(e.why).length <= 120 ? e.why : '', e.conf && !e.estimated && e.price100 != null ? t('alt.conf_' + e.conf) : ''].filter(Boolean).join(' · ');
               return why ? <p className="mut sm" style={{ margin: '6px 0 0' }}>{why}</p> : null;
             })()}
-            {e.avail && e.avail.state !== 'unknown' && <p style={{ margin: '6px 0 0' }}><Pill tone={e.avail.state === 'observed_at_store' ? 'g' : 'w'}>{e.avail.state === 'observed_at_store' ? t('avail.observed', { s: e.avail.store ?? '?', d: e.avail.date ?? '' }) : e.avail.state === 'seen_at_chain' ? t('avail.chain') : t('avail.listed')}</Pill></p>}
+            {e.avail && e.avail.state !== 'unknown' && <p style={{ margin: '6px 0 0' }}><Pill tone={e.avail.state === 'observed_at_store' ? 'g' : 'w'}>{e.avail.state === 'observed_at_store' ? t('avail.observed', { s: e.avail.store ?? '?', d: e.avail.date ?? '' }) : e.avail.state === 'seen_at_chain' ? t('avail.chain', { c: e.avail.chain }) : t('avail.listed')}</Pill></p>}
             {e.product.chains?.length > 0 && <div className="logos" style={{ marginTop: 8 }}>{e.product.chains.slice(0, 6).map((c: string) => <ChainLogo key={c} id={c} size={22} />)}{e.product.chains.length > 6 && <span className="mut sm">+{e.product.chains.length - 6}</span>}</div>}
             <Button small plain onPress={() => { haptic('tap'); setDetail(e); }}>{t('simple.moreInfo')}</Button>
           </Card>);

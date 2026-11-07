@@ -1510,7 +1510,9 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             hit = app.state.prices.store_price(pr_["barcode"], (q_["amount"], q_["unit"]), body.location.lat, body.location.lon, body.location.radius_km)
         if hit:
             return {"state": "observed_at_store", "store": hit.get("store"), "date": hit.get("date"), "distance_km": hit.get("distance_km")}, hit
-        if pr_.get("chains") or _chains.own_brand_chain(pr_.get("brand")) or _chains.canon(str(pr_.get("brand") or "").split(",")[0]):
+        chain_ = _chains.own_brand_chain(pr_.get("brand")) or _chains.canon(str(pr_.get("brand") or "").split(",")[0]) or next((retail.NAME_OF[i] for i in pr_.get("chains") or [] if i in retail.NAME_OF), None)
+        if chain_:
+            return {"state": "seen_at_chain", "chain": chain_}, None   # a store brand is sold by that chain; the card names the chain
             return {"state": "seen_at_chain"}, None   # a store brand is sold by that chain
         if pr_.get("soldInFrance"):
             return {"state": "market_listed"}, None

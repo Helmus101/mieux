@@ -127,7 +127,7 @@ export const en = {
     unknown: { title: 'Something went wrong', why: 'Something failed. Retry; if it keeps happening, come back later.' },
     retry: 'Retry',
   },
-  avail: { observed: 'Observed at {s} on {d}', chain: 'Seen at this retailer, branch unconfirmed', listed: 'Listed in France, shop unverified', unknown: 'Availability not verified' },
+  avail: { observed: 'Observed at {s} on {d}', chain: 'At {c}', listed: 'Listed in France, shop unverified', unknown: 'Availability not verified' },
   emptyAlt: {
     qualityTitle: 'Nothing better quality', qualityWhy: 'Your product is {s}/100: no comparable product sold near you has a better score.', qualityWhyNoScore: 'No comparable product sold near you has a better score than yours.',
     cheaperTitle: 'Nothing cheaper', cheaperWhy: 'No comparable product sold near you is cheaper than yours.',

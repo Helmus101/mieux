@@ -179,7 +179,7 @@ export default function Alternatives() {
             {why ? <Muted small>{why}</Muted> : null}
             {e.avail && e.avail.state !== 'unknown' ? <View style={{ marginTop: 6 }}>
               <Pill tone={e.avail.state === 'observed_at_store' ? 'g' : 'w'}>
-                {e.avail.state === 'observed_at_store' ? t('avail.observed', { s: e.avail.store ?? '?', d: e.avail.date ?? '' }) : e.avail.state === 'seen_at_chain' ? t('avail.chain') : t('avail.listed')}
+                {e.avail.state === 'observed_at_store' ? t('avail.observed', { s: e.avail.store ?? '?', d: e.avail.date ?? '' }) : e.avail.state === 'seen_at_chain' ? t('avail.chain', { c: e.avail.chain }) : t('avail.listed')}
               </Pill>
             </View> : null}
             {e.product.chains?.length > 0 ? <Row wrap style={{ marginTop: 8 }}>{e.product.chains.slice(0, 6).map((id: string) => <ChainBadge key={id} id={id} />)}{e.product.chains.length > 6 ? <Muted small>+{e.product.chains.length - 6}</Muted> : null}</Row> : null}
