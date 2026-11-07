@@ -117,7 +117,7 @@ export const en = {
     byPriceOnly: 'Your product\'s price is unknown: products ranked by price, without comparison to yours.',
     noBetterQuality: 'No product with better quality than yours in this category.', noCheaper: 'No comparable product cheaper than yours.', noBetterValue: 'No product with better quality-price ratio than yours.', noBaseline: 'Your product\'s price is unknown: can\'t say what\'s cheaper.',
     closest: 'Substitutes', closestSub: 'Products that best replace yours: same type, same use.',
-    byPrefs: 'Ranked by your preferences: {x}.', budget: 'By price', value: 'Best value', match: 'Best quality', budgetSub: 'All comparable products, cheapest first.', valueSub: 'The best balance of quality and price.', matchSub: 'Highest nutritional quality score per your priorities.', empty: 'No comparable product with dated price in this category. Mieux doesn\'t invent prices.', coverage: 'Reliable comparison only if products have pack size and dated price.', saving: 'Savings per pack', cost10: 'Cost of 10g protein', perEuro: 'per euro' },
+    noClosest: 'No substitute found', byPrefs: 'Ranked by your preferences: {x}.', budget: 'By price', value: 'Best value', match: 'Best quality', budgetSub: 'All comparable products, cheapest first.', valueSub: 'The best balance of quality and price.', matchSub: 'Highest nutritional quality score per your priorities.', empty: 'No comparable product with dated price in this category. Mieux doesn\'t invent prices.', coverage: 'Reliable comparison only if products have pack size and dated price.', saving: 'Savings per pack', cost10: 'Cost of 10g protein', perEuro: 'per euro' },
   errs: {
     network: { title: 'No connection', why: 'Can\'t reach the server. Check your internet, then retry.' },
     busy: { title: 'Too many requests', why: 'You made lots of searches in short time. Wait a minute, then retry.' },
@@ -127,6 +127,7 @@ export const en = {
     unknown: { title: 'Something went wrong', why: 'Something failed. Retry; if it keeps happening, come back later.' },
     retry: 'Retry',
   },
+  avail: { observed: 'Observed at {s} on {d}', chain: 'Seen at this retailer, branch unconfirmed', listed: 'Listed in France, shop unverified', unknown: 'Availability not verified' },
   emptyAlt: {
     qualityTitle: 'Nothing better quality', qualityWhy: 'Your product is {s}/100: no comparable product sold near you has a better score.', qualityWhyNoScore: 'No comparable product sold near you has a better score than yours.',
     cheaperTitle: 'Nothing cheaper', cheaperWhy: 'No comparable product sold near you is cheaper than yours.',

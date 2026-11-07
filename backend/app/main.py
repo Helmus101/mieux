@@ -1313,10 +1313,17 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
 
 
 def _community(p: Dict[str, Any], loc: Optional[Loc] = None, max_age: int = 730, only: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
-    """Community price for the product: the newest real observation (any currency, converted at the ECB rate; the original is kept)."""
+    """Community price for the product. With a location: the newest observation of this exact barcode at a shop inside the radius
+    (scope 'store'). Otherwise, or when no shop in range recorded it, the market-level reference (scope 'anywhere'), which is never
+    presented as the price of a particular shop.
+    """
     q = p.get("quantity")
     if not q:
         return None
+    if loc is not None:
+        hit = getattr(app.state.prices, "store_price", lambda *_: None)(p["barcode"], (q["amount"], q["unit"]), loc.lat, loc.lon, loc.radius_km)
+        if hit:
+            return {**hit, "where": hit.get("store"), "per100_cents": hit["per100_cents"], "stale": False}
     pt = app.state.prices.latest(p["barcode"], (q["amount"], q["unit"]), 730, "FR", only) if only else app.state.prices.latest(p["barcode"], (q["amount"], q["unit"]))
     return None if not pt else {**pt, "where": None, "scope": "anywhere"}
 
@@ -1368,10 +1375,10 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
         pt = value.price_point(c, ownc, comm) if cq else None
         if pt and (not oq or cq["unit"] == oq["unit"]):
             prices[c["barcode"]] = pt["per100_cents"]
-            points[c["barcode"]] = {k: pt[k] for k in ("source", "date", "where")}
+            points[c["barcode"]] = {k: pt[k] for k in ("source", "date", "where", "scope", "store", "distance_km") if k in pt}
             points[c["barcode"]].update({k: pt[k] for k in ("currency", "price_native", "fx", "stale", "pack_cents") if k in pt})
     if orig_price is not None:
-        points[orig["barcode"]] = {k: points[orig["barcode"]][k] for k in ("source", "date", "where", "currency", "price_native", "fx", "stale", "pack_cents") if k in points[orig["barcode"]]}
+        points[orig["barcode"]] = {k: points[orig["barcode"]][k] for k in ("source", "date", "where", "currency", "price_native", "fx", "stale", "pack_cents", "scope", "store", "distance_km") if k in points[orig["barcode"]]}
     if approximate:
         # Estimates only where nothing was observed, always tagged source='estimate' (never a verified price).
         observed = [v for k, v in prices.items() if k != orig["barcode"]]
@@ -1392,6 +1399,9 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
         p100 = orig_price if c["barcode"] == orig["barcode"] else prices.get(c["barcode"])
         if pt and pt.get("source") == "open_prices" and pt.get("date") and p100 is not None:
             _record_price(s, c["barcode"], None, "open_prices", pt["date"], round(p100 * q["amount"] / 100) if q else None, p100, q, native=pt)
+    for bc, pt in points.items():  # a price observed at an exact shop is shown with that shop, never merged into a chain claim
+        if (pt or {}).get("scope") == "store" and pt.get("store"):
+            shops[bc] = [pt]
     s.commit()
     return orig_price, prices, points, shops
 
@@ -1418,12 +1428,12 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         for c in peers:  # chains known to list each candidate (from Open Prices, France)
             q_ = c.get("quantity")
             c["chains"] = [retail.ID_OF[r["chain"]] for r in chain_of(c["barcode"], (q_["amount"], q_["unit"]) if q_ else None) if r["chain"] in retail.ID_OF]
-    if chain_of and body.chains:  # the person picked chains: keep what those chains are known to list
-        # With no chain picked, a product is not dropped for lacking chain data: Open Prices covers a minority of products,
-        # and throwing the rest away would hide most good alternatives behind a dataset gap.
+    if chain_of and body.chains:  # the person picked chains: drop what is known to be sold only elsewhere
+        # Unknown is not a reason to exclude: Open Prices covers a minority of products, and discarding every product it has not
+        # recorded would hide most good substitutes behind a dataset gap. This scopes the search; it is not an availability claim.
         want = set(body.chains)
         if any(c.get("chains") for c in peers):  # price service unreachable: no chain is known at all, keep the pool
-            peers = [c for c in peers if set(c.get("chains") or []) & want]
+            peers = [c for c in peers if not c.get("chains") or (set(c["chains"]) & want)]
     if body.nearby_only and body.location and chain_of:
         # "only what I can buy near me": a product stays if one of its chains (among the user's chains, if any) has a branch within the radius. Exact distances from the full store list.
         loc0 = body.location
@@ -1476,6 +1486,26 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             if not r.get("price_source"):
                 r["price_source"] = _with_confidence(points.get(r["product"]["barcode"]))
             r["stores"] = shops.get(r["product"]["barcode"], [])
+
+    # What Mieux can actually claim about each shown product: an exact-barcode observation at a shop near you, a chain-level listing,
+    # a market listing, or nothing. These stay separate questions; a nearby branch is never turned into evidence of stock.
+    def _availability(pr_: Dict[str, Any]):
+        q_ = pr_.get("quantity")
+        hit = None
+        if body.location and q_ and hasattr(app.state.prices, "store_price"):
+            hit = app.state.prices.store_price(pr_["barcode"], (q_["amount"], q_["unit"]), body.location.lat, body.location.lon, body.location.radius_km)
+        if hit:
+            return {"state": "observed_at_store", "store": hit.get("store"), "date": hit.get("date"), "distance_km": hit.get("distance_km")}, hit
+        if pr_.get("chains"):
+            return {"state": "seen_at_chain"}, None
+        if pr_.get("soldInFrance"):
+            return {"state": "market_listed"}, None
+        return {"state": "unknown"}, None
+    for a_ in res.get("alternatives", []):
+        a_["availability"], a_["store_price"] = _availability(a_["product"])
+    for key_ in ("budget", "value", "quality", "closest"):
+        for r_ in res["rankings"].get(key_, []):
+            r_["availability"], r_["store_price"] = _availability(r_["product"])
     if "diagnostics" in res:
         res["diagnostics"]["eligible_cheapest"] = len(res["rankings"].get("budget", []))
         res["diagnostics"]["eligible_quality"] = len(res["rankings"].get("quality", []))
@@ -1490,7 +1520,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         wanted = [c for c, _ in cnt.most_common(10)]
         best = {}
         for i, c in enumerate(wanted):  # branches already stored come back instantly; at most two missing chains are fetched now, the rest in the background
-            hit = retail.nearest(s, c, loc_.lat, loc_.lon, 15, k=1, refresh=(i < 2 and retail._near(s, c, loc_.lat, loc_.lon, 15) == []))
+            hit = retail.nearest(s, c, loc_.lat, loc_.lon, loc_.radius_km, k=1, widen=False,
+                                 refresh=(i < 2 and retail._near(s, c, loc_.lat, loc_.lon, loc_.radius_km) == []))
             best[c] = hit[0] if hit else None
         missing = [c for c in wanted if best.get(c) is None]
         if missing:
@@ -1505,7 +1536,9 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         for lst in lists:
             for x in lst:
                 x["nearby"] = nmap.get(x["product"]["barcode"])
-            lst.sort(key=lambda x: x["nearby"] is None)  # stable: products with a branch known nearby first, rank order kept inside each group
+        # Only the substitute list may be reordered by local evidence. Cheapest, Best value and Best quality keep their strict
+        # ordering: moving a pricier product above a cheaper one would make the label untrue.
+        res["rankings"]["closest"].sort(key=lambda x: (x.get("availability", {}).get("state") != "observed_at_store", x["nearby"] is None))
         res["location_used"] = True
     oq2 = orig.get("quantity")
     res["original_size"] = oq2

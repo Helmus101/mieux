@@ -116,7 +116,7 @@ export const fr = {
     byPriceOnly: 'Le prix de votre produit est inconnu : produits classés par prix, sans comparaison avec le vôtre.',
     noBetterQuality: 'Aucun produit de meilleure qualité que le vôtre dans cette catégorie.', noCheaper: 'Aucun produit comparable moins cher que le vôtre.', noBetterValue: 'Aucun produit avec un meilleur rapport qualité-prix que le vôtre.', noBaseline: 'Le prix de votre produit est inconnu : impossible de dire ce qui est moins cher.',
     closest: 'Équivalents', closestSub: 'Les produits qui remplacent le mieux le vôtre : même type, même usage.',
-    byPrefs: 'Classé selon vos préférences : {x}.', budget: 'Par prix', value: 'Qualité-prix', match: 'Meilleure qualité', budgetSub: 'Tous les produits comparables, du moins cher au plus cher.', valueSub: 'Le meilleur équilibre entre qualité et prix.', matchSub: 'La meilleure note de qualité nutritionnelle selon vos priorités.', empty: 'Aucun produit comparable avec un prix daté dans cette catégorie. Mieux n\'invente pas de prix.', coverage: 'Comparaison fiable seulement si les produits ont une taille de paquet et un prix daté.', saving: 'Économie par paquet', cost10: 'Coût de 10 g de protéines', perEuro: 'par euro' },
+    noClosest: 'Aucun équivalent trouvé', byPrefs: 'Classé selon vos préférences : {x}.', budget: 'Par prix', value: 'Qualité-prix', match: 'Meilleure qualité', budgetSub: 'Tous les produits comparables, du moins cher au plus cher.', valueSub: 'Le meilleur équilibre entre qualité et prix.', matchSub: 'La meilleure note de qualité nutritionnelle selon vos priorités.', empty: 'Aucun produit comparable avec un prix daté dans cette catégorie. Mieux n\'invente pas de prix.', coverage: 'Comparaison fiable seulement si les produits ont une taille de paquet et un prix daté.', saving: 'Économie par paquet', cost10: 'Coût de 10 g de protéines', perEuro: 'par euro' },
   errs: {
     network: { title: 'Pas de connexion', why: 'Impossible de joindre le serveur. Vérifiez votre connexion internet, puis réessayez.' },
     busy: { title: 'Trop de demandes', why: 'Vous avez fait beaucoup de recherches en peu de temps. Patientez une minute, puis réessayez.' },
@@ -126,6 +126,7 @@ export const fr = {
     unknown: { title: 'Une erreur est survenue', why: 'Quelque chose s\'est mal passé. Réessayez ; si cela continue, revenez plus tard.' },
     retry: 'Réessayer',
   },
+  avail: { observed: 'Relevé chez {s}, le {d}', chain: 'Vu chez une enseigne, magasin non confirmé', listed: 'Vendu en France, magasin non vérifié', unknown: 'Disponibilité non vérifiée' },
   emptyAlt: {
     qualityTitle: 'Rien de meilleure qualité', qualityWhy: 'Votre produit a déjà {s}/100 : aucun produit comparable en vente près de chez vous n\'a une meilleure note.', qualityWhyNoScore: 'Aucun produit comparable en vente près de chez vous n\'a une meilleure note que le vôtre.',
     cheaperTitle: 'Rien de moins cher', cheaperWhy: 'Aucun produit comparable en vente près de chez vous n\'est moins cher que le vôtre.',

@@ -480,6 +480,21 @@ def pe_of(r, field):
 
 # Largest quality-score drop (out of 100) a 'cheaper' or 'best value' pick may have against the scanned product.
 QUALITY_FLOOR = 5
+# Smallest quality gain (out of 100) that counts as a genuine improvement: one point is noise, not a better product.
+QUALITY_IMPROVEMENT = 5
+
+
+def _verified_price(price100: Optional[float], point: Optional[Dict[str, Any]], supplied: bool, max_age_days: int) -> bool:
+    """Only an observed, dated price for this exact barcode may win Cheapest or Best value.
+    Inferred pack-size prices (copied from a sibling pack) and estimates never qualify: they are indicative, not verified.
+    When no provenance was supplied at all (a pure ranking call), the price is taken at face value.
+    """
+    if not supplied:
+        return True
+    if (point or {}).get("derived"):
+        return False
+    from . import value as value_mod
+    return value_mod.is_ranking_eligible_price(point, price100, max_age_days)
 
 
 def close_only(items, level_of, min_close: int = 3):
@@ -573,14 +588,8 @@ def rank_cheapest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict
         if p is None or p < 3:
             continue
         pt = (points or {}).get(bc) or {}
-        if pt.get("source") == "estimate" or pt.get("stale"):
+        if not _verified_price(p, pt, points is not None, max_age_days):
             continue
-        d = pt.get("date")
-        if d:
-            from .value import age_days
-            age = age_days(d)
-            if age is not None and age > max_age_days:
-                continue
         
         # Hard substitution level requirement: level 1 or 2 ONLY
         sub = c.get("substitution") or taxonomy.substitution(orig, c)
@@ -635,7 +644,7 @@ def rank_cheapest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict
     
     # Sort: lowest unit price first, higher price confidence, higher quality score
     rows.sort(key=lambda r: (r["price_per_100_cents"], -r["conf_rank"], -(r["quality_score"] or 0)))
-    result = brand_variety(rows, lambda r: r["product"].get("brand"))[:10]
+    result = rows[:10]  # strict order: brand variety must never move a cheaper or better product down
     return {"items": result, "no_baseline": no_baseline}
 
 
@@ -658,8 +667,11 @@ def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
         c_sc = (c.get("score") or {}).get("total")
         if c_sc is None:
             continue
-        # Meaningful improvement: must beat original quality score
-        if o_sc is not None and c_sc <= o_sc:
+        # Meaningful improvement only: a one-point gain is noise, not a better product
+        if o_sc is not None and c_sc < o_sc + QUALITY_IMPROVEMENT:
+            continue
+        # A product with incomplete nutrition data must not be presented as a confident quality pick
+        if not (c.get("dataQuality") or {}).get("nutritionComplete"):
             continue
         
         sim = deep_similarity(orig, c)
@@ -710,14 +722,8 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
         if p is None or p < 3:
             continue
         pt = (points or {}).get(bc) or {}
-        if pt.get("source") == "estimate" or pt.get("stale"):
+        if not _verified_price(p, pt, points is not None, max_age_days):
             continue
-        d = pt.get("date")
-        if d:
-            from .value import age_days
-            age = age_days(d)
-            if age is not None and age > max_age_days:
-                continue
         
         # Substitution level 1 or 2 only
         sub = c.get("substitution") or taxonomy.substitution(orig, c)
@@ -796,7 +802,7 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
     
     # Sort: non-dominated first, then value index descending, then confidence, then quality
     rows.sort(key=lambda r: (bool(r["dominated"]), -r["value_score"], -r["conf_rank"], -(r["quality_score"] or 0)))
-    result = brand_variety(rows, lambda r: r["product"].get("brand"))[:10]
+    result = rows[:10]  # strict order: brand variety must never move a cheaper or better product down
     return {"items": result, "no_baseline": no_baseline}
 
 

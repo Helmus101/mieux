@@ -279,6 +279,32 @@ class OpenPricesClient:
                          "lat": float(loc["osm_lat"]), "lon": float(loc["osm_lon"])}
         return sorted(best.values(), key=lambda x: x["per100_cents"])
 
+    def store_price(self, barcode: str, qty: Optional[Tuple[float, str]], lat: float, lon: float, radius_km: float) -> Optional[Dict[str, Any]]:
+        """The newest fresh observation of this exact barcode at a real shop within radius_km: branch-level evidence.
+        None when no shop in range recorded this exact product. Availability is never inferred from a branch existing nearby.
+        """
+        best = None
+        for it in self._items(barcode):
+            loc = it.get("location") or {}
+            if not fresh(it.get("date")) or loc.get("osm_lat") is None or loc.get("osm_lon") is None:
+                continue
+            if (it.get("currency") or self.base).upper() != self.base:  # a price in another currency is not comparable here
+                continue
+            p100 = self._per100(it, qty)
+            if p100 is None:
+                continue
+            d = haversine_km(lat, lon, float(loc["osm_lat"]), float(loc["osm_lon"]))
+            if d > radius_km:
+                continue
+            unit = (it.get("price_per") or "").upper() in ("", "UNIT")
+            cand = {"scope": "store", "source": "open_prices", "store": loc.get("osm_brand") or loc.get("osm_name") or "?",
+                    "name": loc.get("osm_name"), "city": loc.get("osm_address_city"), "per100_cents": round(p100, 1),
+                    "pack_cents": round(float(it["price"]) * 100) if unit else None, "date": it["date"][:10],
+                    "distance_km": round(d, 1), "lat": float(loc["osm_lat"]), "lon": float(loc["osm_lon"])}
+            if best is None or (cand["date"], -cand["distance_km"]) > (best["date"], -best["distance_km"]):  # newest wins, then the closest shop
+                best = cand
+        return best
+
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     r = 6371.0
