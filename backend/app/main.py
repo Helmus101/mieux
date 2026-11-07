@@ -35,7 +35,7 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-from . import budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
+from . import chains as _chains, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
@@ -1510,16 +1510,22 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             hit = app.state.prices.store_price(pr_["barcode"], (q_["amount"], q_["unit"]), body.location.lat, body.location.lon, body.location.radius_km)
         if hit:
             return {"state": "observed_at_store", "store": hit.get("store"), "date": hit.get("date"), "distance_km": hit.get("distance_km")}, hit
-        if pr_.get("chains"):
-            return {"state": "seen_at_chain"}, None
+        if pr_.get("chains") or _chains.own_brand_chain(pr_.get("brand")) or _chains.canon(str(pr_.get("brand") or "").split(",")[0]):
+            return {"state": "seen_at_chain"}, None   # a store brand is sold by that chain
         if pr_.get("soldInFrance"):
             return {"state": "market_listed"}, None
         return {"state": "unknown"}, None
     for a_ in res.get("alternatives", []):
         a_["availability"], a_["store_price"] = _availability(a_["product"])
     for key_ in ("budget", "value", "quality", "closest"):
+        seen_, kept_ = set(), []
         for r_ in res["rankings"].get(key_, []):
+            vk_ = engine.variant_key(r_["product"])
+            if vk_ in seen_:
+                continue    # the same product under another barcode or pack size is listed once
+            seen_.add(vk_); kept_.append(r_)
             r_["availability"], r_["store_price"] = _availability(r_["product"])
+        res["rankings"][key_] = kept_
     if "diagnostics" in res:
         res["diagnostics"]["eligible_cheapest"] = len(res["rankings"].get("budget", []))
         res["diagnostics"]["eligible_quality"] = len(res["rankings"].get("quality", []))

@@ -149,7 +149,7 @@ _BROAD_LEAFS = {
 _JAM_WORDS = re.compile(r"confiture|marmelade|compote|gel[ée]e|pur[ée]e|fruit|fraise|framboise|myrtille|m[ûu]re|cassis|abricot|pruneau|pomme|poire|figue|orange|citron|agrume|melon|p[êe]che|cerise|banane|coing|rhubarbe", re.I)
 
 
-def classify(p: Dict[str, Any]) -> Dict[str, Any]:
+def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     """Structured classification with improved priority: specific category tags first, then explicit name signals, then broad tags, then fallback name matches.
     Classification confidence is now explicitly tracked. Low-confidence products should not enter strict rankings."""
     tags = " ".join(p.get("categories") or [])
@@ -193,6 +193,20 @@ def classify(p: Dict[str, Any]) -> Dict[str, Any]:
     # Priority 5: Unclassified - rely only on exact leaf category match
     leaf = (p.get("categories") or [None])[-1]
     return {"type": None, "family": None, "category": None, "subcategory": None, "form": None, "use": None, "leaf": leaf, "source": "none", "confidence": "none", "reason": "unclassified: only the exact same leaf category is accepted as a substitute"}
+
+
+_CLASS_CACHE: Dict[Any, Dict[str, Any]] = {}
+
+
+def classify(p: Dict[str, Any]) -> Dict[str, Any]:
+    """Memoised _classify: the result depends only on categories, name, brand and generic name, and one request classifies each candidate many times (once per pair compared)."""
+    key = (tuple(p.get("categories") or ()), p.get("name") or "", p.get("brand") or "", p.get("generic_name") or "")
+    hit = _CLASS_CACHE.get(key)
+    if hit is None:
+        if len(_CLASS_CACHE) > 100_000:
+            _CLASS_CACHE.clear()
+        hit = _CLASS_CACHE[key] = _classify(p)
+    return dict(hit)
 
 
 def level_between(a: str, b: str) -> Optional[int]:
