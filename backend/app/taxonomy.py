@@ -110,7 +110,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "coffee_ground_beans": {"ground_coffee": 1, "coffee_beans": 3},   # beans need a grinder: a reasonable substitute at best, never capsules
     "instant_coffee": {"instant_coffee": 1}, "tea": {"tea": 1}, "herbal_tea": {"herbal_tea": 1},
     "spreads_sweet": {"chocolate_spread": 1, "peanut_butter": 3, "jam": 3, "honey": 4},
-    "biscuits": {"sweet_biscuits": 1, "cakes": 2},
+    "biscuits": {"sweet_biscuits": 1},
     "speculoos": {"speculoos": 1, "sweet_biscuits": 3},   # other speculoos first; any sweet biscuit only as a broader alternative; never crackers, spreads or sweets
     "chocolate": {"chocolate_bar": 1},
     "candy": {"candy": 1, "gummies": 2, "licorice": 3}, "herbal_lozenge": {"herbal_lozenge": 1}, "chewing_gum": {"chewing_gum": 1},

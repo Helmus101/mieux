@@ -57,9 +57,10 @@ export default function Alternatives() {
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'closest'); }, [r, tabs.map((x) => x.key).join()]);
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
+  const showPrice = rk === 'budget' || rk === 'value';   // price differences belong to the price tabs only
   const diffOf = (e: any): { text: string; tone: string; sub?: string } | null => {
     const o = r?.original_price;
-    if (!o) return null;
+    if (!o || !showPrice) return null;
     const liquid = isLiquid(e.product) || r?.original_size?.unit === 'ml';
     const fmt = (c: number) => `${c < 0 ? '−' : '+'}${formatCents(Math.abs(Math.round(c)))}`;
     const tone = (c: number) => (Math.abs(c) < 1 ? 'var(--mut)' : c < 0 ? 'var(--accent)' : 'var(--bad)');
@@ -112,7 +113,7 @@ export default function Alternatives() {
       )}
       {tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
       <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}</p>
-      {r?.original_price && <Segmented value={diffBy} onChange={(k) => setDiffBy(k as 'kg' | 'pack')} options={[{ key: 'kg', label: t('diff.byKg') }, { key: 'pack', label: t('diff.byPack') }]} />}
+      {showPrice && r?.original_price && <Segmented value={diffBy} onChange={(k) => setDiffBy(k as 'kg' | 'pack')} options={[{ key: 'kg', label: t('diff.byKg') }, { key: 'pack', label: t('diff.byPack') }]} />}
       {r?.original_price?.per100_cents != null && <p className="sm" style={{ margin: '2px 0 8px' }}>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</p>}
       {busy && <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} /><Skeleton h={120} /></>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}

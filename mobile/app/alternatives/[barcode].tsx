@@ -72,9 +72,10 @@ export default function Alternatives() {
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));
 
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
+  const showPrice = rk === 'budget' || rk === 'value';   // price differences belong to the price tabs only
   const diffOf = (e: any): { text: string; tone: string; sub?: string } | null => {
     const o = r?.original_price;
-    if (!o) return null;
+    if (!o || !showPrice) return null;
     const liquid = isLiquid(e.product) || r?.original_size?.unit === 'ml';
     const fmt = (x: number) => `${x < 0 ? '−' : '+'}${formatCents(Math.abs(Math.round(x)))}`;
     const tone = (x: number) => (Math.abs(x) < 1 ? c.mut : x < 0 ? c.accent : c.bad);
@@ -128,8 +129,8 @@ export default function Alternatives() {
       </Row> : null}
       {tabs.length > 1 ? <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} /> : null}
       <Muted small>{t('rank.' + rk + 'Sub')}</Muted>
-      {r?.original_price ? <Segmented value={diffBy} onChange={(k) => setDiffBy(k as 'kg' | 'pack')} options={[{ key: 'kg', label: t('diff.byKg') }, { key: 'pack', label: t('diff.byPack') }]} /> : null}
-      {r?.original_price?.per100_cents != null ? <Text style={{ color: c.ink, fontSize: 14, marginBottom: 6 }}>{t('diff.yours')} : <Text style={{ fontWeight: '700' }}>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</Text>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</Text> : null}
+      {showPrice && r?.original_price ? <Segmented value={diffBy} onChange={(k) => setDiffBy(k as 'kg' | 'pack')} options={[{ key: 'kg', label: t('diff.byKg') }, { key: 'pack', label: t('diff.byPack') }]} /> : null}
+      {showPrice && r?.original_price?.per100_cents != null ? <Text style={{ color: c.ink, fontSize: 14, marginBottom: 6 }}>{t('diff.yours')} : <Text style={{ fontWeight: '700' }}>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</Text>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</Text> : null}
 
       {busy ? <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} /><Skeleton h={120} /></> : null}
       {err ? <Card><Text style={{ color: c.ink, fontWeight: '700' }}>{err.title}</Text><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card> : null}
