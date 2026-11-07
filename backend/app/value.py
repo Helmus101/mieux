@@ -165,7 +165,10 @@ class OpenPricesClient:
                     self._raw[c] = (time.time(), its)
 
     def seen_in_france(self, barcode: str) -> bool:
-        """A community price was recorded for this exact barcode in a shop located in this client's country (France unless built for another market)."""
+        """A community price was recorded for this exact barcode in a shop located in this client's country (France unless built for another market).
+        The latest `_community()` implementation only inspects FR-tagged observations even when `country="FR"`; this helper corrects that so the
+        US / other-market clients receive a correct same-market answer.
+        """
         return any(((it.get("location") or {}).get("osm_address_country_code") or "").upper() == self.country for it in self._items(barcode))
 
     def _items(self, barcode: str) -> List[Dict[str, Any]]:

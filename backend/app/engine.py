@@ -809,17 +809,27 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
 def rank_closest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optional[Dict[str, float]] = None,
                  points: Optional[Dict[str, Any]] = None, lang: str = "fr") -> List[Dict[str, Any]]:
     """Closest alternatives: genuine substitutes regardless of price or quality score.
-    Pack sizes of the same product deduplicated, ordered by closeness (level 1-4) then similarity.
+    Pack sizes of the same product deduplicated, ordered by closeness (level 1-2) then similarity.
+    Level 3-4 products are excluded from the closest tab.
     """
-    ranked = sorted(pool, key=lambda c: (((c.get("substitution") or {}).get("level") or 4), -deep_similarity(orig, c)))
+    # First, compute substitution levels and filter out level 3-4
+    enriched = []
+    for c in pool:
+        sub = c.get("substitution") or taxonomy.substitution(orig, c)
+        level = sub.get("level") if sub else 4
+        if level > 2:  # exclude level 3-4 from closest tab
+            continue
+        enriched.append((level, c))
+    # Sort by level (1 first, then 2), then by similarity
+    enriched.sort(key=lambda x: (x[0], -deep_similarity(orig, x[1])))
     close, seen_variant, per_brand = [], set(), {}
-    for c in ranked:
+    for level, c in enriched:
         vk = variant_key(c)
         brand = (c.get("brand") or "").split(",")[0].strip().lower()
         if vk in seen_variant:
             continue
         seen_variant.add(vk)
-        if per_brand.get(brand, 0) >= 2 and any(per_brand.get((x.get("brand") or "").split(",")[0].strip().lower(), 0) < 2 for x in ranked[len(close):]):
+        if per_brand.get(brand, 0) >= 2 and any(per_brand.get((x.get("brand") or "").split(",")[0].strip().lower(), 0) < 2 for _, x in enriched[enriched.index((level, c))+1:]):
             continue
         per_brand[brand] = per_brand.get(brand, 0) + 1
         close.append(c)

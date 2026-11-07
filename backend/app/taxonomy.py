@@ -22,9 +22,14 @@ R = [
     ("muesli", "cereals_bakery", "cereal", "muesli", "cereal", "breakfast", r"mueslis|granola|oat-flakes|porridge", r"muesli|granola|porridge|flocons d.avoine"),
     ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles"),
     ("rice", "cereals_bakery", "grain", "grain", "grain", "meal", r"\brices?\b(?!-based)|basmati", r"^riz\b|\briz (basmati|long|complet|thai)"),
+    # ---- snack bars (granular types so a chocolate tablet, cake or filled biscuit is not auto-accepted as a snack bar)
+    ("fruit_nut_bar", "snacks", "snack_bars", "fruit_and_nut_bar", "individual_bar", "snacking", r"snack-bars|fruit-and-nut-bars|fruit-and-nut|barres-fruits-secs|barres aux fruits secs", r"barre aux fruits|barres? (aux )?fruits secs|noix.*fruit|fruit.*noix|amande.*cranberr|cranberr.*amande|mélange.*fruits secs|barre.*noix de coco|barre.*fruit and nut"),
+    ("cereal_bar", "snacks", "snack_bars", "cereal_bar", "individual_bar", "snacking", r"cereal-bars|granola-bars|breakfast-bars", r"barre c[ée]r[ée]ale|barre granola|barre de c[ée]r[ée]ales|granola bar|cereal bar|barre.*c[ée]r[ée]al"),
+    ("protein_bar", "snacks", "snack_bars", "protein_bar", "individual_bar", "snacking", r"protein-bars|protein-shakes-and-bars", r"barre prot[ée]in|protein bar|barre prot[ée]in|barre.*prot[ée]in|proteine.*bar"),
+    ("sports_energy_bar", "snacks", "snack_bars", "sports_energy_bar", "individual_bar", "sports_energy", r"sports-energy-bars|energy-bars|sports-bars", r"energy bar|barre sport|sport bar|energy bar|iso star|isostar|barre d[ée]tente|barre energ[ée]tique"),
     # ---- dairy
     ("plant_yogurt", "dairy_alt", "yogurt", "spoonable", "spoon", "breakfast", r"plant-based-(yogurts|desserts)|soy-yogurts|dairy-substitutes-yogurts", r"(soja|amande|coco|avoine).*(yaourt|dessert)|yaourt.*(soja|amande|coco)"),
-    ("flavoured_yogurt", "dairy", "yogurt", "spoonable", "spoon", "dessert", r"flavoured-yogurts|fruit-yogurts|sweetened-yogurts|yogurts-with-fruits", r"(vanille|fruit|fraise|abricot|p[êe]che|coco|caramel|citron|cerise|banane|vanilla|aux fruits)"),
+    ("flavoured_yogurt", "dairy", "yogurt", "spoonable", "spoon", "dessert", r"flavoured-yogurts|fruit-yogurts|sweetened-yogurts|yogurts-with-fruits", r"(vanille|fruit|fraise|abricot|p[êe]che|coco|caramel|citron|cerise|banane|vanilla|aux fruits)(?![^a-z]*barre|[^a-z]*bar|[^a-z]*barres)"),
     ("plain_yogurt", "dairy", "yogurt", "spoonable", "spoon", "breakfast", r"yogurts|yoghurts|plain-yogurts|greek-yogurts|skyr|fermented-milks", r"yaourt|yogourt|yogurt|skyr|grec|nature"),
     ("fromage_blanc", "dairy", "fresh_cheese", "spoonable", "spoon", "breakfast", r"fromages-blancs|fresh-cheeses|petits-suisses|faisselle|quark", r"fromage blanc|petit suisse|faisselle|quark"),
     ("cheese", "dairy", "cheese", "cheese", "cheese", "meal", r"cheeses|fromages", r"fromage|camembert|emmental|comt[ée]|brie|gouda|mozzarella|chèvre|chevre"),
@@ -51,6 +56,10 @@ R = [
     ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|compotes|fruit-and-vegetable-preserves|fruit-preserves|fruit-purees|apple-compotes", r"confiture|marmelade|compote|gel[ée]e"),
     ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre de cacahu|peanut butter|pur[ée]e d.(amande|noisette)"),
     ("honey", "sweet", "spread", "spread", "spread", "breakfast", r"honeys", r"\bmiel\b"),
+    # ---- snack bars (granular types so a chocolate tablet, cake or filled biscuit is not auto-accepted as a snack bar)
+    ("cereal_bar", "snacks", "snack_bars", "cereal_bar", "individual_bar", "snacking", r"cereal-bars|granola-bars|breakfast-bars", r"barre c[ée]r[ée]ale|barre granola|barre de c[ée]r[ée]ales|granola bar|cereal bar|barre.*c[ée]r[ée]al"),
+    ("protein_bar", "snacks", "snack_bars", "protein_bar", "individual_bar", "snacking", r"protein-bars|protein-shakes-and-bars", r"barre prot[ée]in|protein bar|barre prot[ée]in|barre.*prot[ée]in|proteine.*bar"),
+    ("sports_energy_bar", "snacks", "snack_bars", "sports_energy_bar", "individual_bar", "sports_energy", r"sports-energy-bars|energy-bars|sports-bars", r"energy bar|barre sport|sport bar|energy bar|iso star|isostar|barre d[ée]tente|barre energ[ée]tique"),
     ("chocolate_bar", "sweet", "chocolate", "bar", "bar", "snacking", r"chocolates|chocolate-bars|dark-chocolates|milk-chocolates", r"chocolat (noir|au lait|blanc)|tablette"),
     ("speculoos", "sweet", "biscuit", "biscuit", "biscuit", "snacking", r"speculoos|speculaas|sp[ée]culoos", r"^(?!.*(tartiner|spread|p[âa]te\\b|cr[èe]me|glace|ice cream|yaourt|yogurt|chocolat|boisson|drink|sirop|caf[ée]|latte|pomme|compote|dessert|fromage|c[ée]r[ée]ales?|muesli|granola|barre|poudre|mousse|flan|riz au lait))(?=.*(sp[ée]culoos|speculaas|biscoff|bastogne|des flandres|lotus))"),
     ("sweet_biscuits", "sweet", "biscuit", "biscuit", "biscuit", "snacking", r"biscuits|cookies|shortbread|sweet-biscuits|biscuits-and-cakes|butter-biscuits", r"biscuit|cookie|sabl[ée]|petit beurre|galette bretonne|palet"),
@@ -110,6 +119,13 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "nuts": {"nuts": 1},
     "cheese": {"cheese": 1},
     "cream": {"cream": 1}, "butter": {"butter": 1}, "oil": {"oil": 1},
+    "snack_bars": {
+        "fruit_nut_bar": 1,
+        "cereal_bar": 2,
+        "protein_bar": 3,
+        "sports_energy_bar": 4,
+    },
+
     "soup": {"soup": 1}, "pizza": {"pizza": 1}, "ready": {"ready_meal": 1, "pizza": 3},
     "cold_cuts": {"ham": 1, "sausage": 3}, "fish": {"fish_canned": 1},
     "legumes": {"legumes": 1},   # fruit and pulses are different purchases: no shared cluster
@@ -135,10 +151,14 @@ def classify(p: Dict[str, Any]) -> Dict[str, Any]:
     tags = " ".join(p.get("categories") or [])
     name = (p.get("name") or "")
     # name beats tags for the specific form (a toasted brioche is tagged as breads and brioches), tags beat the name for the general kind
+    specific = ("brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
+                "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if nr.search(name) and tid in ("brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
-                          "chips", "soup", "fruit_juice"):
+        if nr.search(name) and tid in specific:
             return {"type": tid, **_META[tid], "source": "name", "confidence": "high", "reason": "name matches the specific form: " + nr.pattern[:40]}
+    for tid, fam, cat, sub, form, use, tr, nr in RULES:
+        if nr.search(name) and tid == "snack_bar":
+            return {"type": tid, **_META[tid], "source": "name", "confidence": "low", "reason": "name matches a generic bar term: " + nr.pattern[:40]}
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tr.search(tags):
             if tid == "jam" and not _JAM_WORDS.search(name):
