@@ -200,14 +200,30 @@ class OpenPricesClient:
             return per100(round(float(p) * 100), qty)
         return None
 
-    def latest(self, barcode: str, qty: Optional[Tuple[float, str]], max_age_days: int = 730, country: str = "FR", only: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
+    def latest(self, barcode: str, qty: Optional[Tuple[float, str]], max_age_days: int = 730, country: str = "FR", only: Optional[List[str]] = None, for_ranking: bool = False) -> Optional[Dict[str, Any]]:
         """The price of the product in France: the AVERAGE of the per-chain averages of recent Open Prices observations (EUR, converted at the ECB rate).
-        Prices seen outside France are ignored. 'stale' when nothing is newer than FRESH_DAYS."""
+        Prices seen outside France are ignored. 'stale' when nothing is newer than FRESH_DAYS.
+        
+        STRICT ELIGIBILITY for rankings (for_ranking=True):
+        - Rejects undated observations
+        - Rejects stale prices (>90 days for budget/value rankings)
+        - Requires exact barcode match (no derived pack prices)
+        """
         if not qty:
             return None
+
+        # Strict eligibility for price/value rankings
+        if for_ranking:
+            max_age_days = 90  # Stricter freshness for rankings
+
         chains = [c for c in self.chain_summary(barcode, qty, only) if c["per100_cents"] is not None]
         if not chains:
             return None
+
+        # Strict eligibility: reject if all observations are too old for rankings
+        if for_ranking and all(c["stale"] for c in chains):
+            return None
+
         avg = sum(c["per100_cents"] for c in chains) / len(chains)
         n_obs = sum(c["observations"] for c in chains)
         newest = max(c["newest"] for c in chains)

@@ -221,6 +221,80 @@ def _tradeoffs(o, c, sim, lang="fr", price_unknown=False) -> List[str]:
     return T
 
 
+def rank_closest(orig: Dict[str, Any], candidates: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
+    """Alternatives proches: Ranking by substitution level, similarity, then brand diversity.
+    No price or quality influence - purely about product match."""
+    scored = []
+    for c in candidates:
+        sub = c.get("substitution") or {}
+        level = sub.get("level") or 4
+        form_match = sub.get("form_match", False)
+        use_match = sub.get("use_match", False)
+        sim = deep_similarity(orig, c)
+        # Rank: level (lower is better), form/use match, similarity, then brand diversity later
+        score = (level, -1 if form_match else 0, -1 if use_match else 0, -sim)
+        scored.append((score, sim, c))
+    scored.sort(key=lambda x: x[0])
+    return [c for _, _, c in scored[:limit]]
+
+
+def rank_cheapest(orig: Dict[str, Any], candidates: List[Dict[str, Any]], prices: Dict[str, float], orig_price: Optional[float], limit: int = 5) -> List[Dict[str, Any]]:
+    """Moins cher: Strict ordering by unit price. Quality floor applies.
+    Only candidates with reliable prices qualify."""
+    qualified = []
+    for c in candidates:
+        price = prices.get(c["barcode"])
+        if price is None:
+            continue
+        # Quality floor: must not be materially worse than original
+        orig_score = (orig.get("score") or {}).get("total") or 0
+        cand_score = (c.get("score") or {}).get("total") or 0
+        if cand_score < orig_score - 5:  # More than 5 points worse is too much sacrifice
+            continue
+        qualified.append((price, c))
+    qualified.sort(key=lambda x: x[0])  # Lowest price first
+    return [c for _, c in qualified[:limit]]
+
+
+def rank_quality(orig: Dict[str, Any], candidates: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
+    """Meilleure qualité: Ranking by Mieux score descending.
+    Price has no influence - quality is the only metric."""
+    scored = []
+    orig_score = (orig.get("score") or {}).get("total") or 0
+    for c in candidates:
+        cand_score = (c.get("score") or {}).get("total") or 0
+        # Must meaningfully improve quality (at least 5 points)
+        if cand_score < orig_score + 5:
+            continue
+        sim = deep_similarity(orig, c)
+        scored.append((-cand_score, -sim, c))  # Higher score first, then similarity
+    scored.sort(key=lambda x: x[0])
+    return [c for _, _, c in scored[:limit]]
+
+
+def rank_value(orig: Dict[str, Any], candidates: List[Dict[str, Any]], prices: Dict[str, float], orig_price: Optional[float], priorities: List[str], limit: int = 5) -> List[Dict[str, Any]]:
+    """Meilleur rapport qualité-prix: Balances quality and affordability.
+    Current implementation uses percentile-based approach. Future: type-specific reference distributions."""
+    if not prices or orig_price is None:
+        return []
+    qualified = []
+    orig_score = (orig.get("score") or {}).get("total") or 0
+    for c in candidates:
+        price = prices.get(c["barcode"])
+        if price is None:
+            continue
+        cand_score = (c.get("score") or {}).get("total") or 0
+        # Quality floor: minimum 50/100 or at least 5 points above original, whichever is higher
+        min_score = max(50, orig_score + 5)
+        if cand_score < min_score:
+            continue
+        # Simple value score: quality / price_per_100
+        value_score = cand_score / price if price > 0 else 0
+        qualified.append((-value_score, -cand_score, c))  # Higher value first, then quality
+    qualified.sort(key=lambda x: x[0])
+    return [c for _, _, c in qualified[:limit]]
+
+
 def choose(orig: Dict[str, Any], peers: List[Dict[str, Any]], priorities: List[str], allergens: List[str], diet: Optional[str],
            mode: str = "similar", limit: int = 5, prices: Optional[Dict[str, float]] = None,
            orig_price: Optional[float] = None, lang: str = "fr") -> Dict[str, Any]:

@@ -1316,19 +1316,29 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
 
 
 def _community(p: Dict[str, Any], loc: Optional[Loc] = None, max_age: int = 730, only: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
-    """Community price for the product. With a location: the newest observation of this exact barcode at a shop inside the radius
-    (scope 'store'). Otherwise, or when no shop in range recorded it, the market-level reference (scope 'anywhere'), which is never
-    presented as the price of a particular shop.
+    """Community price with EXPLICIT SCOPE SEPARATION.
+    Returns price with scope field: 'store' (exact shop in radius), 'chain' (same retailer, any location), 'market' (France-wide), or 'estimate'.
+    Scopes are preserved through the pipeline to prevent misleading local price claims.
     """
     q = p.get("quantity")
     if not q:
         return None
+
+    # Scope 1: Exact store observation within radius
     if loc is not None:
         hit = getattr(app.state.prices, "store_price", lambda *_: None)(p["barcode"], (q["amount"], q["unit"]), loc.lat, loc.lon, loc.radius_km)
         if hit:
-            return {**hit, "where": hit.get("store"), "per100_cents": hit["per100_cents"], "stale": False}
-    pt = app.state.prices.latest(p["barcode"], (q["amount"], q["unit"]), 730, "FR", only) if only else app.state.prices.latest(p["barcode"], (q["amount"], q["unit"]))
-    return None if not pt else {**pt, "where": None, "scope": "anywhere"}
+            return {**hit, "where": hit.get("store"), "per100_cents": hit["per100_cents"], "stale": False, "scope": "store"}
+
+    # Scope 2: Chain-level observation (same retailer, any location)
+    if only:
+        chain_hit = app.state.prices.latest(p["barcode"], (q["amount"], q["unit"]), max_age, "FR", only)
+        if chain_hit:
+            return {**chain_hit, "where": None, "scope": "chain", "retailers": only}
+
+    # Scope 3: Market-level observation (France-wide)
+    pt = app.state.prices.latest(p["barcode"], (q["amount"], q["unit"]), max_age)
+    return None if not pt else {**pt, "where": None, "scope": "market"}
 
 
 def _fill_pack_prices(pool, prices, points):

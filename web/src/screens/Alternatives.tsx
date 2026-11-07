@@ -65,7 +65,12 @@ export default function Alternatives() {
     const fmt = (c: number) => `${c < 0 ? '−' : '+'}${formatCents(Math.abs(Math.round(c)))}`;
     const tone = (c: number) => (Math.abs(c) < 1 ? 'var(--mut)' : c < 0 ? 'var(--accent)' : 'var(--bad)');
     if (diffBy === 'pack') {
+      // FIX: Only show pack difference when sizes are equivalent, otherwise it's misleading
       if (e.pack == null || o.pack_cents == null) return null;
+      const eSize = e.size?.amount || 0;
+      const oSize = r?.original_size?.amount || 0;
+      // Only show pack difference if sizes are within 10% of each other
+      if (Math.abs(eSize - oSize) / Math.max(eSize, oSize) > 0.1) return null;
       const c = e.pack - o.pack_cents;
       return { text: `${fmt(c)} ${t('diff.perPack')}`, tone: tone(c), sub: e.price100 != null ? (() => { const k = (e.price100 - o.per100_cents) * 10; return `${fmt(k)}${liquid ? '/L' : '/kg'}`; })() : undefined };
     }
