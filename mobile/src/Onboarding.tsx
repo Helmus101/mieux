@@ -35,7 +35,7 @@ export default function Onboarding() {
     try { const r = await findCity(); if (r === 'denied') { setMsg(t('about.locDenied')); hx.warning(); } else if (!r) { setMsg(t('about.locFail')); hx.error(); } else { p.setPlace(r); hx.success(); } }
     catch { setMsg(t('about.locFail')); hx.error(); } finally { setBusy(false); }
   };
-  if (step === -1) return (<Screen scroll={false}><View style={{ flex: 1, justifyContent: 'center' }}><LargeTitle kicker="FOODIQ" sub={t('welcome.sub')}>{t('welcome.title')}</LargeTitle></View>
+  if (step === -1) return (<Screen scroll={false}><View style={{ flex: 1, justifyContent: 'center' }}><LargeTitle kicker="Mieux" sub={t('welcome.sub')}>{t('welcome.title')}</LargeTitle></View>
     <Button primary onPress={() => setStep(0)}>{t('welcome.start')}</Button><Button plain onPress={() => p.finish()}>{t('welcome.guest')}</Button></Screen>);
   return (
     <Screen>

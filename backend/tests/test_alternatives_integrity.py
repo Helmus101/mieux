@@ -6,7 +6,7 @@ order (brand variety must not move a cheaper product down), and a quality pick m
 """
 from datetime import date, timedelta
 
-from app import engine
+from app import engine, taxonomy
 
 
 def P(barcode, name, brand="Brand", score=70, categories=None, complete=True, **nutriments):
@@ -81,3 +81,60 @@ def test_incomplete_nutrition_is_not_a_quality_pick():
     orig = P("000", "Yaourt nature", score=70)
     patchy = P("001", "Yaourt nature x", score=90, complete=False)
     assert engine.rank_quality(orig, [patchy]) == []
+
+
+JAM = ["en:fruit-and-vegetable-preserves", "en:jams", "en:berry-jams", "en:strawberry-jams"]
+
+
+def test_strawberry_jam_is_classified_as_jam_not_a_spread():
+    jam = P("010", "Confiture extra de Fraises", categories=JAM)
+    assert taxonomy.classify(jam)["type"] == "jam"
+    praline = P("011", "Pâte à tartiner noisettes et cacao", categories=["en:sweet-spreads", "en:chocolate-spreads"])
+    assert taxonomy.classify(praline)["type"] == "chocolate_spread"
+    assert taxonomy.substitution(jam, praline)["level"] == 3     # a spread, but not a jam: never a money or quality pick
+
+
+def test_unrelated_products_are_never_substitutes():
+    jam = P("010", "Confiture extra de Fraises", categories=JAM)
+    lentils = P("012", "Orge, lentilles vertes, riz rouge", categories=["en:legumes", "en:lentils"])
+    barley = P("013", "Orge mondé", categories=["en:cereals", "en:barley"])
+    assert taxonomy.substitution(jam, lentils) is None
+    assert taxonomy.substitution(jam, barley) is None
+
+
+def test_quality_tab_only_lists_the_same_kind_of_product():
+    jam = P("010", "Confiture extra de Fraises", score=44, categories=JAM)
+    other = P("011", "Confiture de mûres", score=90, categories=JAM)
+    praline = P("012", "Pâte à tartiner noisettes", score=95, categories=["en:sweet-spreads", "en:chocolate-spreads"])
+    lentils = P("013", "Orge et lentilles", score=94, categories=["en:legumes", "en:lentils"])
+    assert [r["product"]["name"] for r in engine.rank_quality(jam, [other, praline, lentils])] == ["Confiture de mûres"]
+
+
+def test_generic_spread_tag_alone_cannot_make_a_substitute():
+    """The exact production bug: a broad tag must not turn an unrelated product into a level-1 substitute."""
+    jam = P("010", "Confiture extra de Fraises", categories=JAM)
+    vague = P("014", "Spécialité de cassis", categories=["en:sweet-spreads", "en:groceries"])
+    sub = taxonomy.substitution(jam, vague)
+    assert sub is None or sub["level"] >= 3
+
+
+def test_juice_is_a_juice_not_a_plant_drink():
+    juice = P("020", "Pur jus d'orange", categories=["en:plant-based-beverages", "en:fruit-juices", "en:orange-juices"])
+    assert taxonomy.classify(juice)["type"] == "fruit_juice"
+
+
+def test_sliced_bread_is_not_a_baguette():
+    sliced = P("021", "Pain de mie complet", categories=["en:breads", "en:sliced-breads"])
+    baguette = P("022", "Baguette tradition", categories=["en:breads", "en:baguettes"])
+    sub = taxonomy.substitution(sliced, baguette)
+    assert sub is None or sub["level"] >= 3      # a loaf is a different purchase, never a money or quality pick
+
+
+def test_lentil_chips_are_chips_not_crackers():
+    chips = P("023", "Chips de lentilles", categories=["en:salty-snacks", "en:crackers"])
+    assert taxonomy.classify(chips)["type"] == "chips"
+
+
+def test_plain_yogurt_stays_plain():
+    y = P("024", "Yaourt nature", categories=["en:dairies", "en:yogurts", "en:desserts"])
+    assert taxonomy.classify(y)["type"] == "plain_yogurt"
