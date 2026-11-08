@@ -7,6 +7,7 @@ import os
 import re
 import sqlite3
 import time
+import urllib.parse
 import urllib.request
 from typing import Any, Callable, Dict, Optional, Tuple
 
@@ -26,6 +27,13 @@ PROMPT = (
 )
 
 last_error: Optional[str] = None
+
+
+def _set_error(e: Exception) -> None:
+    global last_error
+    last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
+
+
 Transport = Callable[[str, Dict[str, Any]], Dict[str, Any]]
 
 
@@ -35,8 +43,140 @@ def _post(url: str, body: Dict[str, Any]) -> Dict[str, Any]:
         return json.loads(r.read())
 
 
+BRAVE = "https://api.search.brave.com/res/v1/web/search"
+_PRICE = re.compile(r"(\d{1,3}(?:[ .]\d{3})*[,.]\d{2}|\d{1,3})\s?(?:€|eur\b|euros?\b)", re.I)
+
+
+Http = Callable[[str, str, Dict[str, str], Optional[Dict[str, Any]]], Dict[str, Any]]
+
+
+def _http(method: str, url: str, headers: Dict[str, str], body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, headers=headers, method=method)
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return json.loads(r.read())
+
+
+BRAVE = "https://api.search.brave.com/res/v1/web/search"
+PARALLEL = "https://api.parallel.ai/v1/search"
+_PRICE = re.compile(r"(\d{1,3}(?:[ .]\d{3})*[,.]\d{2})\s?(?:€|eur\b|euros?\b)", re.I)
+
+
+def providers() -> list:
+    """Parallel only (Brave and Gemini lookups exist in this file but are not used)."""
+    return ["parallel"] if os.environ.get("PARALLEL_API_KEY") else []
+
+
+def provider() -> Optional[str]:
+    ps = providers()
+    return ps[0] if ps else None
+
+
 def enabled() -> bool:
-    return bool(os.environ.get("GEMINI_API_KEY"))
+    return provider() is not None
+
+
+def _size_regex(q: Optional[Dict[str, Any]]) -> Optional[re.Pattern]:
+    """The pack size as it is usually printed ('400 g', '1,5 l', '0,75 l'), so a snippet is only used when it talks about this size."""
+    if not q:
+        return None
+    amt, unit = q["amount"], q["unit"]
+    forms = {f"{amt:g}"}
+    if unit == "g" and amt >= 1000:
+        forms.add(f"{amt / 1000:g}")
+    if unit == "ml" and amt >= 100:
+        forms.add(f"{amt / 10:g}")
+        forms.add(f"{amt / 1000:g}")
+    units = r"(?:g|gr|grammes?|kg)" if unit == "g" and amt >= 1000 else {"g": r"(?:g|gr|grammes?)", "ml": r"(?:ml|cl|l|litres?)"}[unit]
+    nums = "|".join(re.escape(f).replace(r"\.", "[,.]") for f in forms)
+    return re.compile(rf"(?<![\d,.])(?:{nums})\s?{units}\b", re.I)
+
+
+def _query(product: Dict[str, Any]) -> str:
+    q = product.get("quantity") or {}
+    return f"{product.get('brand') or ''} {product.get('name') or ''} {q.get('amount', 0):g} {q.get('unit', '')} prix".strip()
+
+
+def _fetch_results(name: str, product: Dict[str, Any], http: Http) -> list:
+    """[(url, text)] from one search provider."""
+    query = _query(product)
+    if name == "brave":
+        data = http("GET", BRAVE + "?" + urllib.parse.urlencode({"q": query, "country": "fr", "search_lang": "fr", "count": 10}),
+                    {"X-Subscription-Token": os.environ["BRAVE_API_KEY"], "Accept": "application/json"}, None)
+        return [(r.get("url") or "", " ".join([r.get("title") or "", r.get("description") or ""] + list(r.get("extra_snippets") or [])))
+                for r in (data.get("web") or {}).get("results", [])]
+    data = http("POST", PARALLEL, {"Content-Type": "application/json", "x-api-key": os.environ["PARALLEL_API_KEY"]},
+                {"objective": f"Prix actuel en euros en supermarché en France de : {query}. Donne les pages de supermarchés ou comparateurs qui indiquent ce prix.", "search_queries": [query]})
+    return [(r.get("url") or "", " ".join([r.get("title") or ""] + list(r.get("excerpts") or []))) for r in data.get("results", [])]
+
+
+_PER_UNIT_AFTER = re.compile(r"^\s*(?:/|par\b|le\b|au\b|\bl[e']?\s)\s*(?:kg|kilo|litre|l\b)", re.I)
+
+
+def _words(text: str) -> set:
+    return set(re.findall(r"[a-zà-ÿ0-9]{3,}", (text or "").lower()))
+
+
+def _pack_price(text: str, size_units: float) -> Optional[float]:
+    """The pack price in a text: ignores prices labelled per kilo / per litre, and a price that is just another price scaled to a kilo."""
+    cands = []
+    for m in _PRICE.finditer(text):
+        v = float(m.group(1).replace(" ", "").replace(",", "."))
+        if not (0.2 <= v <= 400) or _PER_UNIT_AFTER.match(text[m.end():m.end() + 14]):
+            continue
+        cands.append(v)
+    if size_units > 0:
+        per_unit = {b for a_ in cands for b in cands if a_ != b and abs(a_ / size_units - b) / b < 0.06}
+        cands = [v for v in cands if v not in per_unit]
+    cands = [v for v in cands if v <= 200]
+    return cands[0] if cands else None
+
+
+def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, Any]]:
+    """A price only when two different sites talk about this product (brand and name words) and this pack size, and agree within 25 %."""
+    q = product.get("quantity")
+    size_re = _size_regex(q)
+    if not q or not size_re:
+        return None
+    brand_w = _words(str(product.get("brand") or "").split(",")[0])
+    name_w = {w for w in _words(product.get("name")) if len(w) > 3} - brand_w
+    size_units = q["amount"] / 1000.0
+    by_host: Dict[str, Tuple[float, str]] = {}
+    for url, text in results:
+        if not size_re.search(text):
+            continue
+        tw = _words(text)
+        if (brand_w and not (brand_w & tw)) or (name_w and not (name_w & tw)):
+            continue
+        host = urllib.parse.urlparse(url).netloc.replace("www.", "")
+        v = _pack_price(text, size_units)
+        if v:
+            by_host.setdefault(host, (v, url))
+    vals = sorted(v for v, _ in by_host.values())
+    if len(vals) < 2:
+        return None
+    med = vals[len(vals) // 2]
+    agree = [(h, v, u) for h, (v, u) in by_host.items() if abs(v - med) / med <= 0.25]
+    if len(agree) < 2:
+        return None
+    price_c = round(med * 100)
+    return {"per100_cents": round(price_c / q["amount"] * 100, 1), "pack_cents": price_c, "store": None, "source_urls": [u for _, _, u in agree][:3],
+            "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
+
+
+def _search_lookup(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]:
+    """Parallel search; no price when the sites it returns do not agree on this pack size."""
+    global last_error
+    last_error = None
+    for name in providers():
+        try:
+            out = _price_from(product, _fetch_results(name, product, http))
+        except Exception as e:
+            _set_error(e)
+            continue
+        if out:
+            out["provider"] = name
+            return out
+    return None
 
 
 def _db() -> sqlite3.Connection:
@@ -77,16 +217,22 @@ def _parse(text: str) -> Optional[Dict[str, Any]]:
     return d if d.get("found") is not False and isinstance(d.get("price_eur"), (int, float)) else None
 
 
-def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True) -> Optional[Dict[str, Any]]:
+def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True, http: Optional[Http] = None) -> Optional[Dict[str, Any]]:
     """{per100_cents, pack_cents, store, source_urls, date, source:'web_search', approximate:True} or None."""
+    global last_error
     key = os.environ.get("GEMINI_API_KEY")
     barcode = str(product.get("barcode") or "")
-    if not key or not barcode:
+    if not barcode or provider() is None:
         return None
     if use_cache:
         fresh, data = _cached(barcode)
         if fresh:
             return data
+    if provider() == "parallel":
+        out = _search_lookup(product, http or _http)
+        if use_cache and (out or last_error is None):
+            _store(barcode, out)
+        return out
     q = product.get("quantity")
     size = f"{q['amount']:g} {q['unit']}" if q else (product.get("quantityText") or "inconnu")
     body = {"contents": [{"parts": [{"text": PROMPT.format(name=product.get("name") or "", brand=f" ({product['brand']})" if product.get("brand") else "", ean=barcode, size=size)}]}],
@@ -94,7 +240,6 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
     try:
         resp = transport(ENDPOINT.format(model=MODEL) + "?key=" + key, body)
     except Exception as e:       # network, quota, bad key, retired model: no price, and do not cache the failure
-        global last_error
         last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
         return None
     cand = (resp.get("candidates") or [{}])[0]

@@ -30,7 +30,7 @@ def main(n: int = 200) -> None:
     from app import value, webprice
     from app.products import normalize
     if not webprice.enabled():
-        sys.exit("Set GEMINI_API_KEY first.")
+        sys.exit("Set PARALLEL_API_KEY in backend/.env first.")
     op = value.OpenPricesClient(local_path=os.path.join(HERE, "op_local.db"))
     off = sqlite3.connect(os.path.join(HERE, "off_local.db"))
     db = sqlite3.connect(os.path.join(HERE, "op_local.db"))

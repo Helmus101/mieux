@@ -369,29 +369,50 @@ def test_value_list_does_not_require_beating_the_scanned_product():
     assert r["items"][0]["better_than_yours"] in (True, False, None) and "value_detail" in r["items"][0]
 
 
-def test_web_price_lookup_uses_citations_and_rejects_unsupported_answers(monkeypatch, tmp_path):
+def test_search_price_needs_two_sites_that_mention_the_pack_size(monkeypatch, tmp_path):
     from app import webprice
-    monkeypatch.setenv("GEMINI_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp.db"))
-    prod = {"barcode": "3017620422003", "name": "Pâte à tartiner", "brand": "X", "quantity": {"amount": 400.0, "unit": "g"}}
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False); monkeypatch.delenv("BRAVE_API_KEY", raising=False)
+    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp3.db"))
+    assert webprice.providers() == ["parallel"]
+    prod = {"barcode": "3017620422003", "name": "Nutella pâte à tartiner", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
 
-    def reply(text, sources=("https://exemple.fr/p",)):
-        return lambda url, body: {"candidates": [{"content": {"parts": [{"text": text}]},
-                                                    "groundingMetadata": {"groundingChunks": [{"web": {"uri": u}} for u in sources]}}]}
-    ok = webprice.lookup(prod, reply('Voici : {"price_eur": 3.20, "pack_size": "400 g", "store": "Auchan", "found": true}'), use_cache=False)
-    assert ok["per100_cents"] == 80.0 and ok["approximate"] is True and ok["source"] == "web_search" and ok["source_urls"]
-    assert webprice.lookup(prod, reply('{"price_eur": 3.2, "pack_size": "400 g", "found": true}', sources=()), use_cache=False) is None   # no cited page
-    assert webprice.lookup(prod, reply('{"found": false}'), use_cache=False) is None
-    assert webprice.lookup(prod, reply('{"price_eur": 3.2, "pack_size": "1 l", "found": true}'), use_cache=False) is None                    # litres for a grams product
-    monkeypatch.delenv("GEMINI_API_KEY"); assert webprice.lookup(prod, reply("{}")) is None                                                      # off without a key
+    def par(*rs):
+        def http(method, url, headers, body):
+            assert url == "https://api.parallel.ai/v1/search" and headers["x-api-key"] == "k" and body["search_queries"]
+            return {"results": [{"title": t_, "excerpts": [d], "url": u} for t_, d, u in rs]}
+        return http
+    good = par(("Ferrero Nutella 400 g", "Pâte à tartiner Nutella Ferrero 400 g à 3,20 €", "https://www.auchan.fr/a"),
+               ("Nutella Ferrero 400g", "prix 3,35 € le pot de 400 g, 8,37 €/kg", "https://www.carrefour.fr/b"),
+               ("Ferrero Nutella 825 g", "grand pot 6,50 €", "https://www.leclerc.fr/c"))
+    r = webprice.lookup(prod, use_cache=False, http=good)
+    assert r and r["pack_cents"] in (320, 335) and r["approximate"] and r["provider"] == "parallel" and r["per100_cents"] == round(r["pack_cents"] / 400 * 100, 1)
+    assert webprice.lookup(prod, use_cache=False, http=par(("Ferrero Nutella 400 g", "à 3,20 €", "https://www.auchan.fr/a"))) is None          # one site is not enough
+    assert webprice.lookup(prod, use_cache=False, http=par(("Ferrero Nutella 825 g", "6,50 €", "https://a.fr/x"), ("Ferrero Nutella 825 g", "6,40 €", "https://b.fr/y"))) is None   # other size
+    assert webprice.lookup(prod, use_cache=False, http=par(("Ferrero Nutella 400 g", "3,20 €", "https://a.fr/x"), ("Ferrero Nutella 400 g", "9,90 €", "https://b.fr/y"))) is None    # disagreement
+    monkeypatch.delenv("PARALLEL_API_KEY"); assert webprice.lookup(prod, use_cache=False, http=good) is None                                                          # off without a key
+
+
+def test_brave_and_gemini_keys_do_not_switch_the_lookup_on(monkeypatch):
+    from app import webprice
+    monkeypatch.delenv("PARALLEL_API_KEY", raising=False); monkeypatch.setenv("BRAVE_API_KEY", "x"); monkeypatch.setenv("GEMINI_API_KEY", "y")
+    assert webprice.providers() == [] and not webprice.enabled()
 
 
 def test_web_price_is_cached_per_barcode(monkeypatch, tmp_path):
     from app import webprice
-    monkeypatch.setenv("GEMINI_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp2.db"))
+    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp5.db"))
     calls = []
-    def tr(url, body):
+
+    def http(method, url, headers, body):
         calls.append(1)
-        return {"candidates": [{"content": {"parts": [{"text": '{"price_eur": 2.0, "pack_size": "200 g", "found": true}'}]}, "groundingMetadata": {"groundingChunks": [{"web": {"uri": "https://x.fr"}}]}}]}
-    prod = {"barcode": "123456789012", "name": "Biscuits", "quantity": {"amount": 200.0, "unit": "g"}}
-    a, b = webprice.lookup(prod, tr), webprice.lookup(prod, tr)
-    assert a == b and len(calls) == 1
+        return {"results": [{"title": "Biscuits 200 g", "excerpts": ["Biscuits 200 g à 2,00 €"], "url": "https://a.fr/x"}, {"title": "Biscuits 200 g", "excerpts": ["200 g : 2,10 €"], "url": "https://b.fr/y"}]}
+    prod = {"barcode": "123456789012", "name": "Biscuits", "brand": "Lu", "quantity": {"amount": 200.0, "unit": "g"}}
+    a, b = webprice.lookup(prod, http=http), webprice.lookup(prod, http=http)
+    assert a and a == b and len(calls) == 1
+
+
+def test_price_per_kilo_is_not_mistaken_for_the_pack_price():
+    from app import webprice
+    assert webprice._pack_price("Piments 29 g : 98,28 € le kilo, 2,85 € le pot", 0.029) == 2.85          # per-kilo price is skipped
+    assert webprice._pack_price("Piments 29 g 98,28€ 2,85€", 0.029) == 2.85                                # even unlabelled: 2,85 / 0,029 kg = 98,28
+    assert webprice._pack_price("Nutella 400 g à 3,20 € (8,00 €/kg)", 0.4) == 3.20
