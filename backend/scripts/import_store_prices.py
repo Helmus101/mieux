@@ -66,6 +66,18 @@ def normalise(r: dict, path: str) -> dict:
             "currency": r.get("currency"), "status": "ACTIVE" if r.get("available", True) else "OUT", "updatedAt": date}
 
 
+def prune(db) -> int:
+    """Drops retailer rows whose barcode is not a product in the French Open Food Facts copy (non-food, foreign or invalid codes)."""
+    off = os.environ.get("OFF_LOCAL") or os.path.join(os.path.dirname(os.path.abspath(OUT)), "off_local.db")
+    if not os.path.exists(off):
+        return 0
+    db.execute("attach database ? as off", (off,))
+    n = db.execute("delete from op_items where json_extract(data, '$.id') like 'sc-%' and code not in (select code from off.off_products)").rowcount
+    db.commit()
+    db.execute("detach database off")
+    return n
+
+
 def main(paths, out: str = OUT) -> None:
     db = sqlite3.connect(out)
     by_chain = {}
@@ -97,6 +109,10 @@ def main(paths, out: str = OUT) -> None:
         db.executemany("insert into op_items values (?,?,?)", batch)
         print(f"{chain}: {len(batch):,} prices")
     db.commit()
+    if paths:
+        print(f"removed {prune(db):,} rows that are not French products")
+    else:
+        print(f"removed {prune(db):,} rows that are not French products")
     db.close()
 
 
