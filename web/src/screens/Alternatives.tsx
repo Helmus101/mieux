@@ -4,6 +4,7 @@ import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useHistory, useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
+import { readCache, writeCache } from '../swr';
 import { Bar, Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
@@ -31,9 +32,12 @@ export default function Alternatives() {
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
     if (!barcode || !prios.length) return;
-    setBusy(true); setErr(null);
+    setErr(null);
+    const ck = `alt:${barcode}:${prios.join()}:${myChains.join()}`;
+    const stale = readCache<any>(ck);
+    if (stale) { setR(stale); setBusy(false); } else setBusy(true);   // show the last answer at once, then refresh it
     api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 10, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) })
-      .then((x: any) => { setR(x); })
+      .then((x: any) => { setR(x); writeCache(ck, x); })
       .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
   const rowOf = (e: any) => ({ avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio });
@@ -120,7 +124,7 @@ export default function Alternatives() {
       <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}</p>
       {showPrice && r?.original_price && <Segmented value={diffBy} onChange={(k) => setDiffBy(k as 'kg' | 'pack')} options={[{ key: 'kg', label: t('diff.byKg') }, { key: 'pack', label: t('diff.byPack') }]} />}
       {r?.original_price?.per100_cents != null && <p className="sm" style={{ margin: '2px 0 8px' }}>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</p>}
-      {busy && <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} /><Skeleton h={120} /></>}
+      {busy && <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />{[0, 1, 2].map((n) => <Skeleton key={n} h={112} />)}</>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
       {r && !busy && !shown.length && (() => {
         const os = r?.original?.score?.total;

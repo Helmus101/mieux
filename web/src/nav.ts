@@ -8,4 +8,9 @@ export const routes = {
   blog: '/blog',
   blogPost: (slug: string) => `/blog/${slug}`,
 };
-export function useNav() { const n = useNavigate(); return { go: (p: string, state?: unknown) => n(p, { state }), back: () => n(-1) }; }
+/** Runs a navigation inside a view transition when the browser supports it (a short cross-fade), otherwise just navigates. */
+const withTransition = (f: () => void) => {
+  const d = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+  if (d.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) d.startViewTransition(f); else f();
+};
+export function useNav() { const n = useNavigate(); return { go: (p: string, state?: unknown) => withTransition(() => n(p, { state })), back: () => withTransition(() => n(-1)) }; }

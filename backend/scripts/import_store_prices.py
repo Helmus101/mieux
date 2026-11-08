@@ -18,6 +18,17 @@ def code_of(ean: str) -> str:
     return e[1:] if len(e) == 14 and e.startswith("0") else e
 
 
+def parse_price(v):
+    """'2,39€', '24,03 €', 7.99 -> float, else None."""
+    if isinstance(v, (int, float)):
+        return float(v)
+    t = "".join(ch for ch in str(v or "") if ch.isdigit() or ch in ",.").replace(",", ".")
+    try:
+        return float(t) if t else None
+    except ValueError:
+        return None
+
+
 def normalise(r: dict, path: str) -> dict:
     """Other exports (Picard, Carrefour online) to the common shape: chain, storeExtId, ean, price, updatedAt. Loyalty promotions are ignored: the shelf price is kept."""
     if "chain" in r:
@@ -27,12 +38,15 @@ def normalise(r: dict, path: str) -> dict:
         return {"chain": "Picard", "storeExtId": "picard-online", "storeName": "Picard.fr", "storeAddress": "France", "ean": r.get("ean"), "price": r.get("price"),
                 "currency": r.get("priceCurrency"), "status": "ACTIVE" if r.get("inStock", True) else "OUT", "updatedAt": date}
     if "product_name" in r and "ean" in r:     # E.Leclerc online, name/price/ean export
-        try:
-            price = float(str(r.get("price")).replace(",", "."))
-        except ValueError:
+        price = parse_price(r.get("price"))
+        if price is None:
             return {}
         return {"chain": "E.Leclerc", "storeExtId": "leclerc-online", "storeName": "E.Leclerc en ligne", "storeAddress": "France", "ean": r.get("ean"), "price": price,
                 "currency": "EUR", "status": "ACTIVE", "updatedAt": date}
+    if "price_per_unit" in r and "name" in r:     # Intermarché online, name/price/ean export (no store given)
+        price = parse_price(r.get("price"))
+        return {} if price is None else {"chain": "Intermarché", "storeExtId": "intermarche-online", "storeName": "Intermarché en ligne", "storeAddress": "France",
+                                         "ean": r.get("ean"), "price": price, "currency": "EUR", "status": "ACTIVE", "updatedAt": date}
     if "e.leclerc" in str(r.get("url")):      # E.Leclerc online; marketplace sellers are not Leclerc shelf prices
         if not str(r.get("seller") or "E.Leclerc").lower().startswith("e.leclerc"):
             return {}

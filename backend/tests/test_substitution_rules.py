@@ -250,3 +250,13 @@ def test_house_brands_point_to_their_chain():
     for brand, chain in [("Auchan, Auchan Bio", "Auchan"), ("Milbona", "Lidl"), ("Reflets de France", "Carrefour"), ("Monique Ranou", "Intermarché"),
                          ("Nos régions ont du talent", "E.Leclerc"), ("Bien Vu", "Monoprix"), ("Nestlé", None)]:
         assert chains.own_brand_chain(brand) == chain, brand
+
+
+def test_repeated_idempotency_key_replays_the_first_answer():
+    from fastapi.testclient import TestClient
+    from app import main
+    c = TestClient(main.app)
+    h = {"X-Session-Id": "idem-session-1", "Idempotency-Key": "k-1"}
+    a = c.post("/v1/auth/register", json={"email": "idem1@example.com", "password": "Passw0rd!x"}, headers=h)
+    b = c.post("/v1/auth/register", json={"email": "idem1@example.com", "password": "Passw0rd!x"}, headers=h)
+    assert a.status_code < 400 and b.status_code == a.status_code and b.headers.get("Idempotent-Replay") == "true"

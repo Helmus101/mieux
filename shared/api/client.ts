@@ -47,6 +47,12 @@ export class MieuxAPI {
         config.headers.Authorization = `Bearer ${this.token}`;
         if (this.prefsHeader) config.headers['X-Prefs'] = this.prefsHeader;  // a signed-in account stores nothing: restrictions travel with each request
       }
+      if ((config.method ?? '').toLowerCase() === 'post') {
+        // Same request twice within 10 s (double tap, automatic retry) carries the same key, so the server can answer once.
+        const raw = `${config.url}|${typeof config.data === 'string' ? config.data : JSON.stringify(config.data ?? '')}|${Math.floor(Date.now() / 10000)}`;
+        let h = 5381; for (let i = 0; i < raw.length; i++) h = ((h * 33) ^ raw.charCodeAt(i)) >>> 0;
+        config.headers['Idempotency-Key'] = h.toString(36) + raw.length.toString(36);
+      }
       return config;
     });
 

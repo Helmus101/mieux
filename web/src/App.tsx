@@ -6,6 +6,8 @@ import { useProfile, apiPrefs } from '@shared/stores';
 import { Loader, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
 import ErrorBoundary from './ErrorBoundary';
+import { ToastHost } from './toast';
+import CommandMenu from './CommandMenu';
 import { ACCOUNT_REQUIRED, accountEnabled, initAccount, useAccount } from './account';
 import { APP_PATH } from './install';
 import './index.css';
@@ -83,6 +85,8 @@ function Shell() {
         </Routes>
       </Suspense></ErrorBoundary>
       <TabBar />
+      <ToastHost />
+      <CommandMenu />
     </div>
   );
 }

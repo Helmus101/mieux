@@ -35,7 +35,7 @@ export const Group = ({ children }: { children: ReactNode }) => <div className="
 export function Cell({ children, onPress, chevron, image }: { children: ReactNode; onPress?: () => void; chevron?: boolean; image?: string | null }) {
   return (
     <div className={'cell' + (onPress ? ' tap' : '')} {...(onPress ? { role: 'button', tabIndex: 0, onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); haptic(); onPress(); } } } : {})} onClick={onPress ? () => { haptic(); onPress(); } : undefined}>
-      {image !== undefined && image !== null && <img src={image} alt="" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+      {image !== undefined && image !== null && <img className="blur-in" src={image} alt="" loading="lazy" decoding="async" onLoad={(e) => e.currentTarget.classList.add('ready')} onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
       <div className="grow">{children}</div>{chevron && <span className="chev">›</span>}
     </div>
   );

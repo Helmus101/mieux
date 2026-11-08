@@ -168,6 +168,32 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=800)
 
 
+_IDEM: Dict[str, Any] = {}   # (session, path, key) -> (expires, status, body, content-type)
+
+
+@app.middleware("http")
+async def idempotency(request, call_next):
+    """A POST that repeats an Idempotency-Key within two minutes gets the first successful answer back instead of running again."""
+    key = request.headers.get("idempotency-key")
+    if request.method != "POST" or not key or len(key) > 80:
+        return await call_next(request)
+    from starlette.responses import Response
+    import time as _t
+    k = f"{request.headers.get('x-session-id', '')}|{request.url.path}|{key}"
+    now = _t.time()
+    for old in [x for x, v in _IDEM.items() if v[0] < now]:
+        _IDEM.pop(old, None)
+    hit = _IDEM.get(k)
+    if hit:
+        return Response(content=hit[2], status_code=hit[1], media_type=hit[3], headers={"Idempotent-Replay": "true"})
+    resp = await call_next(request)
+    if resp.status_code < 400 and len(_IDEM) < 2000:
+        body = b"".join([c async for c in resp.body_iterator])
+        _IDEM[k] = (now + 120, resp.status_code, body, resp.media_type or "application/json")
+        return Response(content=body, status_code=resp.status_code, media_type=resp.media_type, headers=dict(resp.headers))
+    return resp
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     resp = await call_next(request)

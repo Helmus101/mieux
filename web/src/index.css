@@ -386,3 +386,31 @@ h1{font-size:30px;margin:8px 0 6px}
 /* Alternatives call-to-action: the one distinctive block of the result screen */
 .altcta{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink);padding:18px 20px;margin:12px 0;cursor:pointer}
 .altcta b{display:block;font-size:19px;letter-spacing:-.2px}.altcta small{display:block;margin-top:2px;font-size:14px;opacity:.85}.altcta i{font-style:normal;font-size:26px}
+
+/* ---- polish: numbers, headings, corners, safe areas, tap targets, transitions, toasts, command menu ---- */
+body,.score,.scorebig,.mut,.cell,.card,td,th,input{font-variant-numeric:tabular-nums}
+h1,h2,h3,.large-title,.hero h1{text-wrap:balance}
+p{text-wrap:pretty}
+@supports (corner-shape:squircle){.group,.card,.btn,.chip,.sheet,.cmdk,.toast2{corner-shape:squircle;border-radius:calc(var(--rr,14px) * 1.8)}}
+.screen{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+.tabbar{padding-bottom:env(safe-area-inset-bottom)}
+button,.chip,.tab,.iconbtn,.seg button,[role=button]{min-height:44px;min-width:44px;touch-action:manipulation}
+.seg button{min-height:40px}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center}
+/* image: soft grey block until the picture is decoded, then it fades in */
+img.blur-in{background:linear-gradient(135deg,rgba(118,118,128,.14),rgba(118,118,128,.26));opacity:0;filter:blur(8px);transition:opacity .25s ease,filter .35s ease}
+img.blur-in.ready{opacity:1;filter:none}
+/* view transitions: a quick cross-fade between screens; interruptible because it is a transition, not a keyframe script */
+@supports (view-transition-name:none){::view-transition-old(root),::view-transition-new(root){animation-duration:.18s;animation-timing-function:ease}}
+.btn:active,.chip:active,.tab:active{transform:scale(.97)}
+.toasts{position:fixed;left:0;right:0;bottom:calc(92px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:8px;z-index:60;pointer-events:none}
+.toast2{pointer-events:auto;display:flex;align-items:center;gap:14px;background:rgba(30,30,30,.94);color:#fff;padding:12px 16px;border-radius:99px;font-size:15px;box-shadow:0 6px 24px rgba(0,0,0,.25);touch-action:pan-y;animation:toastin .22s ease}
+.toast2 button{background:none;border:0;color:#9fe6b8;font-weight:700;font-size:15px;cursor:pointer;padding:6px 4px}
+@keyframes toastin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.cmdk-back{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:80;display:flex;justify-content:center;align-items:flex-start;padding-top:14vh}
+.cmdk{width:min(520px,92vw);background:var(--surface);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+.cmdk input{width:100%;border:0;outline:0;padding:16px 18px;font-size:17px;background:transparent;color:var(--ink);border-bottom:1px solid var(--line)}
+.cmdk button{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:none;padding:12px 18px;font-size:16px;color:var(--ink);cursor:pointer;text-align:left}
+.cmdk button.on{background:var(--tint)}
+kbd{font:600 12px ui-monospace,Menlo,monospace;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--mut)}
+@media(prefers-color-scheme:dark){.cmdk{background:#1c1f1d}}
