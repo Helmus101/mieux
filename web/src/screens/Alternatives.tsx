@@ -47,7 +47,7 @@ export default function Alternatives() {
     if (hidden.includes(e.product.id)) return false;
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     if (k === 'budget') return e.price100 != null;                 // ordered by unit price: cheapest first
-    if (k === 'match') return true;                                // every scored close substitute, in score order; the card says who is better
+    if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never a product scoring the same or lower
     return e.price100 != null;                                     // value: quality-price score
   });
   const shown = listOf(rk);
@@ -55,10 +55,14 @@ export default function Alternatives() {
   const [webP, setWebP] = useState<Record<string, any>>({});
   useEffect(() => {
     const rows = (['value', 'budget', 'quality'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
-    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 8);
+    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 24);
     if (!want.length) return;
     let live = true;
-    api.getWebPrices(want).then((m) => { if (live) setWebP((cur) => ({ ...cur, ...m })); }).catch(() => undefined);
+    (async () => {                                                   // batches of 8, best-ranked first, each shown as it arrives
+      for (let i = 0; i < want.length && live; i += 8) {
+        try { const m = await api.getWebPrices(want.slice(i, i + 8)); if (live) setWebP((cur) => ({ ...cur, ...m })); } catch { /* keep going */ }
+      }
+    })();
     return () => { live = false; };
   }, [r]);
   // Exactly three tabs, always: price-quality (opens first), price, quality.
@@ -166,7 +170,7 @@ export default function Alternatives() {
                       ) : e.pack != null ? (
                         <div style={{ fontSize: 18, fontWeight: 700 }}>{formatCents(e.pack)}</div>
                       ) : webP[e.product.barcode] ? (
-                        <div style={{ fontSize: 18, fontWeight: 700 }} title={t('score.webPrice')}>~ {formatCents(Math.round(webP[e.product.barcode].per100_cents * 10))}/{isLiquid(e.product) ? 'L' : 'kg'}<span className="mut sm" style={{ fontWeight: 400, marginLeft: 6 }}>{t('score.webPrice')}</span></div>
+                        <div style={{ fontSize: 18, fontWeight: 700 }} title={t('score.webPrice')}>~ {formatCents(Math.round(webP[e.product.barcode].per100_cents * 10))}/{isLiquid(e.product) ? 'L' : 'kg'}<span className="mut sm" style={{ fontWeight: 400, marginLeft: 6 }}>{t('score.webPrice')}</span>{webP[e.product.barcode].value_score != null && <div className="mut sm" style={{ fontWeight: 600 }}>{t('score.pq')} ≈ {webP[e.product.barcode].value_score}</div>}</div>
                       ) : null}
                       {d && (
                         <div style={{ marginTop: 2 }}>

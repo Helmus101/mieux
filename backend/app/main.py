@@ -631,7 +631,14 @@ def web_prices(request: Request, body: WebPricesReq, uid: str = Depends(user), s
     todo = [c for c in codes if q_of(products[c]) and not app.state.prices.latest(c, (q_of(products[c])["amount"], q_of(products[c])["unit"]))]
     with ThreadPoolExecutor(max_workers=4) as ex:
         found = dict(zip(todo, ex.map(lambda c: webprice.lookup(products[c]), todo)))
-    return {"prices": {c: found.get(c) for c in codes}}
+    out = {}
+    for c in codes:
+        w = found.get(c)
+        if w and w.get("per100_cents") is not None:     # the price-quality score at that approximate price, clearly marked approximate by the client
+            vi_ = value_index.value_index(taxonomy.classify(products[c]).get("type"), (products[c].get("score") or {}).get("total"), w["per100_cents"])
+            w = {**w, "value_score": vi_["value_score"] if vi_ else None}
+        out[c] = w
+    return {"prices": out}
 
 
 @app.get("/v1/products/{barcode}")

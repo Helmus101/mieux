@@ -37,6 +37,16 @@ export default function Alternatives() {
   const [rk, setRk] = useState('value'), [hidden, setHidden] = useState<string[]>([]);
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // Cards with no price: approximate web price (and supermarkets), fetched in batches of 8 and shown as each arrives.
+  const [webP, setWebP] = useState<Record<string, any>>({});
+  useEffect(() => {
+    const rows = (['value', 'budget', 'quality'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
+    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 24);
+    if (!want.length) return;
+    let live = true;
+    (async () => { for (let i = 0; i < want.length && live; i += 8) { try { const m = await api.getWebPrices(want.slice(i, i + 8)); if (live) setWebP((cur) => ({ ...cur, ...m })); } catch { /* keep going */ } } })();
+    return () => { live = false; };
+  }, [r]);
 
   useEffect(() => {
     if (!barcode || !prios.length) return;
@@ -58,7 +68,7 @@ export default function Alternatives() {
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     const q = os != null && e.product.score?.total != null ? e.product.score.total - os : null;
     if (k === 'budget') return e.price100 != null;                 // ordered by unit price: cheapest first
-    if (k === 'match') return true;                                // every scored close substitute, in score order
+    if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never the same or lower
     return e.price100 != null;                                     // value: quality-price score
   });
   const shown = listOf(rk);
@@ -162,9 +172,12 @@ export default function Alternatives() {
               <View style={{ alignItems: 'flex-end' }}>
                 {u ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>{formatCents(u.perUnitCents)}/{u.unit}{e.pack != null ? <Muted small> ({formatCents(e.pack)})</Muted> : null}</Text>
                   : e.pack != null ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>{formatCents(e.pack)}</Text> : null}
+                {!u && e.pack == null && webP[e.product.barcode] ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>~ {formatCents(Math.round(webP[e.product.barcode].per100_cents * 10))}/{isLiquid(e.product) ? 'L' : 'kg'}<Muted small> {t('score.webPrice')}</Muted></Text> : null}
+                {!u && e.pack == null && webP[e.product.barcode]?.value_score != null ? <Text style={{ color: c.mut, fontWeight: '600', fontSize: 13 }}>{t('score.pq')} ≈ {webP[e.product.barcode].value_score}</Text> : null}
                 {dif ? <Text style={{ color: dif.tone, fontWeight: '600', fontSize: 13 }}>{dif.text}</Text> : null}
               </View>
             </Row>
+            {!(e.product.chains?.length) && webP[e.product.barcode]?.chains?.length > 0 ? <Row wrap style={{ marginTop: 8 }}>{webP[e.product.barcode].chains.slice(0, 6).map((id: string) => <ChainBadge key={id} id={id} />)}</Row> : null}
             {e.product.chains?.length > 0 ? <Row wrap style={{ marginTop: 8 }}>{e.product.chains.slice(0, 6).map((id: string) => <ChainBadge key={id} id={id} />)}{e.product.chains.length > 6 ? <Muted small>+{e.product.chains.length - 6}</Muted> : null}</Row> : null}
             <Button small plain onPress={() => { hx.light(); setDetail(e); }}>{t('simple.moreInfo')}</Button>
           </Card>);
