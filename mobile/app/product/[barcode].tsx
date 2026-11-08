@@ -126,10 +126,23 @@ export default function Product() {
           <View style={{ flex: 1 }}><Muted>{p.brand}</Muted><Text style={{ color: c.ink, fontSize: 25, fontWeight: '800', letterSpacing: -0.5 }}>{p.name}</Text><Muted>{p.quantityText}</Muted></View>
         </Row>
         {p.score ? <>
-          <Row spread style={{ marginTop: 8 }}>
-            <Text style={{ color: p.score.tone === 'b' ? c.bad : p.score.tone === 'w' ? c.warn : c.accent, fontSize: 44, fontWeight: '800' }}>{p.score.total}<Text style={{ fontSize: 15, color: c.mut }}>{t('score.outOf')}</Text></Text>
-            <View style={{ alignItems: 'flex-end' }}><Text style={{ color: c.ink, fontWeight: '700' }}>{t('score.' + p.score.band)}</Text><Muted small>{t('score.title')}</Muted></View>
-          </Row>
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+            <View style={{ flex: 1, backgroundColor: c.tint, borderRadius: 14, padding: 12 }}>
+              <Muted small>{t('score.title')}</Muted>
+              <Text style={{ color: p.score.tone === 'b' ? c.bad : p.score.tone === 'w' ? c.warn : c.accent, fontSize: 40, fontWeight: '800' }}>{p.score.total}<Text style={{ fontSize: 14, color: c.mut }}>{t('score.outOf')}</Text></Text>
+              <Text style={{ color: c.ink, fontWeight: '700' }}>{t('score.' + p.score.band)}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: c.tint, borderRadius: 14, padding: 12 }}>
+              <Muted small>{t('score.pq')}</Muted>
+              {pc?.value ? <>
+                <Text style={{ color: pc.value.value_score >= 65 ? c.accent : pc.value.value_score >= 40 ? c.warn : c.bad, fontSize: 40, fontWeight: '800' }}>{pc.value.value_score}<Text style={{ fontSize: 14, color: c.mut }}>{t('score.outOf')}</Text></Text>
+                <Text style={{ color: c.ink, fontWeight: '700' }}>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</Text>
+              </> : <>
+                <Text style={{ color: c.mut, fontSize: 40, fontWeight: '800' }}>–</Text>
+                <Text style={{ color: c.mut, fontWeight: '700' }}>{t('score.pqNone')}</Text>
+              </>}
+            </View>
+          </View>
           <ScoreBar total={p.score.total} />
           <Muted small>{t('score.indicative')}</Muted>
           {(p.score.additives?.items ?? []).some((x: any) => x.level === 'C' || x.level === 'D') ? <Row wrap style={{ marginTop: 8 }}>
