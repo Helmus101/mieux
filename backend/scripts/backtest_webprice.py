@@ -1,6 +1,6 @@
 """How accurate is the Google-grounded Gemini price? Compares it with prices we KNOW (retailer exports and Open Prices, last 90 days).
 
-    cd backend && GEMINI_API_KEY=... .venv/bin/python -m scripts.backtest_webprice [N]       # default 200 products, a few cents of API cost each
+    cd backend && .venv/bin/python -m scripts.backtest_webprice [N]       # key from backend/.env (GEMINI_API_KEY=...); default 200 products
 
 Prints the share found, and the error of price per 100 g/ml: median, and the share within 10 %, 20 %, 30 %. Decide with these numbers whether to ship."""
 import json
@@ -14,7 +14,19 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
 
 
+def _load_env() -> None:
+    """Reads backend/.env (KEY=value lines); real environment variables win."""
+    path = os.path.join(HERE, ".env")
+    if os.path.exists(path):
+        for line in open(path, encoding="utf-8"):
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
 def main(n: int = 200) -> None:
+    _load_env()
     from app import value, webprice
     from app.products import normalize
     if not webprice.enabled():
