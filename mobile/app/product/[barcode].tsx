@@ -25,7 +25,7 @@ export default function Product() {
   const c = useTheme();
   const { barcode } = useLocalSearchParams<{ barcode: string }>();
   const { go, back } = useNav();
-  const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare), priorities = useProfile((s) => s.priorities), country = useProfile((s) => s.country);
+  const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare), country = useProfile((s) => s.country);
   const hist = useHistory();
   const [d, setD] = useState<any>(null), [err, setErr] = useState<{ kind: ErrKind; msg: string } | null>(null);
   const [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null);
@@ -166,21 +166,6 @@ export default function Product() {
         <Text style={{ color: c.accent, fontSize: 22 }}>→</Text>
       </Pressable>
 
-      {p.score && priorities.length > 0 ? <Card>
-        <Muted small>{t('priorities.title')}</Muted>
-        {priorities.map((k) => {
-          const aligned = (() => {
-            if (k === 'additives') return !(p.score.additives?.items ?? []).some((x: any) => x.level === 'C' || x.level === 'D');
-            if (k === 'overall' || k === 'value') return p.score.total >= 50;
-            if (k === 'budget') return head.kind !== 'none' && head.perKgCents !== undefined && head.perKgCents < 500;
-            if (k === 'sugars') { const dim = p.score.dimensions?.find((x: any) => x.key === 'sugars'); return dim && dim.score >= 50; }
-            if (k === 'protein') { const dim = p.score.dimensions?.find((x: any) => x.key === 'protein'); return dim && dim.score >= 50; }
-            if (k === 'fibre') { const dim = p.score.dimensions?.find((x: any) => x.key === 'fibre'); return dim && dim.score >= 50; }
-            return true;
-          })();
-          return <Row key={k} style={{ paddingVertical: 8 }}><Text style={{ fontSize: 18, color: aligned ? c.accent : c.bad }}>{aligned ? '✓' : '✗'}</Text><Text style={{ color: c.ink, flex: 1 }}>{t('priorities.' + k)}</Text></Row>;
-        })}
-      </Card> : null}
 
       {p.score ? <Collapsible title={t('sdim.title')}>
         {p.score.parts ? <Muted small>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</Muted> : null}

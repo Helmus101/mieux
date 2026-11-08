@@ -24,7 +24,6 @@ export default function Product() {
   const { barcode } = useParams<{ barcode: string }>();
   const { go, back } = useNav();
   const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare);
-  const priorities = useProfile((s) => s.priorities);
   const country = useProfile((s) => s.country);
   const hist = useHistory();
   const [d, setD] = useState<any>(null), [err, setErr] = useState<{ kind: 'notfound' | 'notfood' | 'invalid' | 'server' | 'network' | 'rate' | 'auth'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0), [basis, setBasis] = useState<'100' | 'serving' | 'pack'>('100');
@@ -107,47 +106,6 @@ export default function Product() {
       </Card>
       <KnowCard p={p} />
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
-      {p.score && priorities.length > 0 && (
-        <Card>
-          <p className="mut sm" style={{ margin: '0 0 8px' }}>{t('priorities.title')}</p>
-          {priorities.map((key) => {
-            const aligned = (() => {
-              if (key === 'additives') {
-                return !(p.score.additives?.items ?? []).some((x: any) => x.level === 'C' || x.level === 'D');
-              }
-              if (key === 'overall' || key === 'value') {
-                return p.score.total >= 50;
-              }
-              if (key === 'budget') {
-                return head.kind !== 'none' && head.perKgCents !== undefined && head.perKgCents < 500;
-              }
-              if (key === 'sugars') {
-                const dim = p.score.dimensions?.find((d: any) => d.key === 'sugars');
-                return dim && dim.score >= 50;
-              }
-              if (key === 'protein') {
-                const dim = p.score.dimensions?.find((d: any) => d.key === 'protein');
-                return dim && dim.score >= 50;
-              }
-              if (key === 'fibre') {
-                const dim = p.score.dimensions?.find((d: any) => d.key === 'fibre');
-                return dim && dim.score >= 50;
-              }
-              return true;
-            })();
-            return (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', padding: '8px 0' }}>
-                <span style={{ 
-                  marginRight: 12, 
-                  fontSize: 18,
-                  color: aligned ? 'var(--accent)' : 'var(--bad)'
-                }}>{aligned ? '✓' : '✗'}</span>
-                <span style={{ flex: 1 }}>{t('priorities.' + key)}</span>
-              </div>
-            );
-          })}
-        </Card>
-      )}
       {p.score && <Collapsible open={false} title={t('sdim.title')}>
           {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
         <Row wrap><NutriScore grade={p.nutriScore} /></Row>
