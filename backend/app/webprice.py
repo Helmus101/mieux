@@ -7,6 +7,7 @@ import os
 import re
 import sqlite3
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Any, Callable, Dict, Optional, Tuple
@@ -51,9 +52,19 @@ Http = Callable[[str, str, Dict[str, str], Optional[Dict[str, Any]]], Dict[str, 
 
 
 def _http(method: str, url: str, headers: Dict[str, str], body: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, headers=headers, method=method)
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return json.loads(r.read())
+    for attempt in range(3):
+        req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=40) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 500, 502, 503) or attempt == 2:
+                raise
+        except (urllib.error.URLError, TimeoutError, OSError):
+            if attempt == 2:
+                raise
+        time.sleep(1.5 * (attempt + 1))
+    return {}
 
 
 BRAVE = "https://api.search.brave.com/res/v1/web/search"
