@@ -1466,7 +1466,7 @@ def _with_confidence(pt):
     return {**pt, "confidence": value.price_confidence(pt)} if pt else None
 
 
-_WARM = ThreadPoolExecutor(max_workers=2)
+_WARM = ThreadPoolExecutor(max_workers=8)
 
 
 def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str, Any]], loc: Optional[Loc] = None, approximate: bool = False, only: Optional[List[str]] = None):
@@ -1510,13 +1510,19 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
             cq, sub = c.get("quantity"), c.get("substitution")
             if cq and c["barcode"] not in prices and c["barcode"] != orig["barcode"] and (not oq or cq["unit"] == oq["unit"]) and (sub is None or sub.get("level") in (1, 2)):
                 todo.append(c)
-            if len(todo) >= 10:
+            if len(todo) >= 9:
                 break
         if todo:
-            found = [webprice.cached_only(c) for c in todo]                 # instant: never wait on a search inside a request
-            for c, w in zip(todo, found):
-                if w is None:
-                    _WARM.submit(webprice.lookup, c)                         # search in the background: next time it is stored
+            # Stored prices are instant. Missing ones are searched in parallel, but the request waits at most ~7 s in total (the scanned product first);
+            # a search still running keeps going in the background and is stored for next time.
+            from concurrent.futures import wait as _wait
+            found = [webprice.cached_only(c) for c in todo]
+            futs = {i: _WARM.submit(webprice.lookup, c) for i, (c, w) in enumerate(zip(todo, found)) if w is None}
+            if futs:
+                _wait(list(futs.values()), timeout=7)
+                for i, f in futs.items():
+                    if f.done() and not f.exception():
+                        found[i] = f.result()
             for c, w in zip(todo, found):
                 if not w or w.get("per100_cents") is None:
                     continue
