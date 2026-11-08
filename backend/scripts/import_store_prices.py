@@ -90,7 +90,7 @@ def main(paths, out: str = OUT) -> None:
             chain = (host.split(".")[0] if "/" in src or src.count(".") > 1 else src.split(".")[0]).strip().capitalize() or "Auchan"
             store = data.get("store")
             data = [{"chain": chain, "storeExtId": (f"{chain.lower()}-{store}" if store else f"{chain.lower()}-{pc}"), "storeName": store or f"{chain}.fr {pc}", "storeAddress": data.get("delivery_context") or pc, "ean": r.get("ean"),
-                     "price": r.get("price_eur") if r.get("price_eur") is not None else r.get("price"), "currency": "EUR", "status": "ACTIVE" if r.get("available", True) else "OUT", "updatedAt": data.get("collected_at")}
+                     "price": r.get("price_eur") if r.get("price_eur") is not None else r.get("price"), "currency": "EUR", "status": "ACTIVE" if r.get("available", True) else "OUT", "updatedAt": data.get("collected_at") or __import__("datetime").datetime.fromtimestamp(os.path.getmtime(path)).isoformat()}
                     for r in data["products"]]
         for x in (normalise(r, path) for r in data):
             if x:
