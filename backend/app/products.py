@@ -8,7 +8,7 @@ from .value import parse_quantity
 from .score import quality
 from .taxonomy import classify
 
-SCHEMA_VERSION = 27  # bump when normalize() output changes so cached rows are refreshed
+SCHEMA_VERSION = 28  # bump when normalize() output changes so cached rows are refreshed
 CORE = ["energyKcal100g", "fat100g", "saturatedFat100g", "carbohydrates100g", "sugars100g", "protein100g", "salt100g"]
 NS_RANK = {"a": 5, "b": 4, "c": 3, "d": 2, "e": 1}
 
@@ -132,7 +132,7 @@ def _normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
         "_v": SCHEMA_VERSION, "id": str(raw.get("code")), "barcode": str(raw.get("code")), "name": raw.get("product_name") or "Unnamed product",
         "brand": raw.get("brands") or None, "category": cats[-1] if cats else None, "categories": cats,
         "imageUrl": raw.get("image_front_small_url") or None, "quantityText": raw.get("quantity") or None,
-        "quantity": (lambda q: {"amount": q[0], "unit": q[1]} if q else None)(parse_quantity(raw.get("quantity"), raw.get("product_quantity"), raw.get("product_quantity_unit"))),
+        "quantity": (lambda q: {"amount": q[0], "unit": q[1]} if q else None)(parse_quantity(raw.get("quantity"), raw.get("product_quantity"), raw.get("product_quantity_unit")) or parse_quantity(raw.get("product_name"))),   # no pack size recorded: read it from the name ("... 50g")
         "nutriments": nutriments, "micronutrients": micronutrients(nm), "novaGroup": _nova(raw, ing, cats)[0], "novaEstimated": _nova(raw, ing, cats)[1],
         "servingG": (lambda v: v if v and v > 0 else None)(_serving(raw.get("serving_quantity"))),
         "countries": [c.replace("en:", "") for c in raw.get("countries_tags") or []],

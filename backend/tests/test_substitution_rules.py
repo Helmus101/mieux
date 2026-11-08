@@ -288,3 +288,19 @@ def test_brand_chains_fill_in_chains_for_a_known_brand(tmp_path, monkeypatch):
     monkeypatch.setenv("BRAND_CHAINS", str(f)); monkeypatch.setattr(main, "_BRAND_CHAINS", None)
     assert main._brand_chain_ids("Bonne Maman") == ["carrefour", "auchan"]     # Lidl's 2 sightings are noise
     assert main._brand_chain_ids("Unknown brand") == []
+
+
+def test_closest_list_prefers_priced_products_among_equally_close_ones():
+    base = {"categories": ["en:dairies", "en:yogurts", "en:plain-yogurts"], "nutriments": {"energyKcal100g": 60, "sugars100g": 4}}
+    o = {**base, "barcode": "o", "name": "Yaourt nature", "brand": "A", "score": {"total": 70}}
+    nop = {**base, "barcode": "n", "name": "Yaourt nature bio", "brand": "B", "score": {"total": 70}}
+    yes = {**base, "barcode": "y", "name": "Yaourt nature bio", "brand": "C", "score": {"total": 70}}
+    out = engine.rank_closest(o, [nop, yes], {"y": 150.0}, {"y": {"source": "open_prices", "date": "2026-11-08"}})
+    assert [e["product"]["barcode"] for e in out][0] == "y"
+
+
+def test_pack_size_is_read_from_the_name_when_the_record_has_none():
+    from app.products import normalize
+    q = normalize({"code": "3770011743131", "product_name": "Barre Energy beurre cacahuètes chocolat 50g", "categories_tags": ["en:snacks"], "nutriments": {}})["quantity"]
+    assert q == {"amount": 50.0, "unit": "g"}
+    assert normalize({"code": "1", "product_name": "Barre", "quantity": "6 x 25 g", "categories_tags": ["en:snacks"], "nutriments": {}})["quantity"]["amount"] == 150.0

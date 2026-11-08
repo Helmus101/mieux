@@ -38,9 +38,13 @@ function frameRegion(video: HTMLVideoElement, frame?: HTMLElement | null) {
 }
 
 /** Starts scanning an already-playing video. Returns a stop function. Uses the native detector when present (fast), else ZXing on a small centre crop. */
-export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: string) => void, frame?: HTMLElement | null): Promise<() => void> {
-  let stopped = false, last = 0;
-  const done = (c: string) => { if (stopped || !validBarcode(c)) return false; stopped = true; try { navigator.vibrate?.(30); } catch { /* ignore */ } onCode(c); return true; };
+/** `continuous`: keeps reading after a hit; the same code is ignored for 3 s so holding the phone still does not repeat it. */
+export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: string) => void, frame?: HTMLElement | null, continuous = false): Promise<() => void> {
+  let stopped = false, last = 0, lastCode = '', lastAt = 0;
+  const done = (c: string) => {
+    if (stopped || !validBarcode(c)) return false;
+    if (continuous) { const now = Date.now(); if (c === lastCode && now - lastAt < 3000) return false; lastCode = c; lastAt = now; try { navigator.vibrate?.(30); } catch { /* ignore */ } onCode(c); return false; }
+    stopped = true; try { navigator.vibrate?.(30); } catch { /* ignore */ } onCode(c); return true; };
   if ('BarcodeDetector' in window) {
     const det = new (window as any).BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
     const cv0 = document.createElement('canvas'), cx0 = cv0.getContext('2d', { willReadFrequently: true })!;

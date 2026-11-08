@@ -414,3 +414,12 @@ img.blur-in.ready{opacity:1;filter:none}
 .cmdk button.on{background:var(--tint)}
 kbd{font:600 12px ui-monospace,Menlo,monospace;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:var(--mut)}
 @media(prefers-color-scheme:dark){.cmdk{background:#1c1f1d}}
+
+/* quick card over the camera after a scan */
+.peek{position:absolute;left:12px;right:12px;bottom:calc(150px + env(safe-area-inset-bottom));z-index:5;display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);color:var(--ink);border-radius:18px;box-shadow:0 10px 36px rgba(0,0,0,.35);cursor:pointer;touch-action:pan-x;animation:peekin .22s ease;min-height:64px}
+.peek img{width:48px;height:48px;object-fit:contain;border-radius:10px;background:#fff;flex:none}
+.peek-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.peek-main b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peek-score{font-size:30px;font-weight:700;line-height:1;text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+.peek-score small{font-size:12px;font-weight:600;margin-top:3px}
+@keyframes peekin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}

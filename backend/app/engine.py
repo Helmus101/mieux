@@ -833,7 +833,12 @@ def rank_closest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
             continue
         enriched.append((level, c))
     # Sort by level (1 first, then 2), then by similarity
-    enriched.sort(key=lambda x: (x[0], -deep_similarity(orig, x[1])))
+    # Within a match level, products about equally similar (same 0.1 band) are ordered priced-first: a card with a price is more useful.
+    def _key(x):
+        sim = deep_similarity(orig, x[1])
+        has_price = (prices or {}).get(x[1].get("barcode")) is not None and ((points or {}).get(x[1].get("barcode")) or {}).get("source") != "estimate"
+        return (x[0], -round(sim * 10) / 10, 0 if has_price else 1, -sim)
+    enriched.sort(key=_key)
     close, seen_variant, per_brand = [], set(), {}
     for level, c in enriched:
         vk = variant_key(c)

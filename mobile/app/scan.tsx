@@ -10,6 +10,7 @@ import { useProfile } from '@shared/stores';
 import { Button, Card, LargeTitle, Muted, Row, Screen, useTheme } from '../src/ui';
 import { routes, useNav } from '../src/nav';
 import * as hx from '../src/haptics';
+import ScanPeek from '../src/ScanPeek';
 
 // Products are identified by scanning their barcode only: no typed codes, no name search.
 export default function Scan() {
@@ -24,6 +25,8 @@ export default function Scan() {
   const done = useRef(false);
   const [msg, setMsg] = useState('');
   const [picking, setPicking] = useState(false);
+  const [peek, setPeek] = useState<string | null>(null);
+  const last = useRef({ code: '', at: 0 });
 
   const open = (code: string) => {
     if (forCompare) { addCompare(code); router.replace(routes.compare); }
@@ -31,10 +34,16 @@ export default function Scan() {
   };
   const onCode = ({ data }: { data: string }) => {
     if (done.current || picking || !validBarcode(data)) return; // the check digit filters mis-reads; the first valid code wins
-    done.current = true; hx.success();
-    api.getProduct(data).catch(() => undefined);
-    open(data);
-    setTimeout(() => { done.current = false; }, 2000);
+    if (forCompare) {
+      done.current = true; hx.success();
+      api.getProduct(data).catch(() => undefined);
+      open(data);
+      setTimeout(() => { done.current = false; }, 2000);
+      return;
+    }
+    if (data === last.current.code && Date.now() - last.current.at < 3000) return;    // holding the phone still does not repeat the card
+    last.current = { code: data, at: Date.now() }; hx.success();
+    setPeek(data);      // the camera keeps running; the card shows the product
   };
   // Same as the web scanner: a photo of the barcode works when the live camera does not.
   const fromGallery = async () => {
@@ -63,6 +72,7 @@ export default function Scan() {
     <View style={{ flex: 1, backgroundColor: '#000' }}>
       <CameraView style={StyleSheet.absoluteFill} facing="back" enableTorch={torch} onBarcodeScanned={onCode} barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'] }} />
       <View pointerEvents="none" style={{ position: 'absolute', left: '12%', right: '12%', top: '32%', bottom: '38%', borderWidth: 2, borderColor: '#ffffffd9', borderRadius: 16 }} />
+      {peek && !forCompare ? <ScanPeek code={peek} onClose={() => setPeek(null)} onOpen={(code) => { setPeek(null); go(routes.product(code)); }} /> : null}
       <SafeAreaView pointerEvents="box-none" style={{ flex: 1, justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 }}><Pressable onPress={close} accessibilityLabel={t('common.back')} hitSlop={12}><Text style={{ color: '#fff', fontSize: 28 }}>✕</Text></Pressable></View>
         <Text style={{ color: '#fff', textAlign: 'center', fontSize: 16, fontWeight: '600', marginTop: 16, textShadowColor: '#0008', textShadowRadius: 6 }}>{forCompare ? t('compare.scanForCompare') : t('scan.point')}</Text>
