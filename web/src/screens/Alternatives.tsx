@@ -140,9 +140,8 @@ export default function Alternatives() {
             <Row>{e.product.imageUrl && <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={56} height={56} style={{ objectFit: 'contain', borderRadius: 12, background: '#fff' }} />}
               <div className="grow"><b>{i + 1}. {e.product.name}</b><Muted>{e.product.brand}</Muted></div><SaveButton product={e.product} /></Row>
             <Row spread>
-              {e.product.score ? <span><b style={{ fontSize: 28, letterSpacing: -.5 }}>{e.product.score.total}</b><span className="mut sm">{t('score.outOf')} · {t('score.' + e.product.score.band)}</span>
-                {r?.original?.score && (() => { const d = e.product.score.total - r.original.score.total; return <span className="sm" style={{ marginLeft: 8, fontWeight: 600, color: d > 0 ? 'var(--accent)' : d < 0 ? 'var(--bad)' : 'var(--mut)' }}>{d === 0 ? t('score.same') : `${d > 0 ? '+' : '−'}${Math.abs(d)} ${t('score.pts')}`}</span>; })()}</span> : <span />}
-              {e.vs != null && <span className="pqchip" title={t('score.pqHint')}><b>{e.vs}</b><small>{t('score.pq')}</small>{e.better != null && <em className={e.better ? 'up' : 'down'}>{e.better ? t('score.pqBetter') : t('score.pqWorse')}</em>}</span>}
+              {e.product.score ? <span><b style={{ fontSize: 28, letterSpacing: -.5 }}>{e.product.score.total}</b><span className="mut sm">{t('score.outOf')} · {t('score.' + e.product.score.band)}</span></span> : <span />}
+              {e.vs != null && <span className="pqchip" title={t('score.pqHint')}><b>{e.vs}</b><small>{t('score.pq')}</small></span>}
               <div style={{ textAlign: 'right' }}>
                 {(() => {
                   const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
@@ -169,11 +168,6 @@ export default function Alternatives() {
                 })()}
               </div>
             </Row>
-            {(() => {
-              const why = [e.why && String(e.why).length <= 120 ? e.why : '', e.conf && !e.estimated && e.price100 != null ? t('alt.conf_' + e.conf) : ''].filter(Boolean).join(' · ');
-              return why ? <p className="mut sm" style={{ margin: '6px 0 0' }}>{why}</p> : null;
-            })()}
-            {e.avail && e.avail.state === 'observed_at_store' && <p style={{ margin: '6px 0 0' }}><Pill tone={e.avail.state === 'observed_at_store' ? 'g' : 'w'}>{e.avail.state === 'observed_at_store' ? t('avail.observed', { s: e.avail.store ?? '?', d: e.avail.date ?? '' }) : e.avail.state === 'seen_at_chain' ? t('avail.chain', { c: e.avail.chain }) : t('avail.listed')}</Pill></p>}
             {e.product.chains?.length > 0 && <div className="logos" style={{ marginTop: 8 }}>{e.product.chains.slice(0, 6).map((c: string) => <ChainLogo key={c} id={c} size={22} />)}{e.product.chains.length > 6 && <span className="mut sm">+{e.product.chains.length - 6}</span>}</div>}
             <Button small plain onPress={() => { haptic('tap'); setDetail(e); }}>{t('simple.moreInfo')}</Button>
           </Card>);

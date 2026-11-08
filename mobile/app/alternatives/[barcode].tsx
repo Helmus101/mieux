@@ -146,7 +146,6 @@ export default function Alternatives() {
       {r && !busy ? shown.map((e: any, i: number) => {
         const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
         const dif = diffOf(e);
-        const why = [e.why && String(e.why).length <= 120 ? e.why : '', e.conf && !e.estimated && e.price100 != null ? t('alt.conf_' + e.conf) : ''].filter(Boolean).join(' · ');
         return (
           <Card key={e.product.id}>
             <Row>
@@ -166,12 +165,6 @@ export default function Alternatives() {
                 {dif ? <Text style={{ color: dif.tone, fontWeight: '600', fontSize: 13 }}>{dif.text}</Text> : null}
               </View>
             </Row>
-            {why ? <Muted small>{why}</Muted> : null}
-            {e.avail && e.avail.state === 'observed_at_store' ? <View style={{ marginTop: 6 }}>
-              <Pill tone={e.avail.state === 'observed_at_store' ? 'g' : 'w'}>
-                {e.avail.state === 'observed_at_store' ? t('avail.observed', { s: e.avail.store ?? '?', d: e.avail.date ?? '' }) : e.avail.state === 'seen_at_chain' ? t('avail.chain', { c: e.avail.chain }) : t('avail.listed')}
-              </Pill>
-            </View> : null}
             {e.product.chains?.length > 0 ? <Row wrap style={{ marginTop: 8 }}>{e.product.chains.slice(0, 6).map((id: string) => <ChainBadge key={id} id={id} />)}{e.product.chains.length > 6 ? <Muted small>+{e.product.chains.length - 6}</Muted> : null}</Row> : null}
             <Button small plain onPress={() => { hx.light(); setDetail(e); }}>{t('simple.moreInfo')}</Button>
           </Card>);
