@@ -423,3 +423,5 @@ kbd{font:600 12px ui-monospace,Menlo,monospace;background:var(--card);border:1px
 .peek-score{font-size:30px;font-weight:700;line-height:1;text-align:right;display:flex;flex-direction:column;align-items:flex-end}
 .peek-score small{font-size:12px;font-weight:600;margin-top:3px}
 @keyframes peekin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.pq{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-weight:600}
+.pq b{font-size:22px}.pq small{font-size:12px;font-weight:500;color:var(--mut)}

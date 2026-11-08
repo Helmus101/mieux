@@ -316,3 +316,35 @@ def test_pantry_staples_have_their_own_types():
     pesto, soy = cases[0], cases[1]
     assert taxonomy.substitution({"name": pesto[0], "categories": pesto[1]}, {"name": "Pesto rosso", "categories": ["en:red-pestos"]})["level"] == 1
     assert taxonomy.substitution({"name": pesto[0], "categories": pesto[1]}, {"name": soy[0], "categories": soy[1]}) is None
+
+
+def _install_reference():
+    from app import value_index
+    score_q = [float(x) for x in range(10, 91, 2)]          # 41 quantiles: scores 10..90
+    price_q = [20.0 + 5.0 * i for i in range(41)]            # 20..220 cents per 100 g
+    value_index.set_reference({"toy": {"n": 500, "score_q": score_q, "price_q": price_q}})
+    return value_index
+
+
+def test_price_quality_score_needs_both_quality_and_low_price():
+    vi = _install_reference()
+    try:
+        cheap_good = vi.value_index("toy", 85, 40)["value_score"]
+        cheap_poor = vi.value_index("toy", 15, 40)["value_score"]
+        dear_good = vi.value_index("toy", 85, 200)["value_score"]
+        assert cheap_good > 75 and cheap_poor < 35 and dear_good < 35
+        assert vi.value_index("toy", 60, 40)["value_score"] > vi.value_index("toy", 60, 120)["value_score"]       # cheaper is better at equal quality
+        assert vi.value_index("toy", 80, 100)["value_score"] > vi.value_index("toy", 50, 100)["value_score"]     # better is better at equal price
+    finally:
+        vi.set_reference(None)
+
+
+def test_price_quality_score_is_stable_and_damped_for_poor_nutrition():
+    vi = _install_reference()
+    try:
+        assert vi.value_index("toy", 70, 60) == vi.value_index("toy", 70, 60)          # no dependence on any search
+        assert vi.value_index("unknown type", 70, 60) is None and vi.value_index("toy", None, 60) is None and vi.value_index("toy", 70, 0) is None
+        # same percentile position, but the weak product is scaled down
+        assert vi.damping(20) < vi.damping(65) == 1.0
+    finally:
+        vi.set_reference(None)

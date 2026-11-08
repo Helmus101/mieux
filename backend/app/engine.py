@@ -2,7 +2,7 @@
 import math
 from typing import Any, Dict, List, Optional, Tuple
 
-from . import taxonomy
+from . import value_index, taxonomy
 from .i18n import tr
 from .products import NS_RANK
 
@@ -766,7 +766,13 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
     if include_orig:
         cohort_items.append(("__orig", float(o_sc0), float(orig_price)))
     
+    # Fixed per-type reference first (stable whatever the search returned); the old cohort percentile only where a type has no reference.
+    type_id = taxonomy.classify(orig).get("type")
     pct_map = percentile_value_scores(cohort_items)
+    for key, sc_, pr_ in cohort_items:
+        fixed = value_index.value_index(type_id, sc_, pr_)
+        if fixed:
+            pct_map[key] = fixed
     orig_pct = pct_map.get("__orig")
     orig_val_score = orig_pct["value_score"] if orig_pct else None
     
@@ -813,7 +819,7 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
         })
     
     # Sort: non-dominated first, then value index descending, then confidence, then quality
-    rows.sort(key=lambda r: (bool(r["dominated"]), -r["value_score"], -r["conf_rank"], -(r["quality_score"] or 0)))
+    rows.sort(key=lambda r: (-r["value_score"], bool(r["dominated"]), -r["conf_rank"], -(r["quality_score"] or 0)))   # the index already ranks a dominated product below its dominator
     result = rows[:10]  # strict order: brand variety must never move a cheaper or better product down
     return {"items": result, "no_baseline": no_baseline}
 

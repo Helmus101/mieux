@@ -94,6 +94,7 @@ export default function Product() {
         {p.score ? <>
           <Row spread><div className="scorebig" style={{ color: p.score.tone === 'b' ? 'var(--bad)' : p.score.tone === 'w' ? 'var(--warn)' : 'var(--accent)' }}>{p.score.total}<small>{t('score.outOf')}</small></div><span style={{ textAlign: 'right' }}><b>{t('score.' + p.score.band)}</b><br /><span className="mut sm">{t('score.title')}</span></span></Row>
           <ScoreBar total={p.score.total} label={t('score.spectrum')} />
+          {pc?.value && <div className="pq" title={t('score.pqHint')}><span>{t('score.pq')}</span><b style={{ color: pc.value.value_score >= 65 ? 'var(--accent)' : pc.value.value_score >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pc.value.value_score}<small>/100</small></b></div>}
           <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('score.indicative')}</p>
           {(p.score.additives?.items ?? []).some((x: any) => x.level === 'C' || x.level === 'D') && <div className="flags">{(p.score.additives.items as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 4).map((x) => <span key={x.code} className={'pill ' + (x.level === 'D' ? 'b' : 'w')} onClick={() => setSheet(x.code)}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</span>)}</div>}
           {p.score.incomplete && <div className="flags"><span className="pill g">{t('sdim.incomplete')}</span></div>}

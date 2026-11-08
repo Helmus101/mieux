@@ -35,7 +35,7 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-from . import chains as _chains, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
+from . import chains as _chains, value_index, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
@@ -650,11 +650,13 @@ def _price_context(s: Session, uid: str, p: Dict[str, Any], lang: str = "fr", ap
         e = estimate.estimate_per100(p, [])
         if e:
             est = {"per100_cents": e[0], "basis": e[1], "chains": estimate.chain_prices(e[0], q[0] if q else None)}
+    real_base = (value.per100(own["unit_price_cents"], q) if (own and q) else None) or (comm["per100_cents"] if comm else None)    # observed prices only, never an estimate
+    pq_score = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), real_base)
     hist = _price_history(s, uid, p["id"])
     vals = sorted(h["per100_cents"] for h in hist if h["per100_cents"] is not None and value.fresh(h["date"]))
     summary = {"n": len(hist), "median_per100_cents": vals[len(vals) // 2] if vals else None, "latest": hist[0] if hist else None}
     return {"history": hist, "summary": summary, "estimate": est, "your_last": own and {**own, "per100_cents": value.per100(own["unit_price_cents"], q) if q else None},
-            "community": comm, "indicators": engine.indicators(p, base), "pack_size": p.get("quantity"),
+            "community": comm, "indicators": engine.indicators(p, base), "pack_size": p.get("quantity"), "value": pq_score,
             "note": tr(lang, "pc_note")}
 
 
