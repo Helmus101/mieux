@@ -237,6 +237,12 @@ def _parse(text: str) -> Optional[Dict[str, Any]]:
     return d if d.get("found") is not False and isinstance(d.get("price_eur"), (int, float)) else None
 
 
+def cached_only(product: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """The stored web price (fresh or older, marked stale) with no network call, so a request never waits on a search."""
+    fresh, data = _cached(str(product.get("barcode") or ""))
+    return data if (data and fresh) else ({**data, "stale": True} if data else None)
+
+
 def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True, http: Optional[Http] = None) -> Optional[Dict[str, Any]]:
     """{per100_cents, pack_cents, store, source_urls, date, source:'web_search', approximate:True} or None."""
     global last_error

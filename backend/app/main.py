@@ -1466,6 +1466,9 @@ def _with_confidence(pt):
     return {**pt, "confidence": value.price_confidence(pt)} if pt else None
 
 
+_WARM = ThreadPoolExecutor(max_workers=2)
+
+
 def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str, Any]], loc: Optional[Loc] = None, approximate: bool = False, only: Optional[List[str]] = None):
     """Price per 100 g/ml for the original and a list of products: your own recent receipt/entry first, else a real community observation.
     DB access stays on this thread (sessions are not thread-safe); only the network calls fan out. Estimates only when approximate=True."""
@@ -1510,8 +1513,10 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
             if len(todo) >= 10:
                 break
         if todo:
-            with ThreadPoolExecutor(max_workers=4) as ex:
-                found = list(ex.map(lambda c: webprice.lookup(c), todo))
+            found = [webprice.cached_only(c) for c in todo]                 # instant: never wait on a search inside a request
+            for c, w in zip(todo, found):
+                if w is None:
+                    _WARM.submit(webprice.lookup, c)                         # search in the background: next time it is stored
             for c, w in zip(todo, found):
                 if not w or w.get("per100_cents") is None:
                     continue
