@@ -41,7 +41,7 @@ export default function Alternatives() {
   useEffect(() => {
     if (!barcode || !prios.length) return;
     setBusy(true); setErr(null);
-    api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 10, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) })
+    api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 20, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) })
       .then((x: any) => setR(x))
       .catch((e: unknown) => setErr(friendlyError(e)))
       .finally(() => setBusy(false));

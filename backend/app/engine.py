@@ -491,6 +491,7 @@ def pe_of(r, field):
 
 
 # Largest quality-score drop (out of 100) a 'cheaper' or 'best value' pick may have against the scanned product.
+MAX_SHOWN = 20     # most alternatives returned per tab
 QUALITY_FLOOR = 5
 # Smallest quality gain (out of 100) that counts as a genuine improvement: one point is noise, not a better product.
 QUALITY_IMPROVEMENT = 5
@@ -656,7 +657,7 @@ def rank_cheapest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict
     
     # Sort: lowest unit price first, higher price confidence, higher quality score
     rows.sort(key=lambda r: (r["price_per_100_cents"], -r["conf_rank"], -(r["quality_score"] or 0)))
-    result = rows[:10]  # strict order: brand variety must never move a cheaper or better product down
+    result = rows[:MAX_SHOWN]  # strict order: brand variety must never move a cheaper or better product down
     return {"items": result, "no_baseline": no_baseline}
 
 
@@ -708,7 +709,7 @@ def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
     
     # Sort strictly by Mieux quality score descending, then completeness, then similarity
     rows.sort(key=lambda r: (-r["quality_score"], -r["completeness"], -r["similarity"]))
-    return brand_variety(rows, lambda r: r["product"].get("brand"))[:10]
+    return brand_variety(rows, lambda r: r["product"].get("brand"))[:MAX_SHOWN]
 
 
 def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict[str, float],
@@ -820,7 +821,7 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
     
     # Sort: non-dominated first, then value index descending, then confidence, then quality
     rows.sort(key=lambda r: (-r["value_score"], bool(r["dominated"]), -r["conf_rank"], -(r["quality_score"] or 0)))   # the index already ranks a dominated product below its dominator
-    result = rows[:10]  # strict order: brand variety must never move a cheaper or better product down
+    result = rows[:MAX_SHOWN]  # strict order: brand variety must never move a cheaper or better product down
     return {"items": result, "no_baseline": no_baseline}
 
 
@@ -856,7 +857,7 @@ def rank_closest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
             continue
         per_brand[brand] = per_brand.get(brand, 0) + 1
         close.append(c)
-        if len(close) >= 10:
+        if len(close) >= MAX_SHOWN:
             break
     out = []
     for c in close:
@@ -925,6 +926,6 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
         "value": value_items,
         "quality": quality_items,
         "closest": closest_items,
-        "match": match_list[:10],
+        "match": match_list[:MAX_SHOWN],
         "no_baseline": no_baseline,
     }

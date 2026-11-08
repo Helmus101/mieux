@@ -25,6 +25,7 @@ export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOp
   const conflict = (d?.fit ?? []).some((x: any) => (x.priority.startsWith('allergen:') || x.priority.startsWith('diet:')) && x.status === 'conflict');
   const tone = conflict ? 'b' : sc?.tone;
   const color = tone === 'b' ? c.bad : tone === 'w' ? c.warn : c.accent;
+  const pq: number | null = d?.price_context?.value?.value_score ?? null;
   const verdict = conflict ? t('scan.peekConflict') : sc ? t('score.' + sc.band) : t('score.na');
   return (
     <Pressable onPress={() => { if (p) onOpen(code); }} accessibilityRole="button" accessibilityLabel={t('scan.peekOpen')}
@@ -33,6 +34,7 @@ export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOp
         {p.imageUrl ? <Image source={{ uri: p.imageUrl }} style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: '#fff' }} resizeMode="contain" /> : null}
         <View style={{ flex: 1 }}><Text numberOfLines={1} style={{ color: c.ink, fontWeight: '700', fontSize: 16 }}>{p.name}</Text><Text numberOfLines={1} style={{ color: c.mut }}>{p.brand ?? ''}</Text></View>
         <View style={{ alignItems: 'flex-end' }}><Text style={{ color, fontSize: 30, fontWeight: '700' }}>{sc ? sc.total : '–'}</Text><Text style={{ color, fontSize: 12, fontWeight: '600' }}>{verdict}</Text></View>
+        <View style={{ alignItems: 'flex-end' }}><Text style={{ color: pq == null ? c.mut : pq >= 65 ? c.accent : pq >= 40 ? c.warn : c.bad, fontSize: 30, fontWeight: '700' }}>{pq ?? '–'}</Text><Text style={{ color: c.mut, fontSize: 12, fontWeight: '600' }}>{t('score.pq')}</Text></View>
       </>}
     </Pressable>
   );

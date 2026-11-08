@@ -328,7 +328,7 @@ class AltReq(BaseModel):
     price_constraint: str = "any"
     excluded_allergens: Optional[List[str]] = None
     diet: Optional[str] = None
-    limit: int = Field(10, ge=1, le=10)
+    limit: int = Field(20, ge=1, le=20)
     chains: List[str] = []  # chain ids the user shops at (empty = all)
     nearby_only: bool = False  # with a location: keep only products listed at a chain that has a branch within the radius (and within the user's chains)
     strict_additives: bool = True  # strict mode (40 % nutrition + 25 % additives + 25 % ingredient quality, every additive concern one level higher)
@@ -1576,6 +1576,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         return {"state": "unknown"}, None
     for a_ in res.get("alternatives", []):
         a_["availability"], a_["store_price"] = _availability(a_["product"])
+    orig_type_ = taxonomy.classify(res.get("original") or {}).get("type") if res.get("original") else None
     for key_ in ("budget", "value", "quality", "closest"):
         seen_, kept_ = set(), []
         for r_ in res["rankings"].get(key_, []):
@@ -1583,6 +1584,9 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             if vk_ in seen_:
                 continue    # the same product under another barcode or pack size is listed once
             seen_.add(vk_); kept_.append(r_)
+            if r_.get("value_score") is None:      # the second headline score on every card whose price is known
+                vi_ = value_index.value_index(orig_type_, (r_["product"].get("score") or {}).get("total"), r_.get("price_per_100_cents"))
+                r_["value_score"] = vi_["value_score"] if vi_ else None
             own_ = _chains.own_brand_chain(r_["product"].get("brand")) or _chains.canon(str(r_["product"].get("brand") or "")) or _chains.canon(str(r_["product"].get("name") or ""))
             cid_ = retail.ID_OF.get(own_) if own_ else None
             if cid_ and cid_ not in (r_["product"].get("chains") or []):

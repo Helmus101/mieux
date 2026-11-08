@@ -92,9 +92,11 @@ export default function Product() {
         <div><Muted>{p.brand}</Muted><h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1.12 }}>{p.name}</h1><Muted>{p.quantityText}</Muted></div>
       </Row>
         {p.score ? <>
-          <Row spread><div className="scorebig" style={{ color: p.score.tone === 'b' ? 'var(--bad)' : p.score.tone === 'w' ? 'var(--warn)' : 'var(--accent)' }}>{p.score.total}<small>{t('score.outOf')}</small></div><span style={{ textAlign: 'right' }}><b>{t('score.' + p.score.band)}</b><br /><span className="mut sm">{t('score.title')}</span></span></Row>
+          <div className="twoscores">
+            <div><span className="mut sm">{t('score.title')}</span><div className="scorebig" style={{ color: p.score.tone === 'b' ? 'var(--bad)' : p.score.tone === 'w' ? 'var(--warn)' : 'var(--accent)' }}>{p.score.total}<small>{t('score.outOf')}</small></div><b>{t('score.' + p.score.band)}</b></div>
+            <div title={t('score.pqHint')}><span className="mut sm">{t('score.pq')}</span>{pc?.value ? <><div className="scorebig" style={{ color: pc.value.value_score >= 65 ? 'var(--accent)' : pc.value.value_score >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b></> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}</div>
+          </div>
           <ScoreBar total={p.score.total} label={t('score.spectrum')} />
-          {pc?.value && <div className="pq" title={t('score.pqHint')}><span>{t('score.pq')}</span><b style={{ color: pc.value.value_score >= 65 ? 'var(--accent)' : pc.value.value_score >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pc.value.value_score}<small>/100</small></b></div>}
           <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('score.indicative')}</p>
           {(p.score.additives?.items ?? []).some((x: any) => x.level === 'C' || x.level === 'D') && <div className="flags">{(p.score.additives.items as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 4).map((x) => <span key={x.code} className={'pill ' + (x.level === 'D' ? 'b' : 'w')} onClick={() => setSheet(x.code)}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</span>)}</div>}
           {p.score.incomplete && <div className="flags"><span className="pill g">{t('sdim.incomplete')}</span></div>}

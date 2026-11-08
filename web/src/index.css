@@ -425,3 +425,7 @@ kbd{font:600 12px ui-monospace,Menlo,monospace;background:var(--card);border:1px
 @keyframes peekin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 .pq{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-weight:600}
 .pq b{font-size:22px}.pq small{font-size:12px;font-weight:500;color:var(--mut)}
+.twoscores{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.twoscores>div{background:var(--tint);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.pqchip{display:inline-flex;flex-direction:column;align-items:center;padding:4px 10px;border-radius:12px;background:var(--tint)}
+.pqchip b{font-size:20px;line-height:1.1}.pqchip small{font-size:10px;color:var(--mut);font-weight:600}

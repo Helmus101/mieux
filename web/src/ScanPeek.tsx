@@ -25,6 +25,7 @@ export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOp
   const conflict = (d?.fit ?? []).some((x: any) => (x.priority.startsWith('allergen:') || x.priority.startsWith('diet:')) && x.status === 'conflict');
   const tone = conflict ? 'b' : sc?.tone;
   const color = tone === 'b' ? 'var(--bad)' : tone === 'w' ? 'var(--warn)' : 'var(--accent)';
+  const pq: number | null = d?.price_context?.value?.value_score ?? null;
   const verdict = conflict ? t('scan.peekConflict') : sc ? t('score.' + sc.band) : t('score.na');
   return (
     <div className="peek" role="button" tabIndex={0} aria-label={t('scan.peekOpen')} style={{ transform: `translateY(${Math.max(0, dy)}px)`, opacity: 1 - Math.min(1, Math.max(0, dy) / 160), transition: start.current == null ? 'transform .2s, opacity .2s' : 'none' }}
@@ -35,6 +36,7 @@ export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOp
         {p.imageUrl && <img src={p.imageUrl} alt="" />}
         <div className="peek-main"><b>{p.name}</b><span className="mut sm">{p.brand ?? ''}</span></div>
         <div className="peek-score" style={{ color }}>{sc ? sc.total : '–'}<small>{verdict}</small></div>
+        <div className="peek-score" style={{ color: pq == null ? 'var(--mut)' : pq >= 65 ? 'var(--accent)' : pq >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pq ?? '–'}<small>{t('score.pq')}</small></div>
       </>}
     </div>
   );

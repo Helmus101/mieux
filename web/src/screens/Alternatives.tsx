@@ -36,7 +36,7 @@ export default function Alternatives() {
     const ck = `alt:${barcode}:${prios.join()}:${myChains.join()}`;
     const stale = readCache<any>(ck);
     if (stale) { setR(stale); setBusy(false); } else setBusy(true);   // show the last answer at once, then refresh it
-    api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 10, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) })
+    api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 20, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) })
       .then((x: any) => { setR(x); writeCache(ck, x); })
       .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
@@ -153,6 +153,7 @@ export default function Alternatives() {
             <Row spread>
               {e.product.score ? <span><b style={{ fontSize: 28, letterSpacing: -.5 }}>{e.product.score.total}</b><span className="mut sm">{t('score.outOf')} · {t('score.' + e.product.score.band)}</span>
                 {r?.original?.score && (() => { const d = e.product.score.total - r.original.score.total; return <span className="sm" style={{ marginLeft: 8, fontWeight: 600, color: d > 0 ? 'var(--accent)' : d < 0 ? 'var(--bad)' : 'var(--mut)' }}>{d === 0 ? t('score.same') : `${d > 0 ? '+' : '−'}${Math.abs(d)} ${t('score.pts')}`}</span>; })()}</span> : <span />}
+              {e.vs != null && <span className="pqchip" title={t('score.pqHint')}><b>{e.vs}</b><small>{t('score.pq')}</small></span>}
               <div style={{ textAlign: 'right' }}>
                 {(() => {
                   const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
