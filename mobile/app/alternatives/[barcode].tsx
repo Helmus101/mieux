@@ -71,7 +71,7 @@ export default function Alternatives() {
     if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never the same or lower
     { const ov = r?.rankings?.original_value_score; return e.price100 != null && (ov == null || e.vs == null || e.vs > ov); }   // value: only a better price-quality score than yours
   });
-  const shown = listOf(rk);
+  const shown = listOf(rk).slice(0, 10);   // never more than 10 per tab, after the strict filters
   // Exactly three tabs, always: price-quality (opens first), price, quality.
   const tabs = [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
