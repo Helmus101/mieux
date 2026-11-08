@@ -8,7 +8,7 @@ from .value import parse_quantity
 from .score import quality
 from .taxonomy import classify
 
-SCHEMA_VERSION = 28  # bump when normalize() output changes so cached rows are refreshed
+SCHEMA_VERSION = 29  # bump when normalize() output changes so cached rows are refreshed
 CORE = ["energyKcal100g", "fat100g", "saturatedFat100g", "carbohydrates100g", "sugars100g", "protein100g", "salt100g"]
 NS_RANK = {"a": 5, "b": 4, "c": 3, "d": 2, "e": 1}
 
@@ -111,16 +111,30 @@ def normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
 
 def _normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
     nm = raw.get("nutriments") or {}
-    kcal = _num(nm, "energy-kcal")
-    if kcal is None and _num(nm, "energy-kj") is not None:
-        kcal = _num(nm, "energy-kj") / 4.184
-    salt = _num(nm, "salt")
-    if salt is None and _num(nm, "sodium") is not None:
-        salt = _num(nm, "sodium") * 2.5
+    serving = _serving(raw.get("serving_quantity"))
+
+    def n100(key: str) -> Optional[float]:
+        """Per 100 g from the record; failing that, the per-serving figure scaled by the serving size (label arithmetic, not a guess)."""
+        v = _num(nm, key)
+        if v is None and serving and serving > 0:
+            try:
+                sv = nm.get(key + "_serving")
+                v = None if sv in (None, "") else float(sv) * 100.0 / serving
+            except (TypeError, ValueError):
+                v = None
+        return v
+    kcal = n100("energy-kcal")
+    if kcal is None and n100("energy-kj") is not None:
+        kcal = n100("energy-kj") / 4.184
+    if kcal is None and _num(nm, "energy") is not None:      # plain "energy" is kJ
+        kcal = _num(nm, "energy") / 4.184
+    salt = n100("salt")
+    if salt is None and n100("sodium") is not None:
+        salt = n100("sodium") * 2.5
     nutriments = {
-        "energyKcal100g": kcal, "fat100g": _num(nm, "fat"), "saturatedFat100g": _num(nm, "saturated-fat"),
-        "carbohydrates100g": _num(nm, "carbohydrates"), "sugars100g": _num(nm, "sugars"),
-        "protein100g": _num(nm, "proteins"), "fiber100g": _num(nm, "fiber"), "salt100g": salt,
+        "energyKcal100g": kcal, "fat100g": n100("fat"), "saturatedFat100g": n100("saturated-fat"),
+        "carbohydrates100g": n100("carbohydrates"), "sugars100g": n100("sugars"),
+        "protein100g": n100("proteins"), "fiber100g": n100("fiber"), "salt100g": salt,
     }
     cats = [c for c in raw.get("categories_tags") or [] if c.startswith("en:") and c == c.lower()]
     grade = (raw.get("nutriscore_grade") or "").lower()

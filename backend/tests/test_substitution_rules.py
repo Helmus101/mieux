@@ -348,3 +348,12 @@ def test_price_quality_score_is_stable_and_damped_for_poor_nutrition():
         assert vi.damping(20) < vi.damping(65) == 1.0
     finally:
         vi.set_reference(None)
+
+
+def test_nutrition_given_only_per_serving_or_as_plain_energy_still_scores():
+    from app.products import normalize
+    base = {"code": "3000000000001", "product_name": "Compote myrtille", "categories_tags": ["en:fruit-compotes"], "serving_quantity": 100}
+    per_serving = normalize({**base, "nutriments": {"energy-kcal_serving": 80, "sugars_serving": 14, "saturated-fat_serving": 0.1, "salt_serving": 0.02}})
+    assert per_serving["nutriments"]["energyKcal100g"] == 80 and per_serving["nutriments"]["sugars100g"] == 14 and per_serving["score"] is not None
+    plain = normalize({**base, "nutriments": {"energy_100g": 335, "sugars_100g": 14, "salt_100g": 0.02, "saturated-fat_100g": 0.1}})
+    assert round(plain["nutriments"]["energyKcal100g"]) == 80
