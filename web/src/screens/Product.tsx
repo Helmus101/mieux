@@ -6,6 +6,7 @@ import { t } from '@shared/i18n';
 import { formatCents, isLiquid } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
 import { priceHeadline } from '@shared/verdict';
+import PqExplain from '../PqExplain';
 import { Bar, Button, Card, Collapsible, haptic, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader } from '../ui';
 import { routes, useNav } from '../nav';
 import SaveButton from '../SaveButton';
@@ -94,7 +95,7 @@ export default function Product() {
         {p.score ? <>
           <div className="twoscores">
             <div><span className="mut sm">{t('score.title')}</span><div className="scorebig" style={{ color: p.score.tone === 'b' ? 'var(--bad)' : p.score.tone === 'w' ? 'var(--warn)' : 'var(--accent)' }}>{p.score.total}<small>{t('score.outOf')}</small></div><b>{t('score.' + p.score.band)}</b></div>
-            <div title={t('score.pqHint')}><span className="mut sm">{t('score.pq')}</span>{pc?.value ? <><div className="scorebig" style={{ color: pc.value.value_score >= 65 ? 'var(--accent)' : pc.value.value_score >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b></> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}</div>
+            <div title={t('score.pqHint')}><span className="mut sm">{t('score.pq')} <PqExplain /></span>{pc?.value ? <><div className="scorebig" style={{ color: pc.value.value_score >= 65 ? 'var(--accent)' : pc.value.value_score >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b></> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}</div>
           </div>
           <ScoreBar total={p.score.total} label={t('score.spectrum')} />
           <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('score.indicative')}</p>

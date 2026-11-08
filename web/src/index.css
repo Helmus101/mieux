@@ -431,3 +431,4 @@ kbd{font:600 12px ui-monospace,Menlo,monospace;background:var(--card);border:1px
 .pqchip b{font-size:20px;line-height:1.1}.pqchip small{font-size:10px;color:var(--mut);font-weight:600}
 .pqchip em{font-style:normal;font-size:10px;font-weight:700;margin-top:2px}
 .pqchip em.up{color:var(--accent)}.pqchip em.down{color:var(--mut)}
+.pqinfo{min-height:24px;min-width:24px;border:0;background:none;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer;padding:0 4px;text-decoration:underline}
