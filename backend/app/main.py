@@ -1499,6 +1499,17 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         for c in peers:  # chains known to list each candidate (from Open Prices, France)
             q_ = c.get("quantity")
             c["chains"] = [retail.ID_OF[r["chain"]] for r in chain_of(c["barcode"], (q_["amount"], q_["unit"]) if q_ else None) if r["chain"] in retail.ID_OF]
+    # Popularity of each candidate: how often it is scanned (Open Food Facts) and whether chains are known to sell it. The money and quality
+    # lists use it to keep obscure products from topping a ranking (see engine.is_popular).
+    local_ = getattr(app.state.off, "local", None)
+    if local_ is not None and hasattr(local_, "_q"):
+        codes_ = [c["barcode"] for c in peers]
+        scans_: Dict[str, int] = {}
+        for i_ in range(0, len(codes_), 500):
+            chunk_ = codes_[i_:i_ + 500]
+            for code_, n_ in (local_._q(f"select code, scans from off_products where code in ({','.join('?' * len(chunk_))})", tuple(chunk_)) or []):
+                scans_[code_] = n_ or 0
+        peers = [{**c, "popularity": {"scans": scans_.get(c["barcode"], 0), "chains": len(c.get("chains") or [])}} for c in peers]
     if chain_of and body.chains:  # the person picked chains: drop what is known to be sold only elsewhere
         # Unknown is not a reason to exclude: Open Prices covers a minority of products, and discarding every product it has not
         # recorded would hide most good substitutes behind a dataset gap. This scopes the search; it is not an availability claim.

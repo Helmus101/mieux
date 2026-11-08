@@ -510,6 +510,23 @@ def _verified_price(price100: Optional[float], point: Optional[Dict[str, Any]], 
     return value_mod.is_ranking_eligible_price(point, price100, max_age_days)
 
 
+POPULAR_SCANS = 5          # scanned at least this often on Open Food Facts counts as known to shoppers
+MIN_POPULAR = 5            # popularity only filters when at least this many popular candidates remain
+
+
+def is_popular(c: Dict[str, Any], prices: Optional[Dict[str, float]] = None) -> bool:
+    """Known to shoppers: scanned often, sold in at least one known chain, or seen with an observed price (so it is on a shelf somewhere)."""
+    pop = c.get("popularity") or {}
+    return (pop.get("scans") or 0) >= POPULAR_SCANS or (pop.get("chains") or 0) >= 1 or bool(c.get("chains")) or ((prices or {}).get(c.get("barcode")) is not None)
+
+
+def prefer_popular(pool: List[Dict[str, Any]], prices: Optional[Dict[str, float]] = None) -> List[Dict[str, Any]]:
+    """The popular candidates when there are enough of them, else the whole pool: an obscure product must not top Cheapest, Quality or
+    Value just because nobody has scanned or priced it, but a thin category still gets its list."""
+    known = [c for c in pool if is_popular(c, prices)]
+    return known if len(known) >= MIN_POPULAR else pool
+
+
 def close_only(items, level_of, min_close: int = 3):
     """Substitutes for the money and quality tabs: only the closest kinds of product (level 1-2).
     Level 3 or 4 must never appear in a price or value comparison.
@@ -936,6 +953,7 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
     # Step 2: Filter for each ranking
     level_1_2 = [c for c in strict_pool if (c.get("substitution") or {}).get("level", 4) <= 2]
     high_confidence = [c for c in level_1_2 if (c.get("substitution") or {}).get("confidence") not in ("none", "low")]
+    high_confidence = prefer_popular(high_confidence, prices)      # the closest list keeps everything; the money and quality lists use known products
     
     # Step 3: Build rankings
     # Closest: all levels 1-4, no price influence

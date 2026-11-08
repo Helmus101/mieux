@@ -416,3 +416,17 @@ def test_price_per_kilo_is_not_mistaken_for_the_pack_price():
     assert webprice._pack_price("Piments 29 g : 98,28 € le kilo, 2,85 € le pot", 0.029) == 2.85          # per-kilo price is skipped
     assert webprice._pack_price("Piments 29 g 98,28€ 2,85€", 0.029) == 2.85                                # even unlabelled: 2,85 / 0,029 kg = 98,28
     assert webprice._pack_price("Nutella 400 g à 3,20 € (8,00 €/kg)", 0.4) == 3.20
+
+
+def test_money_and_quality_lists_prefer_products_shoppers_know():
+    base = {"categories": ["en:dairies", "en:yogurts", "en:plain-yogurts"], "nutriments": {"energyKcal100g": 60, "sugars100g": 4, "carbohydrates100g": 5}}
+
+    def prod(code, name, brand, score, scans=0, chains=0):
+        return {**base, "barcode": code, "name": name, "brand": brand, "score": {"total": score}, "dataQuality": {"nutritionComplete": True}, "popularity": {"scans": scans, "chains": chains}}
+    orig = prod("o", "Yaourt nature", "Z", 60)
+    known = [prod(f"k{i}", f"Yaourt nature connu {i}", f"B{i}", 70 + i, scans=200) for i in range(5)]
+    obscure = prod("x", "Yaourt nature rare", "Rare", 99, scans=0)
+    r = engine.build_rankings(orig, known + [obscure], {f"k{i}": 100.0 + i for i in range(5)}, 150.0, ["value"], "similar", "fr", [])
+    assert "x" not in [e["product"]["barcode"] for e in r["quality"]]                       # a 99 nobody has scanned is not the best-quality pick
+    thin = engine.build_rankings(orig, known[:2] + [obscure], {"k0": 100.0}, 150.0, ["value"], "similar", "fr", [])
+    assert "x" in [e["product"]["barcode"] for e in thin["quality"]]                        # too few known products: the list is not emptied
