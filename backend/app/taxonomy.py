@@ -24,6 +24,18 @@ R = [
     ("muesli", "cereals_bakery", "cereal", "muesli", "cereal", "breakfast", r"mueslis|granola|oat-flakes|porridge", r"muesli|granola|porridge|flocons d.avoine"),
     ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles"),
     ("rice", "cereals_bakery", "grain", "grain", "grain", "meal", r"\brices?\b(?!-based)|basmati", r"^riz\b|\briz (basmati|long|complet|thai)"),
+    # ---- pantry and condiments (granular types so staples like pesto or soy sauce get their own alternatives)
+    ("cocoa_powder", "sweet", "cocoa", "powder", "powder", "drink_mix", r"cocoa-powders|instant-chocolate-powders|chocolate-powders", r"cacao (en poudre|maigre|sucr|soluble)|poudre de cacao|chocolat en poudre|banania|nesquik|benco|ovomaltine"),
+    ("soy_sauce", "condiments", "sauce", "soy_sauce", "liquid", "seasoning", r"soy-sauces|soya-sauces", r"sauce soja|soy sauce|shoyu|tamari"),
+    ("pesto", "condiments", "sauce", "pesto", "jar", "meal", r"(?:^|\s)en:(?:green-|red-)?pestos?(?:\s|$)", r"pesto"),
+    ("sugar", "pantry", "sugar", "sugar", "granulated", "baking", r"(?:^|\s)en:(?:white-|cane-|brown-|powdered-|icing-)?sugars?(?:\s|$)", r"^sucre|\bsucre (blanc|roux|semoule|en poudre|glace|de canne)|\bsugar\b"),
+    ("syrup", "pantry", "sweetener", "syrup", "liquid", "sweetener", r"agave-syrups|maple-syrups", r"sirop d.agave|sirop d.[ée]rable|agave syrup|maple syrup"),
+    ("smoked_fish", "fish", "fish", "smoked_fish", "slice", "meal", r"smoked-fishes|smoked-trouts|smoked-salmons", r"saumon fum|truite fum|smoked (salmon|trout)|poisson fum"),
+    ("surimi", "fish", "fish", "surimi", "stick", "meal", r"surimi", r"surimi"),
+    ("veggie_patty", "meat_alt", "meat_alternative", "patty", "patty", "meal", r"vegetarian-patties|vegan-patties|patties-from-soy|meat-analogues", r"steak (v[ée]g|de soja|de bl[ée])|burger v[ée]g|galette v[ée]g|v[ée]g[ée]tal.*(steak|burger)|vegetarian (burger|patty)"),
+    ("kefir", "dairy", "yogurt", "kefir", "drinkable", "drink", r"kefirs?", r"k[ée]fir"),
+    ("flan", "dairy", "dessert", "flan", "spoon", "dessert", r"flans|creme-desserts", r"\bflan\b|cr[èe]me dessert"),
+    ("hot_sauce", "condiments", "sauce", "hot_sauce", "liquid", "seasoning", r"hot-sauces|chili-sauces", r"sauce piquante|hot sauce|tabasco|sriracha|harissa"),
     # ---- snack bars (STRICT: individual bar format for snacking, not confectionery tablets or cakes)
     # Must match individual_bar format AND snacking use case explicitly
     ("fruit_nut_bar", "snacks", "snack_bars", "fruit_and_nut_bar", "individual_bar", "snacking", r"snack-bars|fruit-and-nut-bars|fruit-and-nut|barres-fruits-secs|barres aux fruits secs", r"barre aux fruits( secs)?|barres? (aux )?fruits secs|noix.*fruit( secs)?|fruit.*noix|amande.*cranberr|cranberr.*amande|mélange.*fruits secs(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|barre.*noix de coco(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))"),

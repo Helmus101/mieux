@@ -304,3 +304,15 @@ def test_pack_size_is_read_from_the_name_when_the_record_has_none():
     q = normalize({"code": "3770011743131", "product_name": "Barre Energy beurre cacahuètes chocolat 50g", "categories_tags": ["en:snacks"], "nutriments": {}})["quantity"]
     assert q == {"amount": 50.0, "unit": "g"}
     assert normalize({"code": "1", "product_name": "Barre", "quantity": "6 x 25 g", "categories_tags": ["en:snacks"], "nutriments": {}})["quantity"]["amount"] == 150.0
+
+
+def test_pantry_staples_have_their_own_types():
+    from app import taxonomy
+    cases = [("Pesto alla genovese", ["en:sauces", "en:green-pestos"], "pesto"), ("Sauce soja salée", ["en:soy-sauces"], "soy_sauce"),
+             ("Cacao maigre en poudre", ["en:cocoa-powders"], "cocoa_powder"), ("Sucre en poudre", ["en:sugars", "en:white-sugars"], "sugar"),
+             ("Sirop d'agave bio", ["en:agave-syrups"], "syrup"), ("Truite fumée", ["en:smoked-trouts"], "smoked_fish")]
+    for name, cats, tid in cases:
+        assert taxonomy.classify({"name": name, "categories": cats})["type"] == tid, name
+    pesto, soy = cases[0], cases[1]
+    assert taxonomy.substitution({"name": pesto[0], "categories": pesto[1]}, {"name": "Pesto rosso", "categories": ["en:red-pestos"]})["level"] == 1
+    assert taxonomy.substitution({"name": pesto[0], "categories": pesto[1]}, {"name": soy[0], "categories": soy[1]}) is None
