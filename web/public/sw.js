@@ -10,7 +10,7 @@ self.addEventListener('fetch', e => {
   if (req.mode === 'navigate') {  // the shell: the fresh copy when the network answers quickly (so a new version shows at once), the saved copy when it is slow or offline
     e.respondWith(caches.match('/app').then(m => {
       const net = refresh(new Request('/app'));
-      if (!m) return net;
+      if (!m) return net.catch(() => Response.error());
       return Promise.race([net.catch(() => m), new Promise(ok => setTimeout(() => ok(m), 1200))]);
     }));
     return;
@@ -19,5 +19,5 @@ self.addEventListener('fetch', e => {
     e.respondWith(caches.match(req).then(m => m || refresh(req)));
     return;
   }
-  e.respondWith(caches.match(req).then(m => { const net = refresh(req).catch(() => m); return m || net; }));
+  e.respondWith(caches.match(req).then(m => { const net = refresh(req).catch(() => m || Response.error()); return m || net; }));
 });
