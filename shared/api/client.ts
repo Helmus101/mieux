@@ -108,6 +108,18 @@ export class MieuxAPI {
     return response.data;
   }
 
+  /** Approximate web price (and the supermarkets it was found at) for a product with no observed price. */
+  async getWebPrice(barcode: string) {
+    const response = await this.client.get(`/products/${barcode}/web-price`);
+    return response.data?.price ?? null;
+  }
+
+  /** The same for several alternatives at once: { barcode: price | null }. */
+  async getWebPrices(barcodes: string[]) {
+    const response = await this.client.post('/web-prices', { barcodes });
+    return (response.data?.prices ?? {}) as Record<string, any>;
+  }
+
   async searchProducts(query: string) {
     const response = await this.client.get('/search', { params: { q: query } });
     return response.data;

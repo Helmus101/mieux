@@ -51,6 +51,16 @@ export default function Alternatives() {
     return e.price100 != null;                                     // value: quality-price score
   });
   const shown = listOf(rk);
+  // Cards with no price: one search for an approximate price and the supermarkets selling it (cached server-side), filled in as it arrives.
+  const [webP, setWebP] = useState<Record<string, any>>({});
+  useEffect(() => {
+    const rows = (['value', 'budget', 'quality'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
+    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 8);
+    if (!want.length) return;
+    let live = true;
+    api.getWebPrices(want).then((m) => { if (live) setWebP((cur) => ({ ...cur, ...m })); }).catch(() => undefined);
+    return () => { live = false; };
+  }, [r]);
   // Exactly three tabs, always: price-quality (opens first), price, quality.
   const tabs = [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
@@ -155,6 +165,8 @@ export default function Alternatives() {
                         </div>
                       ) : e.pack != null ? (
                         <div style={{ fontSize: 18, fontWeight: 700 }}>{formatCents(e.pack)}</div>
+                      ) : webP[e.product.barcode] ? (
+                        <div style={{ fontSize: 18, fontWeight: 700 }} title={t('score.webPrice')}>~ {formatCents(Math.round(webP[e.product.barcode].per100_cents * 10))}/{isLiquid(e.product) ? 'L' : 'kg'}<span className="mut sm" style={{ fontWeight: 400, marginLeft: 6 }}>{t('score.webPrice')}</span></div>
                       ) : null}
                       {d && (
                         <div style={{ marginTop: 2 }}>
@@ -168,7 +180,7 @@ export default function Alternatives() {
                 })()}
               </div>
             </Row>
-            {e.product.chains?.length > 0 && <div className="logos" style={{ marginTop: 8 }}>{e.product.chains.slice(0, 6).map((c: string) => <ChainLogo key={c} id={c} size={22} />)}{e.product.chains.length > 6 && <span className="mut sm">+{e.product.chains.length - 6}</span>}</div>}
+            {((e.product.chains?.length ? e.product.chains : webP[e.product.barcode]?.chains) ?? []).length > 0 && <div className="logos" style={{ marginTop: 8 }}>{((e.product.chains?.length ? e.product.chains : webP[e.product.barcode]?.chains) as string[]).slice(0, 6).map((c: string) => <ChainLogo key={c} id={c} size={22} />)}{e.product.chains.length > 6 && <span className="mut sm">+{e.product.chains.length - 6}</span>}</div>}
             <Button small plain onPress={() => { haptic('tap'); setDetail(e); }}>{t('simple.moreInfo')}</Button>
           </Card>);
       })}

@@ -170,7 +170,14 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
     if len(agree) < 2:
         return None
     price_c = round(med * 100)
-    return {"per100_cents": round(price_c / q["amount"] * 100, 1), "pack_cents": price_c, "store": None, "source_urls": [u for _, _, u in agree][:3],
+    from . import chains as ch, retail
+    stores = []
+    for h, _, _ in agree:
+        name = ch.canon(h.replace(".", " "))          # courses.monoprix.fr -> Monoprix
+        if name and name not in stores:
+            stores.append(name)
+    return {"per100_cents": round(price_c / q["amount"] * 100, 1), "pack_cents": price_c, "store": stores[0] if stores else None, "stores": stores,
+            "chains": [retail.ID_OF[n] for n in stores if n in retail.ID_OF], "source_urls": [u for _, _, u in agree][:3],
             "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
 
 

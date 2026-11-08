@@ -594,6 +594,46 @@ def contribute_clear(barcode: str, uid: str = Depends(user), s: Session = Depend
     return {"cleared": True}
 
 
+class WebPricesReq(BaseModel):
+    barcodes: List[str] = Field(..., min_length=1, max_length=8)
+
+
+def _web_price_for(s: Session, barcode: str) -> Optional[Dict[str, Any]]:
+    """An approximate web price (and the supermarkets it was found at) for a product with no observed price. None otherwise."""
+    from . import webprice
+    if not webprice.enabled():
+        return None
+    p = load_product(s, barcode)
+    q = p.get("quantity")
+    if not q or app.state.prices.latest(barcode, (q["amount"], q["unit"])):
+        return None                       # an observed price exists, or the pack size is unknown: nothing to approximate
+    return webprice.lookup(p)
+
+
+@app.get("/v1/products/{barcode}/web-price")
+@limiter.limit("20/minute")
+def product_web_price(request: Request, barcode: str, uid: str = Depends(user), s: Session = Depends(get_db)):
+    """One search for a product with no price: returns {price: {pack_cents, per100_cents, stores, chains, source_urls, approximate}} or {price: null}."""
+    return {"price": _web_price_for(s, barcode)}
+
+
+@app.post("/v1/web-prices")
+@limiter.limit("10/minute")
+def web_prices(request: Request, body: WebPricesReq, uid: str = Depends(user), s: Session = Depends(get_db)):
+    """The same for up to 8 alternatives at once (looked up in parallel). Returns {prices: {barcode: price-or-null}}."""
+    from concurrent.futures import ThreadPoolExecutor
+    from . import webprice
+    codes = list(dict.fromkeys(body.barcodes))
+    if not webprice.enabled():
+        return {"prices": {c: None for c in codes}}
+    products = {c: load_product(s, c) for c in codes}        # database reads stay on this thread
+    q_of = lambda p: p.get("quantity")                      # noqa: E731
+    todo = [c for c in codes if q_of(products[c]) and not app.state.prices.latest(c, (q_of(products[c])["amount"], q_of(products[c])["unit"]))]
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        found = dict(zip(todo, ex.map(lambda c: webprice.lookup(products[c]), todo)))
+    return {"prices": {c: found.get(c) for c in codes}}
+
+
 @app.get("/v1/products/{barcode}")
 def product(barcode: str, approximate: bool = False, strict: bool = True, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
     logger.info({"event": "product_lookup", "barcode": barcode, "user_id": uid})

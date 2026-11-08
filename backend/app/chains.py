@@ -15,7 +15,7 @@ from . import market
 # canonical chain -> regex matched against OSM brand/name and Open Prices shop names
 CHAINS: Dict[str, str] = {
     "Carrefour": r"carrefour", "Auchan": r"auchan", "E.Leclerc": r"leclerc", "Intermarché": r"intermarch", "Lidl": r"\blidl\b", "Aldi": r"\baldi\b",
-    "Monoprix": r"monoprix", "Franprix": r"franprix", "Casino": r"casino|petit casino|spar\b", "Super U": r"super u|hyper u|u express|syst[eè]me u|\bu\b",
+    "Monoprix": r"monoprix", "Franprix": r"franprix", "Casino": r"casino|petit casino|spar\b", "Super U": r"super u|coursesu|hyper u|u express|syst[eè]me u|\bu\b",
     "Picard": r"picard", "Biocoop": r"biocoop", "Naturalia": r"naturalia", "La Vie Claire": r"vie claire", "Grand Frais": r"grand frais", "Cora": r"\bcora\b", "Match": r"\bmatch\b",
     # United States (Aldi and Lidl above also trade there)
     "Walmart": r"wal-?mart", "Kroger": r"\bkroger\b", "Costco": r"costco", "Target": r"\btarget\b", "Albertsons": r"albertsons", "Safeway": r"safeway", "Publix": r"publix",

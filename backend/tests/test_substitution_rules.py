@@ -430,3 +430,22 @@ def test_money_and_quality_lists_prefer_products_shoppers_know():
     assert "x" not in [e["product"]["barcode"] for e in r["quality"]]                       # a 99 nobody has scanned is not the best-quality pick
     thin = engine.build_rankings(orig, known[:2] + [obscure], {"k0": 100.0}, 150.0, ["value"], "similar", "fr", [])
     assert "x" in [e["product"]["barcode"] for e in thin["quality"]]                        # too few known products: the list is not emptied
+
+
+def test_web_price_endpoints_return_price_and_supermarket(monkeypatch, tmp_path):
+    from fastapi.testclient import TestClient
+    from app import main, webprice
+    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp9.db"))
+    monkeypatch.setattr(main.app.state.prices, "latest", lambda *a, **k: None, raising=False)
+    fake = {"per100_cents": 80.0, "pack_cents": 320, "store": "Auchan", "stores": ["Auchan", "Carrefour"], "chains": ["auchan", "carrefour"], "source_urls": ["https://a.fr"], "date": "2026-11-08", "source": "web_search", "approximate": True}
+    monkeypatch.setattr(webprice, "lookup", lambda p, **k: fake)
+    monkeypatch.setattr(main, "load_product", lambda s_, code: {"barcode": code, "name": "Produit", "brand": "X", "quantity": {"amount": 400.0, "unit": "g"}})
+    c = TestClient(main.app)
+    main.limiter.reset()                         # other tests share the per-minute counters
+    h = {"X-Session-Id": "webprice-test-1"}
+    r = c.get("/v1/products/3579260039060/web-price", headers=h).json()
+    assert r["price"]["stores"] == ["Auchan", "Carrefour"] and r["price"]["approximate"] is True
+    r2 = c.post("/v1/web-prices", json={"barcodes": ["3579260039060", "3175680011480"]}, headers=h).json()
+    assert set(r2["prices"]) == {"3579260039060", "3175680011480"} and r2["prices"]["3175680011480"]["pack_cents"] == 320
+    monkeypatch.delenv("PARALLEL_API_KEY")
+    assert c.get("/v1/products/3579260039060/web-price", headers=h).json() == {"price": None}
