@@ -73,7 +73,8 @@ def main(paths, out: str = OUT) -> None:
         data = json.load(open(path, encoding="utf-8"))
         if isinstance(data, dict) and "products" in data:      # Auchan.fr export: one delivery area, products under "products"
             pc = data.get("postal_code") or "fr"
-            data = [{"chain": "Auchan", "storeExtId": f"auchan-{pc}", "storeName": f"Auchan.fr {pc}", "storeAddress": data.get("delivery_context") or pc, "ean": r.get("ean"),
+            chain = str(data.get("source") or "").split(".")[0].strip() or "Auchan"
+            data = [{"chain": chain, "storeExtId": f"{chain.lower()}-{pc}", "storeName": f"{chain}.fr {pc}", "storeAddress": data.get("delivery_context") or pc, "ean": r.get("ean"),
                      "price": r.get("price_eur"), "currency": "EUR", "status": "ACTIVE" if r.get("available", True) else "OUT", "updatedAt": data.get("collected_at")}
                     for r in data["products"]]
         for x in (normalise(r, path) for r in data):
