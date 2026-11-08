@@ -58,7 +58,7 @@ export default function Alternatives() {
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     const q = os != null && e.product.score?.total != null ? e.product.score.total - os : null;
     if (k === 'budget') return e.price100 != null;                 // ordered by unit price: cheapest first
-    if (k === 'match') return q == null || q >= 0;                 // equal or better quality
+    if (k === 'match') return true;                                // every scored close substitute, in score order
     return e.price100 != null;                                     // value: quality-price score
   });
   const shown = listOf(rk);
@@ -156,7 +156,7 @@ export default function Alternatives() {
             <Row spread style={{ marginTop: 8 }}>
               {e.product.score ? <View>
                 <Text style={{ color: c.ink, fontSize: 26, fontWeight: '800' }}>{e.product.score.total}<Muted small> · {t('score.' + e.product.score.band)}</Muted></Text>
-                {r?.original?.score ? (() => { const dd = e.product.score.total - r.original.score.total; return <Text style={{ color: dd > 0 ? c.accent : dd < 0 ? c.bad : c.mut, fontWeight: '600', fontSize: 13 }}>{dd === 0 ? t('score.same') : `${dd > 0 ? '+' : '−'}${Math.abs(dd)} ${t('score.pts')}`}</Text>; })() : null}
+                {rk === 'match' && r?.original?.score ? (() => { const dd = e.product.score.total - r.original.score.total; return <Text style={{ color: dd > 0 ? c.accent : dd < 0 ? c.bad : c.mut, fontWeight: '600', fontSize: 13 }}>{dd === 0 ? t('score.same') : `${dd > 0 ? '+' : '−'}${Math.abs(dd)} ${t('score.pts')}`}</Text>; })() : null}
                 {e.vs != null ? <Text style={{ color: e.better ? c.accent : c.mut, fontWeight: '700', fontSize: 13 }}>{t('score.pq')} {e.vs}{e.better != null ? ` · ${e.better ? t('score.pqBetter') : t('score.pqWorse')}` : ''}</Text> : null}
               </View> : <View />}
               <View style={{ alignItems: 'flex-end' }}>

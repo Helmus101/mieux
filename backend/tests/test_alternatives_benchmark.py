@@ -183,18 +183,28 @@ def test_cheapest_enforces_quality_floor_and_no_fillers():
     # Never filled to 5 with not_cheaper items!
 
 
-def test_quality_ranking_requires_meaningful_improvement_and_no_fillers():
-    """Quality ranking must contain only items strictly better than original, without fillers."""
+def test_quality_ranking_is_strictly_by_score_and_labels_who_is_better():
+    """Every scored close substitute is listed in strict score order; only those at least 5 points higher are flagged as better."""
     orig = make_product("000", "Yaourt nature", score=70)
-    
+
     better1 = make_product("001", "Yaourt Supérieur", score=85)
     better2 = make_product("002", "Yaourt Élite", score=80)
     worse = make_product("003", "Yaourt Ordinaire", score=68)
     equal = make_product("004", "Yaourt Équivalent", score=70)
-    
-    res = engine.rank_quality(orig, [better1, better2, worse, equal])
-    assert len(res) == 2
-    assert [r["product"]["barcode"] for r in res] == ["001", "002"]
+
+    res = engine.rank_quality(orig, [worse, better2, equal, better1])
+    assert [r["product"]["barcode"] for r in res] == ["001", "002", "004", "003"]          # strictly by score, whatever the input order
+    assert [r["better"] for r in res] == [True, True, False, False]
+    assert [r["quality_delta"] for r in res] == [15, 10, 0, -2]
+
+
+def test_quality_ranking_lists_one_pack_size_once_and_ignores_price():
+    orig = make_product("000", "Yaourt nature", score=70)
+    a = make_product("001", "Yaourt Supérieur", score=85)
+    b = make_product("002", "Yaourt Supérieur", score=85)         # same product, another barcode
+    c = make_product("003", "Yaourt Élite", score=80)
+    cheap_first = engine.rank_quality(orig, [a, b, c], {"001": 900.0, "003": 10.0})
+    assert [r["product"]["barcode"] for r in cheap_first] == ["001", "003"]
 
 
 def test_best_value_percentile_and_pareto_frontier():

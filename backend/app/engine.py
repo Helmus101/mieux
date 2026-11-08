@@ -663,10 +663,11 @@ def rank_cheapest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict
 
 def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optional[Dict[str, float]] = None,
                  points: Optional[Dict[str, Any]] = None, lang: str = "fr") -> List[Dict[str, Any]]:
-    """Highest reliable Mieux quality score among genuinely close substitutes (level 1-2).
-    Requires meaningful improvement over scanned product. Price does not affect ranking.
-    No fillers: only genuinely better-quality candidates are returned.
-    """
+    """The best-quality close substitutes (level 1-2), strictly by Mieux nutrition score. Price never affects the order.
+
+    Every scored close substitute is listed, each labelled better / not better than the scanned product (so a list is never empty just
+    because the scanned product is already good). Ties are broken by what a careful shopper would check next: complete nutrition data,
+    fewer risky additives, less processing (NOVA), then closeness. The same product in another pack size is listed once."""
     o_sc = (orig.get("score") or {}).get("total")
     rows = []
     for c in pool:
@@ -680,36 +681,44 @@ def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
         c_sc = (c.get("score") or {}).get("total")
         if c_sc is None:
             continue
-        # Meaningful improvement only: a one-point gain is noise, not a better product
-        if o_sc is not None and c_sc < o_sc + QUALITY_IMPROVEMENT:
-            continue
-        # A product with incomplete nutrition data must not be presented as a confident quality pick
+        # Missing nutrition data is never a quality pick, however good the partial score looks
         if not (c.get("dataQuality") or {}).get("nutritionComplete"):
             continue
-        
         sim = deep_similarity(orig, c)
         p = (prices or {}).get(bc)
         pt = (points or {}).get(bc) or {}
-        comp = 1 if c.get("dataQuality", {}).get("nutritionComplete") else 0
-        why = tr(lang, "quality_note", s=c_sc, o=o_sc if o_sc is not None else "?")
-        
+        comp = 1
+        risky = sum(1 for x in ((c.get("score") or {}).get("additives") or {}).get("items", []) if x.get("level") in ("C", "D"))
+        nova = c.get("novaGroup") or 4
+        delta = None if o_sc is None else c_sc - o_sc
         rows.append({
             "product": c,
             "quality_score": c_sc,
+            "quality_delta": delta,
             "price_per_100_cents": round(p, 1) if p is not None else None,
             "similarity": round(sim, 2),
             "indicators": indicators(c, p) if p else None,
             "tradeoffs": _tradeoffs(orig, c, sim, lang),
-            "why": why,
-            "better": True,
+            "why": tr(lang, "quality_note", s=c_sc, o=o_sc if o_sc is not None else "?"),
+            "better": bool(delta is not None and delta >= QUALITY_IMPROVEMENT),
             "price_source": pt if pt else None,
             "completeness": comp,
+            "quality_detail": {"additives_at_risk": risky, "nova": nova, "nutrition_complete": bool(comp)},
             "estimated": False,
+            "_k": (-c_sc, -comp, risky, nova, -sim),
         })
-    
-    # Sort strictly by Mieux quality score descending, then completeness, then similarity
-    rows.sort(key=lambda r: (-r["quality_score"], -r["completeness"], -r["similarity"]))
-    return brand_variety(rows, lambda r: r["product"].get("brand"))[:MAX_SHOWN]
+    rows.sort(key=lambda r: r["_k"])
+    out, seen = [], set()
+    for r in rows:
+        vk = variant_key(r["product"])
+        if vk in seen:
+            continue                      # another pack size of a product already listed
+        seen.add(vk)
+        r.pop("_k", None)
+        out.append(r)
+        if len(out) >= MAX_SHOWN:
+            break
+    return out
 
 
 def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict[str, float],

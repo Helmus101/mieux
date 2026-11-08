@@ -43,13 +43,11 @@ export default function Alternatives() {
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
   const rowOf = (e: any) => ({ avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio });
   // What each tab shows: sorted strictly by category requirements.
-  const os = r?.original?.score?.total;
   const listOf = (k: string) => (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
-    const q = os != null && e.product.score?.total != null ? e.product.score.total - os : null;
     if (k === 'budget') return e.price100 != null;                 // ordered by unit price: cheapest first
-    if (k === 'match') return q == null || q >= 0;                 // equal or better quality
+    if (k === 'match') return true;                                // every scored close substitute, in score order; the card says who is better
     return e.price100 != null;                                     // value: quality-price score
   });
   const shown = listOf(rk);
@@ -141,7 +139,8 @@ export default function Alternatives() {
             <Row>{e.product.imageUrl && <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={56} height={56} style={{ objectFit: 'contain', borderRadius: 12, background: '#fff' }} />}
               <div className="grow"><b>{i + 1}. {e.product.name}</b><Muted>{e.product.brand}</Muted></div><SaveButton product={e.product} /></Row>
             <Row spread>
-              {e.product.score ? <span><b style={{ fontSize: 28, letterSpacing: -.5 }}>{e.product.score.total}</b><span className="mut sm">{t('score.outOf')} · {t('score.' + e.product.score.band)}</span></span> : <span />}
+              {e.product.score ? <span><b style={{ fontSize: 28, letterSpacing: -.5 }}>{e.product.score.total}</b><span className="mut sm">{t('score.outOf')} · {t('score.' + e.product.score.band)}</span>
+                {rk === 'match' && r?.original?.score && (() => { const d = e.product.score.total - r.original.score.total; return <span className="sm" style={{ marginLeft: 8, fontWeight: 600, color: d >= 5 ? 'var(--accent)' : d < 0 ? 'var(--bad)' : 'var(--mut)' }}>{d === 0 ? t('score.same') : `${d > 0 ? '+' : '−'}${Math.abs(d)} ${t('score.pts')}`}</span>; })()}</span> : <span />}
               {e.vs != null && <span className="pqchip" title={t('score.pqHint')}><b>{e.vs}</b><small>{t('score.pq')}</small></span>}
               <div style={{ textAlign: 'right' }}>
                 {(() => {
