@@ -62,13 +62,8 @@ export default function Alternatives() {
     return e.price100 != null;                                     // value: quality-price score
   });
   const shown = listOf(rk);
-  // Price-quality first. The plain "closest" list is not a tab any more; it only shows when no price or quality list has anything (nothing priced).
-  const real = [
-    ...(listOf('value').length > 0 ? [{ key: 'value', label: t('rank.value') }] : []),
-    ...(listOf('budget').length > 0 ? [{ key: 'budget', label: t('rank.budget') }] : []),
-    ...(listOf('match').length > 0 ? [{ key: 'match', label: t('rank.match') }] : []),
-  ];
-  const tabs = real.length ? real : [{ key: 'closest', label: t('rank.closest') }];
+  // Exactly three tabs, always: price-quality (opens first), price, quality.
+  const tabs = [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));
 
@@ -146,13 +141,6 @@ export default function Alternatives() {
         return <Card><Text style={{ color: c.ink, fontWeight: '700' }}>{m.title}</Text><Muted>{m.why}</Muted>{m.action}</Card>;
       })() : null}
 
-      {r && !busy && shown.length > 0 ? (() => {
-        const savedIds = useHistory.getState().saved.map((s) => s.id);
-        const orig = useHistory.getState().productById(barcode ?? '') ?? (r.original ? { ...r.original, id: r.original.id ?? barcode } : null);
-        const all = [orig, ...shown.map((e: any) => e.product)].filter(Boolean);
-        const done = all.every((p: any) => savedIds.includes(p.id));
-        return <Button small plain disabled={done} onPress={() => { hx.success(); useHistory.getState().saveMany(all); setNote(t('list.savedN', { n: all.length })); setTimeout(() => setNote(''), 2500); }}>{done ? t('list.allSaved') : t('list.saveAll', { n: all.length })}</Button>;
-      })() : null}
       {r && !busy && rk === 'budget' && shown.length > 0 ? <Muted small>{t('alt.cheapestNote')}</Muted> : null}
 
       {r && !busy ? shown.map((e: any, i: number) => {

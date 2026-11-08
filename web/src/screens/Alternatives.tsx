@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
-import { useHistory, useProfile } from '@shared/stores';
+import { useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
 import { readCache, writeCache } from '../swr';
 import { Bar, Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
@@ -52,13 +52,8 @@ export default function Alternatives() {
     return e.price100 != null;                                     // value: quality-price score
   });
   const shown = listOf(rk);
-  // Price-quality first. The plain "closest" list is not a tab any more; it only shows when no price or quality list has anything (nothing priced).
-  const real = [
-    ...(listOf('value').length > 0 ? [{ key: 'value', label: t('rank.value') }] : []),
-    ...(listOf('budget').length > 0 ? [{ key: 'budget', label: t('rank.budget') }] : []),
-    ...(listOf('match').length > 0 ? [{ key: 'match', label: t('rank.match') }] : []),
-  ];
-  const tabs = real.length ? real : [{ key: 'closest', label: t('rank.closest') }];
+  // Exactly three tabs, always: price-quality (opens first), price, quality.
+  const tabs = [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
@@ -136,13 +131,6 @@ export default function Alternatives() {
           : rk === 'budget' ? { title: t('emptyAlt.cheaperTitle'), why: t('emptyAlt.cheaperWhy') }
           : { title: t('emptyAlt.valueTitle'), why: t('emptyAlt.valueWhy') };
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
-      })()}
-      {r && !busy && shown.length > 0 && (() => {
-        const savedIds = useHistory.getState().saved.map((s) => s.id);
-        const orig = useHistory.getState().productById(barcode ?? '') ?? (r.original ? { ...r.original, id: r.original.id ?? barcode } : null);
-        const all = [orig, ...shown.map((e: any) => e.product)].filter(Boolean);
-        const done = all.every((p: any) => savedIds.includes(p.id));
-        return <Button small plain disabled={done} onPress={() => { haptic('success'); useHistory.getState().saveMany(all); setNote(t('list.savedN', { n: all.length })); setTimeout(() => setNote(''), 2500); }}>{done ? t('list.allSaved') : t('list.saveAll', { n: all.length })}</Button>;
       })()}
       {r && !busy && rk === 'budget' && shown.length > 0 && <p className="mut sm">{t('alt.cheapestNote')}</p>}
       {r && !busy && shown.map((e: any, i: number) => {
