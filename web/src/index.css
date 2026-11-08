@@ -429,3 +429,5 @@ kbd{font:600 12px ui-monospace,Menlo,monospace;background:var(--card);border:1px
 .twoscores>div{background:var(--tint);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
 .pqchip{display:inline-flex;flex-direction:column;align-items:center;padding:4px 10px;border-radius:12px;background:var(--tint)}
 .pqchip b{font-size:20px;line-height:1.1}.pqchip small{font-size:10px;color:var(--mut);font-weight:600}
+.pqchip em{font-style:normal;font-size:10px;font-weight:700;margin-top:2px}
+.pqchip em.up{color:var(--accent)}.pqchip em.down{color:var(--mut)}

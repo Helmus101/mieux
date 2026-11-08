@@ -357,3 +357,13 @@ def test_nutrition_given_only_per_serving_or_as_plain_energy_still_scores():
     assert per_serving["nutriments"]["energyKcal100g"] == 80 and per_serving["nutriments"]["sugars100g"] == 14 and per_serving["score"] is not None
     plain = normalize({**base, "nutriments": {"energy_100g": 335, "sugars_100g": 14, "salt_100g": 0.02, "saturated-fat_100g": 0.1}})
     assert round(plain["nutriments"]["energyKcal100g"]) == 80
+
+
+def test_value_list_does_not_require_beating_the_scanned_product():
+    base = {"categories": ["en:dairies", "en:yogurts", "en:plain-yogurts"], "nutriments": {"energyKcal100g": 60, "sugars100g": 4, "carbohydrates100g": 5}}
+    o = {**base, "barcode": "o", "name": "Yaourt nature top", "brand": "A", "score": {"total": 92}}
+    c = {**base, "barcode": "c", "name": "Yaourt nature simple", "brand": "B", "score": {"total": 70}}
+    pts = {"c": {"source": "open_prices", "date": "2026-11-01"}}
+    r = engine.rank_best_value(o, [c], {"c": 100.0}, 80.0, pts)
+    assert [x["product"]["barcode"] for x in r["items"]] == ["c"]       # a worse-scoring but priced alternative still appears, labelled by the flag below
+    assert r["items"][0]["better_than_yours"] in (True, False, None) and "value_detail" in r["items"][0]

@@ -40,7 +40,7 @@ export default function Alternatives() {
       .then((x: any) => { setR(x); writeCache(ck, x); })
       .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
-  const rowOf = (e: any) => ({ avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio });
+  const rowOf = (e: any) => ({ avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio });
   // What each tab shows: sorted strictly by category requirements.
   const os = r?.original?.score?.total;
   const listOf = (k: string) => (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []).map(rowOf).filter((e: any) => {
@@ -89,6 +89,7 @@ export default function Alternatives() {
                     {unitTxt && <div><span className="mut sm">{t('alt.sumP')}</span><b className="sm2">{unitTxt}</b>{d && <span className="dl" style={{ color: d.tone }}>{d.text}</span>}</div>}
                     {e.vs != null && <div><span className="mut sm">{t('alt.sumV')}</span><b>{e.vs}</b><Bar value={e.vs / 100} /></div>}
                   </div>
+                  {e.detail && <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('score.pqHow', { n: e.detail.nutrition, p: formatCents(Math.round(e.detail.price_per_100_cents * 10)), s: e.detail.size ? sizeLabel(e.detail.size) : '—', d: e.detail.price_date ?? '—' })}</p>}
                   {e.tradeoffs?.length > 0 && <div className="flags" style={{ margin: '14px 0 0' }}>{e.tradeoffs.slice(0, 2).map((x: string) => <span key={x} className="pill w">{x}</span>)}</div>}
                 </div>;
               })()}
@@ -141,7 +142,7 @@ export default function Alternatives() {
             <Row spread>
               {e.product.score ? <span><b style={{ fontSize: 28, letterSpacing: -.5 }}>{e.product.score.total}</b><span className="mut sm">{t('score.outOf')} · {t('score.' + e.product.score.band)}</span>
                 {r?.original?.score && (() => { const d = e.product.score.total - r.original.score.total; return <span className="sm" style={{ marginLeft: 8, fontWeight: 600, color: d > 0 ? 'var(--accent)' : d < 0 ? 'var(--bad)' : 'var(--mut)' }}>{d === 0 ? t('score.same') : `${d > 0 ? '+' : '−'}${Math.abs(d)} ${t('score.pts')}`}</span>; })()}</span> : <span />}
-              {e.vs != null && <span className="pqchip" title={t('score.pqHint')}><b>{e.vs}</b><small>{t('score.pq')}</small></span>}
+              {e.vs != null && <span className="pqchip" title={t('score.pqHint')}><b>{e.vs}</b><small>{t('score.pq')}</small>{e.better != null && <em className={e.better ? 'up' : 'down'}>{e.better ? t('score.pqBetter') : t('score.pqWorse')}</em>}</span>}
               <div style={{ textAlign: 'right' }}>
                 {(() => {
                   const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));

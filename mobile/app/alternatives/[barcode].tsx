@@ -49,7 +49,7 @@ export default function Alternatives() {
 
   const rowOf = (e: any) => ({
     avail: e.availability, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated,
-    dominated: e.dominated, vs: e.value_score, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date,
+    dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date,
     stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio,
   });
   const os = r?.original?.score?.total;
@@ -158,6 +158,7 @@ export default function Alternatives() {
               {e.product.score ? <View>
                 <Text style={{ color: c.ink, fontSize: 26, fontWeight: '800' }}>{e.product.score.total}<Muted small> · {t('score.' + e.product.score.band)}</Muted></Text>
                 {r?.original?.score ? (() => { const dd = e.product.score.total - r.original.score.total; return <Text style={{ color: dd > 0 ? c.accent : dd < 0 ? c.bad : c.mut, fontWeight: '600', fontSize: 13 }}>{dd === 0 ? t('score.same') : `${dd > 0 ? '+' : '−'}${Math.abs(dd)} ${t('score.pts')}`}</Text>; })() : null}
+                {e.vs != null ? <Text style={{ color: e.better ? c.accent : c.mut, fontWeight: '700', fontSize: 13 }}>{t('score.pq')} {e.vs}{e.better != null ? ` · ${e.better ? t('score.pqBetter') : t('score.pqWorse')}` : ''}</Text> : null}
               </View> : <View />}
               <View style={{ alignItems: 'flex-end' }}>
                 {u ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>{formatCents(u.perUnitCents)}/{u.unit}{e.pack != null ? <Muted small> ({formatCents(e.pack)})</Muted> : null}</Text>

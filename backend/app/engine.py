@@ -735,8 +735,14 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
         if p is None or p < 3:
             continue
         pt = (points or {}).get(bc) or {}
-        if not _verified_price(p, pt, points is not None, max_age_days):
-            continue
+        # Any observed price up to a year old counts here (the score below discounts older ones); estimates and derived prices never do.
+        if points is not None:
+            if pt.get("source") == "estimate" or pt.get("stale") or pt.get("derived"):
+                continue      # estimates and prices copied from another pack size never rank
+            from .value import age_days
+            ag = age_days(pt.get("date")) if pt.get("date") else None
+            if ag is None or ag > 365:
+                continue
         
         # Substitution level 1 or 2 only
         sub = c.get("substitution") or taxonomy.substitution(orig, c)
@@ -751,10 +757,8 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
         if c_sc is None:
             continue
         
-        # Quality floor: cannot drop more than 5 points
-        if o_sc0 is not None and c_sc < o_sc0 - QUALITY_FLOOR:
-            continue
-        
+        # No floor against the scanned product here: the price-quality score already weighs nutrition (and damps weak products), and a list that
+        # only shows products "better than yours" is empty exactly when the scanned product is already a good choice.
         sim = deep_similarity(orig, c)
         candidates.append((c, c_sc, p, sim, pt))
     
@@ -789,10 +793,20 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
             continue
         val_score = pinfo["value_score"]
         
-        # If original product has a baseline value score, candidate must be at least as good value
-        if orig_val_score is not None and not no_baseline:
-            if val_score < orig_val_score:
-                continue
+        # Detail: a price older than 90 days is worth a little less.
+        factor = 1.0
+        ag2 = None
+        try:
+            from .value import age_days as _ad
+            ag2 = _ad(pt.get("date")) if pt.get("date") else None
+        except Exception:
+            ag2 = None
+        if ag2 is not None and ag2 > 90:
+            factor *= 0.95
+        if pt.get("derived"):
+            factor *= 0.92
+        base_score = val_score
+        val_score = max(1, round(val_score * factor))
         
         conf = pt.get("confidence") or "medium"
         conf_rank = 2 if conf == "high" else 1 if conf == "medium" else 0
@@ -814,6 +828,9 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
             "quality_percentile": pinfo["quality_percentile"],
             "affordability_percentile": pinfo["affordability_percentile"],
             "dominated": is_dom,
+            "better_than_yours": (orig_val_score is not None and val_score > orig_val_score) if orig_val_score is not None else None,
+            "value_detail": {"nutrition": c_sc, "price_per_100_cents": round(p, 1), "pack_cents": pt.get("pack_cents"), "size": c.get("quantity"),
+                             "price_date": pt.get("date"), "price_derived": bool(pt.get("derived")), "freshness_factor": factor, "before_adjustment": base_score},
             "conf_rank": conf_rank,
             "price_source": pt if pt else None,
             "quality_score": c_sc,
@@ -822,7 +839,7 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
     # Sort: non-dominated first, then value index descending, then confidence, then quality
     rows.sort(key=lambda r: (-r["value_score"], bool(r["dominated"]), -r["conf_rank"], -(r["quality_score"] or 0)))   # the index already ranks a dominated product below its dominator
     result = rows[:MAX_SHOWN]  # strict order: brand variety must never move a cheaper or better product down
-    return {"items": result, "no_baseline": no_baseline}
+    return {"items": result, "no_baseline": no_baseline, "original_value_score": orig_val_score}
 
 
 def rank_closest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optional[Dict[str, float]] = None,
@@ -927,5 +944,6 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
         "quality": quality_items,
         "closest": closest_items,
         "match": match_list[:MAX_SHOWN],
+        "original_value_score": best_val.get("original_value_score"),
         "no_baseline": no_baseline,
     }
