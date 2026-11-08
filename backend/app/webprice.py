@@ -218,6 +218,8 @@ def _cached(barcode: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
 def _store(barcode: str, data: Optional[Dict[str, Any]]) -> None:
     try:
         db = _db()
+        if not data and db.execute("select data from webprice where barcode=? and data is not null", (barcode,)).fetchone():
+            return                       # never overwrite a stored price with a miss
         db.execute("insert or replace into webprice values (?,?,?)", (barcode, time.time(), json.dumps(data) if data else None))
         db.commit()
     except sqlite3.Error:
@@ -242,14 +244,20 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
     barcode = str(product.get("barcode") or "")
     if not barcode or provider() is None:
         return None
+    old = None
     if use_cache:
         fresh, data = _cached(barcode)
         if fresh:
             return data
+        old = data                       # an expired price we found earlier: kept, never thrown away
     if provider() == "parallel":
         out = _search_lookup(product, http or _http)
-        if use_cache and (out or last_error is None):
+        if use_cache and out:
             _store(barcode, out)
+        elif use_cache and last_error is None and not old:
+            _store(barcode, None)        # a genuine "nothing found" is remembered for a few days
+        if not out and old:
+            return {**old, "stale": True}   # the re-search found nothing: keep showing the stored price, marked as older
         return out
     q = product.get("quantity")
     size = f"{q['amount']:g} {q['unit']}" if q else (product.get("quantityText") or "inconnu")
