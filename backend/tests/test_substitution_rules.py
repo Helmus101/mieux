@@ -367,3 +367,31 @@ def test_value_list_does_not_require_beating_the_scanned_product():
     r = engine.rank_best_value(o, [c], {"c": 100.0}, 80.0, pts)
     assert [x["product"]["barcode"] for x in r["items"]] == ["c"]       # a worse-scoring but priced alternative still appears, labelled by the flag below
     assert r["items"][0]["better_than_yours"] in (True, False, None) and "value_detail" in r["items"][0]
+
+
+def test_web_price_lookup_uses_citations_and_rejects_unsupported_answers(monkeypatch, tmp_path):
+    from app import webprice
+    monkeypatch.setenv("GEMINI_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp.db"))
+    prod = {"barcode": "3017620422003", "name": "Pâte à tartiner", "brand": "X", "quantity": {"amount": 400.0, "unit": "g"}}
+
+    def reply(text, sources=("https://exemple.fr/p",)):
+        return lambda url, body: {"candidates": [{"content": {"parts": [{"text": text}]},
+                                                    "groundingMetadata": {"groundingChunks": [{"web": {"uri": u}} for u in sources]}}]}
+    ok = webprice.lookup(prod, reply('Voici : {"price_eur": 3.20, "pack_size": "400 g", "store": "Auchan", "found": true}'), use_cache=False)
+    assert ok["per100_cents"] == 80.0 and ok["approximate"] is True and ok["source"] == "web_search" and ok["source_urls"]
+    assert webprice.lookup(prod, reply('{"price_eur": 3.2, "pack_size": "400 g", "found": true}', sources=()), use_cache=False) is None   # no cited page
+    assert webprice.lookup(prod, reply('{"found": false}'), use_cache=False) is None
+    assert webprice.lookup(prod, reply('{"price_eur": 3.2, "pack_size": "1 l", "found": true}'), use_cache=False) is None                    # litres for a grams product
+    monkeypatch.delenv("GEMINI_API_KEY"); assert webprice.lookup(prod, reply("{}")) is None                                                      # off without a key
+
+
+def test_web_price_is_cached_per_barcode(monkeypatch, tmp_path):
+    from app import webprice
+    monkeypatch.setenv("GEMINI_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp2.db"))
+    calls = []
+    def tr(url, body):
+        calls.append(1)
+        return {"candidates": [{"content": {"parts": [{"text": '{"price_eur": 2.0, "pack_size": "200 g", "found": true}'}]}, "groundingMetadata": {"groundingChunks": [{"web": {"uri": "https://x.fr"}}]}}]}
+    prod = {"barcode": "123456789012", "name": "Biscuits", "quantity": {"amount": 200.0, "unit": "g"}}
+    a, b = webprice.lookup(prod, tr), webprice.lookup(prod, tr)
+    assert a == b and len(calls) == 1
