@@ -43,6 +43,10 @@ def normalise(r: dict, path: str) -> dict:
             return {}
         return {"chain": "E.Leclerc", "storeExtId": "leclerc-online", "storeName": "E.Leclerc en ligne", "storeAddress": "France", "ean": r.get("ean"), "price": price,
                 "currency": "EUR", "status": "ACTIVE", "updatedAt": date}
+    if "lidl" in os.path.basename(path).lower() and "name" in r:     # Lidl online, name/price/ean export
+        price = parse_price(r.get("price"))
+        return {} if price is None else {"chain": "Lidl", "storeExtId": "lidl-online", "storeName": "Lidl en ligne", "storeAddress": "France", "ean": r.get("ean"),
+                                         "price": price, "currency": "EUR", "status": "ACTIVE", "updatedAt": date}
     if "price_per_unit" in r and "name" in r:     # Intermarché online, name/price/ean export (no store given)
         price = parse_price(r.get("price"))
         return {} if price is None else {"chain": "Intermarché", "storeExtId": "intermarche-online", "storeName": "Intermarché en ligne", "storeAddress": "France",
@@ -70,7 +74,7 @@ def main(paths, out: str = OUT) -> None:
         batch, seen = [], set()
         for r in rows:
             code, price = code_of(r.get("ean")), r.get("price")
-            if not code or price in (None, "") or r.get("status") not in (None, "ACTIVE") or (code, r.get("storeExtId")) in seen:
+            if len(code) < 8 or price in (None, "") or r.get("status") not in (None, "ACTIVE") or (code, r.get("storeExtId")) in seen:
                 continue
             seen.add((code, r.get("storeExtId")))
             date = (r.get("updatedAt") or "")[:10]
