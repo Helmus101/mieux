@@ -41,7 +41,7 @@ export default function Alternatives() {
       .then((x: any) => { setR(x); writeCache(ck, x); })
       .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
-  const rowOf = (e: any) => ({ avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio });
+  const rowOf = (e: any) => ({ ps_web: e.price_source?.source === "web_search", avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio });
   // What each tab shows: sorted strictly by category requirements.
   const listOf = (k: string) => (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
@@ -164,7 +164,7 @@ export default function Alternatives() {
                     <>
                       {u ? (
                         <div style={{ fontSize: 18, fontWeight: 700 }}>
-                          {formatCents(u.perUnitCents)}/{u.unit}
+                          {e.ps_web ? "~ " : ""}{formatCents(u.perUnitCents)}/{u.unit}
                           {e.pack != null && <span className="mut sm" style={{ fontWeight: 400, marginLeft: 6 }}>({formatCents(e.pack)})</span>}
                         </div>
                       ) : e.pack != null ? (

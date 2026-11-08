@@ -58,7 +58,7 @@ export default function Alternatives() {
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
 
   const rowOf = (e: any) => ({
-    avail: e.availability, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated,
+    ps_web: e.price_source?.source === "web_search", avail: e.availability, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated,
     dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date,
     stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio,
   });
@@ -170,7 +170,7 @@ export default function Alternatives() {
                 {e.vs != null ? <Text style={{ color: e.better ? c.accent : c.mut, fontWeight: '700', fontSize: 13 }}>{t('score.pq')} {e.vs}{e.better != null ? ` · ${e.better ? t('score.pqBetter') : t('score.pqWorse')}` : ''}</Text> : null}
               </View> : <View />}
               <View style={{ alignItems: 'flex-end' }}>
-                {u ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>{formatCents(u.perUnitCents)}/{u.unit}{e.pack != null ? <Muted small> ({formatCents(e.pack)})</Muted> : null}</Text>
+                {u ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>{e.ps_web ? "~ " : ""}{formatCents(u.perUnitCents)}/{u.unit}{e.pack != null ? <Muted small> ({formatCents(e.pack)})</Muted> : null}</Text>
                   : e.pack != null ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>{formatCents(e.pack)}</Text> : null}
                 {!u && e.pack == null && webP[e.product.barcode] ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>~ {formatCents(Math.round(webP[e.product.barcode].per100_cents * 10))}/{isLiquid(e.product) ? 'L' : 'kg'}<Muted small> {t('score.webPrice')}</Muted></Text> : null}
                 {!u && e.pack == null && webP[e.product.barcode]?.value_score != null ? <Text style={{ color: c.mut, fontWeight: '600', fontSize: 13 }}>{t('score.pq')} ≈ {webP[e.product.barcode].value_score}</Text> : null}

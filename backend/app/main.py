@@ -1496,6 +1496,31 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
             points[c["barcode"]].update({k: pt[k] for k in ("currency", "price_native", "fx", "stale", "pack_cents") if k in pt})
     if orig_price is not None:
         points[orig["barcode"]] = {k: points[orig["barcode"]][k] for k in ("source", "date", "where", "currency", "price_native", "fx", "stale", "pack_cents", "scope", "store", "distance_km") if k in points[orig["barcode"]]}
+    # Too few observed prices for this kind of product (or none for the scanned one): search the web (Parallel, cached for good in webprice_cache.db) so the
+    # price lists are never empty. Found prices carry source='web_search' + approximate=True; the clients show them with a "~".
+    from . import webprice
+    if webprice.enabled() and (len([b for b in prices if b != orig["barcode"]]) < 6 or (oq and orig_price is None)):
+        todo = []
+        if oq and orig_price is None:
+            todo.append(orig)
+        for c in prods:
+            cq, sub = c.get("quantity"), c.get("substitution")
+            if cq and c["barcode"] not in prices and c["barcode"] != orig["barcode"] and (not oq or cq["unit"] == oq["unit"]) and (sub is None or sub.get("level") in (1, 2)):
+                todo.append(c)
+            if len(todo) >= 10:
+                break
+        if todo:
+            with ThreadPoolExecutor(max_workers=4) as ex:
+                found = list(ex.map(lambda c: webprice.lookup(c), todo))
+            for c, w in zip(todo, found):
+                if not w or w.get("per100_cents") is None:
+                    continue
+                if c["barcode"] == orig["barcode"]:
+                    orig_price = w["per100_cents"]
+                else:
+                    prices[c["barcode"]] = w["per100_cents"]
+                points[c["barcode"]] = {"source": "web_search", "approximate": True, "date": w.get("date"), "where": ", ".join(w.get("stores") or []) or None, "stale": bool(w.get("stale")),
+                                        "pack_cents": w.get("pack_cents")}
     if approximate:
         # Estimates only where nothing was observed, always tagged source='estimate' (never a verified price).
         observed = [v for k, v in prices.items() if k != orig["barcode"]]
