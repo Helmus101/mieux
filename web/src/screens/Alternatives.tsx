@@ -46,9 +46,9 @@ export default function Alternatives() {
   const listOf = (k: string) => (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
-    if (k === 'budget') return e.price100 != null;                 // ordered by unit price: cheapest first
+    if (k === 'budget') { const op = r?.original_price?.per100_cents; return e.price100 != null && (op == null || e.price100 < op); }   // cheaper than yours only, cheapest first
     if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never a product scoring the same or lower
-    return e.price100 != null;                                     // value: quality-price score
+    { const ov = r?.rankings?.original_value_score; return e.price100 != null && (ov == null || e.vs == null || e.vs > ov); }   // value: only a better price-quality score than yours
   });
   const shown = listOf(rk);
   // Cards with no price: one search for an approximate price and the supermarkets selling it (cached server-side), filled in as it arrives.
