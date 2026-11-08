@@ -36,6 +36,12 @@ export default function Product() {
     return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
   }, [barcode, estimates, attempt]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
+  const [webP, setWebP] = useState<any>(null);       // hooks stay above every early return
+  const headKind = d ? priceHeadline(d.price_context).kind : null;
+  useEffect(() => {          // no observed price: one search for an approximate price and where it is sold
+    setWebP(null);
+    if (barcode && d && headKind === 'none') api.getWebPrice(barcode).then(setWebP).catch(() => undefined);
+  }, [barcode, d?.product?.id, headKind]);
   if (err) return (
     <Screen>
       <NavBar onBack={back} />
@@ -64,11 +70,6 @@ export default function Product() {
   const factor = (bases.find((b) => b.key === basis) ?? bases[0]).f;
   const amt = (v: number | null | undefined) => (v == null ? '—' : String(Math.round(v * factor * 10) / 10).replace('.', ','));
   const head = priceHeadline(pc);
-  const [webP, setWebP] = useState<any>(null);
-  useEffect(() => {          // no observed price: one search for an approximate price and where it is sold
-    setWebP(null);
-    if (barcode && d && head.kind === 'none') api.getWebPrice(barcode).then(setWebP).catch(() => undefined);
-  }, [barcode, d?.product?.id, head.kind]);
   const info = sheet ? additiveInfo(sheet) : null;
   const sItem = sheet ? ((p.score?.additives?.items ?? []) as any[]).find((x) => x.code === sheet) : null;
   return (
