@@ -1,0 +1,25 @@
+# Mieux API on one VPS: the app container plus Caddy, which gets and renews the HTTPS certificate by itself.
+# Run from this folder:  docker compose up -d --build
+services:
+  api:
+    build: ..
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - /srv/mieux/data:/data        # databases live here, outside the image (see DEPLOY_OVH.md)
+    expose:
+      - "8010"
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - API_DOMAIN=${API_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+volumes:
+  caddy_data:
