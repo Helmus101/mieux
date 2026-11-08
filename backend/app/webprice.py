@@ -68,13 +68,14 @@ def _http(method: str, url: str, headers: Dict[str, str], body: Optional[Dict[st
 
 
 BRAVE = "https://api.search.brave.com/res/v1/web/search"
+LANGSEARCH = "https://api.langsearch.com/v1/web-search"
 PARALLEL = "https://api.parallel.ai/v1/search"
 _PRICE = re.compile(r"(\d{1,3}(?:[ .]\d{3})*[,.]\d{2})\s?(?:€|eur\b|euros?\b)", re.I)
 
 
 def providers() -> list:
-    """Parallel only (Brave and Gemini lookups exist in this file but are not used)."""
-    return ["parallel"] if os.environ.get("PARALLEL_API_KEY") else []
+    """LangSearch first (main), Parallel as the fallback; each only when its key is set (Brave and Gemini lookups exist in this file but are not used)."""
+    return [n for n, k in (("langsearch", "LANGSEARCH_API_KEY"), ("parallel", "PARALLEL_API_KEY")) if os.environ.get(k)]
 
 
 def provider() -> Optional[str]:
@@ -115,6 +116,11 @@ def _fetch_results(name: str, product: Dict[str, Any], http: Http) -> list:
                     {"X-Subscription-Token": os.environ["BRAVE_API_KEY"], "Accept": "application/json"}, None)
         return [(r.get("url") or "", " ".join([r.get("title") or "", r.get("description") or ""] + list(r.get("extra_snippets") or [])))
                 for r in (data.get("web") or {}).get("results", [])]
+    if name == "langsearch":
+        data = http("POST", LANGSEARCH, {"Content-Type": "application/json", "Authorization": "Bearer " + os.environ["LANGSEARCH_API_KEY"]},
+                    {"query": f"{query} supermarché France", "freshness": "oneMonth", "summary": True, "count": 10})
+        pages = ((data.get("data") or data).get("webPages") or {}).get("value", [])
+        return [(r.get("url") or "", " ".join([r.get("name") or "", r.get("snippet") or "", r.get("summary") or ""])) for r in pages]
     data = http("POST", PARALLEL, {"Content-Type": "application/json", "x-api-key": os.environ["PARALLEL_API_KEY"]},
                 {"objective": f"Prix actuel en euros en supermarché en France de : {query}. Donne les pages de supermarchés ou comparateurs qui indiquent ce prix.", "search_queries": [query]})
     return [(r.get("url") or "", " ".join([r.get("title") or ""] + list(r.get("excerpts") or []))) for r in data.get("results", [])]
@@ -256,7 +262,7 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
         if fresh:
             return data
         old = data                       # an expired price we found earlier: kept, never thrown away
-    if provider() == "parallel":
+    if provider() in ("langsearch", "parallel"):
         out = _search_lookup(product, http or _http)
         if use_cache and out:
             _store(barcode, out)

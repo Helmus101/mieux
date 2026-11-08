@@ -458,3 +458,29 @@ def test_pizza_sticks_are_breadsticks_not_pizza():
     assert c("Bâtonnets salés apéritif", []) == "breadsticks"
     assert c("Pizza margherita", ["en:pizzas"]) == "pizza"
     assert c("Mozzarella sticks", ["en:cheeses"]) != "breadsticks"
+
+
+def test_langsearch_is_main_and_parallel_the_fallback(monkeypatch, tmp_path):
+    from app import webprice
+    monkeypatch.setenv("LANGSEARCH_API_KEY", "ls"); monkeypatch.setenv("PARALLEL_API_KEY", "pa"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp4.db"))
+    assert webprice.providers() == ["langsearch", "parallel"]
+    prod = {"barcode": "3017620422003", "name": "Nutella pâte à tartiner", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
+    ls_ok = {"data": {"webPages": {"value": [{"name": "Ferrero Nutella 400 g", "url": "https://www.auchan.fr/a", "snippet": "Nutella Ferrero 400 g à 3,20 €"},
+                                              {"name": "Nutella Ferrero 400g", "url": "https://www.carrefour.fr/b", "snippet": "prix 3,25 € le pot de 400 g"}]}}}
+    par_ok = {"results": [{"title": "Ferrero Nutella 400 g", "excerpts": ["Nutella Ferrero 400 g 3,40 €"], "url": "https://www.leclerc.fr/c"},
+                          {"title": "Nutella Ferrero 400g", "excerpts": ["Nutella Ferrero 400 g 3,45 €"], "url": "https://www.intermarche.com/d"}]}
+    calls = []
+
+    def http(ls_resp):
+        def f(method, url, headers, body):
+            calls.append(url)
+            if "langsearch" in url:
+                assert headers["Authorization"] == "Bearer ls"
+                return ls_resp
+            return par_ok
+        return f
+    r = webprice.lookup(prod, use_cache=False, http=http(ls_ok))
+    assert r and r["provider"] == "langsearch" and calls == ["https://api.langsearch.com/v1/web-search"]
+    calls.clear()
+    r = webprice.lookup(prod, use_cache=False, http=http({"data": {"webPages": {"value": []}}}))            # LangSearch finds nothing: Parallel answers
+    assert r and r["provider"] == "parallel" and len(calls) == 2
