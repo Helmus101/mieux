@@ -74,8 +74,8 @@ _PRICE = re.compile(r"(\d{1,3}(?:[ .]\d{3})*[,.]\d{2})\s?(?:€|eur\b|euros?\b)"
 
 
 def providers() -> list:
-    """LangSearch first (main), Parallel as the fallback; each only when its key is set (Brave and Gemini lookups exist in this file but are not used)."""
-    return [n for n, k in (("langsearch", "LANGSEARCH_API_KEY"), ("parallel", "PARALLEL_API_KEY")) if os.environ.get(k)]
+    """Parallel first (main: it found prices where LangSearch returned unrelated pages), LangSearch as the fallback; each only when its key is set (Brave and Gemini lookups exist in this file but are not used)."""
+    return [n for n, k in (("parallel", "PARALLEL_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY")) if os.environ.get(k)]
 
 
 def provider() -> Optional[str]:

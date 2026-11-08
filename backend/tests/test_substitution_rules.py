@@ -460,10 +460,10 @@ def test_pizza_sticks_are_breadsticks_not_pizza():
     assert c("Mozzarella sticks", ["en:cheeses"]) != "breadsticks"
 
 
-def test_langsearch_is_main_and_parallel_the_fallback(monkeypatch, tmp_path):
+def test_parallel_is_main_and_langsearch_the_fallback(monkeypatch, tmp_path):
     from app import webprice
     monkeypatch.setenv("LANGSEARCH_API_KEY", "ls"); monkeypatch.setenv("PARALLEL_API_KEY", "pa"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp4.db"))
-    assert webprice.providers() == ["langsearch", "parallel"]
+    assert webprice.providers() == ["parallel", "langsearch"]
     prod = {"barcode": "3017620422003", "name": "Nutella pâte à tartiner", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
     ls_ok = {"data": {"webPages": {"value": [{"name": "Ferrero Nutella 400 g", "url": "https://www.auchan.fr/a", "snippet": "Nutella Ferrero 400 g à 3,20 €"},
                                               {"name": "Nutella Ferrero 400g", "url": "https://www.carrefour.fr/b", "snippet": "prix 3,25 € le pot de 400 g"}]}}}
@@ -480,7 +480,12 @@ def test_langsearch_is_main_and_parallel_the_fallback(monkeypatch, tmp_path):
             return par_ok
         return f
     r = webprice.lookup(prod, use_cache=False, http=http(ls_ok))
-    assert r and r["provider"] == "langsearch" and calls == ["https://api.langsearch.com/v1/web-search"]
+    assert r and r["provider"] == "parallel" and calls == ["https://api.parallel.ai/v1/search"]          # Parallel answers first
     calls.clear()
-    r = webprice.lookup(prod, use_cache=False, http=http({"data": {"webPages": {"value": []}}}))            # LangSearch finds nothing: Parallel answers
-    assert r and r["provider"] == "parallel" and len(calls) == 2
+    monkeypatch.setattr(webprice, "_cached", lambda b: (False, None))
+    monkeypatch.setattr(webprice, "PARALLEL", "https://api.parallel.ai/none")                              # Parallel gets nothing: LangSearch answers
+    def http2(method, url, headers, body):
+        calls.append(url)
+        return {"results": []} if "parallel" in url else ls_ok
+    r = webprice.lookup(prod, use_cache=False, http=http2)
+    assert r and r["provider"] == "langsearch" and len(calls) == 2
