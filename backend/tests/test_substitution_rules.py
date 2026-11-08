@@ -268,3 +268,12 @@ def test_marks_and_spencer_products_are_never_candidates():
     assert main._raw_candidate(ok, [], [], {"categories": ["en:biscuits"]})
     for brand in ("Marks & Spencer", "Marks and Spencer", "M&S Food"):
         assert not main._raw_candidate({**ok, "brands": brand}, [], [], {"categories": ["en:biscuits"]}), brand
+
+
+def test_french_tagged_chocolate_spreads_match_each_other():
+    from app import taxonomy
+    tags = ["en:snacks", "en:cocoa-and-its-products", "en:chocolates", "en:petit-dejeuners", "en:produits-a-tartiner", "en:pates-a-tartiner", "en:pates-a-tartiner-aux-noisettes-et-au-cacao"]
+    a = {"name": "Nutella", "categories": tags}
+    b = {"name": "Pâte à tartiner noisettes cacao", "brand": "Carrefour", "categories": tags}
+    assert taxonomy.classify(a)["type"] == "chocolate_spread" and taxonomy.classify(a)["confidence"] in ("high", "medium")
+    assert taxonomy.substitution(a, b)["level"] == 1
