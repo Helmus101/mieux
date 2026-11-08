@@ -43,6 +43,10 @@ def normalise(r: dict, path: str) -> dict:
             return {}
         return {"chain": "E.Leclerc", "storeExtId": "leclerc-online", "storeName": "E.Leclerc en ligne", "storeAddress": "France", "ean": r.get("ean"), "price": price,
                 "currency": "EUR", "status": "ACTIVE", "updatedAt": date}
+    if "naturalia" in os.path.basename(path).lower() and "name" in r:     # Naturalia online, name/price/ean export
+        price = parse_price(r.get("price"))
+        return {} if price is None else {"chain": "Naturalia", "storeExtId": "naturalia-online", "storeName": "Naturalia en ligne", "storeAddress": "France", "ean": r.get("ean"),
+                                         "price": price, "currency": "EUR", "status": "ACTIVE", "updatedAt": date}
     if "lidl" in os.path.basename(path).lower() and "name" in r:     # Lidl online, name/price/ean export
         price = parse_price(r.get("price"))
         return {} if price is None else {"chain": "Lidl", "storeExtId": "lidl-online", "storeName": "Lidl en ligne", "storeAddress": "France", "ean": r.get("ean"),
