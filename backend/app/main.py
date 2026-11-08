@@ -1191,6 +1191,9 @@ _QUICK_ORDER = {"sugars": ("sugar", True), "salt": ("salt", True), "saturated_fa
                 "protein": ("protein", False), "fibre": ("fibre", False), "overall": ("grade", True)}
 
 
+_EXCLUDED_BRANDS = re.compile(r"marks\s*(&|and|et)\s*spencer|\bm\s*&\s*s\b|\bm&s\b", re.I)
+
+
 def _raw_candidate(r: Dict[str, Any], priorities: List[str], allergens: List[str], orig: Dict[str, Any]) -> bool:
     """Cheap look at a raw Open Food Facts record, before the expensive normalisation and scoring.
     Drops what cannot become an alternative whatever its score: no name, not sold in France, no category, no value for the
@@ -1198,6 +1201,8 @@ def _raw_candidate(r: Dict[str, Any], priorities: List[str], allergens: List[str
     product itself does not have is not required: nothing could be compared on it anyway."""
     if not r.get("product_name"):
         return False
+    if _EXCLUDED_BRANDS.search(str(r.get("brands") or "") + " " + str(r.get("product_name") or "")):
+        return False       # chains that do not sell in France are never recommended
     countries = r.get("countries_tags")
     if countries and market.tag() not in countries:
         return False

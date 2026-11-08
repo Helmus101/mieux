@@ -260,3 +260,11 @@ def test_repeated_idempotency_key_replays_the_first_answer():
     a = c.post("/v1/auth/register", json={"email": "idem1@example.com", "password": "Passw0rd!x"}, headers=h)
     b = c.post("/v1/auth/register", json={"email": "idem1@example.com", "password": "Passw0rd!x"}, headers=h)
     assert a.status_code < 400 and b.status_code == a.status_code and b.headers.get("Idempotent-Replay") == "true"
+
+
+def test_marks_and_spencer_products_are_never_candidates():
+    from app import main
+    ok = {"product_name": "Biscuits", "brands": "Lu", "countries_tags": ["en:france"], "categories_tags": ["en:biscuits"]}
+    assert main._raw_candidate(ok, [], [], {"categories": ["en:biscuits"]})
+    for brand in ("Marks & Spencer", "Marks and Spencer", "M&S Food"):
+        assert not main._raw_candidate({**ok, "brands": brand}, [], [], {"categories": ["en:biscuits"]}), brand
