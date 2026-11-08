@@ -1191,6 +1191,30 @@ _QUICK_ORDER = {"sugars": ("sugar", True), "salt": ("salt", True), "saturated_fa
                 "protein": ("protein", False), "fibre": ("fibre", False), "overall": ("grade", True)}
 
 
+_BRAND_CHAINS: Optional[Dict[str, List[str]]] = None
+
+
+def _brand_chain_ids(brand: Optional[str]) -> List[str]:
+    """Chains known to sell a brand, from scripts/build_brand_chains.py (evidence: its products seen in those chains' price data).
+    A chain counts when it has at least 3 of the brand's products and at least 15 % of the best chain's count, so one stray sighting adds nothing."""
+    global _BRAND_CHAINS
+    if _BRAND_CHAINS is None:
+        _BRAND_CHAINS = {}
+        for path in (os.environ.get("BRAND_CHAINS"), "/data/brand_chains.json", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "brand_chains.json")):
+            if path and os.path.exists(path):
+                try:
+                    for r in json.load(open(path, encoding="utf-8")):
+                        top = max([c["products"] for c in r["chains"]] or [0])
+                        ids = [retail.ID_OF[c["chain"]] for c in r["chains"] if c["products"] >= max(3, 0.15 * top) and c["chain"] in retail.ID_OF]
+                        if ids:
+                            _BRAND_CHAINS[r["brand"]] = ids
+                    break
+                except (OSError, ValueError, KeyError):
+                    continue
+    key = re.sub(r"\s+", " ", re.sub(r"[^a-z0-9àâçéèêëîïôûùüÿñ&' ]", " ", str(brand or "").split(",")[0].lower())).strip()
+    return _BRAND_CHAINS.get(key, [])
+
+
 _EXCLUDED_BRANDS = re.compile(r"marks\s*(&|and|et)\s*spencer|\bm\s*&\s*s\b|\bm&s\b", re.I)
 
 
@@ -1561,6 +1585,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             cid_ = retail.ID_OF.get(own_) if own_ else None
             if cid_ and cid_ not in (r_["product"].get("chains") or []):
                 r_["product"]["chains"] = [cid_] + list(r_["product"].get("chains") or [])   # a store brand always shows its chain logo
+            if not r_["product"].get("chains"):
+                r_["product"]["chains"] = _brand_chain_ids(r_["product"].get("brand"))     # no sighting of this exact product: the brand's usual chains
             r_["availability"], r_["store_price"] = _availability(r_["product"])
         res["rankings"][key_] = kept_
     if "diagnostics" in res:

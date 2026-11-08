@@ -277,3 +277,13 @@ def test_french_tagged_chocolate_spreads_match_each_other():
     b = {"name": "Pâte à tartiner noisettes cacao", "brand": "Carrefour", "categories": tags}
     assert taxonomy.classify(a)["type"] == "chocolate_spread" and taxonomy.classify(a)["confidence"] in ("high", "medium")
     assert taxonomy.substitution(a, b)["level"] == 1
+
+
+def test_brand_chains_fill_in_chains_for_a_known_brand(tmp_path, monkeypatch):
+    import json
+    from app import main
+    f = tmp_path / "bc.json"
+    f.write_text(json.dumps([{"rank": 1, "brand": "bonne maman", "scans": 5, "chains": [{"chain": "Carrefour", "products": 100}, {"chain": "Auchan", "products": 60}, {"chain": "Lidl", "products": 2}]}]))
+    monkeypatch.setenv("BRAND_CHAINS", str(f)); monkeypatch.setattr(main, "_BRAND_CHAINS", None)
+    assert main._brand_chain_ids("Bonne Maman") == ["carrefour", "auchan"]     # Lidl's 2 sightings are noise
+    assert main._brand_chain_ids("Unknown brand") == []
