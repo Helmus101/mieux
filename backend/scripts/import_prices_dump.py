@@ -61,6 +61,16 @@ def main(prices_path: str, locations_path: str, out: str = OUT) -> None:
                 db.executemany("insert into op_items values (?,?,?)", batch)
                 batch = []
     db.executemany("insert into op_items values (?,?,?)", batch)
+    # Retailer exports added by import_store_prices.py (ids "sc-...") live in the same table; carry them over so a refresh never drops them.
+    if os.path.exists(out):
+        try:
+            old = sqlite3.connect(out)
+            keep = old.execute("select code, date, data from op_items where json_extract(data, '$.id') like 'sc-%'").fetchall()
+            old.close()
+            db.executemany("insert into op_items values (?,?,?)", keep)
+            print(f"kept {len(keep):,} retailer prices")
+        except sqlite3.Error:
+            pass
     db.execute("create index op_code on op_items (code, date desc)")
     db.commit()
     db.close()
