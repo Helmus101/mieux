@@ -3,7 +3,7 @@ import { Alert, Linking, Pressable, ScrollView, Share, Text, View } from 'react-
 import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { clearAll } from '@shared/storage';
-import { useProfile, useHistory, PRIORITY_KEYS } from '@shared/stores';
+import { useProfile, useHistory } from '@shared/stores';
 import { chainsFor, COUNTRIES, type Country } from '@shared/chains';
 import { Button, Brand, Card, Cell, ChainBadge, Chip, Chips, Collapsible, Field, Group, LargeTitle, Muted, NavBar, Pill, Row, Screen, Section, Segmented, useTheme } from '../../src/ui';
 import { routes, useNav } from '../../src/nav';
@@ -12,7 +12,7 @@ import * as hx from '../../src/haptics';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const EMAIL = 'bonjourmieuxmanger@gmail.com';
 
-/** Profile: the same sections in the same order as the web screen (location, language, market, chains, priorities, diet, restrictions, contact, local data). */
+/** Profile: the same sections in the same order as the web screen (location, language, market, chains, diet, restrictions, contact, local data). */
 export default function Profile() {
   const c = useTheme();
   const p = useProfile();
@@ -77,7 +77,6 @@ export default function Profile() {
         </Muted>
       </Collapsible>
 
-      <Section title={t('profile.priorities')}><Chips>{PRIORITY_KEYS.map((k) => <Chip key={k} on={p.priorities.includes(k)} onPress={() => p.togglePriority(k)}>{t('priorities.' + k)}</Chip>)}</Chips></Section>
       <Section title={t('profile.diet')}><Segmented value={p.diet} onChange={(k) => p.setDiet(k as any)} options={(['omnivore', 'vegetarian', 'vegan'] as const).map((d) => ({ key: d, label: t('diets.' + d) }))} /></Section>
       <Section title={t('profile.restrictions')}>
         <Chips>{['gluten', 'milk', 'peanuts', 'nuts'].map((a) => <Chip key={a} on={p.allergens.includes(a)} onPress={() => p.toggleAllergen(a)}>{t('diets.' + a)}</Chip>)}</Chips>
