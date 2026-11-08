@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from . import value
 
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 HIT_TTL = 14 * 86400
 MISS_TTL = 3 * 86400
@@ -25,6 +25,7 @@ PROMPT = (
     "Si tu n'es pas sûr que le prix concerne exactement ce produit et ce format, réponds {{\"found\": false}}. N'invente rien."
 )
 
+last_error: Optional[str] = None
 Transport = Callable[[str, Dict[str, Any]], Dict[str, Any]]
 
 
@@ -92,7 +93,9 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
             "tools": [{"google_search": {}}], "generationConfig": {"temperature": 0}}
     try:
         resp = transport(ENDPOINT.format(model=MODEL) + "?key=" + key, body)
-    except Exception:       # network, quota, bad key: no price, and do not cache the failure
+    except Exception as e:       # network, quota, bad key, retired model: no price, and do not cache the failure
+        global last_error
+        last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
         return None
     cand = (resp.get("candidates") or [{}])[0]
     text = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))

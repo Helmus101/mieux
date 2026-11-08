@@ -56,7 +56,7 @@ def main(n: int = 200) -> None:
             errs.append(abs(got["per100_cents"] - truth["per100_cents"]) / truth["per100_cents"])
     if not tried:
         sys.exit("no products to test")
-    print(f"tried {tried}, found a price for {found} ({found / tried:.0%})")
+    print(f"tried {tried}, found a price for {found} ({found / tried:.0%})" + (f"  [last API error: {webprice.last_error}]" if webprice.last_error else ""))
     if errs:
         print(f"median error {statistics.median(errs):.0%} | within 10%: {sum(e <= .1 for e in errs) / len(errs):.0%} | 20%: {sum(e <= .2 for e in errs) / len(errs):.0%} | 30%: {sum(e <= .3 for e in errs) / len(errs):.0%}")
 
