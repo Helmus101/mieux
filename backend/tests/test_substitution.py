@@ -12,9 +12,8 @@ BRIOCHE_TOAST = P("Toast brioché Pelletier LU", ["en:plant-based-foods", "en:br
 CASES = [
     # (original, [(candidate, max level allowed)], [rejected candidates])
     (BRIOCHE_TOAST,
-     [(P("Toast brioché Auchan", ["en:breads", "en:toasted-breads"]), 2), (P("Brioche tranchée nature Harrys", ["en:breads", "en:brioches", "en:sliced-breads"]), 3),
-      (P("Pain de mie nature Carrefour Classic", ["en:breads", "en:sliced-breads"]), 4)],
-     [P("Grissini stirati a mano De Mori", ["en:breads", "en:breadsticks"]), P("pain Burger complet", ["en:breads", "en:hamburger-buns"]), P("Yaourt nature", ["en:dairies", "en:yogurts"]),
+     [(P("Toast brioché Auchan", ["en:breads", "en:toasted-breads"]), 2), (P("Brioche tranchée nature Harrys", ["en:breads", "en:brioches", "en:sliced-breads"]), 3)],
+     [P("Pain de mie nature Carrefour Classic", ["en:breads", "en:sliced-breads"]), P("Grissini stirati a mano De Mori", ["en:breads", "en:breadsticks"]), P("pain Burger complet", ["en:breads", "en:hamburger-buns"]), P("Yaourt nature", ["en:dairies", "en:yogurts"]),
       P("Spaghetti n°5", ["en:pastas"]), P("Jus d'orange", ["en:beverages", "en:fruit-juices"])]),
     (P("Grissini Torinesi", ["en:breads", "en:breadsticks"]),
      [(P("Gressins sésame", ["en:breads", "en:breadsticks"]), 1), (P("Crackers nature", ["en:snacks", "en:crackers"]), 2)],
@@ -82,12 +81,12 @@ def test_accepts_the_right_substitutes_and_rejects_the_wrong_ones(orig, accepted
 
 def test_levels_describe_closeness_and_never_cross_clusters():
     assert substitution(BRIOCHE_TOAST, P("Toast brioché X", ["en:toasted-breads", "en:brioches"]))["level"] == 1
-    assert substitution(BRIOCHE_TOAST, P("Pain de mie", ["en:sliced-breads"]))["level"] == 4          # broader alternative
+    assert substitution(BRIOCHE_TOAST, P("Pain de mie", ["en:sliced-breads"])) is None              # sandwich bread is not a breakfast toast
     assert classify(P("Grissini", ["en:breadsticks"]))["type"] == "breadsticks"
     assert substitution(P("Grissini", ["en:breadsticks"]), BRIOCHE_TOAST) is None                   # symmetric rejection
 
 
 def test_unclassified_products_only_match_their_own_leaf_category():
     a, b = P("Truc rare", ["en:foo", "en:bar"]), P("Autre truc", ["en:foo", "en:bar"])
-    assert substitution(a, b)["level"] == 1
+    assert substitution(a, b) is None          # a shared category leaf alone is not proof of substitutability
     assert substitution(a, P("Truc différent", ["en:foo", "en:baz"])) is None

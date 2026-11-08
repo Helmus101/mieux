@@ -157,6 +157,11 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     brand = (p.get("brand") or "")
     generic_name = (p.get("generic_name") or "")
 
+    # Machine systems and forms named in the product name win over a generic tag: a Nespresso capsule does not fit a Dolce Gusto machine, sliced brioche is not a pastry.
+    for tid, fam, cat, sub, form, use, tr, nr in RULES:
+        if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast") and nr.search(name):
+            return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
+
     # Priority 1: High-specificity product type tags + name agreement (highest confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tr.search(tags) and nr.search(name):

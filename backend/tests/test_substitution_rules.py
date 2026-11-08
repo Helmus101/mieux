@@ -39,7 +39,7 @@ def test_classification_says_why_and_how_sure():
 
 def test_unclassified_products_only_match_the_exact_same_leaf():
     a, b = P("Mystère A", ["en:odd", "en:odd-leaf"]), P("Mystère B", ["en:odd", "en:odd-leaf"])
-    assert sub(a, b)["level"] == 1
+    assert sub(a, b) is None       # a shared category leaf alone is not proof of substitutability
     assert sub(a, P("Mystère C", ["en:odd", "en:other-leaf"])) is None
 
 
@@ -158,15 +158,16 @@ def _lvl(p, level):
 
 
 def test_money_tabs_use_only_the_closest_kinds_of_product():
-    orig = P("Original", ["en:plain-yogurts"], sugars100g=6)
-    near = [_lvl(P(f"Proche {i}", ["en:plain-yogurts"]), 1) for i in range(3)]
-    broad = [_lvl(P("Large", ["en:plain-yogurts"]), 4), _lvl(P("Moyen", ["en:plain-yogurts"]), 3)]
-    prices = {x["name"]: 20.0 for x in near + broad}
+    orig = P("Yaourt nature", ["en:dairies", "en:yogurts", "en:plain-yogurts"], sugars100g=6)
+    near = [P(f"Yaourt nature proche {i}", ["en:dairies", "en:yogurts", "en:plain-yogurts"]) for i in range(3)]
+    broad = [P("Yaourt aux fruits large", ["en:dairies", "en:yogurts", "en:flavoured-yogurts"])]
+    for i, x in enumerate(near + broad):
+        x["barcode"] = f"b{i}"
+    orig["barcode"] = "orig"
+    prices = {x["barcode"]: 20.0 for x in near + broad}
     r = engine.build_rankings(orig, near + broad, prices, 50.0, ["value"], "similar", "fr", [])
-    names = [x["product"]["name"] for x in r["budget"]]
-    assert names and all(n.startswith("Proche") for n in names)           # three close products exist: nothing broader appears
-    few = engine.build_rankings(orig, near[:1] + broad, prices, 50.0, ["value"], "similar", "fr", [])
-    assert "Large" not in [x["product"]["name"] for x in few["budget"]]   # level 4 never appears, level 3 only when too few are closer
+    names = [x["product"]["name"] for k in ("budget", "value", "quality") for x in r[k]]
+    assert "Yaourt aux fruits large" not in names     # a broader kind of yogurt never enters a money or quality tab
 
 
 def test_one_brand_cannot_fill_the_top_of_a_tab():
