@@ -449,3 +449,12 @@ def test_web_price_endpoints_return_price_and_supermarket(monkeypatch, tmp_path)
     assert set(r2["prices"]) == {"3579260039060", "3175680011480"} and r2["prices"]["3175680011480"]["pack_cents"] == 320
     monkeypatch.delenv("PARALLEL_API_KEY")
     assert c.get("/v1/products/3579260039060/web-price", headers=h).json() == {"price": None}
+
+
+def test_pizza_sticks_are_breadsticks_not_pizza():
+    from app import taxonomy
+    c = lambda n, cats: taxonomy.classify({"name": n, "categories": cats, "category": cats[-1] if cats else None}).get("type")   # noqa: E731
+    assert c("Clip Pizza Sticks", ["en:snacks", "en:salty-snacks"]) == "breadsticks"
+    assert c("Bâtonnets salés apéritif", []) == "breadsticks"
+    assert c("Pizza margherita", ["en:pizzas"]) == "pizza"
+    assert c("Mozzarella sticks", ["en:cheeses"]) != "breadsticks"

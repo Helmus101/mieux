@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 # A product containing chocolate or nuts is not automatically a snack bar - the purchasing purpose matters.
 R = [
     # ---- bakery and cereals
-    ("breadsticks", "cereals_bakery", "bread", "breadsticks", "stick", "snacking", r"breadsticks|grissini|gressins", r"grissini|gressin|breadstick"),
+    ("breadsticks", "cereals_bakery", "bread", "breadsticks", "stick", "snacking", r"breadsticks|grissini|gressins", r"grissini|gressin|breadstick|(?:pizza|salt(?:ed)?|sel|pretzel|bretzel|ap[ée]ro|snack|cracker)[ -]?sticks?\b|\bsticks? (?:de |au |à la )?(?:pizza|pain|bretzel|ap[ée]ritif|sel)|b[âa]tonnets? (?:sal[ée]s?|croustillants|ap[ée]ritif|de pain)"),
     ("burger_buns", "cereals_bakery", "bread", "buns", "bun", "sandwich_making", r"hamburger-buns|burger-buns|hot-dog-buns|bagels", r"burger|hot[- ]?dog|bagel"),
     ("brioche_toast", "cereals_bakery", "bread", "toast", "slice_crisp", "breakfast", r"toasted-brioche|brioche-toast", r"(toast|grill|biscott|tartine).*brioch|brioch.*(toast|grill|biscott|tartine)"),
     ("sliced_brioche", "cereals_bakery", "bread", "sliced_loaf", "slice_soft", "breakfast", r"sliced-brioche|brioche-bread", r"(tranch|pain de mie|mie).*brioch|brioch.*(tranch|pain de mie|mie)"),
