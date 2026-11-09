@@ -520,3 +520,14 @@ def test_crackers_never_substitute_nuts_or_chips_closely():
     assert taxonomy.level_between("crackers", "nuts") is None
     assert taxonomy.level_between("crackers", "chips") == 3
     assert taxonomy.level_between("crackers", "breadsticks") == 2
+
+
+def test_a_second_site_without_the_size_confirms_an_exact_price(monkeypatch):
+    from app import webprice
+    prod = {"barcode": "3270160850990", "name": "Spécialité à la tomate sechée et au basilic", "brand": "Picard", "quantity": {"amount": 110.0, "unit": "g"}}
+    res = [("https://www.picard.fr/produits/a", "Picard Spécialité à la tomate sechée et au basilic 110 g 2,75 €"),
+           ("https://fraicheurbio.fr/produit/b", "Spécialité à la tomate séchée et au basilic Picard 2,75 € 2,20 € HT")]
+    r = webprice._price_from(prod, res)
+    assert r and r["pack_cents"] == 275
+    assert webprice._price_from(prod, [res[0], ("https://autre.fr/c", "Spécialité à la tomate sechée et au basilic Picard 4,10 €")]) is None      # a different price confirms nothing
+    assert webprice._price_from(prod, [res[0], ("https://autre.fr/c", "Sauce tomate basilic 2,75 €")]) is None                                       # another product confirms nothing

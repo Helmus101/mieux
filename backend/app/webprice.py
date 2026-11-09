@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sqlite3
+import unicodedata
 import threading
 import time
 import urllib.error
@@ -132,7 +133,9 @@ _PER_UNIT_AFTER = re.compile(r"^\s*(?:/|par\b|le\b|au\b|\bl[e']?\s)\s*(?:kg|kilo
 
 
 def _words(text: str) -> set:
-    return set(re.findall(r"[a-zà-ÿ0-9]{3,}", (text or "").lower()))
+    """Lower-case words of 3+ letters, accents removed ('séchée' = 'sechee') so a typo in the accents never breaks a match."""
+    t = unicodedata.normalize("NFKD", (text or "").lower())
+    return set(re.findall(r"[a-z0-9]{3,}", "".join(c for c in t if not unicodedata.combining(c))))
 
 
 def _pack_price(text: str, size_units: float) -> Optional[float]:
@@ -170,6 +173,20 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
         v = _pack_price(text, size_units)
         if v:
             by_host.setdefault(host, (v, url))
+    if len(by_host) == 1:
+        # One site states this exact size and price. A second site that names the same product (every word of the name and the brand) but does not print the size
+        # confirms it when one of its prices equals that price (within 3 %).
+        (h0, (v0, u0)), = by_host.items()
+        for url, text in results:
+            host = urllib.parse.urlparse(url).netloc.replace("www.", "")
+            if host == h0 or host in by_host:
+                continue
+            tw = _words(text)
+            if (brand_w and not (brand_w & tw)) or not name_w or not name_w <= tw:
+                continue
+            if any(abs(float(m.group(1).replace(" ", "").replace(",", ".")) - v0) / v0 <= 0.03 for m in _PRICE.finditer(text)):
+                by_host[host] = (v0, url)
+                break
     vals = sorted(v for v, _ in by_host.values())
     if len(vals) < 2:
         return None
