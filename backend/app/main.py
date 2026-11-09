@@ -147,8 +147,9 @@ visit_batcher = VisitBatcher(batch_size=10, flush_interval=30)
 
 # Rate limiting
 def client_ip(request: Request) -> str:
-    """Behind Fly's proxy every request comes from the proxy: rate limit per real client address instead."""
-    return request.headers.get("fly-client-ip") or get_remote_address(request)
+    """Behind Vercel and Fly's proxy every request comes from a proxy: rate limit per real client address instead."""
+    xff = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()      # the web app reaches the API through Vercel: the real visitor is the first X-Forwarded-For hop
+    return xff or request.headers.get("fly-client-ip") or get_remote_address(request)
 
 
 limiter = Limiter(key_func=client_ip)
@@ -1398,6 +1399,10 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
         # REMOVED LIMITS: No per_tag/total caps - retrieve full type cohort
         codes = app.state.off.quick_candidates(tags[:3], spec[0] if spec else None, spec[1] if spec else True,
                                                tuple(required), bool(alg))
+        if len(codes or []) < 30 and len(tags) > 3:
+            # A thin leaf (a rare or foreign-language tag such as 'snacks-dulces') finds almost nothing: also read the next category levels. The compatibility gate still decides what is comparable.
+            more = app.state.off.quick_candidates(tags[:8], spec[0] if spec else None, spec[1] if spec else True, tuple(required), bool(alg))
+            codes = list(dict.fromkeys(list(codes or []) + list(more or [])))
         if codes:
             raws = app.state.off.quick_products(codes)
     if not raws:
@@ -1498,6 +1503,7 @@ def _with_confidence(pt):
 
 
 _WARM = ThreadPoolExecutor(max_workers=8)
+_SEARCH_DEADLINE: contextvars.ContextVar = contextvars.ContextVar("search_deadline", default=0.0)   # one waiting budget per alternatives request, shared by its price passes
 _INFLIGHT: Dict[str, Any] = {}
 
 
@@ -1563,7 +1569,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                 found = [webprice.cached_only(c) for c in todo]
                 futs = {i: _search_once(c) for i, (c, w) in enumerate(zip(todo, found)) if w is None}
                 if futs:
-                    _wait(list(futs.values()), timeout=7)
+                    _wait(list(futs.values()), timeout=max(0.3, min(5.0, (_SEARCH_DEADLINE.get() or (time.time() + 5)) - time.time())))
                     for i, f in futs.items():
                         if f.done() and not f.exception():
                             found[i] = f.result()
@@ -1610,6 +1616,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
 @app.post("/v1/products/{barcode}/alternatives")
 @limiter.limit("20/minute")
 def alternatives(request: Request, background: BackgroundTasks, barcode: str, body: AltReq, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
+    _SEARCH_DEADLINE.set(time.time() + 5)
     bad = [p for p in body.priorities if p not in engine.PRIORITIES]
     if bad:
         raise HTTPException(422, f"Unknown priorities: {bad}")
@@ -1792,6 +1799,16 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             if isinstance(_v, list):
                 res["rankings"][_k] = [x for x in _v if not isinstance(x, dict) or "product" not in x or _ok(x)]
         res["alternatives"] = [x for x in res.get("alternatives", []) if not isinstance(x, dict) or "product" not in x or _ok(x)]
+    # The three tabs only hold what beats the scanned product (the apps apply the same rules; the API is the single source of truth):
+    # cheaper per 100 g/ml, a higher price-quality score, a higher nutrition score. Nothing is compared when the scanned product has no price / score.
+    rk_ = res.get("rankings") or {}
+    if isinstance(rk_.get("budget"), list) and orig_price is not None:
+        rk_["budget"] = [x for x in rk_["budget"] if x.get("price_per_100_cents") is not None and x["price_per_100_cents"] < orig_price]
+    if isinstance(rk_.get("value"), list) and rk_.get("original_value_score") is not None:
+        rk_["value"] = [x for x in rk_["value"] if x.get("value_score") is None or x["value_score"] > rk_["original_value_score"]]
+    o_sc_ = (orig.get("score") or {}).get("total")
+    if isinstance(rk_.get("quality"), list) and o_sc_ is not None:
+        rk_["quality"] = [x for x in rk_["quality"] if ((x.get("product") or {}).get("score") or {}).get("total") is not None and x["product"]["score"]["total"] > o_sc_]
     if engine.is_liquid(orig):  # liquids: say 100 ml and litre, not 100 g and kilo
         liq = lambda t_: t_.replace("pour 100 g", "pour 100 ml").replace("per 100 g", "per 100 ml").replace("le kilo", "le litre").replace("EUR/kg", "EUR/L").replace("/kg", "/L")
         for a_ in res["alternatives"]:
@@ -2032,15 +2049,21 @@ def health_check(request: Request):
 @app.get("/health/ready")
 @limiter.limit("60/minute")
 def readiness_check(request: Request):
-    """Readiness check - verifies database connectivity."""
+    """Readiness: the user database answers, the Open Food Facts copy opens and the price service is loaded. Also reports the web-price search status."""
+    from sqlalchemy import text
     try:
-        # Try to create a session
         s = app.state.sessions()
-        s.execute("SELECT 1")
-        s.close()
-        return {"status": "ready", "database": "connected"}
+        try:
+            s.execute(text("SELECT 1"))
+        finally:
+            s.close()
+        off_local = getattr(app.state.off, "local", None)
+        if off_local is not None and hasattr(off_local, "_q"):
+            off_local._q("select 1 from off_products limit 1", ())
     except Exception as e:
         raise HTTPException(503, f"Not ready: {str(e)}")
+    return {"status": "ready", "database": "connected", "price_search": {"providers": webprice.providers(), "searches_today": webprice._day["n"], "daily_cap": webprice.DAILY_CAP,
+                                                                       "gemini_paused": time.time() < webprice._gemini["down_until"]}}
 
 
 DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "web", "dist"))  # the built web app (npm run build): one server, one address, any device

@@ -22,6 +22,13 @@ primary_region = 'cdg'
   auto_start_machines = true
   min_machines_running = 1
 
+  [[http_service.checks]]
+    method = 'GET'
+    path = '/health/ready'
+    interval = '15s'
+    timeout = '5s'
+    grace_period = '90s'      # opening the 1.7 GB database after a start
+
 [[vm]]
   size = 'shared-cpu-2x'
   memory = '2gb'

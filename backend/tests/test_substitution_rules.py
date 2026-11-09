@@ -568,3 +568,15 @@ def test_a_per_kilo_price_gives_the_individual_price():
     r = webprice._price_from(prod, res)
     assert r and r["pack_cents"] in (275, 270)                      # 25 €/kg x 0.11 kg = 2.75 EUR (24,50 x 0.11 = 2.70)
     assert webprice._pack_price("Pâtes 500 g à 3,00 € 6,00 €/kg", 0.5) == 3.0     # a real pack price still wins
+
+
+def test_readiness_is_ready_and_rate_limit_uses_the_real_client(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app import main
+    c = TestClient(main.app)
+    r = c.get("/health/ready")
+    assert r.status_code == 200 and r.json()["status"] == "ready" and "price_search" in r.json()
+    class Req:
+        def __init__(self, h): self.headers, self.client = h, type("C", (), {"host": "10.0.0.1"})()
+    assert main.client_ip(Req({"x-forwarded-for": "203.0.113.7, 76.76.21.1", "fly-client-ip": "76.76.21.1"})) == "203.0.113.7"
+    assert main.client_ip(Req({"fly-client-ip": "198.51.100.2"})) == "198.51.100.2"

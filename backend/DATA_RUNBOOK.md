@@ -15,3 +15,16 @@ Prices come from two sources that are always used together: Open Prices (daily e
 ## Notes
 - Supported shapes: Monoprix/Intermarché/Leclerc/Carrefour/Lidl/Naturalia exports and the `{source, postal_code, products:[...]}` shape (Auchan, Lidl food, Biocoop). See `normalise()` in `scripts/import_store_prices.py`.
 - Local/dev: `cd backend && .venv/bin/python -m scripts.import_store_prices ~/Downloads/*.json`.
+
+## Readiness checks (run after every deploy and every data refresh)
+
+```bash
+cd backend
+JWT_SECRET_KEY=t .venv/bin/python3.9 -m pytest -q                 # unit and integrity tests
+.venv/bin/python3.9 -m scripts.alt_readiness                       # 50-product panel against https://mieux-api.fly.dev (add a base URL to test another host, --limit N for a quick run)
+curl -s https://mieux-api.fly.dev/health/ready                     # database, Open Food Facts copy, search providers, searches today / daily cap
+```
+
+`alt_readiness` exits 1 on any broken promise: a tab over 20 items, a duplicate, the scanned product itself, a product not sold in France or at no chain, a level 3-4 substitute,
+a "cheaper" item that is not cheaper, a better price-quality / quality item that is not better, or a web price not flagged approximate. It also prints how many products fill all three
+tabs to 10 and the latency p50 / p95. `fly.toml` health-checks `/health/ready`, so a deploy that cannot open its databases never replaces the running machine.
