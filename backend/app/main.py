@@ -1561,7 +1561,9 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
             def _likely_value(c):     # search first the candidates most likely to be cheap or good value: strong nutrition score, house brands, widely sold and popular products
                 pop = c.get("popularity") or {}
                 return ((c.get("score") or {}).get("total") or 0) + (12 if _chains.own_brand_chain(c.get("brand")) else 0) + 4 * min(3, pop.get("chains") or len(c.get("chains") or [])) + min(10.0, 3 * math.log10((pop.get("scans") or 0) + 1))
-            todo += sorted(cand, key=_likely_value, reverse=True)[:16]
+            n_priced_ = len([b for b in prices if b != orig["barcode"]])
+            scarce = n_priced_ < 3                  # almost nothing priced for this kind of product: search more candidates and wait a little longer
+            todo += sorted(cand, key=_likely_value, reverse=True)[:(30 if scarce else 16)]
             if todo:
                 # Stored prices are instant. Missing ones are searched in parallel, but the request waits at most ~7 s in total (the scanned product first);
                 # a search still running keeps going in the background and is stored for next time.
@@ -1569,7 +1571,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                 found = [webprice.cached_only(c) for c in todo]
                 futs = {i: _search_once(c) for i, (c, w) in enumerate(zip(todo, found)) if w is None}
                 if futs:
-                    _wait(list(futs.values()), timeout=max(0.3, min(5.0, (_SEARCH_DEADLINE.get() or (time.time() + 5)) - time.time())))
+                    _wait(list(futs.values()), timeout=max(0.3, min(8.0 if scarce else 5.0, (_SEARCH_DEADLINE.get() or (time.time() + 5)) + (3 if scarce else 0) - time.time())))
                     for i, f in futs.items():
                         if f.done() and not f.exception():
                             found[i] = f.result()

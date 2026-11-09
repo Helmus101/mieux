@@ -580,3 +580,10 @@ def test_readiness_is_ready_and_rate_limit_uses_the_real_client(monkeypatch):
         def __init__(self, h): self.headers, self.client = h, type("C", (), {"host": "10.0.0.1"})()
     assert main.client_ip(Req({"x-forwarded-for": "203.0.113.7, 76.76.21.1", "fly-client-ip": "76.76.21.1"})) == "203.0.113.7"
     assert main.client_ip(Req({"fly-client-ip": "198.51.100.2"})) == "198.51.100.2"
+
+
+def test_cereal_clusters_with_nuts_are_muesli_not_nuts():
+    from app import taxonomy
+    cats = ["en:breakfast-cereals", "en:mueslis", "en:cereals-with-nuts", "en:crunchy-cereal-clusters", "en:cereal-clusters-with-nuts"]
+    assert taxonomy.classify({"name": "cruesly mélange de noix", "categories": cats, "category": cats[-1]})["type"] == "muesli"
+    assert taxonomy.classify({"name": "Noix de cajou grillées", "categories": ["en:nuts", "en:cashew-nuts"], "category": "en:cashew-nuts"})["type"] == "nuts"
