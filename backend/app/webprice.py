@@ -140,17 +140,25 @@ def _words(text: str) -> set:
 
 def _pack_price(text: str, size_units: float) -> Optional[float]:
     """The pack price in a text: ignores prices labelled per kilo / per litre, and a price that is just another price scaled to a kilo."""
-    cands = []
+    cands, per_kilo = [], []
     for m in _PRICE.finditer(text):
         v = float(m.group(1).replace(" ", "").replace(",", "."))
-        if not (0.2 <= v <= 400) or _PER_UNIT_AFTER.match(text[m.end():m.end() + 14]):
+        if not (0.2 <= v <= 400):
+            continue
+        if _PER_UNIT_AFTER.match(text[m.end():m.end() + 14]):
+            per_kilo.append(v)                # "10,53 €/kg": no pack price, but the pack price follows from the size
             continue
         cands.append(v)
     if size_units > 0:
         per_unit = {b for a_ in cands for b in cands if a_ != b and abs(a_ / size_units - b) / b < 0.06}
         cands = [v for v in cands if v not in per_unit]
     cands = [v for v in cands if v <= 200]
-    return cands[0] if cands else None
+    if cands:
+        return cands[0]
+    if per_kilo and size_units > 0:           # only a per-kilo / per-litre price on the page: the individual price is that price times the pack size
+        pack = round(per_kilo[0] * size_units, 2)
+        return pack if 0.2 <= pack <= 200 else None
+    return None
 
 
 def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, Any]]:

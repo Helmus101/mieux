@@ -556,3 +556,13 @@ def test_a_second_site_without_the_size_confirms_an_exact_price(monkeypatch):
     assert webprice._price_from(prod, [blog, ("https://autre.fr/c", "Sauce tomate basilic 2,75 €")]) is None                                         # another product confirms nothing
     assert webprice._price_from(prod, [blog, res[1]])["pack_cents"] == 275                                                                            # a matching second page confirms it
     assert webprice._price_from(prod, [res[0]])["pack_cents"] == 275                                                                                  # a supermarket's own page is enough alone
+
+
+def test_a_per_kilo_price_gives_the_individual_price():
+    from app import webprice
+    prod = {"barcode": "3270160850990", "name": "Spécialité à la tomate sechée et au basilic", "brand": "Picard", "quantity": {"amount": 110.0, "unit": "g"}}
+    res = [("https://www.picard.fr/a", "Picard Spécialité à la tomate sechée et au basilic 110 g – 25,00 €/kg"),
+           ("https://www.auchan.fr/b", "Spécialité à la tomate sechée et au basilic Picard 110 g 24,50 € le kilo")]
+    r = webprice._price_from(prod, res)
+    assert r and r["pack_cents"] in (275, 270)                      # 25 €/kg x 0.11 kg = 2.75 EUR (24,50 x 0.11 = 2.70)
+    assert webprice._pack_price("Pâtes 500 g à 3,00 € 6,00 €/kg", 0.5) == 3.0     # a real pack price still wins
