@@ -2,7 +2,6 @@ import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { clearAll } from '@shared/storage';
 import { useProfile, useHistory } from '@shared/stores';
-import { routes, useNav } from '../nav';
 import { useState } from 'react';
 import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
 import { chainsFor, COUNTRIES, type Country } from '@shared/chains';
@@ -13,7 +12,6 @@ import AuthForm from '../AuthForm';
 
 export default function Profile() {
   const p = useProfile();
-  const { go } = useNav();
   const hist = useHistory();
   const [, setTick] = useState(0);
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
@@ -60,8 +58,6 @@ export default function Profile() {
       </Section>
       <Section title={t('profile.localTitle')}>
         <Group>
-          <Cell onPress={() => go(routes.list)} chevron>{t('list.open')}</Cell>
-          <Cell onPress={() => go(routes.history)} chevron>{t('history.open')}</Cell>
           <Cell onPress={exp} chevron>{t('profile.export')}</Cell>
           <Cell onPress={erase}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
         </Group>

@@ -7,6 +7,7 @@ import { Loader, Screen, haptic } from './ui';
 import { routes, useNav } from './nav';
 import ErrorBoundary from './ErrorBoundary';
 import { ToastHost } from './toast';
+import InstallPrompt from './InstallPrompt';
 import CommandMenu from './CommandMenu';
 import { ACCOUNT_REQUIRED, accountEnabled, initAccount, useAccount } from './account';
 import { APP_PATH } from './install';
@@ -93,6 +94,7 @@ function Shell() {
       </Suspense></ErrorBoundary>
       <TabBar />
       <ToastHost />
+      <InstallPrompt />
       <CommandMenu />
     </div>
   );
