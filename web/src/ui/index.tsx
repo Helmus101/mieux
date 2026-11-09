@@ -54,8 +54,8 @@ export const Pill = ({ children, tone }: { children: ReactNode; tone?: 'w' | 'b'
 export function Segmented({ options, value, onChange }: { options: { key: string; label: string }[]; value: string; onChange: (k: string) => void }) {
   const i = Math.max(0, options.findIndex((o) => o.key === value)), w = 100 / options.length;
   return (
-    <div className="seg"><div className="thumb" style={{ width: `calc(${w}% - 2px)`, left: `calc(${i * w}% + 1px)` }} />
-      {options.map((o) => <button key={o.key} onClick={() => { haptic('select'); onChange(o.key); }}>{o.label}</button>)}</div>
+    <div className="seg" role="tablist"><div className="thumb" style={{ width: `calc(${w}% - 2px)`, left: `calc(${i * w}% + 1px)` }} />
+      {options.map((o) => <button key={o.key} role="tab" aria-selected={o.key === value} className={o.key === value ? 'on' : undefined} onClick={() => { haptic('select'); onChange(o.key); }}>{o.label}</button>)}</div>
   );
 }
 export const Bar = ({ value }: { value: number }) => <div className="bar"><i style={{ width: Math.max(2, Math.min(100, value * 100)) + '%' }} /></div>;

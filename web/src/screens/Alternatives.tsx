@@ -155,13 +155,13 @@ export default function Alternatives() {
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
       })()}
       {r && !busy && rk === 'budget' && shown.length > 0 && <p className="mut sm">{t('alt.cheapestNote')}</p>}
-      {r && !busy && <div className="alist">{shown.map((e: any) => {
+      {r && !busy && <div className="alist">{shown.map((e: any, idx: number) => {
         const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
         const d = diffOf(e);
         const w = webP[e.product.barcode];
         const chains = ((e.product.chains?.length ? e.product.chains : w?.chains) ?? []) as string[];
         return (
-          <article key={e.product.id} className="arow" onClick={() => { haptic('tap'); setDetail(e); }}>
+          <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={() => { haptic('tap'); setDetail(e); }}>
             {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
             <div className="amain">
               <div className="aname">{e.product.name}</div>

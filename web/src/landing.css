@@ -26,7 +26,7 @@
 .lp-hero{display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,5vw,72px);align-items:center;padding-top:clamp(36px,6vw,80px);padding-bottom:clamp(40px,6vw,80px)}
 .lp-h1{font-size:clamp(36px,5vw,58px);line-height:1.04;letter-spacing:-.045em;font-weight:800}
 .lp-h1 span{display:inline}
-.lp-h1-tail{display:block;margin-top:.12em;font-weight:500;color:var(--soft)}
+.lp-h1 .lp-h1-tail{display:block;margin-top:.12em;font-weight:500;color:var(--soft)}
 .lp-sub{margin-top:20px;max-width:42ch;font-size:18px;line-height:1.55;color:var(--soft)}
 .lp-cta{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;margin-top:28px}
 .lp-trust{font-size:13px;color:var(--soft);max-width:30ch}
