@@ -51,7 +51,7 @@ export default function Compare() {
   useEffect(() => { if (compare.length >= 2) api.compareProducts(compare, estimates).then((x: any) => { setR(x); }).catch(() => setR(null)); else setR(null); }, [compare, estimates]);
   return (
     <Screen>
-      <NavBar title={t('compare.title')} />
+      <NavBar />
       <LargeTitle>{t('compare.title')}</LargeTitle>
       {compare.length < 2 && <Card><Muted>{t('compare.empty')}</Muted></Card>}
       {compare.length >= 2 && !r && <Loader />}

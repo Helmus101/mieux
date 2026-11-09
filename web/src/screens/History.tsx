@@ -12,7 +12,7 @@ export default function History() {
   const clear = async () => { if (confirm(t('history.clearConfirm'))) { h.clear(); await api.deleteAccount().catch(() => undefined); } };
   return (
     <Screen>
-      <NavBar onBack={back} title={t('history.title')} />
+      <NavBar onBack={back} />
       <LargeTitle sub={t('history.local')}>{t('history.title')}</LargeTitle>
       <Section title={`${t('history.scans')} (${h.scans.length})`}>
         {h.scans.length ? <Group>{h.scans.slice(0, 50).map((s) => (

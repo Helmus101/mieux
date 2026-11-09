@@ -135,7 +135,7 @@ export default function Alternatives() {
   </>);
   return (
     <Screen>
-      <NavBar onBack={back} title={t('alt.title')} />
+      <NavBar onBack={back} />
       <h1 className="atitle">{t('alt.title')}</h1>
       {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
       {tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}

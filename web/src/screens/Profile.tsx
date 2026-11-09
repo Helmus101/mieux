@@ -23,7 +23,7 @@ export default function Profile() {
   const erase = async () => { if (!confirm(t('profile.eraseConfirm'))) return; await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset(); location.href = '/'; };
   return (
     <Screen>
-      <NavBar title={t('profile.title')} />
+      <NavBar />
       <LargeTitle>{t('profile.title')}</LargeTitle>
       {accountEnabled && <Section title={t('account.title')}>
         {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row>{pending > 0 && <p className="mut sm" style={{ margin: '6px 0 0' }}>{t('account.pending', { n: pending })}{syncError ? ` · ${syncError}` : ''}</p>}</Cell><Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>

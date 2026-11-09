@@ -9,7 +9,7 @@ export default function List() {
   const saved = useHistory((s) => s.saved), remove = useHistory((s) => s.removeSaved), clearSaved = useHistory((s) => s.clearSaved);
   return (
     <Screen>
-      <NavBar title={t('tabs.list')} />
+      <NavBar />
       <LargeTitle sub={saved.length ? t('list.count', { n: saved.length }) : undefined}>{t('tabs.list')}</LargeTitle>
       {saved.length ? <>
         <Group>{saved.map((s) => (
