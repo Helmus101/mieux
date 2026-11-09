@@ -14,6 +14,9 @@ const RADIUS = 5; // only branches within 5 km
 const dist = (m: number) => (m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1).replace('.', ',')} km`);
 
 /** Where to buy: the chains that list the product, each with its nearest branches. Same source and rules as the web screen. */
+/** The server answer with every list guaranteed to be a list, so a thin or odd response can never crash the screen. */
+const norm = (d: any) => ({ ...(d ?? {}), retailers: Array.isArray(d?.retailers) ? d.retailers : [], other_chains: Array.isArray(d?.other_chains) ? d.other_chains : [], far_chains: d?.far_chains ?? 0 });
+
 export default function Where({ barcode, liquid }: { barcode: string; liquid?: boolean }) {
   const c = useTheme();
   const home = useProfile((st) => st.place);
@@ -38,14 +41,14 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
     const wantLive = here || !hasHome;
     const p = (wantLive ? await live() : null) ?? (hasHome ? { lat: home!.lat!, lon: home!.lon! } : null);
     if (!p) { setMsg(t('where.denied')); setBusy(false); return; }
-    try { setRes(await api.retailers(barcode, p.lat, p.lon, RADIUS, mine)); }
+    try { setRes(norm(await api.retailers(barcode, p.lat, p.lon, RADIUS, mine))); }
     catch (e) { const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); }
     setBusy(false);
   };
   useEffect(() => { run(false); }, [barcode]);
 
   const confirm = async (id: string) => {
-    try { await api.confirmListing(barcode, id); if (pos) setRes(await api.retailers(barcode, pos.lat, pos.lon, RADIUS, mine)); setAdding(false); }
+    try { await api.confirmListing(barcode, id); if (pos) setRes(norm(await api.retailers(barcode, pos.lat, pos.lon, RADIUS, mine))); setAdding(false); }
     catch (e) { const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); }
   };
   const route = (lat: number, lon: number) => Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}${pos ? `&origin=${pos.lat},${pos.lon}` : ''}&travelmode=walking`).catch(() => undefined);

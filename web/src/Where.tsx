@@ -15,6 +15,9 @@ const dist = (m: number) => (m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1).repl
 
 /** Where to buy: the chains that list the product, each with its nearest branches. Chain discovery and branch location are separate on the server.
  *  The position (current, else home) is used once for the search and not stored by the app. */
+/** The server answer with every list guaranteed to be a list, so a thin or odd response can never crash the page. */
+const norm = (d: any) => ({ ...(d ?? {}), retailers: Array.isArray(d?.retailers) ? d.retailers : [], other_chains: Array.isArray(d?.other_chains) ? d.other_chains : [], far_chains: d?.far_chains ?? 0 });
+
 export default function Where({ barcode, liquid }: { barcode: string; liquid?: boolean }) {
   const home = useProfile((st) => st.place);
   const country = useProfile((st) => st.country);
@@ -32,11 +35,11 @@ export default function Where({ barcode, liquid }: { barcode: string; liquid?: b
     const p = live ? { lat: live.coords.latitude, lon: live.coords.longitude } : hasHome ? { lat: home!.lat!, lon: home!.lon! } : null;
     setPos(p); setUseHere(!!live);
     if (!p) { setMsg(t('where.denied')); setBusy(false); return; }
-    try { setRes(await api.retailers(barcode, p.lat, p.lon, RADIUS, everyChain ? [] : mine)); haptic('success'); } catch (e: any) { haptic('error'); const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); }
+    try { setRes(norm(await api.retailers(barcode, p.lat, p.lon, RADIUS, everyChain ? [] : mine))); haptic('success'); } catch (e: any) { haptic('error'); const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); }
     setBusy(false);
   };
   useEffect(() => { run(useHere, all); }, [barcode]); // auto-load stores on mount
-  const confirm = async (id: string) => { try { await api.confirmListing(barcode, id); if (pos) setRes(await api.retailers(barcode, pos.lat, pos.lon, RADIUS, all ? [] : mine)); setAdding(false); } catch (e: any) { const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); } };
+  const confirm = async (id: string) => { try { await api.confirmListing(barcode, id); if (pos) setRes(norm(await api.retailers(barcode, pos.lat, pos.lon, RADIUS, all ? [] : mine))); setAdding(false); } catch (e: any) { const m = friendlyError(e); setMsg(`${m.title} : ${m.why}`); } };
   return (
     <div>
       <Row wrap>
