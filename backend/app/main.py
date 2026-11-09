@@ -1785,6 +1785,13 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     res["original_taxonomy"] = taxonomy.classify(orig)
     res["original_indicators"] = engine.indicators(orig, orig_price)
     res["original_sold_in_france"] = orig.get("soldInFrance")
+    # Only products sold in France AND in at least one supermarket chain (chains come from French shop prices, retailer exports and brand/house-brand evidence).
+    _ok = lambda x: ((x.get("product") or {}).get("soldInFrance") is True) and bool((x.get("product") or {}).get("chains"))   # noqa: E731
+    if chain_of:        # (a price service that knows chains; test doubles without one are left alone)
+        for _k, _v in list((res.get("rankings") or {}).items()):
+            if isinstance(_v, list):
+                res["rankings"][_k] = [x for x in _v if not isinstance(x, dict) or "product" not in x or _ok(x)]
+        res["alternatives"] = [x for x in res.get("alternatives", []) if not isinstance(x, dict) or "product" not in x or _ok(x)]
     if engine.is_liquid(orig):  # liquids: say 100 ml and litre, not 100 g and kilo
         liq = lambda t_: t_.replace("pour 100 g", "pour 100 ml").replace("per 100 g", "per 100 ml").replace("le kilo", "le litre").replace("EUR/kg", "EUR/L").replace("/kg", "/L")
         for a_ in res["alternatives"]:
