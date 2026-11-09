@@ -49,7 +49,7 @@ export default function Scan() {
   return (
     <div className="cam">
       <video ref={video} muted playsInline />
-      <div className="cam-mask"><div className="cam-frame" ref={frame}><i /></div></div>
+      <div className="cam-mask"><div className="cam-frame" ref={frame} /></div>
       <div className="cam-top">
         <button className="cam-btn" onClick={close} aria-label={t('common.back')}><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
         {canTorch && on && <button className={'cam-btn' + (torch ? ' lit' : '')} onClick={flip} aria-label={t('scan.torch')}><svg viewBox="0 0 24 24"><path d="M7 3h10l-2 7v3l-3 3-3-3v-3zM12 16v5" /></svg></button>}
