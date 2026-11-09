@@ -1550,10 +1550,10 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
         points[orig["barcode"]] = {k: points[orig["barcode"]][k] for k in ("source", "date", "where", "currency", "price_native", "fx", "stale", "pack_cents", "scope", "store", "distance_km") if k in points[orig["barcode"]]}
     # Too few observed prices for this kind of product (or none for the scanned one): search the web (Parallel, cached for good in webprice_cache.db) so the
     # price lists are never empty. Found prices carry source='web_search' + approximate=True; the clients show them with a "~".
-    if webprice.enabled() and (len([b for b in prices if b != orig["barcode"]]) < 10 or (oq and orig_price is None)):
+    if webprice.enabled() and (len([b for b in prices if b != orig["barcode"]]) < 10 or orig_price is None):
         try:
             todo = []
-            if oq and orig_price is None:
+            if orig_price is None:
                 todo.append(orig)
             cand = [c for c in prods if c.get("quantity") and c["barcode"] not in prices and c["barcode"] != orig["barcode"]
                     and (not oq or c["quantity"]["unit"] == oq["unit"]) and ((c.get("substitution") or {}).get("level") in (1, 2, None))]
