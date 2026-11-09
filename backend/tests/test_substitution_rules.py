@@ -513,3 +513,10 @@ def test_web_prices_are_kept_in_the_price_database_but_not_shown_as_observed(mon
     assert len(rows) == 1 and rows[0].confidence == "approximate" and rows[0].per100_cents == 80.0
     assert main._price_history(s, "someone", "9990000000017") == []                                          # never displayed as an observed price
     s.close()
+
+
+def test_crackers_never_substitute_nuts_or_chips_closely():
+    from app import taxonomy
+    assert taxonomy.level_between("crackers", "nuts") is None
+    assert taxonomy.level_between("crackers", "chips") == 3
+    assert taxonomy.level_between("crackers", "breadsticks") == 2

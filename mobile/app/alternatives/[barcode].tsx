@@ -75,6 +75,7 @@ export default function Alternatives() {
   };
   const listOf = (k: string) => sourceRows(k).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
+    if (!(e.product.chains?.length)) return false;                 // only products sold at at least one supermarket chain
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     const q = os != null && e.product.score?.total != null ? e.product.score.total - os : null;
     if (k === 'budget') { const op = r?.original_price?.per100_cents; return e.price100 != null && (op == null || e.price100 < op); }   // cheaper than yours only, cheapest first

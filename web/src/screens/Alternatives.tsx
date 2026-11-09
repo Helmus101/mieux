@@ -67,6 +67,7 @@ export default function Alternatives() {
   };
   const listOf = (k: string) => sourceRows(k).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
+    if (!(e.product.chains?.length)) return false;                 // only products sold at at least one supermarket chain
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     if (k === 'budget') { const op = r?.original_price?.per100_cents; return e.price100 != null && (op == null || e.price100 < op); }   // cheaper than yours only, cheapest first
     if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never a product scoring the same or lower

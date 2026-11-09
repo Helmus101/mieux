@@ -135,8 +135,9 @@ export default function Product() {
             <View style={{ flex: 1, backgroundColor: c.tint, borderRadius: 14, padding: 12 }}>
               <Muted small>{t('score.pq')}</Muted>
               {pc?.value ? <>
-                <Text style={{ color: pc.value.value_score >= 65 ? c.accent : pc.value.value_score >= 40 ? c.warn : c.bad, fontSize: 40, fontWeight: '800' }}>{pc.value.value_score}<Text style={{ fontSize: 14, color: c.mut }}>{t('score.outOf')}</Text></Text>
+                <Text style={{ color: pc.value.value_score >= 65 ? c.accent : pc.value.value_score >= 40 ? c.warn : c.bad, fontSize: 40, fontWeight: '800' }}>{pc.value.approximate ? '≈ ' : ''}{pc.value.value_score}<Text style={{ fontSize: 14, color: c.mut }}>{t('score.outOf')}</Text></Text>
                 <Text style={{ color: c.ink, fontWeight: '700' }}>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</Text>
+                {pc.value.approximate ? <Text style={{ color: c.mut, fontSize: 13 }}>{t('score.pqApprox', { p: formatCents(pc.value.basis_pack_cents) })}</Text> : null}
               </> : <>
                 <Text style={{ color: c.mut, fontSize: 40, fontWeight: '800' }}>–</Text>
                 <Text style={{ color: c.mut, fontWeight: '700' }}>{t('score.pqNone')}</Text>

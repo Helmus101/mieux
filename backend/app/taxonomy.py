@@ -130,7 +130,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "chocolate": {"chocolate_bar": 1},  # Chocolate confectionery is separate from snack bars
     "candy": {"candy": 1, "gummies": 2, "licorice": 3}, "herbal_lozenge": {"herbal_lozenge": 1}, "chewing_gum": {"chewing_gum": 1},
     "gummies": {"gummies": 1, "licorice": 2},
-    "chips": {"chips": 1, "crackers": 3, "nuts": 4},
+    "chips": {"chips": 1, "crackers": 3},   # nuts are not a substitute for crackers or chips (they were level 2 via the rank distance)
     "nuts": {"nuts": 1},
     "cheese": {"cheese": 1},
     "cream": {"cream": 1}, "butter": {"butter": 1}, "oil": {"oil": 1},

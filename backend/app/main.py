@@ -612,6 +612,9 @@ def _web_price_for(s: Session, barcode: str) -> Optional[Dict[str, Any]]:
     if w and not w.get("stale"):
         _record_web_price(s, p, w)
         s.commit()
+    if w and w.get("per100_cents") is not None:
+        vi_ = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), w["per100_cents"])
+        w = {**w, "value_score": vi_["value_score"] if vi_ else None}
     return w
 
 
@@ -718,6 +721,15 @@ def _price_context(s: Session, uid: str, p: Dict[str, Any], lang: str = "fr", ap
             est = {"per100_cents": e[0], "basis": e[1], "chains": estimate.chain_prices(e[0], q[0] if q else None)}
     real_base = (value.per100(own["unit_price_cents"], q) if (own and q) else None) or (comm["per100_cents"] if comm else None)    # observed prices only, never an estimate
     pq_score = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), real_base)
+    if pq_score is None and q:
+        # No observed price: still give a price-quality score, from the stored web price if there is one (no network call here), else the category estimate; always marked approximate.
+        w_ = webprice.cached_only(p) if webprice.enabled() else None
+        e_ = estimate.estimate_per100(p, [])
+        basis = ("web_search", w_["per100_cents"], w_.get("pack_cents")) if (w_ and w_.get("per100_cents")) else (("estimate", e_[0], None) if e_ else None)
+        if basis:
+            vi_ = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), basis[1])
+            if vi_:
+                pq_score = {**vi_, "approximate": True, "basis_source": basis[0], "basis_per100_cents": round(basis[1], 1), "basis_pack_cents": basis[2] if basis[2] is not None else round(basis[1] * q[0] / 100)}
     hist = _price_history(s, uid, p["id"])
     vals = sorted(h["per100_cents"] for h in hist if h["per100_cents"] is not None and value.fresh(h["date"]))
     summary = {"n": len(hist), "median_per100_cents": vals[len(vals) // 2] if vals else None, "latest": hist[0] if hist else None}
@@ -1605,7 +1617,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     pr = prefs_of(s, uid)
     allergens = body.excluded_allergens if body.excluded_allergens is not None else pr.allergens
     diet = body.diet if body.diet is not None else (None if pr.diet == "omnivore" else pr.diet)
-    peers = [rescore(c, body.strict_additives) for c in _peers(s, orig, body.category_mode, body.priorities, allergens)]
+    peers = [rescore(c, body.strict_additives) for c in _peers(s, orig, body.category_mode, body.priorities, allergens) if " / " not in (c.get("name") or "")]   # a name that is a category path ("Epicerie / Epicerie Sucrée / ...") is a data error
     # EXHAUSTIVE PRICE ENRICHMENT: Batch ALL candidates for price enrichment, not just first 160
     # Since retrieval is now exhaustive, we must enrich all candidates to avoid bias
     getattr(app.state.prices, "prefetch", lambda *_: None)([orig["barcode"]] + [c["barcode"] for c in peers])
