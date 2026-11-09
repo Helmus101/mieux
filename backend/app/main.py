@@ -607,8 +607,8 @@ def _web_price_for(s: Session, barcode: str) -> Optional[Dict[str, Any]]:
         return None
     p = load_product(s, barcode)
     q = p.get("quantity")
-    if not q or app.state.prices.latest(barcode, (q["amount"], q["unit"])):
-        return None                       # an observed price exists, or the pack size is unknown: nothing to approximate
+    if q and app.state.prices.latest(barcode, (q["amount"], q["unit"])):
+        return None                       # an observed price exists: nothing to approximate (an unknown pack size is guessed from product pages by the lookup)
     w = webprice.lookup(p)
     if w and not w.get("stale"):
         _record_web_price(s, p, w)
@@ -637,7 +637,7 @@ def web_prices(request: Request, body: WebPricesReq, uid: str = Depends(user), s
         return {"prices": {c: None for c in codes}}
     products = {c: load_product(s, c) for c in codes}        # database reads stay on this thread
     q_of = lambda p: p.get("quantity")                      # noqa: E731
-    todo = [c for c in codes if q_of(products[c]) and not app.state.prices.latest(c, (q_of(products[c])["amount"], q_of(products[c])["unit"]))]
+    todo = [c for c in codes if not q_of(products[c]) or not app.state.prices.latest(c, (q_of(products[c])["amount"], q_of(products[c])["unit"]))]
     with ThreadPoolExecutor(max_workers=4) as ex:
         found = dict(zip(todo, ex.map(lambda c: webprice.lookup(products[c]), todo)))
     for c, w in found.items():
@@ -722,15 +722,15 @@ def _price_context(s: Session, uid: str, p: Dict[str, Any], lang: str = "fr", ap
             est = {"per100_cents": e[0], "basis": e[1], "chains": estimate.chain_prices(e[0], q[0] if q else None)}
     real_base = (value.per100(own["unit_price_cents"], q) if (own and q) else None) or (comm["per100_cents"] if comm else None)    # observed prices only, never an estimate
     pq_score = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), real_base)
-    if pq_score is None and q:
+    if pq_score is None:
         # No observed price: still give a price-quality score, from the stored web price if there is one (no network call here), else the category estimate; always marked approximate.
         w_ = webprice.cached_only(p) if webprice.enabled() else None
-        e_ = estimate.estimate_per100(p, [])
+        e_ = estimate.estimate_per100(p, []) if q else None
         basis = ("web_search", w_["per100_cents"], w_.get("pack_cents")) if (w_ and w_.get("per100_cents")) else (("estimate", e_[0], None) if e_ else None)
         if basis:
             vi_ = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), basis[1])
             if vi_:
-                pq_score = {**vi_, "approximate": True, "basis_source": basis[0], "basis_per100_cents": round(basis[1], 1), "basis_pack_cents": basis[2] if basis[2] is not None else round(basis[1] * q[0] / 100)}
+                pq_score = {**vi_, "approximate": True, "basis_source": basis[0], "basis_per100_cents": round(basis[1], 1), "basis_pack_cents": basis[2] if basis[2] is not None else (round(basis[1] * q[0] / 100) if q else None)}
     hist = _price_history(s, uid, p["id"])
     vals = sorted(h["per100_cents"] for h in hist if h["per100_cents"] is not None and value.fresh(h["date"]))
     summary = {"n": len(hist), "median_per100_cents": vals[len(vals) // 2] if vals else None, "latest": hist[0] if hist else None}

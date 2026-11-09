@@ -108,7 +108,8 @@ def _size_regex(q: Optional[Dict[str, Any]]) -> Optional[re.Pattern]:
 def _query(product: Dict[str, Any], variant: int = 0) -> str:
     q = product.get("quantity") or {}
     tail = ("prix", "prix en ligne supermarché drive")[variant]
-    return f"{product.get('brand') or ''} {product.get('name') or ''} {q.get('amount', 0):g} {q.get('unit', '')} {tail}".strip()
+    size = f"{q['amount']:g} {q['unit']}" if q.get("amount") else ""
+    return " ".join(x for x in (str(product.get("brand") or "").split(",")[0], str(product.get("name") or ""), size, tail) if x).strip()
 
 
 def _fetch_results(name: str, product: Dict[str, Any], http: Http, variant: int = 0) -> list:
@@ -148,11 +149,18 @@ def _pack_price(text: str, size_units: float) -> Optional[float]:
         if _PER_UNIT_AFTER.match(text[m.end():m.end() + 14]):
             per_kilo.append(v)                # "10,53 €/kg": no pack price, but the pack price follows from the size
             continue
+        if re.search(r"(?:min|minimum|panier|livraison|offert|dès|des|frais)\W{0,3}$", text[max(0, m.start() - 16):m.start()], re.I):
+            continue                          # "Min 60,00 €", "Montant du panier 0,00 €": a shop's own conditions, not the product
         cands.append(v)
     if size_units > 0:
         per_unit = {b for a_ in cands for b in cands if a_ != b and abs(a_ / size_units - b) / b < 0.06}
         cands = [v for v in cands if v not in per_unit]
     cands = [v for v in cands if v <= 200]
+    if cands and per_kilo and size_units > 0:
+        expect = per_kilo[0] * size_units          # the pack price that goes with the page's own price per kilo
+        near = [v for v in cands if abs(v - expect) / expect <= 0.04]
+        if near:
+            return near[0]
     if cands:
         return cands[0]
     if per_kilo and size_units > 0:           # only a per-kilo / per-litre price on the page: the individual price is that price times the pack size
@@ -264,6 +272,53 @@ def _gemini_lookup(product: Dict[str, Any], transport: Transport) -> Optional[Di
     return out
 
 
+_SIZE = re.compile(r"(?<![\d,.])(\d{1,4}(?:[,.]\d{1,2})?)\s?(kg|g|gr|cl|ml|l)\b", re.I)
+
+
+def _sizes_in(text: str) -> list:
+    out = []
+    for m in _SIZE.finditer(text or ""):
+        v, u = float(m.group(1).replace(",", ".")), m.group(2).lower()
+        if u == "kg": v, u = v * 1000, "g"
+        elif u == "gr": u = "g"
+        elif u == "cl": v, u = v * 10, "ml"
+        elif u == "l": v, u = v * 1000, "ml"
+        if 5 <= v <= 5000:
+            out.append((round(v), u))
+    return out
+
+
+def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]:
+    """The pack size of a product that has none in the database, read from product pages of this exact product (brand and every word of the name in the page address).
+    Only when those pages agree on one size; otherwise None (no price is better than a price for the wrong pack)."""
+    brand_w = _words(str(product.get("brand") or "").split(",")[0])
+    name_w = {w for w in _words(product.get("name")) if len(w) > 3} - brand_w
+    if not name_w or not _budget_left():
+        return None
+    for prov in providers():
+        if prov == "gemini":
+            continue
+        try:
+            results = _fetch_results(prov, product, http, 0)
+        except Exception as e:
+            _set_error(e)
+            continue
+        sizes = []
+        for url, text in results:
+            slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))      # the page path, not the site name
+            if (brand_w and not (brand_w & slug)) or not name_w <= slug:
+                continue
+            found = _sizes_in(text)
+            if found:
+                sizes.append(max(set(found), key=found.count))        # the size this page repeats most
+        if sizes and len(set(sizes)) == 1:
+            amount, unit = sizes[0]
+            return {"amount": float(amount), "unit": unit}
+        if sizes:
+            return None                                               # the pages disagree on the size
+    return None
+
+
 def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _post) -> Optional[Dict[str, Any]]:
     """Parallel search; no price when the sites it returns do not agree on this pack size."""
     global last_error
@@ -271,6 +326,12 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
     if not _budget_left():
         last_error = "daily cap reached"
         return None
+    assumed = None
+    if not (product.get("quantity") or {}).get("amount"):
+        assumed = _guess_size(product, http)
+        if not assumed:
+            return None
+        product = {**product, "quantity": assumed}
     for variant in (0, 1):                  # the second wording is only tried when the first finds nothing (search results vary from one call to the next)
         for name in providers():
             if variant and not _budget_left():
@@ -283,6 +344,8 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 out = _gemini_lookup(product, transport)
                 if out:
                     out["provider"] = name
+                    if assumed:
+                        out["size_assumed"] = assumed
                     return out
                 if last_error:              # a Gemini failure must not stop a genuine "nothing found" from being cached for the other providers
                     _gemini.update(down_until=time.time() + 600, error=last_error)
@@ -295,6 +358,8 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 continue
             if out:
                 out["provider"] = name
+                if assumed:
+                    out["size_assumed"] = assumed
                 return out
         if not product.get("brand"):
             break                           # an unbranded product is rarely found by a second try: do not pay for it

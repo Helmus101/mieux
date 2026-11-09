@@ -596,3 +596,24 @@ def test_tapenade_and_tomato_specialties_are_their_own_type():
     assert c("Sauce tomate basilic") != "tapenade"
     a, b = {"name": "Tapenade noire", "categories": [], "category": None}, {"name": "Tapenade verte aux olives", "categories": [], "category": None}
     assert (taxonomy.substitution(a, b) or {}).get("level") == 1
+
+
+def test_pack_price_ignores_shop_conditions_and_matches_the_per_kilo_price():
+    from app import webprice
+    page = "Montant du panier 0,00 €. Min 60,00 €. BIENVENUE20 20€ offerts. 125g 34,32 € / kilo 125g (34,32 € / kilo) 4,29 € Ajouter"
+    assert webprice._pack_price(page, 0.125) == 4.29
+
+
+def test_size_is_guessed_from_the_exact_product_page_only(monkeypatch):
+    from app import webprice
+    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.delenv("GEMINI_API_KEY", raising=False); monkeypatch.delenv("LANGSEARCH_API_KEY", raising=False)
+    monkeypatch.setattr(webprice, "_day", {"d": "", "n": 0})
+    prod = {"barcode": "3350033972711", "name": "Cerneaux de noix", "brand": "Monoprix", "quantity": None}
+    def par(*pages):
+        return lambda method, url, headers, body: {"results": [{"title": "", "excerpts": [text], "url": u} for u, text in pages]}
+    one = par(("https://courses.monoprix.fr/products/monoprix-cerneaux-de-noix-125g/MPX_1", "125g 34,32 € / kilo 125g 4,29 €"),
+              ("https://courses.monoprix.fr/products/maitre-prunille-cerneaux-de-noix-bio-200g/MPX_2", "200g 6,00 €"))      # another brand's page on the same site
+    assert webprice._guess_size(prod, one) == {"amount": 125.0, "unit": "g"}
+    two = par(("https://courses.monoprix.fr/products/monoprix-cerneaux-de-noix-125g/MPX_1", "125g 4,29 €"),
+              ("https://www.auchan.fr/p/monoprix-cerneaux-de-noix-250g", "250g 8,10 €"))
+    assert webprice._guess_size(prod, two) is None                                                       # the pages disagree: no guess
