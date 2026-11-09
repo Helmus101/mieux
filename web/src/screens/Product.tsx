@@ -169,8 +169,19 @@ export default function Product() {
         <p className="mut sm">{t('micro.note')}</p>
       </Collapsible>}
       <Collapsible title={t('simple.ingSec')}>
-        <Muted>{p.ingredientsText || t('product.noIng')}</Muted>
-        <p>{p.allergens.length ? p.allergens.map((a: string) => <Pill key={a} tone="w">{a}</Pill>) : <span className="mut sm">{p.ingredientsText ? t('product.allergenNone') : t('product.allergenMissing')}</span>}</p>
+        {(() => {
+          const raw = String(p.ingredientsText || '').trim();
+          const m = raw.match(/\s*(?:traces?(?:\s+[ée]ventuelles?)?|peut\s+contenir|may\s+contain)\b[\s:]*(?:de\s+|d['’]\s*|du\s+|des\s+|of\s+)?/i);
+          const ing = (m && m.index != null ? raw.slice(0, m.index) : raw).replace(/[.\s]+$/, ''), traces = m && m.index != null ? raw.slice(m.index + m[0].length).replace(/[.\s]+$/, '') : '';
+          const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
+          return <div className="ing">
+            <h4>{t('ing.list')}</h4>
+            <p>{ing ? cap(ing) + '.' : t('product.noIng')}</p>
+            {p.allergens.length > 0 && <><h4>{t('ing.allergens')}</h4><p className="ing-al">{p.allergens.join(', ')}</p></>}
+            {p.allergens.length === 0 && <p className="mut sm">{raw ? t('product.allergenNone') : t('product.allergenMissing')}</p>}
+            {traces && <><h4>{t('ing.traces')}</h4><p>{cap(traces) + '.'}</p></>}
+          </div>;
+        })()}
         <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('product.correct')}</a>
       </Collapsible>
       <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('score.page')}</a>

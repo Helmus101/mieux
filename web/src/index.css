@@ -220,7 +220,7 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .altcta{display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; text-align:left; border:0; background:var(--accent); color:var(--accent-ink); padding:18px 20px; cursor:pointer; border-radius:12px; margin:16px 0 8px}
 
 /* small inline links and the "?" help button keep a 44px touch target without looking bigger */
-.pqinfo{display:inline-flex; align-items:center; justify-content:center; min-height:44px; min-width:44px; padding:0 6px}
+.pqinfo{display:inline-flex; align-items:center; justify-content:center; min-height:44px; min-width:44px; margin:-10px -8px; padding:0 8px}
 .screen > a, .screen .coll ~ a{display:inline-block; padding:13px 0}
 /* ===== 8. Alternatives ===== */
 .atitle{font-size:26px; margin:4px 0 2px}
@@ -488,3 +488,21 @@ kbd{font:600 12px ui-monospace,Menlo,monospace; background:var(--card); border:1
 .wside b{font-weight:700}
 .wnote{margin:6px 0 0}
 .wmore{padding-left:0}
+.twoscores>div>.mut.sm{display:flex; align-items:center; min-height:24px}
+.twoscores .scorebig{margin:0}
+
+/* roomier phone layout: more side margin, more air between blocks, fewer words per row */
+.ing h4{margin:16px 0 4px; font-size:13px; font-weight:600; color:var(--mut)}
+.ing h4:first-child{margin-top:4px}
+.ing p{margin:0; font-size:15px; line-height:1.6}
+.ing .ing-al{font-weight:600}
+.screen{padding-left:20px; padding-right:20px}
+.navbar{margin-left:-20px; margin-right:-20px; padding-left:20px; padding-right:20px}
+.arow{padding:18px 0}
+.ameta{gap:6px 12px; margin-top:10px}
+.twoscores{margin:24px 0 10px}
+.fl{margin-top:18px; gap:9px}
+.altcta{margin:22px 0 14px}
+.coll>summary{min-height:56px}
+.seg button{font-size:14px; padding-left:2px; padding-right:2px}
+.ing .mut.sm{margin-top:12px}

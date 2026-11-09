@@ -169,6 +169,9 @@ def _pack_price(text: str, size_units: float) -> Optional[float]:
     return None
 
 
+_LISTING = re.compile(r"[?&](?:q|s|search|query|k)=|/search|/recherche|/categor|/rayon|/cat/|/r/|/c/|/liste|/collection|/brand|/marque", re.I)
+
+
 def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, Any]]:
     """A price only when two different sites talk about this product (brand and name words) and this pack size, and agree within 25 %."""
     q = product.get("quantity")
@@ -182,6 +185,11 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
     for url, text in results:
         if not size_re.search(text):
             continue
+        if _LISTING.search(url):
+            continue                                       # search and category pages mix many products: their prices are not this product's
+        slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))
+        if len(slug) >= 3 and name_w and not (name_w <= slug):
+            continue                                       # a product page whose address names another variant (orange vs noisette): not this product
         tw = _words(text)
         if (brand_w and not (brand_w & tw)) or (name_w and not (name_w & tw)):
             continue

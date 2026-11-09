@@ -83,7 +83,8 @@ export default function Alternatives() {
   })();
   const shown = ranked.slice(0, 10);   // never more than 10 per tab, after the strict filters
   // Exactly three tabs, always: price-quality (opens first), price, quality.
-  const tabs = [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }];
+  // A tab that has nothing better to show is not offered at all (the three modes, in this order, minus the empty ones).
+  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }].filter((x) => listOf(x.key).length > 0) : [];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
@@ -167,7 +168,7 @@ export default function Alternatives() {
               <div className="aname">{e.product.name}</div>
               <div className="abrand">{e.product.brand}</div>
               <div className="ameta">
-                {e.product.score && <span className={rk === 'match' ? 'main' : 'sub'}><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span><small> {t('score.' + e.product.score.band)}</small>
+                {e.product.score && <span className={rk === 'match' ? 'main' : 'sub'}><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>{rk === 'match' && <small> {t('score.' + e.product.score.band)}</small>}
                   {rk === 'match' && r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>}
                 {e.vs != null && rk !== 'match' && <span className={rk === 'value' ? 'main' : 'sub'} title={t('score.pqHint')}><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span><small> {t('score.pq')}</small></span>}
               </div>

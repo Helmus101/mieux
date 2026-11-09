@@ -617,3 +617,13 @@ def test_size_is_guessed_from_the_exact_product_page_only(monkeypatch):
     two = par(("https://courses.monoprix.fr/products/monoprix-cerneaux-de-noix-125g/MPX_1", "125g 4,29 €"),
               ("https://www.auchan.fr/p/monoprix-cerneaux-de-noix-250g", "250g 8,10 €"))
     assert webprice._guess_size(prod, two) is None                                                       # the pages disagree: no guess
+
+
+def test_a_price_from_another_flavour_or_a_listing_page_is_never_used():
+    from app import webprice
+    prod = {"barcode": "3760151012464", "name": "Barres au chocolat et orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    wrong_flavour = ("https://www.dukannewboutique.com/produit/barres-au-chocolat-et-noisette", "Dukan Barres au chocolat et noisette 150 g 5,65 € 5,65€ orange")
+    listing = ("https://www.carrefour.fr/s?q=dukan", "Dukan barres chocolat orange 150 g 5,65 €")
+    assert webprice._price_from(prod, [wrong_flavour, listing]) is None
+    right = ("https://www.auchan.fr/dukan-barres-au-chocolat-et-orange/p-1", "Dukan Barres au chocolat et orange 150 g 5,65 €")
+    assert webprice._price_from(prod, [right])["pack_cents"] == 565          # a supermarket's own page for exactly this variant
