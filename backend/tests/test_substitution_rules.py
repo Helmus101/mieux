@@ -343,7 +343,9 @@ def test_price_quality_score_is_stable_and_damped_for_poor_nutrition():
     vi = _install_reference()
     try:
         assert vi.value_index("toy", 70, 60) == vi.value_index("toy", 70, 60)          # no dependence on any search
-        assert vi.value_index("unknown type", 70, 60) is None and vi.value_index("toy", None, 60) is None and vi.value_index("toy", 70, 0) is None
+        u = vi.value_index("unknown type", 70, 60)
+        assert u is not None and u["basis"] == "all_products" and u["approximate"] is True        # unknown type: a rougher pooled score, marked approximate
+        assert vi.value_index("toy", None, 60) is None and vi.value_index("toy", 70, 0) is None
         # same percentile position, but the weak product is scaled down
         assert vi.damping(20) < vi.damping(65) == 1.0
     finally:

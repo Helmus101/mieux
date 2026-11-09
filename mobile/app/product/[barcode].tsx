@@ -144,6 +144,10 @@ export default function Product() {
                 <Text style={{ color: pc.value.value_score >= 65 ? c.accent : pc.value.value_score >= 40 ? c.warn : c.bad, fontSize: 40, fontWeight: '800' }}>{pc.value.approximate ? '≈ ' : ''}{pc.value.value_score}<Text style={{ fontSize: 14, color: c.mut }}>{t('score.outOf')}</Text></Text>
                 <Text style={{ color: c.ink, fontWeight: '700' }}>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</Text>
                 {pc.value.approximate ? <Text style={{ color: c.mut, fontSize: 13 }}>{t('score.pqApprox', { p: formatCents(pc.value.basis_pack_cents) })}</Text> : null}
+              </> : webP?.value_score != null ? <>
+                <Text style={{ color: webP.value_score >= 65 ? c.accent : webP.value_score >= 40 ? c.warn : c.bad, fontSize: 40, fontWeight: '800' }}>≈ {webP.value_score}<Text style={{ fontSize: 14, color: c.mut }}>{t('score.outOf')}</Text></Text>
+                <Text style={{ color: c.ink, fontWeight: '700' }}>{webP.value_score >= 65 ? t('score.pqGood') : webP.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</Text>
+                {webP.pack_cents != null ? <Text style={{ color: c.mut, fontSize: 13 }}>{t('score.pqApprox', { p: formatCents(webP.pack_cents) })}</Text> : null}
               </> : <>
                 <Text style={{ color: c.mut, fontSize: 40, fontWeight: '800' }}>–</Text>
                 <Text style={{ color: c.mut, fontWeight: '700' }}>{t('score.pqNone')}</Text>

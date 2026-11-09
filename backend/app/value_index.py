@@ -55,6 +55,37 @@ def _pct(q, x: float) -> float:
     return (i - 1 + frac) / (len(q) - 1)
 
 
+_POOLED: Dict[str, Any] = {"for": None, "ref": None}
+
+
+def _quantiles(samples) -> list:
+    """41 evenly spaced weighted quantiles from [(value, weight)]."""
+    samples = sorted(samples)
+    total = sum(w for _, w in samples)
+    out, acc, i = [], 0.0, 0
+    for k in range(41):
+        target = total * k / 40
+        while i < len(samples) - 1 and acc + samples[i][1] < target:
+            acc += samples[i][1]
+            i += 1
+        out.append(samples[i][0])
+    return out
+
+
+def pooled() -> Optional[Dict[str, Any]]:
+    """Every type's distribution pooled (weighted by its size): the reference for a product whose type is unknown or too small. Rougher than a type's own."""
+    ref = _load()
+    if _POOLED["for"] is not ref:
+        used = [r for r in ref.values() if r.get("n", 0) >= MIN_N]
+        if used:
+            sq = [(v, r["n"] / len(r["score_q"])) for r in used for v in r["score_q"]]
+            pq = [(v, r["n"] / len(r["price_q"])) for r in used for v in r["price_q"]]
+            _POOLED.update({"for": ref, "ref": {"score_q": _quantiles(sq), "price_q": _quantiles(pq), "n": sum(r["n"] for r in used)}})
+        else:
+            _POOLED.update({"for": ref, "ref": None})
+    return _POOLED["ref"]
+
+
 def damping(score: float) -> float:
     return DAMP_FLOOR + (1 - DAMP_FLOOR) * min(1.0, max(0.0, score) / DAMP_FULL_AT)
 
@@ -62,7 +93,10 @@ def damping(score: float) -> float:
 def value_index(type_id: Optional[str], score: Optional[float], price100: Optional[float]) -> Optional[Dict[str, Any]]:
     """None when there is no usable reference for the type or the score/price is missing."""
     ref = _load().get(type_id or "")
-    if not ref or ref.get("n", 0) < MIN_N or score is None or not price100 or price100 <= 0:
+    basis = "type_reference"
+    if not ref or ref.get("n", 0) < MIN_N:
+        ref, basis = pooled(), "all_products"          # unknown type: still a score, from all products together, marked approximate
+    if not ref or score is None or not price100 or price100 <= 0:
         return None
     q, a = _pct(ref["score_q"], float(score)), 1.0 - _pct(ref["price_q"], float(price100))
     g = math.sqrt(q * a)
@@ -70,4 +104,4 @@ def value_index(type_id: Optional[str], score: Optional[float], price100: Option
         g = LIFT_FROM + (1 - LIFT_FROM) * ((g - LIFT_FROM) / (1 - LIFT_FROM)) ** LIFT_POWER
     idx = 100.0 * g * damping(float(score))
     return {"value_score": max(1, min(100, round(idx))), "quality_percentile": round(q * 100, 1), "affordability_percentile": round(a * 100, 1),
-            "reference_n": ref["n"], "basis": "type_reference", "version": VERSION}
+            "reference_n": ref["n"], "basis": basis, "version": VERSION, **({"approximate": True} if basis != "type_reference" else {})}
