@@ -500,3 +500,16 @@ def test_web_search_has_a_daily_cap_and_never_breaks_the_request(monkeypatch, tm
     assert webprice.lookup(prod, use_cache=False, http=boom) is None                # over the cap: no search at all
     monkeypatch.setattr(webprice, "DAILY_CAP", 10); webprice._day.update(d="", n=0)
     assert webprice.lookup(prod, use_cache=False, http=boom) is None                # a failing search is an empty answer, not an exception
+
+
+def test_web_prices_are_kept_in_the_price_database_but_not_shown_as_observed(monkeypatch):
+    from app import main, db
+    s = db.make_session_factory("sqlite:///:memory:")()
+    prod = {"barcode": "9990000000017", "quantity": {"amount": 400.0, "unit": "g"}}
+    main._record_web_price(s, prod, {"date": "2026-11-09", "pack_cents": 320, "per100_cents": 80.0})
+    main._record_web_price(s, prod, {"date": "2026-11-09", "pack_cents": 320, "per100_cents": 80.0})       # same day: not duplicated
+    s.commit()
+    rows = s.query(db.ProductPrice).filter_by(product_id="9990000000017", source="web_search").all()
+    assert len(rows) == 1 and rows[0].confidence == "approximate" and rows[0].per100_cents == 80.0
+    assert main._price_history(s, "someone", "9990000000017") == []                                          # never displayed as an observed price
+    s.close()

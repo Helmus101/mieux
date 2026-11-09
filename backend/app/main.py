@@ -608,7 +608,11 @@ def _web_price_for(s: Session, barcode: str) -> Optional[Dict[str, Any]]:
     q = p.get("quantity")
     if not q or app.state.prices.latest(barcode, (q["amount"], q["unit"])):
         return None                       # an observed price exists, or the pack size is unknown: nothing to approximate
-    return webprice.lookup(p)
+    w = webprice.lookup(p)
+    if w and not w.get("stale"):
+        _record_web_price(s, p, w)
+        s.commit()
+    return w
 
 
 @app.get("/v1/products/{barcode}/web-price")
@@ -632,6 +636,10 @@ def web_prices(request: Request, body: WebPricesReq, uid: str = Depends(user), s
     todo = [c for c in codes if q_of(products[c]) and not app.state.prices.latest(c, (q_of(products[c])["amount"], q_of(products[c])["unit"]))]
     with ThreadPoolExecutor(max_workers=4) as ex:
         found = dict(zip(todo, ex.map(lambda c: webprice.lookup(products[c]), todo)))
+    for c, w in found.items():
+        if w and not w.get("stale"):
+            _record_web_price(s, products[c], w)
+    s.commit()
     out = {}
     for c in codes:
         w = found.get(c)
@@ -665,9 +673,19 @@ def _record_price(s: Session, product_id: str, user_id: Optional[str], source: s
                           currency=(native or {}).get("currency", market.currency()), price_native=(native or {}).get("price_native"), fx=(native or {}).get("fx"), stale=bool((native or {}).get("stale"))))
 
 
+def _record_web_price(s: Session, product: Dict[str, Any], w: Dict[str, Any]) -> None:
+    """Keep a price found by the web search in the price database (one row per product and day, source 'web_search', confidence 'approximate').
+    These rows build up a history but never feed the price shown as observed (see _price_history)."""
+    try:
+        q = product.get("quantity")
+        _record_price(s, product["barcode"], None, "web_search", w.get("date"), w.get("pack_cents"), w.get("per100_cents"), q, confidence="approximate")
+    except Exception:
+        logger.exception("could not store a web price")
+
+
 def _price_history(s: Session, uid: str, product_id: str, limit: int = 12) -> List[Dict[str, Any]]:
     """The product's price observations (your receipts/entries and stored community observations), newest first. No shops."""
-    rows = (s.query(db.ProductPrice).filter(db.ProductPrice.product_id == product_id)
+    rows = (s.query(db.ProductPrice).filter(db.ProductPrice.product_id == product_id, db.ProductPrice.source != "web_search")
             .filter((db.ProductPrice.user_id == uid) | (db.ProductPrice.user_id.is_(None)))
             .order_by(db.ProductPrice.observed_on.desc(), db.ProductPrice.id.desc()).limit(limit).all())
     return [{"id": r.id, "date": r.observed_on, "source": r.source, "pack_cents": r.pack_cents, "per100_cents": r.per100_cents, "confidence": r.confidence, "mine": r.user_id == uid,
@@ -1546,6 +1564,8 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                         prices[c["barcode"]] = w["per100_cents"]
                     points[c["barcode"]] = {"source": "web_search", "approximate": True, "date": w.get("date"), "where": ", ".join(w.get("stores") or []) or None, "stale": bool(w.get("stale")),
                                             "pack_cents": w.get("pack_cents")}
+                    if not w.get("stale"):
+                        _record_web_price(s, c, w)
         except Exception:                      # the web search is an extra: whatever goes wrong, the alternatives still come back
             logger.exception("web price fallback failed")
     if approximate:

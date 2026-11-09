@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sqlite3
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -16,8 +17,8 @@ from . import value
 
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-HIT_TTL = 14 * 86400
-MISS_TTL = 3 * 86400
+HIT_TTL = 30 * 86400      # a found price is searched again after 30 days (the old one stays, marked stale, if the new search finds nothing)
+MISS_TTL = 7 * 86400      # a search that found nothing is not paid for again for a week
 CACHE_PATH = os.environ.get("WEBPRICE_CACHE", os.path.join(os.path.dirname(os.environ.get("OP_LOCAL", "/tmp/x")) or ".", "webprice_cache.db"))
 
 PROMPT = (
@@ -220,15 +221,29 @@ def _search_lookup(product: Dict[str, Any], http: Http) -> Optional[Dict[str, An
     return None
 
 
+_conn: Dict[str, Any] = {"path": None, "db": None}
+_lock = threading.Lock()
+
+
 def _db() -> sqlite3.Connection:
-    db = sqlite3.connect(CACHE_PATH)
-    db.execute("create table if not exists webprice (barcode text primary key, at real, data text)")
-    return db
+    """One shared connection (opened once, not per call), used under a lock."""
+    if _conn["db"] is None or _conn["path"] != CACHE_PATH:
+        if _conn["db"] is not None:
+            try:
+                _conn["db"].close()
+            except sqlite3.Error:
+                pass
+        db = sqlite3.connect(CACHE_PATH, check_same_thread=False, timeout=10)
+        db.execute("pragma journal_mode=wal")
+        db.execute("create table if not exists webprice (barcode text primary key, at real, data text)")
+        _conn.update(path=CACHE_PATH, db=db)
+    return _conn["db"]
 
 
 def _cached(barcode: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
     try:
-        row = _db().execute("select at, data from webprice where barcode=?", (barcode,)).fetchone()
+        with _lock:
+            row = _db().execute("select at, data from webprice where barcode=?", (barcode,)).fetchone()
     except sqlite3.Error:
         return False, None
     if not row:
@@ -240,6 +255,7 @@ def _cached(barcode: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
 
 def _store(barcode: str, data: Optional[Dict[str, Any]]) -> None:
     try:
+      with _lock:
         db = _db()
         if not data and db.execute("select data from webprice where barcode=? and data is not null", (barcode,)).fetchone():
             return                       # never overwrite a stored price with a miss
