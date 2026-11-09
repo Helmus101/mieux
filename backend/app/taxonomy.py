@@ -28,6 +28,7 @@ R = [
     ("cocoa_powder", "sweet", "cocoa", "powder", "powder", "drink_mix", r"cocoa-powders|instant-chocolate-powders|chocolate-powders", r"cacao (en poudre|maigre|sucr|soluble)|poudre de cacao|chocolat en poudre|banania|nesquik|benco|ovomaltine"),
     ("soy_sauce", "condiments", "sauce", "soy_sauce", "liquid", "seasoning", r"soy-sauces|soya-sauces", r"sauce soja|soy sauce|shoyu|tamari"),
     ("pesto", "condiments", "sauce", "pesto", "jar", "meal", r"(?:^|\s)en:(?:green-|red-)?pestos?(?:\s|$)", r"pesto"),
+    ("tapenade", "condiments", "sauce", "tapenade", "jar", "meal", r"(?:^|\s)en:(?:tapenades?|antipasti|olive-spreads?)(?:\s|$)", r"tapenade|caviar d.aubergine|cr[èe]me d.olive|cr[èe]me de poivron|antipasti|sp[ée]cialit[ée] (?:[àa]|aux?) (?:la |l.)?(?:tomate|olive|poivron|aubergine)"),
     ("sugar", "pantry", "sugar", "sugar", "granulated", "baking", r"(?:^|\s)en:(?:white-|cane-|brown-|powdered-|icing-)?sugars?(?:\s|$)", r"^sucre|\bsucre (blanc|roux|semoule|en poudre|glace|de canne)|\bsugar\b"),
     ("syrup", "pantry", "sweetener", "syrup", "liquid", "sweetener", r"agave-syrups|maple-syrups", r"sirop d.agave|sirop d.[ée]rable|agave syrup|maple syrup"),
     ("smoked_fish", "fish", "fish", "smoked_fish", "slice", "meal", r"smoked-fishes|smoked-trouts|smoked-salmons", r"saumon fum|truite fum|smoked (salmon|trout)|poisson fum"),
@@ -182,7 +183,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             return {"type": tid, **_META[tid], "source": "tags_and_name", "confidence": "high", "reason": f"specific category tag '{tr.pattern[:30]}' and name '{nr.pattern[:30]}' agree"}
 
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
-    specific = ("brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
+    specific = ("tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
                 "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if nr.search(name) and tid in specific:
@@ -344,6 +345,7 @@ TYPE_TERMS: Dict[str, List[str]] = {
     "speculoos": ["speculoos", "spéculoos", "speculaas", "biscoff"],
     "herbal_lozenge": ["pastilles gorge", "ricola", "valda", "bonbons plantes menthol"],
     "chocolate_spread": ["pâte à tartiner"],
+    "tapenade": ["tapenade", "spécialité à la tomate", "caviar d'aubergine"],
     "fish_canned": ["thon", "sardines", "maquereau", "saumon conserve"],
     "butter": ["beurre"], "baguette": ["baguette", "pain de campagne"], "sandwich_bread": ["pain de mie"],
     "plain_yogurt": ["yaourt nature", "yaourt grec", "skyr"], "milk": ["lait demi-écrémé", "lait entier", "lait écrémé", "lait uht"],

@@ -587,3 +587,12 @@ def test_cereal_clusters_with_nuts_are_muesli_not_nuts():
     cats = ["en:breakfast-cereals", "en:mueslis", "en:cereals-with-nuts", "en:crunchy-cereal-clusters", "en:cereal-clusters-with-nuts"]
     assert taxonomy.classify({"name": "cruesly mélange de noix", "categories": cats, "category": cats[-1]})["type"] == "muesli"
     assert taxonomy.classify({"name": "Noix de cajou grillées", "categories": ["en:nuts", "en:cashew-nuts"], "category": "en:cashew-nuts"})["type"] == "nuts"
+
+
+def test_tapenade_and_tomato_specialties_are_their_own_type():
+    from app import taxonomy
+    c = lambda n: taxonomy.classify({"name": n, "categories": [], "category": None})["type"]       # noqa: E731
+    assert c("Tapenade De Tomates Séchées") == "tapenade" and c("Spécialité à la tomate sechée et au basilic") == "tapenade"
+    assert c("Sauce tomate basilic") != "tapenade"
+    a, b = {"name": "Tapenade noire", "categories": [], "category": None}, {"name": "Tapenade verte aux olives", "categories": [], "category": None}
+    assert (taxonomy.substitution(a, b) or {}).get("level") == 1
