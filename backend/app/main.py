@@ -1727,7 +1727,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         return {"state": "unknown"}, None
     for a_ in res.get("alternatives", []):
         a_["availability"], a_["store_price"] = _availability(a_["product"])
-    orig_type_ = taxonomy.classify(res.get("original") or {}).get("type") if res.get("original") else None
+    orig_type_ = taxonomy.classify(orig).get("type")      # the scanned product itself (res["original"] is only filled in later)
     for key_ in ("budget", "value", "quality", "closest"):
         seen_, kept_ = set(), []
         for r_ in res["rankings"].get(key_, []):
@@ -1752,8 +1752,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         if key_ == "value":
             kept_ = [r_ for _, r_ in sorted(enumerate(kept_), key=lambda ir: (-(ir[1].get("value_score") if ir[1].get("value_score") is not None else -1), ir[0]))]   # ordered by the number shown
         res["rankings"][key_] = kept_
-    _o = res.get("original") or {}
-    _vo = value_index.value_index(orig_type_, (_o.get("score") or {}).get("total"), orig_price) if (orig_type_ and orig_price is not None) else None
+    _o = orig
+    _vo = value_index.value_index(orig_type_, (_o.get("score") or {}).get("total"), orig_price) if orig_price is not None else None      # same call as every row (pooled reference when the type is unknown)
     if _vo:
         res["rankings"]["original_value_score"] = _vo["value_score"]      # the scanned product's score from the same index
     if "diagnostics" in res:

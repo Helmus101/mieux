@@ -83,8 +83,8 @@ export default function Alternatives() {
   })();
   const shown = ranked.slice(0, 10);   // never more than 10 per tab, after the strict filters
   // Exactly three tabs, always: price-quality (opens first), price, quality.
-  // A tab that has nothing better to show is not offered at all (the three modes, in this order, minus the empty ones).
-  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }].filter((x) => listOf(x.key).length > 0) : [];
+  // The two price tabs are always offered (an empty one says why); the quality tab is offered only when something scores higher than the scanned product.
+  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
@@ -140,7 +140,6 @@ export default function Alternatives() {
       <h1 className="atitle">{t('alt.title')}</h1>
       {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
       {tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
-      {r && !busy && r?.original_price?.per100_cents != null && tabs.length > 0 && ['budget', 'value'].some((k) => !tabs.some((x) => x.key === k)) && <p className="mut sm nocheaper">{['budget', 'value'].filter((k) => !tabs.some((x) => x.key === k)).map((k) => t(k === 'budget' ? 'rank.noCheaper' : 'rank.noBetterValue')).join(' ')}</p>}
       <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}{rk === 'value' && <> <PqExplain label /></>}</p>
       {r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</span>
         {showPrice && <button className="linkbtn" onClick={() => setDiffBy(diffBy === 'kg' ? 'pack' : 'kg')} aria-label={t('diff.byKg') + ' / ' + t('diff.byPack')}>{diffBy === 'kg' ? t('diff.byPack') : t('diff.byKg')}</button>}</p>}
@@ -180,6 +179,7 @@ export default function Alternatives() {
                 : e.pack != null ? <b>{formatCents(e.pack)}</b>
                 : w ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b> : null}
               {e.pack != null && u && <span className="mut sm">{formatCents(e.pack)}</span>}
+              {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
               {d && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
               <span className="asave" onClick={(ev) => ev.stopPropagation()}><SaveButton product={e.product} /></span>
             </div>
