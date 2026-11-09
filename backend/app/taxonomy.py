@@ -71,7 +71,7 @@ R = [
     # ---- spreads and sweet
     ("chocolate_spread", "sweet", "spread", "spread", "spread", "breakfast", r"chocolate-spreads|hazelnut-spreads|cocoa-and-hazelnuts-spreads|chocolate-and-hazelnut-spreads|pates-a-tartiner-au-chocolat|pates-a-tartiner-aux-noisettes|pates-a-tartiner-au-cacao|produits-a-tartiner-sucres|pates-a-tartiner(?!-vegetal)", r"p[âa]te [àa] tartiner|nutella|pasta cao|chocolate spread"),
     ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|compotes|fruit-and-vegetable-preserves|fruit-preserves|fruit-purees|apple-compotes", r"confiture|marmelade|compote|gel[ée]e"),
-    ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre de cacahu|peanut butter|pur[ée]e d.(amande|noisette)"),
+    ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre (de |d.)(cacahu|amande|noisette|cajou)|peanut butter|(almond|cashew|hazelnut) butter|pur[ée]e (d.|de )?(amandes?|noisettes?|cajou|noix de cajou|cacahu[eè]tes?|pistaches?|noix de p[ée]can|s[ée]same)|cr[èe]me d.amandes?\b(?!.*(dessert|glac))|tahin"),
     ("honey", "sweet", "spread", "spread", "spread", "breakfast", r"honeys", r"\bmiel\b"),
     # ---- chocolate confectionery (tablets, bars for confectionery use - NOT snack bars)
     # IMPORTANT: Chocolate tablets are confectionery, not snack bars, even if they contain nuts or fruit
@@ -188,7 +188,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             return {"type": tid, **_META[tid], "source": "tags_and_name", "confidence": "high", "reason": f"specific category tag '{tr.pattern[:30]}' and name '{nr.pattern[:30]}' agree"}
 
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
-    specific = ("tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
+    specific = ("peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
                 "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid == "cheese" and _CHEESE_DISH.search(name):
