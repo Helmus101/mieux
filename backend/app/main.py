@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from sqlalchemy.exc import IntegrityError
 import json
 import logging
+import math
 import os
 from typing import Any, Dict, Iterator, List, Optional
 
@@ -35,7 +36,7 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-from . import chains as _chains, value_index, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
+from . import chains as _chains, webprice, value_index, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
@@ -1467,6 +1468,18 @@ def _with_confidence(pt):
 
 
 _WARM = ThreadPoolExecutor(max_workers=8)
+_INFLIGHT: Dict[str, Any] = {}
+
+
+def _search_once(c: Dict[str, Any]):
+    """One web search per product at a time: a request that arrives while the same search is running waits on it instead of starting a second one."""
+    bc = c["barcode"]
+    f = _INFLIGHT.get(bc)
+    if f is None or f.done():
+        f = _WARM.submit(webprice.lookup, c)
+        _INFLIGHT[bc] = f
+        f.add_done_callback(lambda _f, b=bc: _INFLIGHT.pop(b, None))
+    return f
 
 
 def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str, Any]], loc: Optional[Loc] = None, approximate: bool = False, only: Optional[List[str]] = None):
@@ -1501,37 +1514,40 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
         points[orig["barcode"]] = {k: points[orig["barcode"]][k] for k in ("source", "date", "where", "currency", "price_native", "fx", "stale", "pack_cents", "scope", "store", "distance_km") if k in points[orig["barcode"]]}
     # Too few observed prices for this kind of product (or none for the scanned one): search the web (Parallel, cached for good in webprice_cache.db) so the
     # price lists are never empty. Found prices carry source='web_search' + approximate=True; the clients show them with a "~".
-    from . import webprice
-    if webprice.enabled() and (len([b for b in prices if b != orig["barcode"]]) < 6 or (oq and orig_price is None)):
-        todo = []
-        if oq and orig_price is None:
-            todo.append(orig)
-        for c in prods:
-            cq, sub = c.get("quantity"), c.get("substitution")
-            if cq and c["barcode"] not in prices and c["barcode"] != orig["barcode"] and (not oq or cq["unit"] == oq["unit"]) and (sub is None or sub.get("level") in (1, 2)):
-                todo.append(c)
-            if len(todo) >= 16:
-                break
-        if todo:
-            # Stored prices are instant. Missing ones are searched in parallel, but the request waits at most ~7 s in total (the scanned product first);
-            # a search still running keeps going in the background and is stored for next time.
-            from concurrent.futures import wait as _wait
-            found = [webprice.cached_only(c) for c in todo]
-            futs = {i: _WARM.submit(webprice.lookup, c) for i, (c, w) in enumerate(zip(todo, found)) if w is None}
-            if futs:
-                _wait(list(futs.values()), timeout=7)
-                for i, f in futs.items():
-                    if f.done() and not f.exception():
-                        found[i] = f.result()
-            for c, w in zip(todo, found):
-                if not w or w.get("per100_cents") is None:
-                    continue
-                if c["barcode"] == orig["barcode"]:
-                    orig_price = w["per100_cents"]
-                else:
-                    prices[c["barcode"]] = w["per100_cents"]
-                points[c["barcode"]] = {"source": "web_search", "approximate": True, "date": w.get("date"), "where": ", ".join(w.get("stores") or []) or None, "stale": bool(w.get("stale")),
-                                        "pack_cents": w.get("pack_cents")}
+    if webprice.enabled() and (len([b for b in prices if b != orig["barcode"]]) < 10 or (oq and orig_price is None)):
+        try:
+            todo = []
+            if oq and orig_price is None:
+                todo.append(orig)
+            cand = [c for c in prods if c.get("quantity") and c["barcode"] not in prices and c["barcode"] != orig["barcode"]
+                    and (not oq or c["quantity"]["unit"] == oq["unit"]) and ((c.get("substitution") or {}).get("level") in (1, 2, None))]
+
+            def _likely_value(c):     # search first the candidates most likely to be cheap or good value: strong nutrition score, house brands, widely sold and popular products
+                pop = c.get("popularity") or {}
+                return ((c.get("score") or {}).get("total") or 0) + (12 if _chains.own_brand_chain(c.get("brand")) else 0) + 4 * min(3, pop.get("chains") or len(c.get("chains") or [])) + min(10.0, 3 * math.log10((pop.get("scans") or 0) + 1))
+            todo += sorted(cand, key=_likely_value, reverse=True)[:16]
+            if todo:
+                # Stored prices are instant. Missing ones are searched in parallel, but the request waits at most ~7 s in total (the scanned product first);
+                # a search still running keeps going in the background and is stored for next time.
+                from concurrent.futures import wait as _wait
+                found = [webprice.cached_only(c) for c in todo]
+                futs = {i: _search_once(c) for i, (c, w) in enumerate(zip(todo, found)) if w is None}
+                if futs:
+                    _wait(list(futs.values()), timeout=7)
+                    for i, f in futs.items():
+                        if f.done() and not f.exception():
+                            found[i] = f.result()
+                for c, w in zip(todo, found):
+                    if not w or w.get("per100_cents") is None:
+                        continue
+                    if c["barcode"] == orig["barcode"]:
+                        orig_price = w["per100_cents"]
+                    else:
+                        prices[c["barcode"]] = w["per100_cents"]
+                    points[c["barcode"]] = {"source": "web_search", "approximate": True, "date": w.get("date"), "where": ", ".join(w.get("stores") or []) or None, "stale": bool(w.get("stale")),
+                                            "pack_cents": w.get("pack_cents")}
+        except Exception:                      # the web search is an extra: whatever goes wrong, the alternatives still come back
+            logger.exception("web price fallback failed")
     if approximate:
         # Estimates only where nothing was observed, always tagged source='estimate' (never a verified price).
         observed = [v for k, v in prices.items() if k != orig["barcode"]]

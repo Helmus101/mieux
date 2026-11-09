@@ -489,3 +489,14 @@ def test_parallel_is_main_and_langsearch_the_fallback(monkeypatch, tmp_path):
         return {"results": []} if "parallel" in url else ls_ok
     r = webprice.lookup(prod, use_cache=False, http=http2)
     assert r and r["provider"] == "langsearch" and len(calls) == 2
+
+
+def test_web_search_has_a_daily_cap_and_never_breaks_the_request(monkeypatch, tmp_path):
+    from app import webprice
+    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp5.db"))
+    prod = {"barcode": "3017620422003", "name": "Nutella pâte à tartiner", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
+    monkeypatch.setattr(webprice, "DAILY_CAP", 0)
+    boom = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("network down"))     # noqa: E731
+    assert webprice.lookup(prod, use_cache=False, http=boom) is None                # over the cap: no search at all
+    monkeypatch.setattr(webprice, "DAILY_CAP", 10); webprice._day.update(d="", n=0)
+    assert webprice.lookup(prod, use_cache=False, http=boom) is None                # a failing search is an empty answer, not an exception

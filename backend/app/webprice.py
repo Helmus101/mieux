@@ -187,10 +187,27 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
             "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
 
 
+DAILY_CAP = int(os.environ.get("WEBPRICE_DAILY_CAP", "1500"))     # searches per day (cost guard); stored prices are always served
+_day = {"d": "", "n": 0}
+
+
+def _budget_left() -> bool:
+    today = time.strftime("%Y-%m-%d")
+    if _day["d"] != today:
+        _day.update(d=today, n=0)
+    if _day["n"] >= DAILY_CAP:
+        return False
+    _day["n"] += 1
+    return True
+
+
 def _search_lookup(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]:
     """Parallel search; no price when the sites it returns do not agree on this pack size."""
     global last_error
     last_error = None
+    if not _budget_left():
+        last_error = "daily cap reached"
+        return None
     for name in providers():
         try:
             out = _price_from(product, _fetch_results(name, product, http))
