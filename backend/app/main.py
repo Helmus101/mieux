@@ -1510,7 +1510,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
             cq, sub = c.get("quantity"), c.get("substitution")
             if cq and c["barcode"] not in prices and c["barcode"] != orig["barcode"] and (not oq or cq["unit"] == oq["unit"]) and (sub is None or sub.get("level") in (1, 2)):
                 todo.append(c)
-            if len(todo) >= 9:
+            if len(todo) >= 16:
                 break
         if todo:
             # Stored prices are instant. Missing ones are searched in parallel, but the request waits at most ~7 s in total (the scanned product first);

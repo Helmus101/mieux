@@ -13,7 +13,9 @@ import math
 import os
 from typing import Any, Dict, Optional
 
-VERSION = 1
+VERSION = 2
+LIFT_FROM = 0.4              # the geometric mean of two percentiles bunches around 30-60: above this point it is eased upward so a genuinely good AND cheap product reaches the 80s-90s
+LIFT_POWER = 0.6             # (a lopsided product, good but dear or cheap but poor, stays low: below LIFT_FROM nothing changes)
 DAMP_FULL_AT = 65.0          # nutrition score from which there is no damping
 DAMP_FLOOR = 0.5             # damping factor at a nutrition score of 0
 MIN_N = 15                   # smaller reference populations are not used
@@ -63,6 +65,9 @@ def value_index(type_id: Optional[str], score: Optional[float], price100: Option
     if not ref or ref.get("n", 0) < MIN_N or score is None or not price100 or price100 <= 0:
         return None
     q, a = _pct(ref["score_q"], float(score)), 1.0 - _pct(ref["price_q"], float(price100))
-    idx = 100.0 * math.sqrt(q * a) * damping(float(score))
+    g = math.sqrt(q * a)
+    if g > LIFT_FROM:
+        g = LIFT_FROM + (1 - LIFT_FROM) * ((g - LIFT_FROM) / (1 - LIFT_FROM)) ** LIFT_POWER
+    idx = 100.0 * g * damping(float(score))
     return {"value_score": max(1, min(100, round(idx))), "quality_percentile": round(q * 100, 1), "affordability_percentile": round(a * 100, 1),
             "reference_n": ref["n"], "basis": "type_reference", "version": VERSION}

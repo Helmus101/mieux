@@ -40,8 +40,8 @@ export default function Alternatives() {
   // Cards with no price: approximate web price (and supermarkets), fetched in batches of 8 and shown as each arrives.
   const [webP, setWebP] = useState<Record<string, any>>({});
   useEffect(() => {
-    const rows = (['value', 'budget', 'quality'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
-    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 24);
+    const rows = (['value', 'budget', 'quality', 'closest'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
+    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 32);
     if (!want.length) return;
     let live = true;
     (async () => { for (let i = 0; i < want.length && live; i += 8) { try { const m = await api.getWebPrices(want.slice(i, i + 8)); if (live) setWebP((cur) => ({ ...cur, ...m })); } catch { /* keep going */ } } })();
@@ -57,13 +57,23 @@ export default function Alternatives() {
       .finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
 
-  const rowOf = (e: any) => ({
-    ps_web: e.price_source?.source === "web_search", avail: e.availability, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated,
+  const rowOf = (e0: any) => {
+    const w = e0.price_per_100_cents == null ? webP[e0.product?.barcode] : null;   // a price found by the web search puts the card into the price tabs
+    const e = w ? { ...e0, price_per_100_cents: w.per100_cents, value_score: w.value_score, pack_cents: w.pack_cents, product: { ...e0.product, chains: e0.product.chains?.length ? e0.product.chains : (w.chains ?? []) } } : e0;
+    return {
+    ps_web: !!w || e.price_source?.source === "web_search", avail: e.availability, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated,
     dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date,
     stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio,
-  });
+  }; };
   const os = r?.original?.score?.total;
-  const listOf = (k: string) => (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []).map(rowOf).filter((e: any) => {
+  const sourceRows = (k: string): any[] => {
+    const base = (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []) as any[];
+    if (k !== 'value' && k !== 'budget') return base;
+    const have = new Set(base.map((x: any) => x.product.barcode));
+    const extra = [...(r?.rankings?.quality ?? []), ...(r?.rankings?.closest ?? [])].filter((x: any) => x.price_per_100_cents == null && webP[x.product?.barcode] && !have.has(x.product.barcode) && have.add(x.product.barcode));
+    return [...base, ...extra];                                      // + candidates priced by the web search
+  };
+  const listOf = (k: string) => sourceRows(k).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     const q = os != null && e.product.score?.total != null ? e.product.score.total - os : null;
@@ -76,7 +86,8 @@ export default function Alternatives() {
   const ranked = (() => {
     const l = listOf(rk);
     if (rk === 'budget') return l.map((e: any, i: number) => [e, i] as const).sort((a: any, b: any) => (a[0].price100 - b[0].price100) || (nCh(b[0]) - nCh(a[0])) || (a[1] - b[1])).map((x: any) => x[0]);
-    return [...l.filter((e: any) => nCh(e) > 0), ...l.filter((e: any) => nCh(e) === 0)];
+    const o = rk === 'value' ? [...l].sort((a: any, b: any) => (b.vs ?? -1) - (a.vs ?? -1)) : l;
+    return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
   })();
   const shown = ranked.slice(0, 10);   // never more than 10 per tab, after the strict filters
   // Exactly three tabs, always: price-quality (opens first), price, quality.

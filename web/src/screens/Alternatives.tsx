@@ -41,9 +41,31 @@ export default function Alternatives() {
       .then((x: any) => { setR(x); writeCache(ck, x); })
       .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
-  const rowOf = (e: any) => ({ ps_web: e.price_source?.source === "web_search", avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio });
+  // Candidates with no price: one search each for an approximate price and the supermarkets selling it (stored server-side). A found price puts the card into the
+  // price and price-quality tabs as it arrives, so the lists fill up to 10 even where the database has no price.
+  const [webP, setWebP] = useState<Record<string, any>>({});
+  useEffect(() => {
+    const rows = (['value', 'budget', 'quality', 'closest'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
+    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 32);
+    if (!want.length) return;
+    let live = true;
+    (async () => {                                                   // batches of 8, best-ranked first, each shown as it arrives
+      for (let i = 0; i < want.length && live; i += 8) {
+        try { const m = await api.getWebPrices(want.slice(i, i + 8)); if (live) setWebP((cur) => ({ ...cur, ...m })); } catch { /* keep going */ }
+      }
+    })();
+    return () => { live = false; };
+  }, [r]);
+  const rowOf = (e0: any) => { const w = e0.price_per_100_cents == null ? webP[e0.product?.barcode] : null; const e = w ? { ...e0, price_per_100_cents: w.per100_cents, value_score: w.value_score, pack_cents: w.pack_cents, product: { ...e0.product, chains: e0.product.chains?.length ? e0.product.chains : (w.chains ?? []) } } : e0; return ({ ps_web: !!w || e.price_source?.source === "web_search", avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }); };
   // What each tab shows: sorted strictly by category requirements.
-  const listOf = (k: string) => (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []).map(rowOf).filter((e: any) => {
+  const sourceRows = (k: string): any[] => {
+    const base = (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []) as any[];
+    if (k !== 'value' && k !== 'budget') return base;
+    const have = new Set(base.map((x: any) => x.product.barcode));
+    const extra = [...(r?.rankings?.quality ?? []), ...(r?.rankings?.closest ?? [])].filter((x: any) => x.price_per_100_cents == null && webP[x.product?.barcode] && !have.has(x.product.barcode) && have.add(x.product.barcode));
+    return [...base, ...extra];                                      // + candidates priced by the web search
+  };
+  const listOf = (k: string) => sourceRows(k).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     if (k === 'budget') { const op = r?.original_price?.per100_cents; return e.price100 != null && (op == null || e.price100 < op); }   // cheaper than yours only, cheapest first
@@ -55,23 +77,10 @@ export default function Alternatives() {
   const ranked = (() => {
     const l = listOf(rk);
     if (rk === 'budget') return l.map((e: any, i: number) => [e, i] as const).sort((a: any, b: any) => (a[0].price100 - b[0].price100) || (nCh(b[0]) - nCh(a[0])) || (a[1] - b[1])).map((x: any) => x[0]);
-    return [...l.filter((e: any) => nCh(e) > 0), ...l.filter((e: any) => nCh(e) === 0)];
+    const o = rk === 'value' ? [...l].sort((a: any, b: any) => (b.vs ?? -1) - (a.vs ?? -1)) : l;
+    return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
   })();
   const shown = ranked.slice(0, 10);   // never more than 10 per tab, after the strict filters
-  // Cards with no price: one search for an approximate price and the supermarkets selling it (cached server-side), filled in as it arrives.
-  const [webP, setWebP] = useState<Record<string, any>>({});
-  useEffect(() => {
-    const rows = (['value', 'budget', 'quality'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
-    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 24);
-    if (!want.length) return;
-    let live = true;
-    (async () => {                                                   // batches of 8, best-ranked first, each shown as it arrives
-      for (let i = 0; i < want.length && live; i += 8) {
-        try { const m = await api.getWebPrices(want.slice(i, i + 8)); if (live) setWebP((cur) => ({ ...cur, ...m })); } catch { /* keep going */ }
-      }
-    })();
-    return () => { live = false; };
-  }, [r]);
   // Exactly three tabs, always: price-quality (opens first), price, quality.
   const tabs = [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
