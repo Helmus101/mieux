@@ -149,10 +149,6 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .sugarbox .chips{margin:8px 0 2px}
 .trio b{font-size:24px}
 .chainmark{display:inline-flex; align-items:center; justify-content:center; border-radius:8px; font-weight:800; letter-spacing:-.5px; flex:none}
-.chainrow{border-top:1px solid var(--line)}
-.chainrow:first-of-type{border-top:0}
-.chainrow>summary::-webkit-details-marker{display:none}
-.chainrow .dist{font-weight:700}
 .coll>summary{list-style:none; cursor:pointer; font-weight:600; display:flex; justify-content:space-between; align-items:center; padding:15px 0; font-size:16px; min-height:52px}
 .coll-body{animation:enter .3s var(--ease); padding:2px 0 22px}
 .coll-body>*+*{margin-top:14px}
@@ -163,9 +159,6 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .sugarbox{border:1px solid var(--line); margin:24px 0; padding:18px; border-radius:12px}
 .scorebig{font-size:46px; font-weight:700; letter-spacing:-1.2px; line-height:1; font-variant-numeric:tabular-nums; margin:4px 0}
 .logos{display:flex; align-items:center; margin-top:8px; flex-wrap:wrap; margin:14px 0; gap:10px}
-.storeline{padding:10px 0}
-.storeline+.storeline{border-top:.5px solid var(--line)}
-.storeline>div+div{margin-top:4px}
 .addrow{padding:18px 0; cursor:pointer}
 .addrow+.addrow{border-top:.5px solid var(--line)}
 .addhead{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
@@ -181,12 +174,6 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .dots3 i{width:5px; height:5px; border-radius:50%; background:var(--mut); animation:blink 1.2s infinite!important}
 .dots3 i:nth-child(2){animation-delay:.2s!important}
 .dots3 i:nth-child(3){animation-delay:.4s!important}
-.chainrow>summary{list-style:none; cursor:pointer; display:flex; align-items:center; padding:18px 0; flex-wrap:nowrap; gap:12px}
-.chainrow .nm{flex:1; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.chainrow .dist,.chainrow .pr{flex:none; white-space:nowrap}
-.chainrow .pr{color:var(--mut); font-size:14px; min-width:0; text-align:right; line-height:1.25}
-.chainrow>div{padding:0 0 18px 0}
-.storeline .mut{overflow-wrap:anywhere}
 .nrow .tag{display:inline-block; margin-left:8px; padding:2px 10px; border:1px solid var(--line); border-radius:99px; font-size:12px; font-weight:600; vertical-align:2px}
 .nrow .tag.add{color:var(--warn)}
 .nrow .tag.nat{color:var(--accent)}
@@ -487,3 +474,17 @@ kbd{font:600 12px ui-monospace,Menlo,monospace; background:var(--card); border:1
 .twoscores .stile{font-size:32px; min-width:72px}
 .ameta .stile.sm{padding:3px 7px; font-size:18px; min-width:38px}
 .coll-body a{display:inline-block; padding:12px 0}
+
+/* where to buy: one aligned row per chain: logo | name and address | distance and price */
+.wfrom{display:flex; flex-direction:column; gap:2px; width:100%}
+.wfrom .seg{margin:4px 0 8px}
+.wrow{display:grid; grid-template-columns:36px 1fr auto; gap:12px; align-items:start; padding:14px 0; border-top:1px solid var(--line)}
+.wrow:first-of-type{border-top:0}
+.wmain{display:flex; flex-direction:column; gap:2px; min-width:0}
+.wmain b{font-weight:600}
+.wmain .mut{overflow-wrap:anywhere; line-height:1.35}
+.wroute{align-self:flex-start; padding:8px 0; font-size:14px; font-weight:600}
+.wside{display:flex; flex-direction:column; align-items:flex-end; gap:2px; text-align:right; white-space:nowrap}
+.wside b{font-weight:700}
+.wnote{margin:6px 0 0}
+.wmore{padding-left:0}
