@@ -136,17 +136,8 @@ export default function Alternatives() {
   return (
     <Screen>
       <NavBar onBack={back} title={t('alt.title')} />
-      <h1>{t('alt.title')}</h1>
-      {r?.original && (
-        <div style={{ margin: '2px 0 8px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <Muted>{r.original.name}</Muted>
-          {r?.original?.categories?.length > 0 && (
-            <span className="pill" style={{ fontSize: 12 }}>
-              {r.original.categories[r.original.categories.length - 1].replace(/^en:|^fr:/, '').replace(/-/g, ' ')}
-            </span>
-          )}
-        </div>
-      )}
+      <h1 className="atitle">{t('alt.title')}</h1>
+      {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
       {tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
       <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}{rk === 'value' && <> <PqExplain label /></>}</p>
       {showPrice && r?.original_price && <Segmented value={diffBy} onChange={(k) => setDiffBy(k as 'kg' | 'pack')} options={[{ key: 'kg', label: t('diff.byKg') }, { key: 'pack', label: t('diff.byPack') }]} />}
@@ -164,47 +155,34 @@ export default function Alternatives() {
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
       })()}
       {r && !busy && rk === 'budget' && shown.length > 0 && <p className="mut sm">{t('alt.cheapestNote')}</p>}
-      {r && !busy && shown.map((e: any, i: number) => {
+      {r && !busy && <div className="alist">{shown.map((e: any) => {
+        const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
+        const d = diffOf(e);
+        const w = webP[e.product.barcode];
+        const chains = ((e.product.chains?.length ? e.product.chains : w?.chains) ?? []) as string[];
         return (
-          <Card key={e.product.id}>
-            <Row>{e.product.imageUrl && <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={56} height={56} style={{ objectFit: 'contain', borderRadius: 12, background: '#fff' }} />}
-              <div className="grow"><b>{i + 1}. {e.product.name}</b><Muted>{e.product.brand}</Muted></div><SaveButton product={e.product} /></Row>
-            <Row spread>
-              {e.product.score ? <span><b style={{ fontSize: 28, letterSpacing: -.5 }}>{e.product.score.total}</b><span className="mut sm">{t('score.outOf')} · {t('score.' + e.product.score.band)}</span>
-                {rk === 'match' && r?.original?.score && (() => { const d = e.product.score.total - r.original.score.total; return <span className="sm" style={{ marginLeft: 8, fontWeight: 600, color: d >= 5 ? 'var(--accent)' : d < 0 ? 'var(--bad)' : 'var(--mut)' }}>{d === 0 ? t('score.same') : `${d > 0 ? '+' : '−'}${Math.abs(d)} ${t('score.pts')}`}</span>; })()}</span> : <span />}
-              {e.vs != null && <span className="pqchip" title={t('score.pqHint')}><b>{e.vs}</b><small>{t('score.pq')}</small></span>}
-              <div style={{ textAlign: 'right' }}>
-                {(() => {
-                  const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
-                  const d = diffOf(e);
-                  return (
-                    <>
-                      {u ? (
-                        <div style={{ fontSize: 18, fontWeight: 700 }}>
-                          {e.ps_web ? "~ " : ""}{formatCents(u.perUnitCents)}/{u.unit}
-                          {e.pack != null && <span className="mut sm" style={{ fontWeight: 400, marginLeft: 6 }}>({formatCents(e.pack)})</span>}
-                        </div>
-                      ) : e.pack != null ? (
-                        <div style={{ fontSize: 18, fontWeight: 700 }}>{formatCents(e.pack)}</div>
-                      ) : webP[e.product.barcode] ? (
-                        <div style={{ fontSize: 18, fontWeight: 700 }} title={t('score.webPrice')}>~ {formatCents(Math.round(webP[e.product.barcode].per100_cents * 10))}/{isLiquid(e.product) ? 'L' : 'kg'}<span className="mut sm" style={{ fontWeight: 400, marginLeft: 6 }}>{t('score.webPrice')}</span>{webP[e.product.barcode].value_score != null && <div className="mut sm" style={{ fontWeight: 600 }}>{t('score.pq')} ≈ {webP[e.product.barcode].value_score}</div>}</div>
-                      ) : null}
-                      {d && (
-                        <div style={{ marginTop: 2 }}>
-                          <span className="sm" style={{ fontWeight: 600, color: d.tone }}>
-                            {d.text}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
+          <article key={e.product.id} className="arow" onClick={() => { haptic('tap'); setDetail(e); }}>
+            {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
+            <div className="amain">
+              <div className="aname">{e.product.name}</div>
+              <div className="abrand">{e.product.brand}</div>
+              <div className="ameta">
+                {e.product.score && <span><b>{e.product.score.total}</b><small>/100 · {t('score.' + e.product.score.band)}</small>
+                  {rk === 'match' && r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>}
+                {e.vs != null && <span title={t('score.pqHint')}><b>{e.vs}</b><small> {t('score.pq')}</small></span>}
               </div>
-            </Row>
-            {((e.product.chains?.length ? e.product.chains : webP[e.product.barcode]?.chains) ?? []).length > 0 && <div className="logos" style={{ marginTop: 8 }}>{((e.product.chains?.length ? e.product.chains : webP[e.product.barcode]?.chains) as string[]).slice(0, 6).map((c: string) => <ChainLogo key={c} id={c} size={22} />)}{e.product.chains.length > 6 && <span className="mut sm">+{e.product.chains.length - 6}</span>}</div>}
-            <Button small plain onPress={() => { haptic('tap'); setDetail(e); }}>{t('simple.moreInfo')}</Button>
-          </Card>);
-      })}
+              {chains.length > 0 && <div className="logos">{chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}{chains.length > 5 && <span className="mut sm">+{chains.length - 5}</span>}</div>}
+            </div>
+            <div className="aprice">
+              {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
+                : e.pack != null ? <b>{formatCents(e.pack)}</b>
+                : w ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b> : null}
+              {e.pack != null && u && <span className="mut sm">{formatCents(e.pack)}</span>}
+              {d && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
+              <span className="asave" onClick={(ev) => ev.stopPropagation()}><SaveButton product={e.product} /></span>
+            </div>
+          </article>);
+      })}</div>}
       <Sheet open={!!detail} onClose={() => setDetail(null)} title={detail?.product.name}>{detail && detailBody(detail)}</Sheet>
       <Toast text={note} />
     </Screen>

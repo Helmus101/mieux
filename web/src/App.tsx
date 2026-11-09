@@ -41,6 +41,13 @@ const sectionOf = (pathname: string) => pathname.replace(/^\/app\/?/, '').split(
 
 function TabBar() {
   const { go } = useNav();
+  useEffect(() => {          // the soft keyboard shrinks the visual viewport: hide the bar instead of letting it float above the keys
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const on = () => document.body.classList.toggle('kb', window.innerHeight - vv.height > 140);
+    vv.addEventListener('resize', on); on();
+    return () => { vv.removeEventListener('resize', on); document.body.classList.remove('kb'); };
+  }, []);
   const cur = sectionOf(useLocation().pathname);
   const items: [keyof typeof I, string][] = [['list', routes.list], ['scan', routes.scan], ['profile', routes.profile]];
   return (

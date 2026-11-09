@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
 import qrcode from 'qrcode-generator';
 import { t } from '@shared/i18n';
+import { LANDING_EXAMPLE as ex } from '../landingExample';
 import '../landing.css';
+
+const eur = (c: number) => (c / 100).toFixed(2).replace('.', ',') + ' €';
 
 // What a score-only scanner does not do: the four things the app adds.
 const VERSUS = ['vs1', 'vs2', 'vs3', 'vs4'] as const;
@@ -13,6 +16,7 @@ function Qr({ url }: { url: string }) {
 }
 
 export default function Landing({ onEnter }: { onEnter: () => void }) {
+  const lang = document.documentElement.lang || 'fr';
   const progress = useRef<HTMLDivElement>(null);
   // Reading position as a hairline under the top bar: written straight to the node, so scrolling never re-renders React.
   useEffect(() => {
@@ -51,18 +55,26 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           <p className="lp-trust">{t('land.ctaNote')}</p>
         </div>
 
-        <div className="lp-demo" aria-label={t('land.ex.label')}>
-          <span className="lp-demo-tag">{t('land.ex.label')}</span>
+        <figure className="lp-demo" aria-label={t('land.ex.label')}>
           <div className="lp-scan">
-            <div className="lp-scan-l"><small>{t('land.ex.scanned')}</small><b>{t('land.ex.name')}</b><span>{t('land.ex.price')} · {t('land.ex.unit')}</span></div>
-            <div className="lp-score lp-score-bad"><b>31</b><small>/100</small></div>
+            <img src={ex.scanned.img} alt="" width={56} height={56} />
+            <div className="lp-scan-l"><small>{t('land.ex.scanned')}</small><b>{ex.scanned.name}</b><span>{ex.scanned.brand} · {eur(ex.scanned.packCents)} · {ex.scanned.size}</span></div>
+            <div className="lp-score"><b>{ex.scanned.score}</b><small>/100</small></div>
           </div>
           <ul className="lp-alts">
-            <li className="lp-alt lp-alt-cheap"><i>€</i><div><small>{t('land.ex.cheap')}</small><b>{t('land.ex.cheapName')}</b></div><span>1,69 €<em>{t('land.ex.cheapNote')}</em></span></li>
-            <li className="lp-alt lp-alt-quality"><i>★</i><div><small>{t('land.ex.quality')}</small><b>{t('land.ex.qualityName')}</b></div><span>86/100<em>{t('land.ex.qualityNote')}</em></span></li>
-            <li className="lp-alt lp-alt-value"><i>✓</i><div><small>{t('land.ex.value')}</small><b>{t('land.ex.valueName')}</b></div><span>71/100<em>2,95 €</em></span></li>
+            {ex.alts.map((a) => (
+              <li className="lp-alt" key={a.key}>
+                <img src={a.img} alt="" width={48} height={48} loading="lazy" />
+                <div><small>{t('land.ex.' + a.key)}</small><b>{a.name}</b><span className="lp-b">{a.brand}</span></div>
+                <span className="lp-fig">
+                  <strong>{a.perKgCents != null ? <>{eur(a.perKgCents)}<small>/kg</small></> : <small>{t('land.ex.noPrice')}</small>}</strong>
+                  <em>{a.score}/100{a.pq != null ? ` · ${t('score.pq')} ${a.pq}` : ''}</em>
+                </span>
+              </li>
+            ))}
           </ul>
-        </div>
+          <figcaption>{t('land.ex.real', { d: new Date(ex.date).toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) })}</figcaption>
+        </figure>
       </section>
 
       <section className="lp-sec" id="difference">

@@ -94,26 +94,31 @@ export default function Product() {
         return <Card><div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}><span style={{ fontSize: 22, lineHeight: 1.2, color: bad ? 'var(--bad)' : lines.length ? 'var(--warn)' : 'var(--accent)' }}>{bad ? '✗' : lines.length ? '!' : '✓'}</span>
           <div>{lines.length ? lines.map((l) => <p key={l} style={{ margin: '0 0 4px', fontWeight: 600, color: bad ? 'var(--bad)' : 'var(--ink)' }}>{l}</p>) : <p style={{ margin: '0 0 4px', fontWeight: 600 }}>{t('restr.ok')}</p>}<p className="mut sm" style={{ margin: 0 }}>{t('restr.check')}</p></div></div></Card>;
       })()}
-      <Card>
-      <Row>
-        {p.imageUrl && <img src={p.imageUrl} alt="" decoding="async" fetchPriority="high" width={136} height={136} style={{ objectFit: 'contain', borderRadius: 16, background: '#fff' }} />}
-        <div><Muted>{p.brand}</Muted><h1 style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1.12 }}>{p.name}</h1><Muted>{p.quantityText}</Muted></div>
-      </Row>
+      <section className="phead">
+        <div className="pid">
+          {p.imageUrl && <img src={p.imageUrl} alt="" decoding="async" fetchPriority="high" width={96} height={96} />}
+          <div className="pname">
+            {p.brand && p.brand.toLowerCase() !== (p.name || '').toLowerCase() && <span className="pbrand">{p.brand}</span>}
+            <h1>{p.name}</h1>
+            {p.quantityText && <span className="mut sm">{p.quantityText}</span>}
+          </div>
+        </div>
+        {head.kind !== 'none' ? <p className="pprice"><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webP ? <p className="pprice"><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}</b>{packTxt(packOf(Math.round(webP.per100_cents * 10), webP.pack_cents))} <Pill tone="w">{t('score.webPrice')}</Pill>{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="pprice mut">{t('simple.noPrice')}</p>}
         {p.score ? <>
           <div className="twoscores">
             <div><span className="mut sm">{t('score.title')}</span><div className="scorebig" style={{ color: p.score.tone === 'b' ? 'var(--bad)' : p.score.tone === 'w' ? 'var(--warn)' : 'var(--accent)' }}>{p.score.total}<small>{t('score.outOf')}</small></div><b>{t('score.' + p.score.band)}</b></div>
             <div title={t('score.pqHint')}><span className="mut sm">{t('score.pq')} <PqExplain /></span>{pc?.value ? <><div className="scorebig" style={{ color: pc.value.value_score >= 65 ? 'var(--accent)' : pc.value.value_score >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pc.value.approximate ? '≈ ' : ''}{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{pc.value.approximate && <div className="mut sm">{t('score.pqApprox', { p: formatCents(pc.value.basis_pack_cents) })}</div>}</> : webP?.value_score != null ? <><div className="scorebig" style={{ color: webP.value_score >= 65 ? 'var(--accent)' : webP.value_score >= 40 ? 'var(--warn)' : 'var(--bad)' }}>≈ {webP.value_score}<small>{t('score.outOf')}</small></div><b>{webP.value_score >= 65 ? t('score.pqGood') : webP.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b><div className="mut sm">{t('score.pqApprox', { p: formatCents(webP.pack_cents) })}</div></> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}</div>
           </div>
           <ScoreBar total={p.score.total} label={t('score.spectrum')} />
-          <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('score.indicative')}</p>
-          {(p.score.additives?.items ?? []).some((x: any) => x.level === 'C' || x.level === 'D') && <div className="flags">{(p.score.additives.items as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 4).map((x) => <span key={x.code} className={'pill ' + (x.level === 'D' ? 'b' : 'w')} onClick={() => setSheet(x.code)}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</span>)}</div>}
-          {p.score.incomplete && <div className="flags"><span className="pill g">{t('sdim.incomplete')}</span></div>}
-          {p.score.flags?.length > 0 && <div className="flags">{p.score.flags.slice(0, 3).map((f: any) => <span key={f.key} className={'pill ' + (f.level === 'bad' ? 'b' : 'w')}>{t('flag.' + f.key)}</span>)}</div>}
+          <ul className="fl">
+            {(p.score.flags ?? []).slice(0, 3).map((f: any) => <li key={f.key} className={f.level === 'bad' ? 'b' : 'w'}>{t('flag.' + f.key)}</li>)}
+            {((p.score.additives?.items ?? []) as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 3).map((x) => <li key={x.code} className={x.level === 'D' ? 'b' : 'w'} onClick={() => setSheet(x.code)} style={{ cursor: 'pointer' }}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</li>)}
+            {p.score.incomplete && <li className="g">{t('sdim.incomplete')}</li>}
+          </ul>
         </> : <Muted>{t('score.na')}</Muted>}
-        {head.kind !== 'none' ? <p style={{ margin: '10px 0 0' }}><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webP ? <p style={{ margin: '10px 0 0' }}><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}</b>{packTxt(packOf(Math.round(webP.per100_cents * 10), webP.pack_cents))} <Pill tone="w">{t('score.webPrice')}</Pill>{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('simple.noPrice')}</p>}
-      </Card>
-      <KnowCard p={p} />
+      </section>
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
+      <KnowCard p={p} />
       {p.score && <Collapsible open={false} title={t('sdim.title')}>
           {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
         <Row wrap><NutriScore grade={p.nutriScore} /></Row>

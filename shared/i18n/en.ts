@@ -171,7 +171,7 @@ export const en = {
     vs4t: 'Sourced prices', vs4n: 'Nothing to source', vs4d: 'Open Prices and your receipt prices, never invented.',
     vsNote: 'Comparison limited to these four points.',
     eyebrow: 'Quality AND price, in one place', openFree: 'Open Mieux · free', ctaNote: 'No install needed. A free account: your data stays on your phone.',
-    ex: { label: 'Example', scanned: 'You scan', name: 'Hazelnut spread', price: '€3.49', unit: 'per 400 g', cheap: 'Cheapest', cheapName: 'Cocoa spread', cheapNote: '−€1.80', quality: 'Best quality', qualityName: '100% hazelnut butter', qualityNote: 'no additives', value: 'Best value', valueName: 'Organic spread, no palm oil', valueNote: 'quality/price' },
+    ex: { noPrice: 'no price found', real: 'Real example, captured {d}.', label: 'Example', scanned: 'You scan', name: 'Hazelnut spread', price: '€3.49', unit: 'per 400 g', cheap: 'Cheapest', cheapName: 'Cocoa spread', cheapNote: '−€1.80', quality: 'Best quality', qualityName: '100% hazelnut butter', qualityNote: 'no additives', value: 'Best value', valueName: 'Organic spread, no palm oil', valueNote: 'quality/price' },
     uvpTitle: 'Three alternatives, three ways to choose', uvpSub: 'An app that stops at the score does not tell you what to buy instead. Mieux also compares prices and shows the alternative that suits you.',
     u1t: 'The cheapest', u1d: 'Same category, lowest price per 100g, with what you save.',
     u2t: 'The best quality', u2d: 'The highest score, with no high-risk additive: eat better without compromise.',
