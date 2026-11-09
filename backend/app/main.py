@@ -1735,9 +1735,13 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             if vk_ in seen_:
                 continue    # the same product under another barcode or pack size is listed once
             seen_.add(vk_); kept_.append(r_)
-            if r_.get("value_score") is None:      # the second headline score on every card whose price is known
-                vi_ = value_index.value_index(orig_type_, (r_["product"].get("score") or {}).get("total"), r_.get("price_per_100_cents"))
-                r_["value_score"] = vi_["value_score"] if vi_ else None
+            # The price-quality score of a product comes from one place, the reference index, so the same product shows the same number in every tab
+            # (the value tab used to carry the ranking engine's own cohort score, which differed from the other tabs).
+            vi_ = value_index.value_index(orig_type_, (r_["product"].get("score") or {}).get("total"), r_.get("price_per_100_cents"))
+            if vi_:
+                r_["value_score"] = vi_["value_score"]
+            elif r_.get("value_score") is None:
+                r_["value_score"] = None
             own_ = _chains.own_brand_chain(r_["product"].get("brand")) or _chains.canon(str(r_["product"].get("brand") or "")) or _chains.canon(str(r_["product"].get("name") or ""))
             cid_ = retail.ID_OF.get(own_) if own_ else None
             if cid_ and cid_ not in (r_["product"].get("chains") or []):
@@ -1745,7 +1749,13 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             if not r_["product"].get("chains"):
                 r_["product"]["chains"] = _brand_chain_ids(r_["product"].get("brand"))     # no sighting of this exact product: the brand's usual chains
             r_["availability"], r_["store_price"] = _availability(r_["product"])
+        if key_ == "value":
+            kept_ = [r_ for _, r_ in sorted(enumerate(kept_), key=lambda ir: (-(ir[1].get("value_score") if ir[1].get("value_score") is not None else -1), ir[0]))]   # ordered by the number shown
         res["rankings"][key_] = kept_
+    _o = res.get("original") or {}
+    _vo = value_index.value_index(orig_type_, (_o.get("score") or {}).get("total"), orig_price) if (orig_type_ and orig_price is not None) else None
+    if _vo:
+        res["rankings"]["original_value_score"] = _vo["value_score"]      # the scanned product's score from the same index
     if "diagnostics" in res:
         res["diagnostics"]["eligible_cheapest"] = len(res["rankings"].get("budget", []))
         res["diagnostics"]["eligible_quality"] = len(res["rankings"].get("quality", []))

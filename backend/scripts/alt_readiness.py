@@ -8,6 +8,7 @@ For every barcode in scripts/alt_panel.json it loads the product and its alterna
   - every alternative is sold in France AND at >= 1 chain, and is a level 1-2 substitute
   - Moins cher: strictly cheaper than the scanned product; Qualité-prix: strictly higher score; Meilleure qualité: strictly higher nutrition score
   - prices from the web search are flagged approximate
+  - the same product shows the same price-quality score in every tab
 Prints a per-product table and a summary (fill rate, latency p50/p95); exits 1 on any violation."""
 import json
 import os
@@ -40,6 +41,7 @@ def check(code, prod, alts):
     o_price = (alts.get("original_price") or {}).get("per100_cents")
     o_score = (prod.get("score") or {}).get("total")
     o_vs = r.get("original_value_score")
+    pq_seen = {}      # the same product must show the same price-quality score in every tab
     for tab in ("value", "budget", "quality"):
         seen = set()
         items = r.get(tab) or []
@@ -52,6 +54,8 @@ def check(code, prod, alts):
             if bc in seen: bad.append(f"{tab}: duplicate {bc}")
             seen.add(bc)
             if " / " in (p.get("name") or ""): bad.append(f"{tab}: category-path name {bc}")
+            if e.get("value_score") is not None:
+                if pq_seen.setdefault(bc, e["value_score"]) != e["value_score"]: bad.append(f"{tab}: price-quality {e['value_score']} differs from {pq_seen[bc]} in another tab {bc}")
             if p.get("soldInFrance") is not True: bad.append(f"{tab}: not sold in France {bc}")
             if not p.get("chains"): bad.append(f"{tab}: no chain {bc}")
             lv = (e.get("substitution") or p.get("substitution") or {}).get("level")
