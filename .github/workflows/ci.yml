@@ -28,6 +28,7 @@ jobs:
       working-directory: ./backend
       env:
         DATABASE_URL: sqlite:///./foodiq.db
+        JWT_SECRET_KEY: ci-test-secret-not-used-in-production
       run: |
         python -m pytest
     
