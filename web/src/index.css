@@ -232,6 +232,9 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .fl li.g{color:var(--mut)}
 .altcta{display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; text-align:left; border:0; background:var(--accent); color:var(--accent-ink); padding:18px 20px; cursor:pointer; border-radius:12px; margin:16px 0 8px}
 
+/* small inline links and the "?" help button keep a 44px touch target without looking bigger */
+.pqinfo{display:inline-flex; align-items:center; justify-content:center; min-height:44px; min-width:44px; padding:0 6px}
+.screen > a, .screen .coll ~ a{display:inline-block; padding:13px 0}
 /* ===== 8. Alternatives ===== */
 .atitle{font-size:26px; margin:4px 0 2px}
 .asub{margin:0 0 10px; font-size:15px}
@@ -483,3 +486,4 @@ kbd{font:600 12px ui-monospace,Menlo,monospace; background:var(--card); border:1
 .stile.pq{font-size:inherit}
 .twoscores .stile{font-size:32px; min-width:72px}
 .ameta .stile.sm{padding:3px 7px; font-size:18px; min-width:38px}
+.coll-body a{display:inline-block; padding:12px 0}

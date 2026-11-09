@@ -37,6 +37,7 @@ jobs:
       env:
         DATABASE_URL: sqlite:///./foodiq.db
       run: |
+        alembic upgrade head
         alembic check
 
   web:
