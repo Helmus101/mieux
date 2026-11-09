@@ -4,7 +4,7 @@ import { clearAll } from '@shared/storage';
 import { useProfile, useHistory } from '@shared/stores';
 import { routes, useNav } from '../nav';
 import { useState } from 'react';
-import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented, Brand } from '../ui';
+import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
 import { chainsFor, COUNTRIES, type Country } from '@shared/chains';
 import { searchAddress, type Home } from '../place';
 import { isInstalled, openInstall } from '../install';
@@ -66,7 +66,7 @@ export default function Profile() {
           <Cell onPress={erase}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
         </Group>
       </Section>
-      <div className="about"><Brand size={30} /><p>{t('brand.tagline')}</p><p className="sm">{t('brand.credit')}</p></div>
+      <p className="about-credit">{t('brand.credit')}</p>
     </Screen>
   );
 }

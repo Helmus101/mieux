@@ -1,6 +1,6 @@
 import { t } from '@shared/i18n';
 import { useHistory } from '@shared/stores';
-import { Screen, NavBar, LargeTitle, Card, Button, Muted, Group, Cell } from '../ui';
+import { Screen, NavBar, LargeTitle, Button, Muted, Group, Cell } from '../ui';
 import { routes, useNav } from '../nav';
 
 /** Courses: the shopping destination. Saved products (from a product page or from the alternatives), plus the tools that work on them. */
@@ -19,7 +19,7 @@ export default function List() {
           </Cell>
         ))}</Group>
         <Button danger onPress={() => { if (confirm(t('list.clearConfirm'))) clearSaved(); }}>{t('list.clear')}</Button>
-      </> : <Card><Muted>{t('list.empty')}</Muted></Card>}
+      </> : <div className="empty"><p>{t('list.empty')}</p><Button primary onPress={() => go(routes.scan)}>{t('tabs.scan')}</Button></div>}
       <Group>
         <Cell chevron onPress={() => go(routes.compare)}><b>{t('list.compareTool')}</b></Cell>
         <Cell chevron onPress={() => go(routes.history)}><b>{t('list.historyTool')}</b></Cell>
