@@ -139,7 +139,7 @@ export default function Alternatives() {
       <NavBar onBack={back} />
       <h1 className="atitle">{t('alt.title')}</h1>
       {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
-      {tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
+      {tabs.length > 0 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
       <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}{rk === 'value' && <> <PqExplain label /></>}</p>
       {r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</span>
         {showPrice && <button className="linkbtn" onClick={() => setDiffBy(diffBy === 'kg' ? 'pack' : 'kg')} aria-label={t('diff.byKg') + ' / ' + t('diff.byPack')}>{diffBy === 'kg' ? t('diff.byPack') : t('diff.byKg')}</button>}</p>}
