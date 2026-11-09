@@ -44,15 +44,18 @@ export default function Alternatives() {
   // Candidates with no price: one search each for an approximate price and the supermarkets selling it (stored server-side). A found price puts the card into the
   // price and price-quality tabs as it arrives, so the lists fill up to 10 even where the database has no price.
   const [webP, setWebP] = useState<Record<string, any>>({});
+  const [webBusy, setWebBusy] = useState(false);
   useEffect(() => {
     const rows = (['value', 'budget', 'quality', 'closest'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
     const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 32);
-    if (!want.length) return;
+    if (!want.length) { setWebBusy(false); return; }
     let live = true;
+    setWebBusy(true);
     (async () => {                                                   // batches of 8, best-ranked first, each shown as it arrives
       for (let i = 0; i < want.length && live; i += 8) {
         try { const m = await api.getWebPrices(want.slice(i, i + 8)); if (live) setWebP((cur) => ({ ...cur, ...m })); } catch { /* keep going */ }
       }
+      if (live) setWebBusy(false);
     })();
     return () => { live = false; };
   }, [r]);
@@ -81,7 +84,9 @@ export default function Alternatives() {
     const o = rk === 'value' ? [...l].sort((a: any, b: any) => (b.vs ?? -1) - (a.vs ?? -1)) : l;
     return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
   })();
-  const shown = ranked.slice(0, 10);   // never more than 10 per tab, after the strict filters
+  const shown = ranked.slice(0, 10);
+  // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
+  const none = !!r && !busy && !webBusy && !err && ['value', 'budget', 'match', 'closest'].every((k) => listOf(k).length === 0);   // never more than 10 per tab, after the strict filters
   // Exactly three tabs, always: price-quality (opens first), price, quality.
   // The two price tabs are always offered (an empty one says why); the quality tab is offered only when something scores higher than the scanned product.
   const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
@@ -139,13 +144,14 @@ export default function Alternatives() {
       <NavBar onBack={back} />
       <h1 className="atitle">{t('alt.title')}</h1>
       {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
-      {tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
-      <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}{rk === 'value' && <> <PqExplain label /></>}</p>
-      {r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</span>
+      {!none && tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
+      {!none && <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}{rk === 'value' && <> <PqExplain label /></>}</p>}
+      {!none && r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</span>
         {showPrice && <button className="linkbtn" onClick={() => setDiffBy(diffBy === 'kg' ? 'pack' : 'kg')} aria-label={t('diff.byKg') + ' / ' + t('diff.byPack')}>{diffBy === 'kg' ? t('diff.byPack') : t('diff.byKg')}</button>}</p>}
       {busy && <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />{[0, 1, 2].map((n) => <Skeleton key={n} h={112} />)}</>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
-      {r && !busy && !shown.length && (() => {
+      {none && <Card><b>{t('emptyAlt.noneTitle')}</b><p className="mut" style={{ margin: '10px 0 0' }}>{t('emptyAlt.noneWhy')}</p></Card>}
+      {r && !busy && !none && !shown.length && (() => {
         const os = r?.original?.score?.total;
         const m = nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : rk === 'closest' ? { title: t('rank.noClosest'), why: t('rank.closestSub') }

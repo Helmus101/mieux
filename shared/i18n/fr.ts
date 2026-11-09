@@ -130,6 +130,7 @@ export const fr = {
   avail: { observed: 'Relevé chez {s}, le {d}', chain: 'Chez {c}', listed: 'Vendu en France, magasin non vérifié', unknown: 'Disponibilité non vérifiée' },
   emptyAlt: {
     qualityTitle: 'Rien de meilleure qualité', qualityWhy: 'Votre produit a déjà {s}/100 : aucun produit comparable en vente près de chez vous n\'a une meilleure note.', qualityWhyNoScore: 'Aucun produit comparable en vente près de chez vous n\'a une meilleure note que le vôtre.',
+    noneTitle: 'Pas d\'alternative', noneWhy: 'Nous n\'avons trouvé aucun produit comparable, ni moins cher, ni meilleur, ni de meilleur rapport qualité-prix, vendu en supermarché en France. Si vous en connaissez un, scannez-le.',
     cheaperTitle: 'Rien de moins cher', cheaperWhy: 'Aucun produit comparable en vente près de chez vous n\'est moins cher que le vôtre.',
     valueTitle: 'Pas encore de prix pour ce type de produit', valueWhy: 'Aucun produit comparable n\'a de prix relevé récemment : la note prix-qualité ne peut pas être calculée. Ajoutez un prix en scannant un ticket.',
     noPriceTitle: 'Prix de votre produit inconnu', noPriceWhy: 'Aucun produit comparable avec un prix connu n\'a été trouvé près de chez vous, donc aucun classement par prix n\'est possible.',

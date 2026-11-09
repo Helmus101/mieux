@@ -131,6 +131,7 @@ export const en = {
   avail: { observed: 'Observed at {s} on {d}', chain: 'At {c}', listed: 'Listed in France, shop unverified', unknown: 'Availability not verified' },
   emptyAlt: {
     qualityTitle: 'Nothing better quality', qualityWhy: 'Your product is {s}/100: no comparable product sold near you has a better score.', qualityWhyNoScore: 'No comparable product sold near you has a better score than yours.',
+    noneTitle: 'No alternative', noneWhy: 'We found no comparable product sold in a French supermarket that is cheaper, better, or better value. If you know one, scan it.',
     cheaperTitle: 'Nothing cheaper', cheaperWhy: 'No comparable product sold near you is cheaper than yours.',
     valueTitle: 'No prices yet for this kind of product', valueWhy: 'No comparable product has a recently observed price, so a price-quality score cannot be computed. Add a price by scanning a receipt.',
     noPriceTitle: 'Your product\'s price unknown', noPriceWhy: 'No comparable product with known price found near you, so no price ranking is possible.',
