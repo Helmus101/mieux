@@ -18,7 +18,7 @@ from . import value
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 HIT_TTL = 30 * 86400      # a found price is searched again after 30 days (the old one stays, marked stale, if the new search finds nothing)
-MISS_TTL = 7 * 86400      # a search that found nothing is not paid for again for a week
+MISS_TTL = 1 * 86400      # a search that found nothing is retried after a day (search results vary, so one miss must not stick for long)
 CACHE_PATH = os.environ.get("WEBPRICE_CACHE", os.path.join(os.path.dirname(os.environ.get("OP_LOCAL", "/tmp/x")) or ".", "webprice_cache.db"))
 
 PROMPT = (
@@ -104,14 +104,15 @@ def _size_regex(q: Optional[Dict[str, Any]]) -> Optional[re.Pattern]:
     return re.compile(rf"(?<![\d,.])(?:{nums})\s?{units}\b", re.I)
 
 
-def _query(product: Dict[str, Any]) -> str:
+def _query(product: Dict[str, Any], variant: int = 0) -> str:
     q = product.get("quantity") or {}
-    return f"{product.get('brand') or ''} {product.get('name') or ''} {q.get('amount', 0):g} {q.get('unit', '')} prix".strip()
+    tail = ("prix", "prix en ligne supermarché drive")[variant]
+    return f"{product.get('brand') or ''} {product.get('name') or ''} {q.get('amount', 0):g} {q.get('unit', '')} {tail}".strip()
 
 
-def _fetch_results(name: str, product: Dict[str, Any], http: Http) -> list:
+def _fetch_results(name: str, product: Dict[str, Any], http: Http, variant: int = 0) -> list:
     """[(url, text)] from one search provider."""
-    query = _query(product)
+    query = _query(product, variant)
     if name == "brave":
         data = http("GET", BRAVE + "?" + urllib.parse.urlencode({"q": query, "country": "fr", "search_lang": "fr", "count": 10}),
                     {"X-Subscription-Token": os.environ["BRAVE_API_KEY"], "Accept": "application/json"}, None)
@@ -209,15 +210,20 @@ def _search_lookup(product: Dict[str, Any], http: Http) -> Optional[Dict[str, An
     if not _budget_left():
         last_error = "daily cap reached"
         return None
-    for name in providers():
-        try:
-            out = _price_from(product, _fetch_results(name, product, http))
-        except Exception as e:
-            _set_error(e)
-            continue
-        if out:
-            out["provider"] = name
-            return out
+    for variant in (0, 1):                  # the second wording is only tried when the first finds nothing (search results vary from one call to the next)
+        for name in providers():
+            if variant and not _budget_left():
+                return None
+            try:
+                out = _price_from(product, _fetch_results(name, product, http, variant))
+            except Exception as e:
+                _set_error(e)
+                continue
+            if out:
+                out["provider"] = name
+                return out
+        if not product.get("brand"):
+            break                           # an unbranded product is rarely found by a second try: do not pay for it
     return None
 
 
