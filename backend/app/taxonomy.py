@@ -324,6 +324,7 @@ _VARIANTS = {
              ("cashew", r"cajou|cashew"), ("pistachio", r"pistache|pistachio"), ("pecan", r"p[ée]can|pecan"), ("coconut", r"noix de coco|coconut"),
              ("dried_fruit", r"fruits? secs?|raisin|abricot|datte|figue|cranberr|pruneau|dried[- ]fruit"), ("seeds", r"graines|seeds|tournesol|courge|s[ée]same|lin\b|chia"),
              ("mixed", r"m[ée]lange|mix|cocktail|assorti")],
+    "peanut_butter": [("almond", r"amande|almond"), ("hazelnut", r"noisette|hazelnut"), ("peanut", r"cacahu|peanut|arachide"), ("cashew", r"cajou|cashew"), ("sesame", r"s[ée]same|tahin|tahini"), ("pistachio", r"pistache|pistachio"), ("pecan", r"p[ée]can|pecan")],   # an almond purée is not a peanut butter
     "milk": [("skimmed", r"[ée]cr[ée]m|skimmed"), ("whole", r"entier|whole")],
 }
 
@@ -350,7 +351,7 @@ def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
-_HARD_VARIANT_TYPES = {"nuts"}
+_HARD_VARIANT_TYPES = {"nuts", "peanut_butter"}
 
 
 # Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.
