@@ -53,6 +53,12 @@ export default function Product() {
     return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
   }, [barcode, estimates, attempt]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
+  const [webP, setWebP] = useState<any>(null);       // hooks stay above every early return
+  const headKind = d ? priceHeadline(d.price_context).kind : null;
+  useEffect(() => {          // no observed price: one search for an approximate price and where it is sold
+    setWebP(null);
+    if (barcode && d && headKind === 'none') api.getWebPrice(barcode).then(setWebP).catch(() => undefined);
+  }, [barcode, d?.product?.id, headKind]);
 
   if (err) {
     const titleKey = err.kind === 'rate' ? 'product.nf.rateTitle' : err.kind === 'auth' ? 'product.nf.authTitle' : err.kind === 'notfood' ? 'product.nf.foodTitle'
@@ -155,8 +161,11 @@ export default function Product() {
           {p.score.flags?.length > 0 ? <Row wrap style={{ marginTop: 6 }}>{p.score.flags.slice(0, 3).map((f: any) => <Pill key={f.key} tone={f.level === 'bad' ? 'b' : 'w'}>{t('flag.' + f.key)}</Pill>)}</Row> : null}
         </> : <Muted>{t('score.na')}</Muted>}
         {head.kind !== 'none' ? <Row wrap style={{ marginTop: 10 }}>
-          <Text style={{ color: c.ink, fontWeight: '700' }}>{head.kind === 'estimate' ? '~ ' : ''}{t(liquid ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</Text>
+          <Text style={{ color: c.ink, fontWeight: '700' }}>{head.kind === 'estimate' ? '~ ' : ''}{t(liquid ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}{p.quantity?.amount ? <Text style={{ color: c.mut, fontWeight: '400' }}> · {t('score.packPrice', { p: formatCents(Math.round(head.perKgCents! * p.quantity.amount / 1000)) })}</Text> : null}</Text>
           {head.kind === 'estimate' ? <Pill tone="w">{t('est.pill')}</Pill> : null}
+        </Row> : webP ? <Row wrap style={{ marginTop: 10 }}>
+          <Text style={{ color: c.ink, fontWeight: '700' }}>~ {t(liquid ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}{webP.pack_cents != null ? <Text style={{ color: c.mut, fontWeight: '400' }}> · {t('score.packPrice', { p: formatCents(webP.pack_cents) })}</Text> : null}</Text>
+          <Pill tone="w">{t('score.webPrice')}</Pill>
         </Row> : <Muted small>{t('simple.noPrice')}</Muted>}
       </Card>
 

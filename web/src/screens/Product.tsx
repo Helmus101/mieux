@@ -70,6 +70,8 @@ export default function Product() {
   const factor = (bases.find((b) => b.key === basis) ?? bases[0]).f;
   const amt = (v: number | null | undefined) => (v == null ? '—' : String(Math.round(v * factor * 10) / 10).replace('.', ','));
   const head = priceHeadline(pc);
+  const packOf = (perKgCents?: number | null, explicit?: number | null) => (explicit != null ? explicit : (perKgCents != null && p.quantity?.amount ? Math.round(perKgCents * p.quantity.amount / 1000) : null));
+  const packTxt = (c: number | null) => (c != null ? <span className="mut"> · {t('score.packPrice', { p: formatCents(c) })}</span> : null);
   const info = sheet ? additiveInfo(sheet) : null;
   const sItem = sheet ? ((p.score?.additives?.items ?? []) as any[]).find((x) => x.code === sheet) : null;
   return (
@@ -108,7 +110,7 @@ export default function Product() {
           {p.score.incomplete && <div className="flags"><span className="pill g">{t('sdim.incomplete')}</span></div>}
           {p.score.flags?.length > 0 && <div className="flags">{p.score.flags.slice(0, 3).map((f: any) => <span key={f.key} className={'pill ' + (f.level === 'bad' ? 'b' : 'w')}>{t('flag.' + f.key)}</span>)}</div>}
         </> : <Muted>{t('score.na')}</Muted>}
-        {head.kind !== 'none' ? <p style={{ margin: '10px 0 0' }}><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webP ? <p style={{ margin: '10px 0 0' }}><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}</b> <Pill tone="w">{t('score.webPrice')}</Pill>{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('simple.noPrice')}</p>}
+        {head.kind !== 'none' ? <p style={{ margin: '10px 0 0' }}><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webP ? <p style={{ margin: '10px 0 0' }}><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}</b>{packTxt(packOf(Math.round(webP.per100_cents * 10), webP.pack_cents))} <Pill tone="w">{t('score.webPrice')}</Pill>{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('simple.noPrice')}</p>}
       </Card>
       <KnowCard p={p} />
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
