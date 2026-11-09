@@ -386,16 +386,37 @@ def test_search_price_needs_two_sites_that_mention_the_pack_size(monkeypatch, tm
                ("Ferrero Nutella 825 g", "grand pot 6,50 €", "https://www.leclerc.fr/c"))
     r = webprice.lookup(prod, use_cache=False, http=good)
     assert r and r["pack_cents"] in (320, 335) and r["approximate"] and r["provider"] == "parallel" and r["per100_cents"] == round(r["pack_cents"] / 400 * 100, 1)
-    assert webprice.lookup(prod, use_cache=False, http=par(("Ferrero Nutella 400 g", "à 3,20 €", "https://www.auchan.fr/a"))) is None          # one site is not enough
+    assert webprice.lookup(prod, use_cache=False, http=par(("Ferrero Nutella 400 g", "à 3,20 €", "https://www.auchan.fr/a")))["pack_cents"] == 320   # a supermarket's own page with this exact size is enough
+    assert webprice.lookup(prod, use_cache=False, http=par(("Ferrero Nutella 400 g", "à 3,20 €", "https://blog-quelconque.fr/a"))) is None           # a random single page is not
     assert webprice.lookup(prod, use_cache=False, http=par(("Ferrero Nutella 825 g", "6,50 €", "https://a.fr/x"), ("Ferrero Nutella 825 g", "6,40 €", "https://b.fr/y"))) is None   # other size
     assert webprice.lookup(prod, use_cache=False, http=par(("Ferrero Nutella 400 g", "3,20 €", "https://a.fr/x"), ("Ferrero Nutella 400 g", "9,90 €", "https://b.fr/y"))) is None    # disagreement
     monkeypatch.delenv("PARALLEL_API_KEY"); assert webprice.lookup(prod, use_cache=False, http=good) is None                                                          # off without a key
 
 
-def test_brave_and_gemini_keys_do_not_switch_the_lookup_on(monkeypatch):
+def test_gemini_is_asked_first_then_the_others(monkeypatch, tmp_path):
     from app import webprice
-    monkeypatch.delenv("PARALLEL_API_KEY", raising=False); monkeypatch.setenv("BRAVE_API_KEY", "x"); monkeypatch.setenv("GEMINI_API_KEY", "y")
-    assert webprice.providers() == [] and not webprice.enabled()
+    for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp6.db"))
+    assert webprice.providers() == ["gemini", "parallel"]
+    monkeypatch.delenv("PARALLEL_API_KEY"); monkeypatch.setenv("BRAVE_API_KEY", "x")
+    assert webprice.providers() == ["gemini"]                                   # Brave is never used
+    monkeypatch.setenv("PARALLEL_API_KEY", "p")
+    prod = {"barcode": "3017620422003", "name": "Nutella", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
+    reply = {"candidates": [{"content": {"parts": [{"text": '{"price_eur": 3.2, "pack_size": "400 g", "store": "Auchan", "found": true}'}]},
+                             "groundingMetadata": {"groundingChunks": [{"web": {"uri": "https://www.auchan.fr/a"}}]}}]}
+    calls = []
+
+    def tr(url, body):
+        calls.append(url)
+        return reply
+    r = webprice.lookup(prod, transport=tr, use_cache=False, http=lambda *a: (_ for _ in ()).throw(AssertionError("Parallel must not be called")))
+    assert r and r["provider"] == "gemini" and r["pack_cents"] == 320 and len(calls) == 1
+    def boom(url, body):
+        raise RuntimeError("quota")
+    par = {"results": [{"title": "Ferrero Nutella 400 g", "excerpts": ["Nutella Ferrero 400 g à 3,20 €"], "url": "https://www.auchan.fr/a"}]}
+    r = webprice.lookup(prod, transport=boom, use_cache=False, http=lambda *a: par)              # Gemini fails: Parallel answers
+    assert r and r["provider"] == "parallel"
 
 
 def test_web_price_is_cached_per_barcode(monkeypatch, tmp_path):
@@ -529,5 +550,9 @@ def test_a_second_site_without_the_size_confirms_an_exact_price(monkeypatch):
            ("https://fraicheurbio.fr/produit/b", "Spécialité à la tomate séchée et au basilic Picard 2,75 € 2,20 € HT")]
     r = webprice._price_from(prod, res)
     assert r and r["pack_cents"] == 275
-    assert webprice._price_from(prod, [res[0], ("https://autre.fr/c", "Spécialité à la tomate sechée et au basilic Picard 4,10 €")]) is None      # a different price confirms nothing
-    assert webprice._price_from(prod, [res[0], ("https://autre.fr/c", "Sauce tomate basilic 2,75 €")]) is None                                       # another product confirms nothing
+    blog = ("https://un-blog.fr/a", "Picard Spécialité à la tomate sechée et au basilic 110 g 2,75 €")                                              # not a supermarket: needs a confirmation
+    assert webprice._price_from(prod, [blog]) is None
+    assert webprice._price_from(prod, [blog, ("https://autre.fr/c", "Spécialité à la tomate sechée et au basilic Picard 4,10 €")]) is None            # a different price confirms nothing
+    assert webprice._price_from(prod, [blog, ("https://autre.fr/c", "Sauce tomate basilic 2,75 €")]) is None                                         # another product confirms nothing
+    assert webprice._price_from(prod, [blog, res[1]])["pack_cents"] == 275                                                                            # a matching second page confirms it
+    assert webprice._price_from(prod, [res[0]])["pack_cents"] == 275                                                                                  # a supermarket's own page is enough alone

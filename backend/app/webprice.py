@@ -76,8 +76,8 @@ _PRICE = re.compile(r"(\d{1,3}(?:[ .]\d{3})*[,.]\d{2})\s?(?:€|eur\b|euros?\b)"
 
 
 def providers() -> list:
-    """Parallel first (main: it found prices where LangSearch returned unrelated pages), LangSearch as the fallback; each only when its key is set (Brave and Gemini lookups exist in this file but are not used)."""
-    return [n for n, k in (("parallel", "PARALLEL_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY")) if os.environ.get(k)]
+    """Gemini (Google-grounded search) first, then Parallel, then LangSearch; each only when its key is set."""
+    return [n for n, k in (("gemini", "GEMINI_API_KEY"), ("parallel", "PARALLEL_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY")) if os.environ.get(k)]
 
 
 def provider() -> Optional[str]:
@@ -187,6 +187,12 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
             if any(abs(float(m.group(1).replace(" ", "").replace(",", ".")) - v0) / v0 <= 0.03 for m in _PRICE.finditer(text)):
                 by_host[host] = (v0, url)
                 break
+    from . import chains as ch0
+    if len(by_host) == 1:
+        # Still a single source: accepted when it is a supermarket's own page (a chain's site that states this exact size and a price), not a random page.
+        (h1, (v1, u1)), = by_host.items()
+        if ch0.canon(h1.replace(".", " ")):
+            by_host[h1 + "#"] = (v1, u1)        # counts as its own confirmation
     vals = sorted(v for v, _ in by_host.values())
     if len(vals) < 2:
         return None
@@ -198,7 +204,7 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
     from . import chains as ch, retail
     stores = []
     for h, _, _ in agree:
-        name = ch.canon(h.replace(".", " "))          # courses.monoprix.fr -> Monoprix
+        name = ch.canon(h.rstrip("#").replace(".", " "))          # courses.monoprix.fr -> Monoprix
         if name and name not in stores:
             stores.append(name)
     return {"per100_cents": round(price_c / q["amount"] * 100, 1), "pack_cents": price_c, "store": stores[0] if stores else None, "stores": stores,
@@ -206,6 +212,7 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
             "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
 
 
+_gemini: Dict[str, Any] = {"down_until": 0.0, "error": None}
 DAILY_CAP = int(os.environ.get("WEBPRICE_DAILY_CAP", "1500"))     # searches per day (cost guard); stored prices are always served
 _day = {"d": "", "n": 0}
 
@@ -220,7 +227,36 @@ def _budget_left() -> bool:
     return True
 
 
-def _search_lookup(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]:
+def _gemini_lookup(product: Dict[str, Any], transport: Transport) -> Optional[Dict[str, Any]]:
+    """One Google-grounded Gemini lookup: a price only when it cites at least one page, for a known size in the same unit. Failures set last_error and return None."""
+    global last_error
+    key = os.environ["GEMINI_API_KEY"]
+    barcode = str(product.get("barcode") or "")
+    q = product.get("quantity")
+    size = f"{q['amount']:g} {q['unit']}" if q else (product.get("quantityText") or "inconnu")
+    body = {"contents": [{"parts": [{"text": PROMPT.format(name=product.get("name") or "", brand=f" ({product['brand']})" if product.get("brand") else "", ean=barcode, size=size)}]}],
+            "tools": [{"google_search": {}}], "generationConfig": {"temperature": 0}}
+    try:
+        resp = transport(ENDPOINT.format(model=MODEL) + "?key=" + key, body)
+    except Exception as e:       # network, quota, bad key, retired model: no price, and do not cache the failure
+        last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
+        return None
+    cand = (resp.get("candidates") or [{}])[0]
+    text = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
+    got = _parse(text)
+    out = None
+    if got:
+        price_c = round(float(got["price_eur"]) * 100)
+        qty = value.parse_quantity(str(got.get("pack_size") or "")) or ((q["amount"], q["unit"]) if q else None)
+        sources = [c["web"]["uri"] for c in (cand.get("groundingMetadata") or {}).get("groundingChunks", []) if c.get("web", {}).get("uri")][:3]
+        # Accept only a plausible price for a known size, backed by at least one cited page, in the same unit family as the product
+        if qty and 20 <= price_c <= 20000 and sources and (not q or qty[1] == q["unit"]):
+            out = {"per100_cents": round(price_c / qty[0] * 100, 1), "pack_cents": price_c, "store": got.get("store"), "source_urls": sources,
+                   "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
+    return out
+
+
+def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _post) -> Optional[Dict[str, Any]]:
     """Parallel search; no price when the sites it returns do not agree on this pack size."""
     global last_error
     last_error = None
@@ -231,6 +267,19 @@ def _search_lookup(product: Dict[str, Any], http: Http) -> Optional[Dict[str, An
         for name in providers():
             if variant and not _budget_left():
                 return None
+            if name == "gemini":
+                if variant:
+                    continue                # Gemini is asked once; the second wording goes to the other providers
+                if time.time() < _gemini["down_until"]:
+                    continue                # Gemini just failed (quota, bad model): skip it for a few minutes instead of paying a failing call each time
+                out = _gemini_lookup(product, transport)
+                if out:
+                    out["provider"] = name
+                    return out
+                if last_error:              # a Gemini failure must not stop a genuine "nothing found" from being cached for the other providers
+                    _gemini.update(down_until=time.time() + 600, error=last_error)
+                    last_error = None
+                continue
             try:
                 out = _price_from(product, _fetch_results(name, product, http, variant))
             except Exception as e:
@@ -318,8 +367,8 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
         if fresh:
             return data
         old = data                       # an expired price we found earlier: kept, never thrown away
-    if provider() in ("langsearch", "parallel"):
-        out = _search_lookup(product, http or _http)
+    if provider():
+        out = _search_lookup(product, http or _http, transport)
         if use_cache and out:
             _store(barcode, out)
         elif use_cache and last_error is None and not old:
@@ -327,27 +376,4 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
         if not out and old:
             return {**old, "stale": True}   # the re-search found nothing: keep showing the stored price, marked as older
         return out
-    q = product.get("quantity")
-    size = f"{q['amount']:g} {q['unit']}" if q else (product.get("quantityText") or "inconnu")
-    body = {"contents": [{"parts": [{"text": PROMPT.format(name=product.get("name") or "", brand=f" ({product['brand']})" if product.get("brand") else "", ean=barcode, size=size)}]}],
-            "tools": [{"google_search": {}}], "generationConfig": {"temperature": 0}}
-    try:
-        resp = transport(ENDPOINT.format(model=MODEL) + "?key=" + key, body)
-    except Exception as e:       # network, quota, bad key, retired model: no price, and do not cache the failure
-        last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
-        return None
-    cand = (resp.get("candidates") or [{}])[0]
-    text = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
-    got = _parse(text)
-    out = None
-    if got:
-        price_c = round(float(got["price_eur"]) * 100)
-        qty = value.parse_quantity(str(got.get("pack_size") or "")) or ((q["amount"], q["unit"]) if q else None)
-        sources = [c["web"]["uri"] for c in (cand.get("groundingMetadata") or {}).get("groundingChunks", []) if c.get("web", {}).get("uri")][:3]
-        # Accept only a plausible price for a known size, backed by at least one cited page, in the same unit family as the product
-        if qty and 20 <= price_c <= 20000 and sources and (not q or qty[1] == q["unit"]):
-            out = {"per100_cents": round(price_c / qty[0] * 100, 1), "pack_cents": price_c, "store": got.get("store"), "source_urls": sources,
-                   "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
-    if use_cache:
-        _store(barcode, out)
-    return out
+    return None
