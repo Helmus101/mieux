@@ -534,3 +534,9 @@ html,body{min-height:100dvh}
 .arow.top{padding-left:12px; border-left:3px solid var(--accent)}
 .arow.top .aname{font-weight:700}
 @media(min-width:900px){.app{max-width:760px}.tabbar .in{max-width:760px}}
+
+/* alternatives: one prominent figure per mode, the other one quiet; the baseline sits on one line */
+.ameta .sub b{font-size:14px;font-weight:600;color:var(--mut);letter-spacing:0}
+.ameta .sub small{font-size:12px}
+.yours{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:2px 0 6px;font-size:14px;color:var(--mut)}.yours b{color:var(--ink)}
+.linkbtn{display:inline-block;width:auto;border:0;background:none;color:var(--accent);font-size:14px;font-weight:600;padding:8px 0 8px 8px;min-height:40px;min-width:0;white-space:nowrap;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
