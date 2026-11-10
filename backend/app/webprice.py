@@ -336,8 +336,9 @@ def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]
     return None
 
 
-def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _post) -> Optional[Dict[str, Any]]:
-    """Parallel search; no price when the sites it returns do not agree on this pack size."""
+def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _post, deadline: Optional[float] = None) -> Optional[Dict[str, Any]]:
+    """Parallel search; no price when the sites it returns do not agree on this pack size. `deadline` (epoch seconds) stops trying further providers once passed;
+    that is a timeout, not a miss, so it is never cached as "nothing found"."""
     global last_error
     last_error = None
     if not _budget_left():
@@ -351,6 +352,9 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
         product = {**product, "quantity": assumed}
     for variant in (0, 1):                  # the second wording is only tried when the first finds nothing (search results vary from one call to the next)
         for name in providers():
+            if deadline and time.time() > deadline:
+                last_error = "deadline"
+                return None
             if variant and not _budget_left():
                 return None
             if name == "gemini":
@@ -444,7 +448,7 @@ def cached_only(product: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return data if (data and fresh) else ({**data, "stale": True} if data else None)
 
 
-def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True, http: Optional[Http] = None) -> Optional[Dict[str, Any]]:
+def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True, http: Optional[Http] = None, deadline: Optional[float] = None) -> Optional[Dict[str, Any]]:
     """{per100_cents, pack_cents, store, source_urls, date, source:'web_search', approximate:True} or None."""
     global last_error
     key = os.environ.get("GEMINI_API_KEY")
@@ -458,7 +462,7 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
             return data
         old = data                       # an expired price we found earlier: kept, never thrown away
     if provider():
-        out = _search_lookup(product, http or _http, transport)
+        out = _search_lookup(product, http or _http, transport, deadline)
         if use_cache and out:
             _store(barcode, out)
         elif use_cache and last_error is None and not old:

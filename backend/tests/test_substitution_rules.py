@@ -637,3 +637,17 @@ def test_parallel_is_off_unless_asked_for(monkeypatch):
     monkeypatch.setenv("WEBPRICE_PARALLEL", "1")
     assert webprice.providers() == ["serper", "parallel"]
 
+
+
+def test_an_interactive_lookup_stops_at_its_deadline_and_does_not_cache_the_timeout_as_a_miss(monkeypatch, tmp_path):
+    import time
+    from app import webprice
+    for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY", "SERPER_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp7.db"))
+    prod = {"barcode": "3017620422999", "name": "Barre", "brand": "Marque", "quantity": {"amount": 180.0, "unit": "g"}}
+    calls = []
+    assert webprice.lookup(prod, transport=lambda u, b: calls.append(u), deadline=time.time() - 1) is None
+    assert calls == []                                                   # the deadline had passed: no provider was called
+    fresh, data = webprice._cached("3017620422999")
+    assert not fresh and data is None                                    # a timeout is not remembered as "no price exists"

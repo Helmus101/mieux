@@ -79,11 +79,10 @@ export default function Alternatives() {
     if (busy || !r) return;
     const todo = shown.filter((e: any) => e.price100 == null && !asked.current.has(e.product.barcode)).map((e: any) => e.product.barcode as string);
     todo.forEach((c) => asked.current.add(c));
-    for (let i = 0; i < todo.length; i += 8) {
-      const chunk = todo.slice(i, i + 8);
-      api.getWebPrices(chunk).then((res) => setFill((f) => ({ ...f, ...Object.fromEntries(chunk.map((c) => [c, res[c] ?? null])) })))
-        .catch(() => chunk.forEach((c) => asked.current.delete(c)));      // network trouble: ask again next time the rows show
-    }
+    // One request per row, four at a time, in display order: each row is filled as soon as its own search ends instead of waiting for the slowest.
+    let next = 0;
+    const worker = async () => { while (next < todo.length) { const c = todo[next++]; const w = await api.getWebPriceQuick(c); setFill((f) => ({ ...f, [c]: w })); } };
+    for (let k = 0; k < Math.min(4, todo.length); k++) void worker();
   }, [busy, !!r, shown.filter((e: any) => e.price100 == null).map((e: any) => e.product.barcode).join()]);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
   const none = !!r && !busy && !webBusy && !err && ['value', 'budget', 'match', 'closest'].every((k) => listOf(k).length === 0);   // never more than 10 per tab, after the strict filters

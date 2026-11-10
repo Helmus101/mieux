@@ -619,7 +619,7 @@ class WebPricesReq(BaseModel):
     barcodes: List[str] = Field(..., min_length=1, max_length=8)
 
 
-def _web_price_for(s: Session, barcode: str) -> Optional[Dict[str, Any]]:
+def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None) -> Optional[Dict[str, Any]]:
     """An approximate web price (and the supermarkets it was found at) for a product with no observed price. None otherwise."""
     from . import webprice
     if not webprice.enabled():
@@ -628,7 +628,7 @@ def _web_price_for(s: Session, barcode: str) -> Optional[Dict[str, Any]]:
     q = p.get("quantity")
     if q and app.state.prices.latest(barcode, (q["amount"], q["unit"])):
         return None                       # an observed price exists: nothing to approximate (an unknown pack size is guessed from product pages by the lookup)
-    w = webprice.lookup(p)
+    w = webprice.lookup(p, deadline=(time.time() + max_seconds) if max_seconds else None)
     if w and not w.get("stale"):
         _record_web_price(s, p, w)
         s.commit()
@@ -639,10 +639,10 @@ def _web_price_for(s: Session, barcode: str) -> Optional[Dict[str, Any]]:
 
 
 @app.get("/v1/products/{barcode}/web-price")
-@limiter.limit("20/minute")
+@limiter.limit("60/minute")
 def product_web_price(request: Request, barcode: str, uid: str = Depends(user), s: Session = Depends(get_db)):
     """One search for a product with no price: returns {price: {pack_cents, per100_cents, stores, chains, source_urls, approximate}} or {price: null}."""
-    return {"price": _web_price_for(s, barcode)}
+    return {"price": _web_price_for(s, barcode, max_seconds=14)}
 
 
 @app.post("/v1/web-prices")
