@@ -40,9 +40,9 @@ def _set_error(e: Exception) -> None:
 Transport = Callable[[str, Dict[str, Any]], Dict[str, Any]]
 
 
-def _post(url: str, body: Dict[str, Any]) -> Dict[str, Any]:
+def _post(url: str, body: Dict[str, Any], timeout: float = 25) -> Dict[str, Any]:
     req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=25) as r:
+    with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 
 
@@ -57,7 +57,7 @@ def _http(method: str, url: str, headers: Dict[str, str], body: Optional[Dict[st
     for attempt in range(3):
         req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=40) as r:
+            with urllib.request.urlopen(req, timeout=12) as r:
                 return json.loads(r.read())
         except urllib.error.HTTPError as e:
             if e.code not in (429, 500, 502, 503) or attempt == 2:
@@ -260,7 +260,7 @@ def _budget_left() -> bool:
     return True
 
 
-def _gemini_lookup(product: Dict[str, Any], transport: Transport) -> Optional[Dict[str, Any]]:
+def _gemini_lookup(product: Dict[str, Any], transport: Transport, timeout: Optional[float] = None) -> Optional[Dict[str, Any]]:
     """One Google-grounded Gemini lookup: a price only when it cites at least one page, for a known size in the same unit. Failures set last_error and return None."""
     global last_error
     key = os.environ["GEMINI_API_KEY"]
@@ -270,7 +270,8 @@ def _gemini_lookup(product: Dict[str, Any], transport: Transport) -> Optional[Di
     body = {"contents": [{"parts": [{"text": PROMPT.format(name=product.get("name") or "", brand=f" ({product['brand']})" if product.get("brand") else "", ean=barcode, size=size)}]}],
             "tools": [{"google_search": {}}], "generationConfig": {"temperature": 0}}
     try:
-        resp = transport(ENDPOINT.format(model=MODEL) + "?key=" + key, body)
+        url = ENDPOINT.format(model=MODEL) + "?key=" + key
+        resp = transport(url, body, timeout=timeout) if (timeout and transport is _post) else transport(url, body)
     except Exception as e:       # network, quota, bad key, retired model: no price, and do not cache the failure
         last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
         return None
@@ -351,26 +352,31 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
             return None
         product = {**product, "quantity": assumed}
     for variant in (0, 1):                  # the second wording is only tried when the first finds nothing (search results vary from one call to the next)
-        for name in providers():
+        # The quick search APIs (about a second each) go first; Gemini's grounded search can take 10 s or more, so it only runs after them, with the time that is left.
+        order = [n for n in providers() if n != "gemini"] + ([] if variant else [n for n in providers() if n == "gemini"])
+        for name in order:
             if deadline and time.time() > deadline:
                 last_error = "deadline"
                 return None
             if variant and not _budget_left():
                 return None
             if name == "gemini":
-                if variant:
-                    continue                # Gemini is asked once; the second wording goes to the other providers
                 if time.time() < _gemini["down_until"]:
                     continue                # Gemini just failed (quota, bad model): skip it for a few minutes instead of paying a failing call each time
-                out = _gemini_lookup(product, transport)
+                left = (deadline - time.time()) if deadline else None
+                if left is not None and left < 4:
+                    last_error = "deadline"
+                    return None
+                out = _gemini_lookup(product, transport, timeout=left)
                 if out:
                     out["provider"] = name
                     if assumed:
                         out["size_assumed"] = assumed
                     return out
                 if last_error:              # a Gemini failure must not stop a genuine "nothing found" from being cached for the other providers
-                    _gemini.update(down_until=time.time() + 600, error=last_error)
-                    last_error = None
+                    if "Timeout" not in last_error:
+                        _gemini.update(down_until=time.time() + 600, error=last_error)
+                    last_error = "deadline" if deadline and time.time() > deadline else None
                 continue
             try:
                 out = _price_from(product, _fetch_results(name, product, http, variant))

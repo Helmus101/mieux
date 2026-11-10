@@ -651,3 +651,21 @@ def test_an_interactive_lookup_stops_at_its_deadline_and_does_not_cache_the_time
     assert calls == []                                                   # the deadline had passed: no provider was called
     fresh, data = webprice._cached("3017620422999")
     assert not fresh and data is None                                    # a timeout is not remembered as "no price exists"
+
+
+def test_quick_search_providers_run_before_slow_gemini_and_a_hit_skips_it(monkeypatch, tmp_path):
+    from app import webprice
+    for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("SERPER_API_KEY", "s")
+    monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp8.db"))
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    order = []
+    def http(method, url, headers, body):
+        order.append("serper")
+        return {"organic": [{"link": "https://www.carrefour.fr/p/barres-chocolat-orange-dukan", "snippet": "Dukan Barres chocolat orange 150 g 3,50 €"},
+                            {"link": "https://courses.monoprix.fr/p/barres-chocolat-orange-dukan", "snippet": "Dukan Barres chocolat orange 150 g 3,60 €"}]}
+    def gemini(url, body, **kw):
+        order.append("gemini"); return {}
+    out = webprice.lookup(prod, transport=gemini, http=http)
+    assert out and out["provider"] == "serper" and order == ["serper"]     # found by the quick search: the slow Gemini call never ran
