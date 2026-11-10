@@ -636,3 +636,21 @@ def test_parallel_is_off_unless_asked_for(monkeypatch):
     assert webprice.providers() == ["serper"]
     monkeypatch.setenv("WEBPRICE_PARALLEL", "1")
     assert webprice.providers() == ["serper", "parallel"]
+
+
+def test_deepseek_is_last_and_its_price_must_appear_in_the_cited_result(monkeypatch):
+    from app import webprice
+    monkeypatch.setenv("SERPER_API_KEY", "s"); monkeypatch.setenv("DEEPSEEK_API_KEY", "d")
+    assert webprice.providers() == ["serper", "deepseek"]
+    prod = {"barcode": "1", "name": "Pâtes", "brand": "X", "quantity": {"amount": 500.0, "unit": "g"}}
+    def http(method, url, headers, body):
+        if "serper" in url:
+            return {"organic": [{"link": "https://shop.fr/p", "title": "Pâtes X 500 g", "snippet": "Prix 1,50 €"}]}
+        return {"choices": [{"message": {"content": '{"price_eur": 1.5, "pack_size": "500 g", "store": "Shop", "source": 0, "found": true}'}}]}
+    out = webprice._deepseek_lookup(prod, http)
+    assert out["pack_cents"] == 150 and out["per100_cents"] == 30.0 and out["source_urls"] == ["https://shop.fr/p"]
+    def liar(method, url, headers, body):
+        if "serper" in url:
+            return http(method, url, headers, body)
+        return {"choices": [{"message": {"content": '{"price_eur": 0.99, "pack_size": "500 g", "source": 0, "found": true}'}}]}
+    assert webprice._deepseek_lookup(prod, liar) is None        # 0,99 is nowhere in the result: not trusted

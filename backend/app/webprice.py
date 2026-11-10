@@ -82,7 +82,10 @@ def providers() -> list:
     if forced:
         return [n for n in forced.split(",") if n]
     keyed = (("gemini", "GEMINI_API_KEY"), ("serper", "SERPER_API_KEY"), ("brave", "BRAVE_API_KEY"), ("parallel", "PARALLEL_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY"))
-    return [n for n, k in keyed if os.environ.get(k) and (n != "parallel" or os.environ.get("WEBPRICE_PARALLEL") == "1")]
+    out = [n for n, k in keyed if os.environ.get(k) and (n != "parallel" or os.environ.get("WEBPRICE_PARALLEL") == "1")]
+    if os.environ.get("DEEPSEEK_API_KEY") and any(n in out for n in ("serper", "brave", "langsearch")):
+        out.append("deepseek")      # last resort: DeepSeek has no search of its own, so it reads the results of the search APIs above
+    return out
 
 
 def provider() -> Optional[str]:
@@ -335,6 +338,43 @@ def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]
     return None
 
 
+def _deepseek_lookup(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]:
+    """Last resort: search with the first search API that has a key, then let DeepSeek read the results and pick the price of exactly this product and size.
+    The price it returns must literally appear in a result's text, and the result's page is the cited source."""
+    search = next((n for n in providers() if n in ("serper", "brave", "langsearch")), None)
+    if not search:
+        return None
+    results = _fetch_results(search, product, http, 0)[:8]
+    if not results:
+        return None
+    q = product.get("quantity")
+    size = f"{q['amount']:g} {q['unit']}" if q else (product.get("quantityText") or "inconnu")
+    listing = "\n".join(f"[{i}] {u}\n{t[:500]}" for i, (u, t) in enumerate(results))
+    prompt = (f"Produit : {product.get('name') or ''} ({product.get('brand') or ''}). Format : {size}. Code-barres : {product.get('barcode')}.\n"
+              "Voici des résultats de recherche de supermarchés français. Donne le prix actuel en euros de CE produit et CE format, tel qu'écrit dans un résultat.\n"
+              f"{listing}\n"
+              "Réponds UNIQUEMENT par un objet JSON : {\"price_eur\": nombre, \"pack_size\": \"ex. 500 g\", \"store\": \"enseigne\", \"source\": numéro du résultat, \"found\": true}. "
+              "Si aucun résultat ne donne clairement le prix de ce produit et de ce format, réponds {\"found\": false}. N'invente rien.")
+    data = http("POST", "https://api.deepseek.com/chat/completions", {"Content-Type": "application/json", "Authorization": "Bearer " + os.environ["DEEPSEEK_API_KEY"]},
+                {"model": os.environ.get("DEEPSEEK_MODEL", "deepseek-chat"), "temperature": 0, "messages": [{"role": "user", "content": prompt}]})
+    got = _parse(((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "")
+    if not got:
+        return None
+    price_c = round(float(got["price_eur"]) * 100)
+    try:
+        url, text = results[int(got.get("source"))]
+    except (TypeError, ValueError, IndexError):
+        return None
+    shown = {f"{price_c // 100},{price_c % 100:02d}", f"{price_c // 100}.{price_c % 100:02d}"}
+    if not any(x in text for x in shown):
+        return None                         # the price is not in the cited result: not trusted
+    qty = value.parse_quantity(str(got.get("pack_size") or "")) or ((q["amount"], q["unit"]) if q else None)
+    if not qty or not (20 <= price_c <= 20000) or (q and qty[1] != q["unit"]):
+        return None
+    return {"per100_cents": round(price_c / qty[0] * 100, 1), "pack_cents": price_c, "store": got.get("store"), "source_urls": [url],
+            "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
+
+
 def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _post) -> Optional[Dict[str, Any]]:
     """Parallel search; no price when the sites it returns do not agree on this pack size."""
     global last_error
@@ -366,6 +406,20 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 if last_error:              # a Gemini failure must not stop a genuine "nothing found" from being cached for the other providers
                     _gemini.update(down_until=time.time() + 600, error=last_error)
                     last_error = None
+                continue
+            if name == "deepseek":
+                if variant:
+                    continue
+                try:
+                    out = _deepseek_lookup(product, http)
+                except Exception as e:
+                    _set_error(e)
+                    continue
+                if out:
+                    out["provider"] = name
+                    if assumed:
+                        out["size_assumed"] = assumed
+                    return out
                 continue
             try:
                 out = _price_from(product, _fetch_results(name, product, http, variant))
