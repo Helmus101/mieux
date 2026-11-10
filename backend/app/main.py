@@ -731,21 +731,13 @@ def _price_context(s: Session, uid: str, p: Dict[str, Any], lang: str = "fr", ap
     q = (p["quantity"]["amount"], p["quantity"]["unit"]) if p.get("quantity") else None
     comm = app.state.prices.latest(p["barcode"], q)
     base = (value.per100(own["unit_price_cents"], q) if (own and q) else None) or (comm["per100_cents"] if comm else None)
-    if base is None and approximate:
-        e0 = estimate.estimate_per100(p, [])
-        base = e0[0] if (e0 and q) else None
-    est = None
-    if approximate and not own and not comm:
-        e = estimate.estimate_per100(p, [])
-        if e:
-            est = {"per100_cents": e[0], "basis": e[1], "chains": estimate.chain_prices(e[0], q[0] if q else None)}
+    est = None  # a price is observed or found on the web; it is never guessed from a category average
     real_base = (value.per100(own["unit_price_cents"], q) if (own and q) else None) or (comm["per100_cents"] if comm else None)    # observed prices only, never an estimate
     pq_score = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), real_base)
     if pq_score is None:
-        # No observed price: still give a price-quality score, from the stored web price if there is one (no network call here), else the category estimate; always marked approximate.
+        # No observed price: a price-quality score only from the stored web price if there is one (no network call here), always marked approximate. Never from a category average.
         w_ = webprice.cached_only(p) if webprice.enabled() else None
-        e_ = estimate.estimate_per100(p, []) if q else None
-        basis = ("web_search", w_["per100_cents"], w_.get("pack_cents")) if (w_ and w_.get("per100_cents")) else (("estimate", e_[0], None) if e_ else None)
+        basis = ("web_search", w_["per100_cents"], w_.get("pack_cents")) if (w_ and w_.get("per100_cents")) else None
         if basis:
             vi_ = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), basis[1])
             if vi_:
@@ -1157,12 +1149,7 @@ def store_prices(request: Request, barcode: str, body: Loc, uid: str = Depends(u
         stores.append({"store": own["retailer"] or "?", "name": own["retailer"], "city": None, "per100_cents": round(value.per100(own["unit_price_cents"], (q["amount"], q["unit"])), 1),
                        "pack_cents": own["unit_price_cents"], "date": own["date"], "distance_km": None, "source": "your_receipt"})
         stores.sort(key=lambda x: x["per100_cents"])
-    est = None
-    if not stores:
-        e = estimate.estimate_per100(p, [])
-        if e:
-            est = {"basis": e[1], "per100_cents": e[0], "chains": estimate.chain_prices(e[0], q["amount"] if q else None)}
-    return {"stores": stores, "estimated": est, "pack_size": q, "radius_km": body.radius_km,
+    return {"stores": stores, "estimated": None, "pack_size": q, "radius_km": body.radius_km,
             "note": tr(lang, "stores_note")}
 
 
@@ -1560,7 +1547,7 @@ def _search_once(c: Dict[str, Any]):
 
 def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str, Any]], loc: Optional[Loc] = None, approximate: bool = False, only: Optional[List[str]] = None):
     """Price per 100 g/ml for the original and a list of products: your own recent receipt/entry first, else a real community observation.
-    DB access stays on this thread (sessions are not thread-safe); only the network calls fan out. Estimates only when approximate=True."""
+    DB access stays on this thread (sessions are not thread-safe); only the network calls fan out. Prices are observed or found on the web, never guessed from a category average."""
     oq = orig.get("quantity")
     points: Dict[str, Any] = {}
     shops: Dict[str, List[Dict[str, Any]]] = {}
@@ -1628,20 +1615,6 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                         _record_web_price(s, c, w)
         except Exception:                      # the web search is an extra: whatever goes wrong, the alternatives still come back
             logger.exception("web price fallback failed")
-    if approximate:
-        # Estimates only where nothing was observed, always tagged source='estimate' (never a verified price).
-        observed = [v for k, v in prices.items() if k != orig["barcode"]]
-        for c in [orig] + list(prods):
-            q = c.get("quantity")
-            if not q or (c["barcode"] in prices) or (c["barcode"] == orig["barcode"] and orig_price is not None) or (oq and q["unit"] != oq["unit"]):
-                continue
-            est = estimate.estimate_per100(c, observed)
-            if est:
-                if c["barcode"] == orig["barcode"]:
-                    orig_price = est[0]
-                else:
-                    prices[c["barcode"]] = est[0]
-                points[c["barcode"]] = {"source": "estimate", "date": None, "where": est[1]}
     # Keep community observations in the product price database so history accumulates (one row per product/date).
     for c in [orig] + list(prods):
         pt, q = points.get(c["barcode"]), c.get("quantity")
@@ -1923,8 +1896,7 @@ def comparisons(request: Request, body: CmpReq, uid: str = Depends(user), s: Ses
         elif hist and hist[0]["per100_cents"] is not None:
             prices[p["id"]] = {"per100_cents": hist[0]["per100_cents"], "pack_cents": hist[0]["pack_cents"], "source": hist[0]["source"], "date": hist[0]["date"]}
         else:
-            e = estimate.estimate_per100(p, []) if body.approximate else None
-            prices[p["id"]] = {"per100_cents": e[0], "pack_cents": round(e[0] * q["amount"] / 100) if q else None, "source": "estimate", "date": None} if e else None
+            prices[p["id"]] = None
     return {"products": [{"id": p["id"], "name": p["name"], "nutriScore": p["nutriScore"], "brand": p.get("brand"), "imageUrl": p.get("imageUrl"), "score": (p.get("score") or {}).get("total"), "price": prices[p["id"]]} for p in P], **engine.compare(P)}
 
 

@@ -169,9 +169,10 @@ export default function Alternatives() {
               <div className="aname">{e.product.name}</div>
               <div className="abrand">{e.product.brand}</div>
               <div className="ameta">
-                {e.product.score && <span className={rk === 'match' ? 'main' : 'sub'}><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>{rk === 'match' && <small> {t('score.' + e.product.score.band)}</small>}
-                  {rk === 'match' && r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>}
-                {e.vs != null && rk !== 'match' && <span className={rk === 'value' ? 'main' : 'sub'} title={t('score.pqHint')}><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span>}
+                {e.product.score && <span className={'tile ' + (rk === 'match' ? 'main' : 'sub')}><span className="tile-row"><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>
+                  {rk === 'match' && r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>
+                  <small className="cap">{t('alt.sumQ')}</small></span>}
+                {e.vs != null && rk !== 'match' && <span className={'tile ' + (rk === 'value' ? 'main' : 'sub')} title={t('score.pqHint')}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span><small className="cap">{t('score.pq')}</small></span>}
               </div>
               {chains.length > 0 && <div className="logos">{chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}{chains.length > 5 && <span className="mut sm">+{chains.length - 5}</span>}</div>}
             </div>

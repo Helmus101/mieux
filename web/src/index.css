@@ -248,6 +248,11 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .asave{margin-top:6px}
 .arow.top{padding-left:12px; border-left:3px solid var(--accent)}
 .arow.top .aname{font-weight:700}
+/* each score tile says what it is: Qualité (nutrition and additives) or Prix-qualité (that score against the price per kilo) */
+.ameta .tile{display:inline-flex; flex-direction:column; align-items:flex-start; gap:4px}
+.ameta .tile-row{display:inline-flex; align-items:baseline; gap:2px}
+.ameta .tile .cap{font-size:11.5px; font-weight:600; letter-spacing:.01em; color:var(--mut); line-height:1}
+.ameta .tile.main .cap{color:var(--ink)}
 .ameta .sub b{font-size:14px; font-weight:600; color:var(--mut); letter-spacing:0}
 .ameta .sub small{font-size:12px}
 .yours{display:flex; justify-content:space-between; align-items:center; gap:12px; margin:2px 0 6px; font-size:14px; color:var(--mut)}
