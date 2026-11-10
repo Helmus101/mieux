@@ -22,7 +22,7 @@ R = [
     ("crackers", "cereals_bakery", "snack_cracker", "cracker", "cracker", "snacking", r"crackers|crispbreads|pretzels|rice-cakes|galettes", r"cracker|bretzel|pretzel|galette de riz|knäcke"),
     ("breakfast_cereal", "cereals_bakery", "cereal", "cereal", "cereal", "breakfast", r"breakfast-cereals|cereal-flakes|cornflakes|extruded-cereals", r"corn ?flakes|c[ée]r[ée]ales|pétales|petales|chocapic|special k"),
     ("muesli", "cereals_bakery", "cereal", "muesli", "cereal", "breakfast", r"mueslis|granola|oat-flakes|porridge|cereal-clusters", r"muesli|granola|porridge|flocons d.avoine|cruesly|crunchy|clusters?"),
-    ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles"),
+    ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles|vermicel|gnocchi"),
     ("rice", "cereals_bakery", "grain", "grain", "grain", "meal", r"\brices?\b(?!-based)|basmati", r"^riz\b|\briz (basmati|long|complet|thai)"),
     # ---- pantry and condiments (granular types so staples like pesto or soy sauce get their own alternatives)
     ("cocoa_powder", "sweet", "cocoa", "powder", "powder", "drink_mix", r"cocoa-powders|instant-chocolate-powders|chocolate-powders", r"cacao (en poudre|maigre|sucr|soluble)|poudre de cacao|chocolat en poudre|banania|nesquik|benco|ovomaltine"),
@@ -51,12 +51,13 @@ R = [
     ("fromage_blanc", "dairy", "fresh_cheese", "spoonable", "spoon", "breakfast", r"fromages-blancs|fresh-cheeses|petits-suisses|faisselle|quark", r"fromage blanc|petit suisse|faisselle|quark"),
     ("cream_cheese", "dairy", "cheese", "spreadable_cheese", "tub", "spread_cook", r"cheese-spreads|cream-cheeses|spreadable-cheeses|fromages-[àa]-tartiner|labneh", r"labn[eé]h?\b|carr[ée] frais|philadelphia|cream cheese|fromage (frais )?[àa] tartiner|[àa] tartiner.*(ail|fines herbes|nature)|formaggio fresco|spalmabile|kiri\b|st[- ]?m[ée]range|boursin|apericube|vache qui rit|tartare"),
     ("cheese", "dairy", "cheese", "cheese", "cheese", "meal", r"cheeses|fromages", r"fromage|camembert|emmental|comt[ée]|brie|gouda|mozzarella|chèvre|chevre"),
+    ("eggs", "dairy", "eggs", "eggs", "eggs", "cooking", r"eggs|oeufs", r"\bu?[oœ]e?ufs?\b(?!.*(chocolat|p[âa]ques|plat|mayonnaise|brouill))"),
     ("milk", "dairy", "milk", "liquid", "drink", "breakfast", r"^en:milks$|whole-milks|semi-skimmed-milks|skimmed-milks|uht-milks|cow-milks", r"^lait\b|lait (demi|entier|écrém|ecrem|uht)"),
     ("cream", "dairy", "cream", "liquid", "cooking", "cooking", r"creams|cr[èe]mes-fra[iî]ches", r"cr[èe]me (fra[iî]che|liquide|enti[èe]re)|cr[èe]me fra"),
-    ("butter", "dairy", "fat", "fat", "spread", "spread_cook", r"(?:^|\s)en:(?:butters|margarines)\b", r"^beurre\b|margarine"),
+    ("butter", "dairy", "fat", "fat", "spread", "spread_cook", r"(?:^|\s)en:(?:butters|margarines)\b", r"^beurre\b|margarine|\bflora\b|\bbecel\b|\bproactiv\b|v[ée]g[ée]tal doux|plant.?based butter"),
     # ---- drinks
     ("plant_drink", "drinks", "plant_drink", "liquid", "drink", "breakfast", r"plant-based-milks|milk-substitutes|rice-based-drinks|oat-based-drinks|soy-milks|almond-milks|hazelnut-based-drinks|plant-milks", r"boisson (v[ée]g[ée]tale|au riz|[àa] l.avoine|soja|amande|coco|avoine)|lait (d.|de )?(amande|avoine|soja|coco|riz)|bevande"),
-    ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"jus (de|d.)|nectar|pur jus"),
+    ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"jus (de|d.)|nectar|pur jus|tropico|capri.?sun|oasis\b|boisson aux fruits"),
     ("soda", "drinks", "soda", "liquid", "drink", "any", r"sodas|carbonated-drinks|colas|sweetened-beverages|lemonades|energy-drinks", r"cola|limonade|soda|boisson gazeuse|orangina|fanta|sprite|energy"),
     ("water", "drinks", "water", "liquid", "drink", "any", r"waters|spring-waters|mineral-waters", r"^eau\b|eau (min[ée]rale|de source|gazeuse|plate)"),
     ("capsule_nespresso", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"nespresso", r"nespresso"),
@@ -71,7 +72,7 @@ R = [
     ("tea", "drinks", "tea", "tea", "tea", "hot_drink", r"(?:^|\s)en:(?:teas|black-teas|green-teas|iced-teas)\b|tea-bags", r"\bth[eé]\b|\btea\b"),
     # ---- spreads and sweet
     ("chocolate_spread", "sweet", "spread", "spread", "spread", "breakfast", r"chocolate-spreads|hazelnut-spreads|cocoa-and-hazelnuts-spreads|chocolate-and-hazelnut-spreads|pates-a-tartiner-au-chocolat|pates-a-tartiner-aux-noisettes|pates-a-tartiner-au-cacao|produits-a-tartiner-sucres|pates-a-tartiner(?!-vegetal)", r"p[âa]te [àa] tartiner|nutella|pasta cao|chocolate spread"),
-    ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|compotes|fruit-and-vegetable-preserves|fruit-preserves|fruit-purees|apple-compotes", r"confiture|marmelade|compote|gel[ée]e"),
+    ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|compotes|fruit-and-vegetable-preserves|fruit-preserves|fruit-purees|apple-compotes", r"confiture|confettura|marmelade|compote|gel[ée]e"),
     ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre (de |d.)(cacahu|amande|noisette|cajou)|peanut butter|(almond|cashew|hazelnut) butter|pur[ée]e (d.|de )?(amandes?|noisettes?|cajou|noix de cajou|cacahu[eè]tes?|pistaches?|noix de p[ée]can|s[ée]same)|cr[èe]me d.amandes?\b(?!.*(dessert|glac))|tahin"),
     ("honey", "sweet", "spread", "spread", "spread", "breakfast", r"honeys", r"\bmiel\b"),
     # ---- chocolate confectionery (tablets, bars for confectionery use - NOT snack bars)
@@ -84,7 +85,7 @@ R = [
     ("chewing_gum", "sweet", "candy", "gum", "gum", "snacking", r"chewing-gums?|chewing gums?", r"chewing[- ]?gum|\btrident\b|hollywood|freedent"),
     ("licorice", "sweet", "candy", "licorice", "licorice", "snacking", r"liquorice|licorice|r[ée]glisse", r"r[ée]glisse|liquorice|licorice|amarelli"),
     ("gummies", "sweet", "candy", "gummy", "gummy", "snacking", r"gummies|jelly-candies|fruit-gums|marshmallows", r"gomm(e|es) (fruit|ours)|gummi|gummies|ourson|haribo|jelly|marshmallow|guimauve|fruits? gums?"),
-    ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops", r"bonbon|gomme|r[ée]glisse|sucette"),
+    ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops", r"bonbon|gomme|r[ée]glisse|sucette|mentos|dragées?|chewy|caramels? mous"),
     # ---- savoury snacks, meals
     ("chips", "snacks", "chips", "chips", "chips", "snacking", r"chips|crisps|potato-crisps|tortilla-chips|puffs", r"chips|tortilla|crisps"),
     ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|dried-fruits|seeds", r"amande|cajou|cacahu|pistache|noix|noisette|fruits secs|graines"),
@@ -136,7 +137,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "chips": {"chips": 1, "crackers": 3},   # nuts are not a substitute for crackers or chips (they were level 2 via the rank distance)
     "nuts": {"nuts": 1},
     "cheese": {"cheese": 1}, "cream_cheese": {"cream_cheese": 1},   # spreadable fresh cheeses (labneh, cream cheese, Carré Frais) only substitute each other; never mozzarella or emmental
-    "cream": {"cream": 1}, "butter": {"butter": 1}, "oil": {"oil": 1},
+    "eggs": {"eggs": 1}, "cream": {"cream": 1}, "butter": {"butter": 1}, "oil": {"oil": 1},
     "snack_bars": {
         "fruit_nut_bar": 1,
         "cereal_bar": 2,
@@ -392,6 +393,7 @@ TYPE_TERMS: Dict[str, List[str]] = {
     "herbal_lozenge": ["pastilles gorge", "ricola", "valda", "bonbons plantes menthol"],
     "chocolate_spread": ["pâte à tartiner"],
     "peanut_butter": ["purée d'amande", "purée de noisette", "purée de cacahuète", "purée de cajou", "purée de sésame", "beurre de cacahuète", "tahin"],
+    "eggs": ["oeufs", "œufs"],
     "dip": ["houmous", "tarama", "tzatziki", "guacamole", "ktipiti"],
     "tapenade": ["tapenade", "spécialité à la tomate", "caviar d'aubergine"],
     "fish_canned": ["thon", "sardines", "maquereau", "saumon conserve"],
