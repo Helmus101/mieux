@@ -54,7 +54,7 @@ R = [
     ("eggs", "dairy", "eggs", "eggs", "eggs", "cooking", r"eggs|oeufs", r"\bu?[oœ]e?ufs?\b(?!.*(chocolat|p[âa]ques|plat|mayonnaise|brouill))"),
     ("milk", "dairy", "milk", "liquid", "drink", "breakfast", r"^en:milks$|whole-milks|semi-skimmed-milks|skimmed-milks|uht-milks|cow-milks", r"^lait\b|lait (demi|entier|écrém|ecrem|uht)"),
     ("cream", "dairy", "cream", "liquid", "cooking", "cooking", r"creams|cr[èe]mes-fra[iî]ches", r"cr[èe]me (fra[iî]che|liquide|enti[èe]re)|cr[èe]me fra"),
-    ("butter", "dairy", "fat", "fat", "spread", "spread_cook", r"(?:^|\s)en:(?:butters|margarines)\b", r"^beurre\b|margarine|\bflora\b|\bbecel\b|\bproactiv\b|v[ée]g[ée]tal doux|plant.?based butter"),
+    ("butter", "dairy", "fat", "fat", "spread", "spread_cook", r"(?:^|\s)en:(?:butters|margarines|vegetable-fats)\b|matieres-grasses-vegetales", r"^beurre\b|margarine|\bflora\b|\bbecel\b|\bproactiv\b|v[ée]g[ée]tal doux|plant.?based butter"),
     # ---- drinks
     ("plant_drink", "drinks", "plant_drink", "liquid", "drink", "breakfast", r"plant-based-milks|milk-substitutes|rice-based-drinks|oat-based-drinks|soy-milks|almond-milks|hazelnut-based-drinks|plant-milks", r"boisson (v[ée]g[ée]tale|au riz|[àa] l.avoine|soja|amande|coco|avoine)|lait (d.|de )?(amande|avoine|soja|coco|riz)|bevande"),
     ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"jus (de|d.)|nectar|pur jus|tropico|capri.?sun|oasis\b|boisson aux fruits"),
@@ -162,7 +162,7 @@ _BROAD_LEAFS = {
 
 
 # A preserve/jam tag on a product whose name names no fruit at all is a tagging error, not a jam.
-_JAM_WORDS = re.compile(r"confiture|marmelade|compote|gel[ée]e|pur[ée]e|fruit|fraise|framboise|myrtille|m[ûu]re|cassis|abricot|pruneau|pomme|poire|figue|orange|citron|agrume|melon|p[êe]che|cerise|banane|coing|rhubarbe", re.I)
+_JAM_WORDS = re.compile(r"confiture|confettura|marmellata|jam\b|conserve|preserve|marmelade|compote|gel[ée]e|pur[ée]e|fruit|fraise|framboise|myrtille|m[ûu]re|cassis|abricot|pruneau|pomme|poire|figue|orange|citron|agrume|melon|p[êe]che|cerise|banane|coing|rhubarbe", re.I)
 
 
 def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
