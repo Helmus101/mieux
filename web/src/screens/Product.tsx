@@ -35,6 +35,14 @@ export default function Product() {
       .catch((e: any) => { if (!cancelled && autoTries.current < 2 && e?.response?.status !== 400 && !(e?.response && ![404, 502, 503, 504].includes(e.response.status))) { autoTries.current += 1; retryTimer = setTimeout(() => setAttempt((n) => n + 1), 1200); return; } const snap = useHistory.getState().productById(barcode); if (snap && e?.response?.status !== 404) { setD({ product: snap, fit: [], price_context: null }); setOffline(true); } else setErr(e?.response?.status === 404 ? { kind: e.response.data?.detail === 'not_food' ? 'notfood' : 'notfound', msg: '' } : e?.response?.status === 400 ? { kind: 'invalid', msg: '' } : e?.response?.status === 429 ? { kind: 'rate', msg: '' } : e?.response?.status === 401 ? { kind: 'auth', msg: 'HTTP 401' } : e?.response ? { kind: 'server', msg: `HTTP ${e.response.status}${typeof e.response.data?.detail === 'string' ? ' · ' + e.response.data.detail : ''}` } : { kind: 'network', msg: e.message }); });
     return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
   }, [barcode, estimates, attempt]);
+  // While the product page is read, the server already looks up the prices of its alternatives (found prices are stored), so the alternatives open complete and fast.
+  const savedPrios = useProfile((s) => s.priorities);
+  useEffect(() => {
+    if (!barcode || !d?.product) return;
+    const q = savedPrios.filter((k: string) => k !== 'budget' && k !== 'value');
+    const id = setTimeout(() => { api.getAlternatives(barcode, { priorities: q.length ? q : ['overall'], category_mode: 'similar', limit: 20, substitution_max: 2, same_size: false, chains: [], price_constraint: 'any', approximate: estimates }).catch(() => undefined); }, 600);
+    return () => clearTimeout(id);
+  }, [barcode, d?.product?.id]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
   const [webP, setWebP] = useState<any>(null);       // hooks stay above every early return
   const headKind = d ? priceHeadline(d.price_context).kind : null;
