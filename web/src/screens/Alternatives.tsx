@@ -135,7 +135,7 @@ export default function Alternatives() {
       {!none && <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}{rk === 'value' && <> <PqExplain label /></>}</p>}
       {!none && r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</span>
         {showPrice && <button className="linkbtn" onClick={() => setDiffBy(diffBy === 'kg' ? 'pack' : 'kg')} aria-label={t('diff.byKg') + ' / ' + t('diff.byPack')}>{diffBy === 'kg' ? t('diff.byPack') : t('diff.byKg')}</button>}</p>}
-      {busy && <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />{[0, 1, 2].map((n) => <Skeleton key={n} h={112} />)}</>}
+      {busy && <><Loader slowAfter={30000} steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />{[0, 1, 2].map((n) => <Skeleton key={n} h={112} />)}</>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
       {none && <Card><b>{t('emptyAlt.noneTitle')}</b><p className="mut" style={{ margin: '10px 0 0' }}>{t('emptyAlt.noneWhy')}</p></Card>}
       {r && !busy && !none && !shown.length && (() => {

@@ -60,9 +60,9 @@ export function Segmented({ options, value, onChange }: { options: { key: string
 }
 export const Bar = ({ value }: { value: number }) => <div className="bar"><i style={{ width: Math.max(2, Math.min(100, value * 100)) + '%' }} /></div>;
 /** steps: messages shown one after the other (every 2 s) so a long wait visibly makes progress. */
-export function Loader({ label, onRetry, steps }: { label?: string; onRetry?: () => void; steps?: string[] }) {
+export function Loader({ label, onRetry, steps, slowAfter = 8000 }: { label?: string; onRetry?: () => void; steps?: string[]; slowAfter?: number }) {
   const [slow, setSlow] = useState(false), [i, setI] = useState(0);
-  useEffect(() => { const id = setTimeout(() => setSlow(true), 8000); return () => clearTimeout(id); }, []);
+  useEffect(() => { const id = setTimeout(() => setSlow(true), slowAfter); return () => clearTimeout(id); }, []);
   useEffect(() => { if (!steps || steps.length < 2) return; const id = setInterval(() => setI((n) => Math.min(n + 1, steps.length - 1)), 2000); return () => clearInterval(id); }, [steps]);
   if (steps?.length) label = steps[Math.min(i, steps.length - 1)];
   return (
