@@ -12,7 +12,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from . import value
 
@@ -497,11 +497,53 @@ def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]
     return None
 
 
+def _extract_grocers(product: Dict[str, Any], results: list) -> Tuple[List[str], List[str]]:
+    """Extract all French supermarket chains and grocery stores where this product is present.
+    Returns (store_names, chain_ids)."""
+    from . import chains as ch, retail
+    brand_w = _words(str(product.get("brand") or "").split(",")[0])
+    name_w = _name_words(product, brand_w)
+    code = str(product.get("barcode") or "")
+    stores, chains = [], []
+
+    for url, text in results:
+        if "openfoodfacts" in url:
+            continue
+        slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))
+        tw = _words(text)
+        exact = len(code) >= 8 and (code in url or code in text)
+        has_name = exact or (name_w and len(name_w & (slug | tw)) >= max(1, min(2, len(name_w))))
+        has_brand = not brand_w or bool(brand_w & (slug | tw))
+        if not (has_name and has_brand):
+            continue
+
+        host = urllib.parse.urlparse(url).netloc.replace("www.", "")
+        cname = ch.canon(host.replace(".", " "))
+        if not cname:
+            for store_candidate, rx in ch.CHAINS.items():
+                if re.search(rx, host, re.I) or re.search(rx, text[:150], re.I):
+                    cname = store_candidate
+                    break
+        if not cname:
+            clean_host = host.split(".")[0].replace("-", " ").title()
+            if len(clean_host) >= 4 and clean_host.lower() not in ("drive", "courses", "shop", "boutique", "magasin", "recherche", "produit"):
+                cname = clean_host
+
+        if cname and cname not in stores:
+            stores.append(cname)
+            cid = retail.ID_OF.get(cname)
+            if cid and cid not in chains:
+                chains.append(cid)
+
+    return stores, chains
+
+
 def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _post, deadline: Optional[float] = None) -> Optional[Dict[str, Any]]:
     """Parallel search; no price when the sites it returns do not agree on this pack size. `deadline` (epoch seconds) stops trying further providers once passed;
     that is a timeout, not a miss, so it is never cached as "nothing found"."""
     global last_error
     last_error = None
+    all_results = []
     if not _budget_left():
         last_error = "daily cap reached"
         return None
@@ -542,6 +584,9 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                     out["provider"] = name
                     if assumed:
                         out["size_assumed"] = assumed
+                    disc_stores, disc_chains = _extract_grocers(product, all_results)
+                    out["stores"] = list(dict.fromkeys((out.get("stores") or []) + disc_stores))
+                    out["chains"] = list(dict.fromkeys((out.get("chains") or []) + disc_chains))
                     return out
                 if last_error:              # a Gemini failure must not stop a genuine "nothing found" from being cached for the other providers
                     if "Timeout" not in last_error:
@@ -552,10 +597,12 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 continue                    # this provider just said "quota used up": skip it for a few minutes
             try:
                 found = _fetch_results(name, product, http, variant)
+                all_results.extend(found)
                 out = _price_from(product, found)
                 if not out:
                     extra = _page_prices(product, found, deadline)       # right product page found, but its snippet shows no price: read the page
                     if extra:
+                        all_results.extend(extra)
                         out = _price_from(product, found + extra)
             except Exception as e:
                 _set_error(e)
@@ -566,9 +613,26 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 out["provider"] = name
                 if assumed:
                     out["size_assumed"] = assumed
+                disc_stores, disc_chains = _extract_grocers(product, all_results)
+                out["stores"] = list(dict.fromkeys((out.get("stores") or []) + disc_stores))
+                out["chains"] = list(dict.fromkeys((out.get("chains") or []) + disc_chains))
                 return out
         if not product.get("brand"):
             break                           # an unbranded product is rarely found by a second try: do not pay for it
+    disc_stores, disc_chains = _extract_grocers(product, all_results)
+    if disc_chains or disc_stores:
+        return {
+            "per100_cents": None,
+            "pack_cents": None,
+            "store": disc_stores[0] if disc_stores else None,
+            "stores": disc_stores,
+            "chains": disc_chains,
+            "source_urls": [u for u, _ in all_results if any(c in u.lower() for c in disc_chains)][:3],
+            "date": time.strftime("%Y-%m-%d"),
+            "source": "web_search",
+            "approximate": True,
+            "no_price": True,
+        }
     return None
 
 

@@ -640,8 +640,10 @@ def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None
         except Exception:
             pass
     w = webprice.lookup(p, deadline=(time.time() + max_seconds) if max_seconds else None, force=force)
-    if w and not w.get("stale"):
-        _record_web_price(s, p, w)
+    if w:
+        _record_web_chains(s, barcode, w)
+        if not w.get("stale") and w.get("per100_cents") is not None:
+            _record_web_price(s, p, w)
         s.commit()
     if w and w.get("per100_cents") is not None:
         vi_ = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), w["per100_cents"])
@@ -709,6 +711,34 @@ def _record_price(s: Session, product_id: str, user_id: Optional[str], source: s
     s.add(db.ProductPrice(product_id=product_id, user_id=user_id, source=source, observed_on=observed_on, pack_cents=pack_cents, per100_cents=per100,
                           qty_amount=qty["amount"] if qty else None, qty_unit=qty["unit"] if qty else None, receipt_id=receipt_id, confidence=confidence,
                           currency=(native or {}).get("currency", market.currency()), price_native=(native or {}).get("price_native"), fx=(native or {}).get("fx"), stale=bool((native or {}).get("stale"))))
+
+
+def _record_web_chains(s: Session, barcode: str, w: Dict[str, Any]) -> None:
+    """Record any grocers/chains discovered by web search in chain_product_listings so they persist in the database."""
+    chains = w.get("chains") or []
+    urls = w.get("source_urls") or []
+    primary_url = urls[0] if urls else None
+    for cid in chains:
+        if cid in retail.NAME_OF:
+            r = s.query(db.ChainProductListing).filter_by(product_id=barcode, chain_id=cid).first()
+            if not r:
+                s.add(db.ChainProductListing(
+                    product_id=barcode,
+                    chain_id=cid,
+                    match_type="name_brand_size",
+                    match_confidence=0.85,
+                    listing_status="listed",
+                    source="web_search",
+                    source_url=primary_url,
+                    price_per100_cents=w.get("per100_cents"),
+                ))
+            elif not r.price_per100_cents and w.get("per100_cents"):
+                r.price_per100_cents = w.get("per100_cents")
+                r.last_checked = db.now()
+    try:
+        s.commit()
+    except Exception:
+        s.rollback()
 
 
 def _record_web_price(s: Session, product: Dict[str, Any], w: Dict[str, Any]) -> None:
@@ -1556,15 +1586,28 @@ def _search_once(c: Dict[str, Any]):
     if f is None or f.done():
         f = _WARM.submit(webprice.lookup, c)
         _INFLIGHT[bc] = f
-        f.add_done_callback(lambda _f, b=bc: _INFLIGHT.pop(b, None))
+        def done_cb(fut, b=bc, prod=c):
+            _INFLIGHT.pop(b, None)
+            if fut.done() and not fut.exception():
+                w_ = fut.result()
+                if w_:
+                    try:
+                        with app.state.sessions() as s2:
+                            _record_web_chains(s2, b, w_)
+                            if not w_.get("stale") and w_.get("per100_cents") is not None:
+                                _record_web_price(s2, prod, w_)
+                            s2.commit()
+                    except Exception:
+                        pass
+        f.add_done_callback(done_cb)
     return f
 
 
 def _search_targets(orig: Dict[str, Any], orig_unpriced: bool, prods: List[Dict[str, Any]], prices: Dict[str, float], top_quality: int = 20, total: int = 30) -> List[Dict[str, Any]]:
     """Whom to search the web for, in order: the scanned product if it has no price, then the 20 best-scoring unpriced close substitutes (the quality tab shows 10 after removing duplicates), then the ones most likely to be cheap or good value (house brands, widely sold, popular). Same unit only; close substitutes only."""
     oq = orig.get("quantity")
-    cand = [c for c in prods if c.get("quantity") and c["barcode"] not in prices and c["barcode"] != orig["barcode"]
-            and (not oq or c["quantity"]["unit"] == oq["unit"]) and ((c.get("substitution") or {}).get("level") in (1, 2, None))]
+    cand = [c for c in prods if c["barcode"] not in prices and c["barcode"] != orig["barcode"]
+            and (not oq or not c.get("quantity") or c["quantity"]["unit"] == oq["unit"]) and ((c.get("substitution") or {}).get("level") in (1, 2, None))]
 
     def _likely_value(c):
         pop = c.get("popularity") or {}
@@ -1627,7 +1670,12 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                         if f.done() and not f.exception():
                             found[i] = f.result()
                 for c, w in zip(todo, found):
-                    if not w or w.get("per100_cents") is None:
+                    if not w:
+                        continue
+                    if w.get("chains"):
+                        _record_web_chains(s, c["barcode"], w)
+                        c["chains"] = list(dict.fromkeys((c.get("chains") or []) + w["chains"]))
+                    if w.get("per100_cents") is None:
                         continue
                     if c["barcode"] == orig["barcode"]:
                         orig_price = w["per100_cents"]

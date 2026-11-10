@@ -49,19 +49,69 @@ export default function Alternatives() {
   const webBusy = false;
   // Anything shown without a price is searched for after the list appears and filled in place (rows never move): barcode -> price found, or null when the search found none.
   const [fill, setFill] = useState<Record<string, any>>({}); const asked = useRef(new Set<string>());
-  const rowOf = (e0: any) => { const w = e0.price_per_100_cents == null ? (webP[e0.product?.barcode] ?? fill[e0.product?.barcode]) : null; const e = w ? { ...e0, price_per_100_cents: w.per100_cents, value_score: w.value_score, pack_cents: w.pack_cents, product: { ...e0.product, chains: e0.product.chains?.length ? e0.product.chains : (w.chains ?? []) } } : e0; return ({ ps_web: !!w || e.price_source?.source === "web_search", avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }); };
+  const rowOf = (e0: any) => {
+    const w = webP[e0.product?.barcode] ?? fill[e0.product?.barcode];
+    const chains = (e0.product?.chains?.length) ? e0.product.chains : (w?.chains?.length ? w.chains : []);
+    const p100 = e0.price_per_100_cents ?? w?.per100_cents;
+    const vs = e0.value_score ?? w?.value_score;
+    const pack = e0.pack_cents ?? w?.pack_cents;
+    const e = w ? {
+      ...e0,
+      price_per_100_cents: p100,
+      value_score: vs,
+      pack_cents: pack,
+      product: { ...e0.product, chains },
+    } : {
+      ...e0,
+      product: { ...e0.product, chains },
+    };
+    return ({
+      ps_web: !!w || e.price_source?.source === "web_search",
+      avail: e.availability,
+      notCheaper: !!e.not_cheaper,
+      notBetterValue: !!e.not_better_value,
+      product: e.product,
+      why: e.why,
+      tradeoffs: e.tradeoffs ?? [],
+      price100: e.price_per_100_cents,
+      estimated: e.estimated,
+      dominated: e.dominated,
+      vs: e.value_score,
+      better: e.better_than_yours,
+      detail: e.value_detail,
+      ps: e.price_score,
+      nearby: e.nearby,
+      conf: e.price_source?.confidence as string | undefined,
+      priceDate: e.price_date ?? e.price_source?.date,
+      stale: e.price_stale ?? e.price_source?.stale,
+      size: e.size ?? e.product.quantity,
+      pack: e.pack_cents,
+      ratio: e.size_ratio,
+    });
+  };
   // What each tab shows: sorted strictly by category requirements.
   const sourceRows = (k: string): any[] => {
     const base = (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []) as any[];
     if (k !== 'value' && k !== 'budget') return base;
-    const have = new Set(base.map((x: any) => x.product.barcode));
-    const extra = [...(r?.rankings?.quality ?? []), ...(r?.rankings?.closest ?? [])].filter((x: any) => x.price_per_100_cents == null && webP[x.product?.barcode] && !have.has(x.product.barcode) && have.add(x.product.barcode));
+    const have = new Set(base.map((x: any) => x.product?.barcode));
+    const extra = [
+      ...(r?.rankings?.quality ?? []),
+      ...(r?.rankings?.closest ?? []),
+      ...(r?.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
+    ].filter((x: any) => {
+      const bc = x.product?.barcode;
+      if (!bc || have.has(bc)) return false;
+      const w = webP[bc] ?? fill[bc];
+      const p100 = x.price_per_100_cents ?? w?.per100_cents;
+      if (p100 == null) return false;
+      have.add(bc);
+      return true;
+    });
     return [...base, ...extra];                                      // + candidates priced by the web search
   };
   const listOf = (k: string) => sourceRows(k).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
-    if (!(e.product.chains?.length)) return false;                 // only products sold at at least one supermarket chain
-    if (myChains.length && !e.product.chains.some((c: string) => myChains.includes(c))) return false;   // the person picked their shops: a shop found later by the price search counts too
+    if (myChains.length && !e.product.chains?.some((c: string) => myChains.includes(c))) return false;   // the person picked their shops: a shop found later by the price search counts too
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     if (k === 'budget') { const op = r?.original_price?.per100_cents; return e.price100 != null && (op == null || e.price100 < op); }   // cheaper than yours only, cheapest first
     if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never a product scoring the same or lower
@@ -78,13 +128,45 @@ export default function Alternatives() {
   const shown = ranked.slice(0, 10);
   useEffect(() => {
     if (busy || !r) return;
-    const todo = shown.filter((e: any) => e.price100 == null && !asked.current.has(e.product.barcode)).map((e: any) => e.product.barcode as string);
+    const shownTodo = shown
+      .filter((e: any) => e.price100 == null && !asked.current.has(e.product?.barcode))
+      .map((e: any) => e.product.barcode as string);
+    const allCands = [
+      ...(r?.rankings?.quality ?? []),
+      ...(r?.rankings?.closest ?? []),
+      ...(r?.rankings?.value ?? []),
+      ...(r?.rankings?.budget ?? []),
+      ...(r?.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
+    ];
+    const restTodo = allCands
+      .filter((c: any) => {
+        const bc = c.product?.barcode;
+        return bc && c.price_per_100_cents == null && !asked.current.has(bc);
+      })
+      .map((c: any) => c.product.barcode as string);
+    const todo = Array.from(new Set([...shownTodo, ...restTodo]));
+    if (!todo.length) return;
     todo.forEach((c) => asked.current.add(c));
     // One request per row, four at a time, in display order: each row is filled as soon as its own search ends instead of waiting for the slowest.
     let next = 0;
-    const worker = async () => { while (next < todo.length) { const c = todo[next++]; const w = await api.getWebPriceQuick(c); setFill((f) => ({ ...f, [c]: w })); } };
+    const worker = async () => {
+      while (next < todo.length) {
+        const c = todo[next++];
+        try {
+          const w = await api.getWebPriceQuick(c);
+          setFill((f) => ({ ...f, [c]: w }));
+        } catch {
+          setFill((f) => ({ ...f, [c]: null }));
+        }
+      }
+    };
     for (let k = 0; k < Math.min(4, todo.length); k++) void worker();
-  }, [busy, !!r, shown.filter((e: any) => e.price100 == null).map((e: any) => e.product.barcode).join()]);
+  }, [
+    busy,
+    !!r,
+    shown.filter((e: any) => e.price100 == null).map((e: any) => e.product?.barcode).join(),
+    r ? (r.rankings?.quality?.length ?? 0) : 0,
+  ]);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
   const none = !!r && !busy && !webBusy && !err && ['value', 'match', 'closest'].every((k) => listOf(k).length === 0);   // never more than 10 per tab, after the strict filters
   // Two tabs: price-quality (opens first) and quality.
@@ -171,7 +253,7 @@ export default function Alternatives() {
       {r && !busy && <div className="alist">{shown.map((e: any, idx: number) => {
         const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
         const d = diffOf(e);
-        const w = webP[e.product.barcode];
+        const w = webP[e.product.barcode] ?? fill[e.product.barcode];
         const chains = ((e.product.chains?.length ? e.product.chains : w?.chains) ?? []) as string[];
         return (
           <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={() => { haptic('tap'); setDetail(e); }}>
@@ -190,8 +272,9 @@ export default function Alternatives() {
             <div className="aprice">
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
                 : e.pack != null ? <b>{formatCents(e.pack)}</b>
-                : w ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b> : null}
-              {u == null && e.pack == null && !w && (fill[e.product.barcode] === null ? <span className="mut sm">{t('alt.noPrice')}</span> : <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span>)}
+                : w?.per100_cents != null ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b>
+                : w?.pack_cents != null ? <b>~ {formatCents(w.pack_cents)}</b> : null}
+              {u == null && e.pack == null && w?.per100_cents == null && w?.pack_cents == null && (fill[e.product.barcode] === null ? <span className="mut sm">{t('alt.noPrice')}</span> : <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span>)}
               {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
               {d && rk === 'budget' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
             </div>
