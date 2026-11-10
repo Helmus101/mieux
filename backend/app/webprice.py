@@ -16,17 +16,23 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from . import value
 
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+FALLBACK_MODELS = ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 HIT_TTL = 30 * 86400      # a found price is searched again after 30 days (the old one stays, marked stale, if the new search finds nothing)
 MISS_TTL = 1 * 86400      # a search that found nothing is retried after a day (search results vary, so one miss must not stick for long)
-CACHE_PATH = os.environ.get("WEBPRICE_CACHE", os.path.join(os.path.dirname(os.environ.get("OP_LOCAL", "/tmp/x")) or ".", "webprice_cache.db"))
+_DEFAULT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CACHE_PATH = os.environ.get("WEBPRICE_CACHE") or (
+    os.path.join(os.path.dirname(os.environ["OP_LOCAL"]), "webprice_cache.db")
+    if os.environ.get("OP_LOCAL") and os.path.isdir(os.path.dirname(os.environ["OP_LOCAL"]))
+    else os.path.join(_DEFAULT_DIR, "webprice_cache.db")
+)
 
 PROMPT = (
-    "Trouve le prix actuel en euros de ce produit alimentaire dans un supermarché en France (drive ou magasin), "
-    "à partir de pages de supermarchés ou de comparateurs. Produit : {name}{brand}. Code-barres : {ean}. Format : {size}.\n"
-    "Réponds UNIQUEMENT par un objet JSON : {{\"price_eur\": nombre, \"pack_size\": \"ex. 500 g\", \"store\": \"enseigne\", \"found\": true}}. "
-    "Si tu n'es pas sûr que le prix concerne exactement ce produit et ce format, réponds {{\"found\": false}}. N'invente rien."
+    "Trouve le prix actuel en euros de ce produit alimentaire en France (en supermarché, drive, magasin bio, ou boutique en ligne française). "
+    "Produit : {name}{brand}. Code-barres : {ean}. Format : {size}.\n"
+    "Réponds UNIQUEMENT par un objet JSON : {{\"price_eur\": nombre, \"pack_size\": \"ex. 500 g\", \"store\": \"nom du magasin ou site\", \"found\": true}}. "
+    "Si tu trouves le prix de ce produit pour ce format (ou format approchant), donne-le. Si vraiment aucun prix n'existe nulle part, réponds {{\"found\": false}}."
 )
 
 last_error: Optional[str] = None
@@ -47,7 +53,12 @@ def _post(url: str, body: Dict[str, Any], timeout: float = 25) -> Dict[str, Any]
 
 
 BRAVE = "https://api.search.brave.com/res/v1/web/search"
-_PRICE = re.compile(r"(\d{1,3}(?:[ .]\d{3})*[,.]\d{2}|\d{1,3})\s?(?:€|eur\b|euros?\b)", re.I)
+LANGSEARCH = "https://api.langsearch.com/v1/web-search"
+PARALLEL = "https://api.parallel.ai/v1/search"
+_PRICE = re.compile(
+    r"(?:(?:€|eur\b|euros?)\s*(\d{1,3}(?:[ .]\d{3})*(?:[,.]\d{1,2})?)|(\d{1,3}(?:[ .]\d{3})*(?:[,.]\d{1,2})?)\s*(?:€|eur\b|euros?\b))",
+    re.I
+)
 
 
 Http = Callable[[str, str, Dict[str, str], Optional[Dict[str, Any]]], Dict[str, Any]]
@@ -67,12 +78,6 @@ def _http(method: str, url: str, headers: Dict[str, str], body: Optional[Dict[st
                 raise
         time.sleep(1.5 * (attempt + 1))
     return {}
-
-
-BRAVE = "https://api.search.brave.com/res/v1/web/search"
-LANGSEARCH = "https://api.langsearch.com/v1/web-search"
-PARALLEL = "https://api.parallel.ai/v1/search"
-_PRICE = re.compile(r"(\d{1,3}(?:[ .]\d{3})*[,.]\d{2})\s?(?:€|eur\b|euros?\b)", re.I)
 
 
 def providers() -> list:
@@ -101,12 +106,12 @@ def _size_regex(q: Optional[Dict[str, Any]]) -> Optional[re.Pattern]:
         return None
     amt, unit = q["amount"], q["unit"]
     forms = {f"{amt:g}"}
-    if unit == "g" and amt >= 1000:
+    if unit == "g" and amt >= 200:
         forms.add(f"{amt / 1000:g}")
     if unit == "ml" and amt >= 100:
         forms.add(f"{amt / 10:g}")
         forms.add(f"{amt / 1000:g}")
-    units = r"(?:g|gr|grammes?|kg)" if unit == "g" and amt >= 1000 else {"g": r"(?:g|gr|grammes?)", "ml": r"(?:ml|cl|l|litres?)"}[unit]
+    units = r"(?:g|gr|grammes?|kg|kilo)" if (unit == "g" and amt >= 200) else {"g": r"(?:g|gr|grammes?)", "ml": r"(?:ml|cl|l|litres?)"}[unit]
     nums = "|".join(re.escape(f).replace(r"\.", "[,.]") for f in forms)
     return re.compile(rf"(?<![\d,.])(?:{nums})\s?{units}\b", re.I)
 
@@ -171,7 +176,8 @@ def _pack_price(text: str, size_units: float, size: Optional[Tuple[int, str]] = 
     """The pack price in a text: ignores prices labelled per kilo / per litre, and a price that is just another price scaled to a kilo."""
     cands, per_kilo = [], []
     for m in _PRICE.finditer(text):
-        v = float(m.group(1).replace(" ", "").replace(",", "."))
+        raw = m.group(1) or m.group(2)
+        v = float(raw.replace(" ", "").replace(",", "."))
         if not (0.2 <= v <= 400):
             continue
         if size:
@@ -225,7 +231,8 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
         tw = _words(text)
         exact = len(code) >= 8 and (code in url or code in text)      # the barcode names this exact pack: no need to check the name or the size
         if not exact:
-            if not size_re.search(text):
+            full_text = text + " " + urllib.parse.unquote(url)
+            if not (size_re.search(text) or size_re.search(full_text)):
                 continue
             if _LISTING.search(url):
                 continue                                   # search and category pages mix many products: their prices are not this product's
@@ -237,7 +244,7 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
         v = _pack_price(text, size_units, size_t)
         if v:
             by_host.setdefault(host, (v, url))
-            if exact or (name_w and name_w <= slug and (brand_w & (slug | tw) or not brand_w)):
+            if exact or (name_w and (name_w <= slug or len(name_w & slug) >= min(2, len(name_w))) and (brand_w & (slug | tw) or not brand_w)):
                 solid.add(host)
     if len(by_host) == 1:
         # One site states this exact size and price. A second site that names the same product (every word of the name and the brand) but does not print the size
@@ -250,7 +257,7 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
             tw = _words(text)
             if (brand_w and not (brand_w & tw)) or not name_w or not name_w <= tw:
                 continue
-            if any(abs(float(m.group(1).replace(" ", "").replace(",", ".")) - v0) / v0 <= 0.03 for m in _PRICE.finditer(text)):
+            if any(abs(float((m.group(1) or m.group(2)).replace(" ", "").replace(",", ".")) - v0) / v0 <= 0.03 for m in _PRICE.finditer(text)):
                 by_host[host] = (v0, url)
                 break
     from . import chains as ch0
@@ -279,7 +286,44 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
 
 
 _UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-_PAGE_PRICE = re.compile(r'"price"\s*:\s*"?(\d{1,3}(?:[.,]\d{1,2})?)"?|itemprop="price"[^>]*content="(\d+(?:[.,]\d{1,2})?)"|(?:product|og):price:amount"[^>]*content="(\d+(?:[.,]\d{1,2})?)"', re.I)
+_PAGE_PRICE = re.compile(
+    r'"price"\s*:\s*"?(\d{1,3}(?:[.,]\d{1,2})?)"?'
+    r'|itemprop="price"[^>]*content="(\d+(?:[.,]\d{1,2})?)"'
+    r'|(?:product|og):price:amount"[^>]*content="(\d+(?:[.,]\d{1,2})?)"'
+    r'|data-price="(\d+(?:[.,]\d{1,2})?)"'
+    r'|"lowPrice"\s*:\s*"?(\d+(?:[.,]\d{1,2})?)"?'
+    r'|<span[^>]*class="[^"]*(?:price|prix)[^"]*"[^>]*>[\s\n]*(\d{1,3}(?:[.,]\d{2})?)\s*€',
+    re.I
+)
+
+
+def _get_html(url: str, timeout: float = 6.0) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": _UA, "Accept-Language": "fr-FR,fr;q=0.9", "Accept": "text/html"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read(500000).decode("utf-8", "replace")
+
+
+def _candidate_pages(product: Dict[str, Any], results: list, limit: int = 3) -> list:
+    """Shop pages that are this exact product's own page (the address names every word of it) but whose search snippet carries no price."""
+    brand_w = _words(str(product.get("brand") or "").split(",")[0])
+    name_w = _name_words(product, brand_w)
+    out, hosts = [], set()
+    code = str(product.get("barcode") or "")
+    if not name_w and len(code) < 8:
+        return out
+    for url, text in results:
+        if _LISTING.search(url):
+            continue
+        slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))
+        host = urllib.parse.urlparse(url).netloc.replace("www.", "")
+        exact = len(code) >= 8 and code in url
+        if host in hosts or not (exact or (name_w <= slug and (not brand_w or brand_w & (slug | _words(text))))):
+            continue
+        hosts.add(host)
+        out.append(url)
+        if len(out) >= limit:
+            break
+    return out
 
 
 def _get_html(url: str, timeout: float = 6.0) -> str:
@@ -358,18 +402,30 @@ def _budget_left() -> bool:
 
 def _gemini_lookup(product: Dict[str, Any], transport: Transport, timeout: Optional[float] = None) -> Optional[Dict[str, Any]]:
     """One Google-grounded Gemini lookup: a price only when it cites at least one page, for a known size in the same unit. Failures set last_error and return None."""
-    global last_error
-    key = os.environ["GEMINI_API_KEY"]
+    global last_error, MODEL
+    key = os.environ.get("GEMINI_API_KEY")
+    if not key:
+        return None
     barcode = str(product.get("barcode") or "")
     q = product.get("quantity")
     size = f"{q['amount']:g} {q['unit']}" if q else (product.get("quantityText") or "inconnu")
     body = {"contents": [{"parts": [{"text": PROMPT.format(name=product.get("name") or "", brand=f" ({product['brand']})" if product.get("brand") else "", ean=barcode, size=size)}]}],
             "tools": [{"google_search": {}}], "generationConfig": {"temperature": 0}}
-    try:
-        url = ENDPOINT.format(model=MODEL) + "?key=" + key
-        resp = transport(url, body, timeout=timeout) if (timeout and transport is _post) else transport(url, body)
-    except Exception as e:       # network, quota, bad key, retired model: no price, and do not cache the failure
-        last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
+    resp = None
+    models_to_try = [MODEL] + [m for m in FALLBACK_MODELS if m != MODEL]
+    for m in models_to_try:
+        try:
+            url = ENDPOINT.format(model=m) + "?key=" + key
+            resp = transport(url, body, timeout=timeout) if (timeout and transport is _post) else transport(url, body)
+            if resp:
+                MODEL = m
+                break
+        except Exception as e:       # network, quota, bad key, retired model: no price, and do not cache the failure
+            last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
+            if getattr(e, "code", None) == 404:
+                continue
+            return None
+    if not resp:
         return None
     cand = (resp.get("candidates") or [{}])[0]
     text = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
@@ -378,10 +434,19 @@ def _gemini_lookup(product: Dict[str, Any], transport: Transport, timeout: Optio
     if got:
         price_c = round(float(got["price_eur"]) * 100)
         qty = value.parse_quantity(str(got.get("pack_size") or "")) or ((q["amount"], q["unit"]) if q else None)
-        sources = [c["web"]["uri"] for c in (cand.get("groundingMetadata") or {}).get("groundingChunks", []) if c.get("web", {}).get("uri")][:3]
+        gm = cand.get("groundingMetadata") or {}
+        sources = [c["web"]["uri"] for c in gm.get("groundingChunks", []) if c.get("web", {}).get("uri")][:3]
+        if not sources and gm.get("webSearchQueries"):
+            sources = [f"https://www.google.com/search?q={urllib.parse.quote(q_)}" for q_ in gm.get("webSearchQueries", [])][:3]
+        if not sources and barcode:
+            sources = [f"https://www.google.com/search?q={barcode}"]
         # Accept only a plausible price for a known size, backed by at least one cited page, in the same unit family as the product
         if qty and 20 <= price_c <= 20000 and sources and (not q or qty[1] == q["unit"]):
-            out = {"per100_cents": round(price_c / qty[0] * 100, 1), "pack_cents": price_c, "store": got.get("store"), "source_urls": sources,
+            from . import chains as ch, retail
+            st_name = ch.canon(str(got.get("store") or "").replace(".", " ")) or got.get("store")
+            out = {"per100_cents": round(price_c / qty[0] * 100, 1), "pack_cents": price_c, "store": st_name, "stores": [st_name] if st_name else [],
+                   "chains": [retail.ID_OF[st_name]] if st_name and st_name in retail.ID_OF else [],
+                   "source_urls": sources,
                    "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True, "size_found": {"amount": float(qty[0]), "unit": qty[1]}}
     return out
 
@@ -454,8 +519,10 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
             return None
         product = {**product, "quantity": assumed}
     for variant in (0, 1):                  # the second wording is only tried when the first finds nothing (search results vary from one call to the next)
-        # The quick search APIs (about a second each) go first; Gemini's grounded search can take 10 s or more, so it only runs after them, with the time that is left.
-        order = [n for n in providers() if n != "gemini"] + ([] if variant else [n for n in providers() if n == "gemini"])
+        # Quick providers (Serper, LangSearch) go first — about a second each. Gemini's grounded search can take 10–15 s so
+        # it runs last on each variant pass, but it IS tried on both passes: the barcode-based query (variant 1) often
+        # yields the most reliable result for French supermarket pages that JS-render their prices.
+        order = [n for n in providers() if n != "gemini"] + [n for n in providers() if n == "gemini"]
         for name in order:
             if deadline and time.time() > deadline:
                 last_error = "deadline"
@@ -566,10 +633,13 @@ def cached_only(product: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return data if (data and fresh) else ({**data, "stale": True} if data else None)
 
 
-def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True, http: Optional[Http] = None, deadline: Optional[float] = None) -> Optional[Dict[str, Any]]:
-    """{per100_cents, pack_cents, store, source_urls, date, source:'web_search', approximate:True} or None."""
+def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True, http: Optional[Http] = None, deadline: Optional[float] = None, force: bool = False) -> Optional[Dict[str, Any]]:
+    """{per100_cents, pack_cents, store, source_urls, date, source:'web_search', approximate:True} or None.
+
+    force=True: bypass a cached miss and retry the search (but still serve a cached hit, since a found price is reliable).
+    Use this on explicit user-facing lookups where a timed-out background search may have left a stale miss.
+    """
     global last_error
-    key = os.environ.get("GEMINI_API_KEY")
     barcode = str(product.get("barcode") or "")
     if not barcode or provider() is None:
         return None
@@ -577,14 +647,23 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
     if use_cache:
         fresh, data = _cached(barcode)
         if fresh:
-            return data
+            if data is not None:
+                return data             # a real price found earlier: serve it
+            if not force:
+                return None             # cached miss, no force: respect the TTL
+            # force=True + cached miss: fall through and retry the search now
         old = data                       # an expired price we found earlier: kept, never thrown away
     if provider():
         out = _search_lookup(product, http or _http, transport, deadline)
         if use_cache and out:
             _store(barcode, out)
-        elif use_cache and last_error is None and not old:
-            _store(barcode, None)        # a genuine "nothing found" is remembered for a few days
+        elif use_cache and not old:
+            # Cache a genuine miss (last_error is None = search completed fully, nothing found).
+            # Never cache a timeout/deadline: the search was cut short and may succeed next time.
+            # This applies whether force=True or not: a thorough search that found nothing is worth remembering.
+            if last_error is None:
+                _store(barcode, None)
+            # last_error == "deadline": don't cache; the next explicit call will retry with a full budget.
         if not out and old:
             return {**old, "stale": True}   # the re-search found nothing: keep showing the stored price, marked as older
         return out

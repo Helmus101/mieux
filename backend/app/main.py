@@ -619,16 +619,27 @@ class WebPricesReq(BaseModel):
     barcodes: List[str] = Field(..., min_length=1, max_length=8)
 
 
-def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None) -> Optional[Dict[str, Any]]:
-    """An approximate web price (and the supermarkets it was found at) for a product with no observed price. None otherwise."""
+def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None, force: bool = False) -> Optional[Dict[str, Any]]:
+    """An approximate web price (and the supermarkets it was found at) for a product with no observed price. None otherwise.
+
+    force=True: bypass a cached miss so a background search that timed out during the alternatives call doesn't
+    block an explicit user-facing lookup for 24 hours. Cached hits (a real price found earlier) are always served.
+    """
     from . import webprice
     if not webprice.enabled():
         return None
     p = load_product(s, barcode)
     q = p.get("quantity")
     if q and app.state.prices.latest(barcode, (q["amount"], q["unit"])):
-        return None                       # an observed price exists: nothing to approximate (an unknown pack size is guessed from product pages by the lookup)
-    w = webprice.lookup(p, deadline=(time.time() + max_seconds) if max_seconds else None)
+        return None                       # an observed price exists: nothing to approximate
+    # If a search for this barcode was started by the alternatives pass, wait on it first to avoid duplicate work
+    f = _INFLIGHT.get(barcode)
+    if f is not None and not f.done():
+        try:
+            f.result(timeout=min(max_seconds or 8.0, 8.0))
+        except Exception:
+            pass
+    w = webprice.lookup(p, deadline=(time.time() + max_seconds) if max_seconds else None, force=force)
     if w and not w.get("stale"):
         _record_web_price(s, p, w)
         s.commit()
@@ -641,8 +652,12 @@ def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None
 @app.get("/v1/products/{barcode}/web-price")
 @limiter.limit("60/minute")
 def product_web_price(request: Request, barcode: str, uid: str = Depends(user), s: Session = Depends(get_db)):
-    """One search for a product with no price: returns {price: {pack_cents, per100_cents, stores, chains, source_urls, approximate}} or {price: null}."""
-    return {"price": _web_price_for(s, barcode, max_seconds=14)}
+    """One search for a product with no price: returns {price: {pack_cents, per100_cents, stores, chains, source_urls, approximate}} or {price: null}.
+
+    Always retries past cached misses (force=True): the background search during the alternatives call may have timed
+    out and left a fresh miss, but the dedicated 25-second slot here is enough for the same product.
+    """
+    return {"price": _web_price_for(s, barcode, max_seconds=25, force=True)}
 
 
 @app.post("/v1/web-prices")

@@ -114,10 +114,10 @@ export class MieuxAPI {
     return response.data?.price ?? null;
   }
 
-  /** One row's price, fast: 18 s at most, and no automatic retry (the generic retry would triple a slow search). Null when nothing is found or it times out. */
+  /** One row's price, fast: 30 s at most, and no automatic retry (the generic retry would triple a slow search). Null when nothing is found or it times out. */
   async getWebPriceQuick(barcode: string) {
     try {
-      const response = await this.client.get(`/products/${barcode}/web-price`, { timeout: 18000, __retries: 3 } as any);
+      const response = await this.client.get(`/products/${barcode}/web-price`, { timeout: 30000, __retries: 3 } as any);
       return response.data?.price ?? null;
     } catch { return null; }
   }
