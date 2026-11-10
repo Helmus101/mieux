@@ -403,7 +403,7 @@ def test_gemini_is_asked_first_then_the_others(monkeypatch, tmp_path):
     monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp6.db"))
     assert webprice.providers() == ["gemini", "parallel"]
     monkeypatch.delenv("PARALLEL_API_KEY"); monkeypatch.setenv("BRAVE_API_KEY", "x")
-    assert webprice.providers() == ["gemini"]                                   # Brave is never used
+    assert webprice.providers() == ["gemini", "brave"]                          # free-tier search APIs come after Gemini
     monkeypatch.setenv("PARALLEL_API_KEY", "p")
     prod = {"barcode": "3017620422003", "name": "Nutella", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
     reply = {"candidates": [{"content": {"parts": [{"text": '{"price_eur": 3.2, "pack_size": "400 g", "store": "Auchan", "found": true}'}]},
@@ -628,3 +628,11 @@ def test_a_price_from_another_flavour_or_a_listing_page_is_never_used():
     assert webprice._price_from(prod, [wrong_flavour, listing]) is None
     right = ("https://www.auchan.fr/dukan-barres-au-chocolat-et-orange/p-1", "Dukan Barres au chocolat et orange 150 g 5,65 €")
     assert webprice._price_from(prod, [right])["pack_cents"] == 565          # a supermarket's own page for exactly this variant
+
+
+def test_parallel_is_off_unless_asked_for(monkeypatch):
+    from app import webprice
+    monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setenv("SERPER_API_KEY", "s"); monkeypatch.delenv("WEBPRICE_PARALLEL")
+    assert webprice.providers() == ["serper"]
+    monkeypatch.setenv("WEBPRICE_PARALLEL", "1")
+    assert webprice.providers() == ["serper", "parallel"]

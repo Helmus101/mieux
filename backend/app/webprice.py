@@ -76,8 +76,13 @@ _PRICE = re.compile(r"(\d{1,3}(?:[ .]\d{3})*[,.]\d{2})\s?(?:€|eur\b|euros?\b)"
 
 
 def providers() -> list:
-    """Gemini (Google-grounded search) first, then Parallel, then LangSearch; each only when its key is set."""
-    return [n for n, k in (("gemini", "GEMINI_API_KEY"), ("parallel", "PARALLEL_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY")) if os.environ.get(k)]
+    """Gemini (Google-grounded search) first, then the free-tier search APIs (Serper, Brave), then LangSearch; each only when its key is set.
+    Parallel is used only when WEBPRICE_PARALLEL=1. WEBPRICE_PROVIDERS (comma list) overrides the order, for tests."""
+    forced = os.environ.get("WEBPRICE_PROVIDERS")
+    if forced:
+        return [n for n in forced.split(",") if n]
+    keyed = (("gemini", "GEMINI_API_KEY"), ("serper", "SERPER_API_KEY"), ("brave", "BRAVE_API_KEY"), ("parallel", "PARALLEL_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY"))
+    return [n for n, k in keyed if os.environ.get(k) and (n != "parallel" or os.environ.get("WEBPRICE_PARALLEL") == "1")]
 
 
 def provider() -> Optional[str]:
@@ -120,6 +125,9 @@ def _fetch_results(name: str, product: Dict[str, Any], http: Http, variant: int 
                     {"X-Subscription-Token": os.environ["BRAVE_API_KEY"], "Accept": "application/json"}, None)
         return [(r.get("url") or "", " ".join([r.get("title") or "", r.get("description") or ""] + list(r.get("extra_snippets") or [])))
                 for r in (data.get("web") or {}).get("results", [])]
+    if name == "serper":
+        data = http("POST", "https://google.serper.dev/search", {"X-API-KEY": os.environ["SERPER_API_KEY"], "Content-Type": "application/json"}, {"q": query, "gl": "fr", "hl": "fr", "num": 10})
+        return [(r.get("link") or "", " ".join([r.get("title") or "", r.get("snippet") or ""] + [str(v) for v in (r.get("attributes") or {}).values()])) for r in data.get("organic", [])]
     if name == "langsearch":
         data = http("POST", LANGSEARCH, {"Content-Type": "application/json", "Authorization": "Bearer " + os.environ["LANGSEARCH_API_KEY"]},
                     {"query": f"{query} supermarché France", "freshness": "oneMonth", "summary": True, "count": 10})
