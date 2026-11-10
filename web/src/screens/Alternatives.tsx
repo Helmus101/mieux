@@ -175,7 +175,7 @@ export default function Alternatives() {
         const chains = ((e.product.chains?.length ? e.product.chains : w?.chains) ?? []) as string[];
         return (
           <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={() => { haptic('tap'); setDetail(e); }}>
-            {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading={idx < 8 ? 'eager' : 'lazy'} fetchPriority={idx < 4 ? 'high' : 'auto'} decoding="async" width={60} height={60} /> : <span className="noimg" />}
+            {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
             <div className="amain">
               <div className="aname">{e.product.name}</div>
               <div className="abrand">{e.product.brand}</div>
