@@ -7,10 +7,9 @@ import { formatCents, isLiquid } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
 import { priceHeadline } from '@shared/verdict';
 import PqExplain from '../PqExplain';
-import { Bar, Button, Card, Collapsible, haptic, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader, ChainLogo } from '../ui';
+import { Bar, Button, Card, Collapsible, haptic, Muted, NovaBadge, AmountScale, NutriScore, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader, ChainLogo } from '../ui';
 import { routes, useNav } from '../nav';
 import SaveButton from '../SaveButton';
-import KnowCard from '../KnowCard';
 import Where from '../Where';
 import DesktopQRBanner from '../DesktopQRBanner';
 import { countScan } from '../account';
@@ -117,7 +116,6 @@ export default function Product() {
             <div><span className="mut sm">{t('score.title')}</span><div className={'stile ' + (p.score.tone === 'b' ? 'b' : p.score.tone === 'w' ? 'w' : 'g')}>{p.score.total}<small>{t('score.outOf')}</small></div><b>{t('score.' + p.score.band)}</b></div>
             <div title={t('score.pqHint')}><span className="mut sm">{t('score.pq')} <PqExplain /></span>{pc?.value ? <><div className={'stile ' + (pc.value.value_score >= 65 ? 'g' : pc.value.value_score >= 40 ? 'w' : 'b')}>{pc.value.approximate ? '≈ ' : ''}{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{pc.value.approximate && <div className="mut sm">{t('score.pqApprox', { p: formatCents(pc.value.basis_pack_cents) })}</div>}</> : webP?.value_score != null ? <><div className={'stile ' + (webP.value_score >= 65 ? 'g' : webP.value_score >= 40 ? 'w' : 'b')}>≈ {webP.value_score}<small>{t('score.outOf')}</small></div><b>{webP.value_score >= 65 ? t('score.pqGood') : webP.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b><div className="mut sm">{t('score.pqApprox', { p: formatCents(webP.pack_cents) })}</div></> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}</div>
           </div>
-          <ScoreBar total={p.score.total} label={t('score.spectrum')} />
           <ul className="fl">
             {(p.score.flags ?? []).slice(0, 3).map((f: any) => <li key={f.key} className={f.level === 'bad' ? 'b' : 'w'}>{t('flag.' + f.key)}</li>)}
             {((p.score.additives?.items ?? []) as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 3).map((x) => <li key={x.code} className={x.level === 'D' ? 'b' : 'w'} onClick={() => setSheet(x.code)} style={{ cursor: 'pointer' }}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</li>)}
@@ -126,7 +124,6 @@ export default function Product() {
         </> : <Muted>{t('score.na')}</Muted>}
       </section>
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
-      <KnowCard p={p} />
       {p.score && <Collapsible open={false} title={t('sdim.title')}>
           {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
         <Row wrap><NutriScore grade={p.nutriScore} /></Row>
@@ -159,6 +156,7 @@ export default function Product() {
         const all = [...(p.score.additives?.items ?? [])] as any[];
         const items = all.filter((x) => x.known || !all.some((o) => o !== x && x.code.startsWith(o.code))).sort((x, y) => y.level.localeCompare(x.level) || x.code.localeCompare(y.code));
         const risky = items.filter((x) => x.level === 'C' || x.level === 'D');
+        if (!items.length) return null;
         return <Collapsible open={false} title={`${t('addl.title')} · ${items.length ? t('addl.count', { n: items.length }) + (risky.length ? ' · ' + t('addl.bad', { n: risky.length }) : '') : t('addl.none')}`}>
           {items.length === 0 && <p className="mut">{t('addl.none')}</p>}
           {items.map((a: any) => {
@@ -192,7 +190,6 @@ export default function Product() {
         })()}
         <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('product.correct')}</a>
       </Collapsible>
-      <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('score.page')}</a>
       <Button plain onPress={() => { addCompare(p.id); go(routes.compare); }}>{t('product.compare')}</Button>
 
       <Sheet open={!!sheet} onClose={() => setSheet(null)} title={sheet ? sheet.toUpperCase() + (info ? ' · ' + info.name : sItem?.name ? ' · ' + sItem.name : '') : ''}>

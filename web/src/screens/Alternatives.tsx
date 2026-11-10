@@ -28,7 +28,7 @@ export default function Alternatives() {
   // "Today" filters start from the saved profile and never write back to it.
   // Quality is judged on nutrition only; the price tabs come from the price rankings, so no price priority is sent.
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
-  const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy, setDiffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
+  const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
@@ -102,6 +102,7 @@ export default function Alternatives() {
     return { text: `${fmt(k)}${liquid ? '/L' : '/kg'}`, tone: tone(k), sub: `${pct > 0 ? '+' : ''}${pct} % ${t('diff.vs')}` };
   };
   const detailBody = (e: any) => (<>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton product={e.product} /></div>
               {(() => {
                 const q = e.product.score?.total, oq = r?.original?.score?.total, dq = q != null && oq != null ? q - oq : null;
                 const d = diffOf(e), u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
@@ -132,9 +133,8 @@ export default function Alternatives() {
       <h1 className="atitle">{t('alt.title')}</h1>
       {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
       {!none && tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
-      {!none && <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}{rk === 'value' && <> <PqExplain label /></>}</p>}
-      {!none && r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</span>
-        {showPrice && <button className="linkbtn" onClick={() => setDiffBy(diffBy === 'kg' ? 'pack' : 'kg')} aria-label={t('diff.byKg') + ' / ' + t('diff.byPack')}>{diffBy === 'kg' ? t('diff.byPack') : t('diff.byKg')}</button>}</p>}
+      {!none && rk === 'value' && <p className="mut sm" style={{ margin: '8px 0 0' }}><PqExplain label /></p>}
+      {!none && r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b></span></p>}
       {busy && <><Loader slowAfter={30000} steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />{[0, 1, 2].map((n) => <Skeleton key={n} h={112} />)}</>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
       {none && <Card><b>{t('emptyAlt.noneTitle')}</b><p className="mut" style={{ margin: '10px 0 0' }}>{t('emptyAlt.noneWhy')}</p></Card>}
@@ -164,7 +164,7 @@ export default function Alternatives() {
               <div className="ameta">
                 {e.product.score && <span className={rk === 'match' ? 'main' : 'sub'}><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>{rk === 'match' && <small> {t('score.' + e.product.score.band)}</small>}
                   {rk === 'match' && r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>}
-                {e.vs != null && rk !== 'match' && <span className={rk === 'value' ? 'main' : 'sub'} title={t('score.pqHint')}><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span><small> {t('score.pq')}</small></span>}
+                {e.vs != null && rk !== 'match' && <span className={rk === 'value' ? 'main' : 'sub'} title={t('score.pqHint')}><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span>}
               </div>
               {chains.length > 0 && <div className="logos">{chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}{chains.length > 5 && <span className="mut sm">+{chains.length - 5}</span>}</div>}
             </div>
@@ -172,10 +172,8 @@ export default function Alternatives() {
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
                 : e.pack != null ? <b>{formatCents(e.pack)}</b>
                 : w ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b> : null}
-              {e.pack != null && u && <span className="mut sm">{formatCents(e.pack)}</span>}
               {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
-              {d && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
-              <span className="asave" onClick={(ev) => ev.stopPropagation()}><SaveButton product={e.product} /></span>
+              {d && rk === 'budget' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
             </div>
           </article>);
       })}</div>}
