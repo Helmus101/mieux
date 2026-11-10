@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType } from 'react-router-dom';
 import { lazy as reactLazy, Suspense, useEffect, type ComponentType } from 'react';
 import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
@@ -9,6 +9,9 @@ import ErrorBoundary from './ErrorBoundary';
 import { ToastHost } from './toast';
 import InstallPrompt from './InstallPrompt';
 import CommandMenu from './CommandMenu';
+import NetStatus from './NetStatus';
+import UpdateToast from './UpdateToast';
+import { useEdgeSwipeBack } from './gestures';
 import { ACCOUNT_REQUIRED, accountEnabled, initAccount, useAccount } from './account';
 import { APP_PATH } from './install';
 import './index.css';
@@ -52,22 +55,34 @@ function TabBar() {
   const cur = sectionOf(useLocation().pathname);
   const items: [keyof typeof I, string][] = [['list', routes.list], ['scan', routes.scan], ['profile', routes.profile]];
   return (
-    <nav className="tabbar"><div className="in">
-      {items.map(([k, path]) => (
-        <button key={k} className={'tab' + (k === 'scan' ? ' fab' : '') + (cur === k || (k === 'scan' && (cur === 'product' || cur === 'alternatives')) || (k === 'list' && (cur === 'compare' || cur === 'history')) ? ' on' : '')} onClick={() => { haptic(k === 'scan' ? 'tap' : 'select'); go(path); }}>
-          {k === 'scan' ? <span className="disc"><svg viewBox="0 0 24 24">{I[k]}</svg></span> : <svg viewBox="0 0 24 24">{I[k]}</svg>}
-          <span>{t('tabs.' + k)}</span>
-        </button>
-      ))}
+    <nav className="tabbar" aria-label={t('tabs.home')}><div className="in">
+      {items.map(([k, path]) => {
+        const on = cur === k || (k === 'scan' && (cur === 'product' || cur === 'alternatives')) || (k === 'list' && (cur === 'compare' || cur === 'history'));
+        return (
+          <button key={k} className={'tab' + (k === 'scan' ? ' fab' : '') + (on ? ' on' : '')} aria-current={on ? 'page' : undefined} onClick={() => { haptic(k === 'scan' ? 'tap' : 'select'); if (on && cur === k) window.scrollTo({ top: 0, behavior: 'smooth' }); else go(path); }}>
+            {k === 'scan' ? <span className="disc"><svg viewBox="0 0 24 24" aria-hidden>{I[k]}</svg></span> : <svg viewBox="0 0 24 24" aria-hidden>{I[k]}</svg>}
+            <span>{t('tabs.' + k)}</span>
+          </button>
+        );
+      })}
     </div></nav>
   );
+}
+
+/** Each new screen starts at the top (a push); going back keeps the browser's own restored position. */
+function ScrollToTop() {
+  const { pathname } = useLocation(), type = useNavigationType();
+  useEffect(() => { if (type !== 'POP') window.scrollTo(0, 0); }, [pathname, type]);
+  return null;
 }
 
 function Shell() {
   const profile = useProfile();
   const { pathname } = useLocation();
+  const { back } = useNav();
   const { onboarded, priorities, diet, allergens, language } = profile;
   useEffect(() => { initAccount(); }, []);
+  useEdgeSwipeBack(back, sectionOf(pathname) !== 'scan');  // the scanner is full screen: no gesture there
   // Set locale on app load
   useEffect(() => { if (language) setLocale(language); }, [language]);
   // Keep the (local) server in sync so fit checks and price-aware ranking use the saved profile.
@@ -79,6 +94,8 @@ function Shell() {
   if (!onboarded) return <><Suspense fallback={null}><Onboarding /></Suspense></>;
   return (
     <div className="app">
+      <NetStatus />
+      <ScrollToTop />
       <ErrorBoundary resetKey={pathname}><Suspense fallback={<Screen><Loader /></Screen>}>
         <Routes>
           <Route index element={<Navigate to="scan" replace />} />
@@ -95,6 +112,7 @@ function Shell() {
       <TabBar />
       <ToastHost />
       <InstallPrompt />
+      <UpdateToast />
       <CommandMenu />
     </div>
   );

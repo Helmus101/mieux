@@ -4,7 +4,7 @@ import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
-import { readCache, writeCache } from '../swr';
+import { cachedAlternatives, fetchAlternatives, NEAR_KM } from '../alternatives';
 import PqExplain from '../PqExplain';
 import { Bar, Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
@@ -14,7 +14,6 @@ import SaveButton from '../SaveButton';
 import { friendlyError } from '../errors';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const NEAR_KM = 5; // only products sold at a chain with a branch within 5 km of home: fixed, not a setting
 const sizeLabel = (q: { amount: number; unit: string }) => (q.amount >= 1000 ? `${Math.round(q.amount / 100) / 10} ${q.unit === 'ml' ? 'L' : 'kg'}`.replace('.', ',') : `${Math.round(q.amount)} ${q.unit}`);
 
 export default function Alternatives() {
@@ -34,12 +33,14 @@ export default function Alternatives() {
   useEffect(() => {
     if (!barcode || !prios.length) return;
     setErr(null);
-    const ck = `alt:${barcode}:${prios.join()}:${myChains.join()}`;
-    const stale = readCache<any>(ck);
+    let gone = false;
+    // The product page usually started this very request already: the answer is in the cache or about to arrive.
+    const stale = cachedAlternatives(barcode);
     if (stale) { setR(stale); setBusy(false); } else setBusy(true);   // show the last answer at once, then refresh it
-    api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 20, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) })
-      .then((x: any) => { setR(x); writeCache(ck, x); })
-      .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
+    fetchAlternatives(barcode)
+      .then((x: any) => { if (!gone) setR(x); })
+      .catch((e: unknown) => { if (!gone) setErr(friendlyError(e)); }).finally(() => { if (!gone) setBusy(false); });
+    return () => { gone = true; };
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
   // Candidates with no price: one search each for an approximate price and the supermarkets selling it (stored server-side). A found price puts the card into the
   // price and price-quality tabs as it arrives, so the lists fill up to 10 even where the database has no price.
@@ -135,7 +136,13 @@ export default function Alternatives() {
       {!none && tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
       {!none && rk === 'value' && <p className="mut sm" style={{ margin: '8px 0 0' }}><PqExplain label /></p>}
       {!none && r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b></span></p>}
-      {busy && <><Loader slowAfter={30000} steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />{[0, 1, 2].map((n) => <Skeleton key={n} h={112} />)}</>}
+      {busy && <>
+        <div className="skel-seg" aria-hidden><Skeleton h={44} /></div>
+        <div className="alist" aria-hidden>{[0, 1, 2, 3].map((n) => (
+          <div key={n} className="arow skel-arow"><Skeleton h={60} w={60} /><div><Skeleton h={16} w="80%" /><Skeleton h={13} w="45%" /><Skeleton h={28} w={44} /></div><Skeleton h={20} w={64} /></div>
+        ))}</div>
+        <Loader quiet slowAfter={30000} steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />
+      </>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
       {none && <Card><b>{t('emptyAlt.noneTitle')}</b><p className="mut" style={{ margin: '10px 0 0' }}>{t('emptyAlt.noneWhy')}</p></Card>}
       {r && !busy && !none && !shown.length && (() => {

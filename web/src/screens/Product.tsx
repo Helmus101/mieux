@@ -14,6 +14,7 @@ import SaveButton from '../SaveButton';
 import Where from '../Where';
 import DesktopQRBanner from '../DesktopQRBanner';
 import { countScan } from '../account';
+import { prefetchAlternatives } from '../alternatives';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -35,12 +36,11 @@ export default function Product() {
       .catch((e: any) => { if (!cancelled && autoTries.current < 2 && e?.response?.status !== 400 && !(e?.response && ![404, 502, 503, 504].includes(e.response.status))) { autoTries.current += 1; retryTimer = setTimeout(() => setAttempt((n) => n + 1), 1200); return; } const snap = useHistory.getState().productById(barcode); if (snap && e?.response?.status !== 404) { setD({ product: snap, fit: [], price_context: null }); setOffline(true); } else setErr(e?.response?.status === 404 ? { kind: e.response.data?.detail === 'not_food' ? 'notfood' : 'notfound', msg: '' } : e?.response?.status === 400 ? { kind: 'invalid', msg: '' } : e?.response?.status === 429 ? { kind: 'rate', msg: '' } : e?.response?.status === 401 ? { kind: 'auth', msg: 'HTTP 401' } : e?.response ? { kind: 'server', msg: `HTTP ${e.response.status}${typeof e.response.data?.detail === 'string' ? ' · ' + e.response.data.detail : ''}` } : { kind: 'network', msg: e.message }); });
     return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
   }, [barcode, estimates, attempt]);
-  // While the product page is read, the server already looks up the prices of its alternatives (found prices are stored), so the alternatives open complete and fast.
-  const savedPrios = useProfile((s) => s.priorities);
+  // While the product page is read, the alternatives are already searched with the same request the alternatives screen will make,
+  // so that screen opens with the list ready (and the server has stored the prices it found).
   useEffect(() => {
     if (!barcode || !d?.product) return;
-    const q = savedPrios.filter((k: string) => k !== 'budget' && k !== 'value');
-    const id = setTimeout(() => { api.getAlternatives(barcode, { priorities: q.length ? q : ['overall'], category_mode: 'similar', limit: 20, substitution_max: 2, same_size: false, chains: [], price_constraint: 'any', approximate: estimates }).catch(() => undefined); }, 600);
+    const id = setTimeout(() => prefetchAlternatives(barcode), 400);
     return () => clearTimeout(id);
   }, [barcode, d?.product?.id]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
@@ -69,7 +69,14 @@ export default function Product() {
       {err.kind === 'notfound' && <Button plain onPress={() => setAttempt((n) => n + 1)}>{t('common.retry')}</Button>}
     </Screen>
   );
-  if (!d) return <Screen><NavBar onBack={back} /><Loader steps={t('common.stepsProduct').split('|')} onRetry={() => setAttempt((n) => n + 1)} /><Skeleton h={90} /><Skeleton h={120} /></Screen>;
+  if (!d) return (
+    <Screen>
+      <NavBar onBack={back} />
+      <div className="skel-prod" aria-hidden><Skeleton h={96} w={96} /><div><Skeleton h={14} w="40%" /><Skeleton h={22} w="85%" /><Skeleton h={22} w="60%" /></div></div>
+      <div className="skel-two" aria-hidden><Skeleton h={64} w={90} /><Skeleton h={64} w={90} /></div>
+      <Loader quiet steps={t('common.stepsProduct').split('|')} onRetry={() => setAttempt((n) => n + 1)} />
+    </Screen>
+  );
 
   const p = d.product, pc = d.price_context;
   const liquid = isLiquid(p), per = liquid ? 'ml' : 'g';

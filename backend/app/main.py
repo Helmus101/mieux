@@ -14,7 +14,7 @@ from typing import Any, Dict, Iterator, List, Optional
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import delete
 from sqlalchemy import func
@@ -447,6 +447,25 @@ def prefs_of(s: Session, uid: str) -> Prefs:
 @app.get("/v1/health")
 def health():
     return {"ok": True}
+
+
+# ---- client errors: the web app reports uncaught errors so a broken release shows up in the server logs, without a third-party tracker
+class ClientErrorIn(BaseModel):
+    message: str = Field(min_length=1, max_length=600)
+    stack: Optional[str] = Field(default=None, max_length=4000)
+    url: Optional[str] = Field(default=None, max_length=400)
+    version: Optional[str] = Field(default=None, max_length=60)
+    kind: str = Field(default="error", pattern="^(error|promise|chunk|boundary)$")
+
+
+@app.post("/v1/client-errors", status_code=204)
+@limiter.limit("10/minute")
+def client_error(request: Request, body: ClientErrorIn):
+    """Logged, never stored: one line per report with the app version, so logs can be grepped for `client_error`."""
+    ua = request.headers.get("user-agent", "")[:200]
+    stack = (body.stack or "").replace("\n", " | ")[:1200]
+    logger.warning(f"client_error kind={body.kind} version={body.version or '-'} url={body.url or '-'} ua={ua!r} msg={body.message!r} stack={stack!r}")
+    return Response(status_code=204)
 
 
 # ---- usage: how many people actually use Mieux (anonymous, cookie-free)
