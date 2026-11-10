@@ -86,7 +86,7 @@ export default function Alternatives() {
     for (let k = 0; k < Math.min(4, todo.length); k++) void worker();
   }, [busy, !!r, shown.filter((e: any) => e.price100 == null).map((e: any) => e.product.barcode).join()]);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
-  const none = !!r && !busy && !webBusy && !err && ['value', 'budget', 'match', 'closest'].every((k) => listOf(k).length === 0);   // never more than 10 per tab, after the strict filters
+  const none = !!r && !busy && !webBusy && !err && ['value', 'match', 'closest'].every((k) => listOf(k).length === 0);   // never more than 10 per tab, after the strict filters
   // Two tabs: price-quality (opens first) and quality.
   // The two price tabs are always offered (an empty one says why); the quality tab is offered only when something scores higher than the scanned product.
   const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
