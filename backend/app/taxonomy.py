@@ -255,6 +255,33 @@ def level_between(a: str, b: str) -> Optional[int]:
     return best
 
 
+_GENERIC_LEAF = {"en:groceries", "en:foods", "en:beverages", "en:plant-based-foods", "en:plant-based-foods-and-beverages", "fr:autres-produits", "en:dietary-supplements", "en:meals", "en:snacks", "en:sauces", "en:condiments", "en:frozen-foods", "en:meats"}
+_UNTYPED_STOP = set("avec sans pour dans plus bio extra fins fine fines france francais française français origine nature naturel naturelle format maxi mini grand grande petit petite recette original originale traditionnel traditionnelle selection sélection qualité saveur gout goût premium light".split())
+
+
+def _untyped_tokens(p: Dict[str, Any]) -> set:
+    brand = {w for w in re.split(r"[^a-zà-ÿ0-9]+", (p.get("brand") or "").lower()) if w}
+    return {w for w in re.split(r"[^a-zà-ÿ]+", (p.get("name") or "").lower()) if len(w) > 3 and w not in _UNTYPED_STOP and w not in brand}
+
+
+def _untyped_substitute(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Two products the taxonomy has no type for (a rarely classified kind of food): they substitute each other when they share a specific category and a name word,
+    or most of their distinctive name words. Never a type-less product for a typed one."""
+    ot, ct = _untyped_tokens(orig), _untyped_tokens(cand)
+    shared = ot & ct
+    if not shared:
+        return None
+    ol = [c for c in (orig.get("categories") or []) if c not in _GENERIC_LEAF]
+    cl = [c for c in (cand.get("categories") or []) if c not in _GENERIC_LEAF]
+    same_leaf = bool(ol and cl and ol[-1] == cl[-1])
+    close = len(shared) / max(1, min(len(ot), len(ct))) >= 0.67
+    if ol and cl and not (same_leaf or set(ol[-2:]) & set(cl[-2:])):
+        return None             # both are categorised and the categories differ
+    if not (same_leaf or close):
+        return None
+    return {"level": 2, "label": LABELS[2], "type": None, "same_type": False, "variant_diff": None, "confidence": "medium", "orig_confidence": "medium", "cand_confidence": "medium", "form_match": True, "use_match": True}
+
+
 def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """HARD COMPATIBILITY GATE: Level 1-4 and why, or None when the candidate is not a substitute.
     Independent of nutrition and price. Enforces strict rules:
@@ -263,6 +290,8 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
     - Level 3/4 products can enter closest tab but not price/quality/value rankings
     """
     co, cc = classify(orig), classify(cand)  # always computed fresh: a rule change must reach products that are already cached
+    if not co["type"] and not cc["type"]:
+        return _untyped_substitute(orig, cand)
 
     # HARD GATE: Reject low-confidence classifications
     if co["confidence"] in ("none", "low") or cc["confidence"] in ("none", "low"):

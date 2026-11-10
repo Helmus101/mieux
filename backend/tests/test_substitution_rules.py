@@ -38,9 +38,10 @@ def test_classification_says_why_and_how_sure():
 
 
 def test_unclassified_products_only_match_the_exact_same_leaf():
-    a, b = P("Mystère A", ["en:odd", "en:odd-leaf"]), P("Mystère B", ["en:odd", "en:odd-leaf"])
+    a, b = P("Mystère alpha", ["en:odd", "en:odd-leaf"]), P("Énigme beta", ["en:odd", "en:odd-leaf"])
     assert sub(a, b) is None       # a shared category leaf alone is not proof of substitutability
-    assert sub(a, P("Mystère C", ["en:odd", "en:other-leaf"])) is None
+    assert sub(a, P("Mystère gamma", ["en:odd", "en:other-leaf"])) is None
+    assert sub(a, P("Mystère gamma", ["en:odd", "en:odd-leaf"])) is not None   # same leaf and a shared name word
 
 
 def test_implausible_data_is_caught():

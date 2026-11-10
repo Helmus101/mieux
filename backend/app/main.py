@@ -1355,6 +1355,23 @@ def _search_any(orig: Dict[str, Any]) -> List[Dict[str, Any]]:
         return []
 
 
+def _untyped_search(orig: Dict[str, Any], prio, allergens) -> List[Dict[str, Any]]:
+    """For a product the taxonomy cannot type: candidates found by its most distinctive name words (all of them, then each of the two longest)."""
+    if taxonomy.classify(orig).get("type"):
+        return []
+    words = sorted(taxonomy._untyped_tokens(orig), key=len, reverse=True)[:3]
+    out: Dict[str, Dict[str, Any]] = {}
+    for q in ([" ".join(words)] if len(words) > 1 else []) + words[:2]:
+        try:
+            for r in app.state.off.search_name(q):
+                if r.get("product_name") and _raw_candidate(r, prio or [], allergens or [], orig):
+                    p = normalize(r)
+                    out.setdefault(p["barcode"], p)
+        except (OFFError, AttributeError):
+            continue
+    return list(out.values())
+
+
 def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[List[str]] = None,
            allergens: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """Candidate pool for the deep search, read from the whole local copy of Open Food Facts when it is there.
@@ -1373,6 +1390,8 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             if r.get("product_name") and _raw_candidate(r, priorities or [], allergens or [], orig):
                 p = normalize(r)
                 found.setdefault(p["barcode"], p)
+        for p in _untyped_search(orig, priorities, allergens):
+            found.setdefault(p["barcode"], p)
         return list(found.values())
     tags = list(reversed(base))  # most specific first
     if mode != "similar":
@@ -1427,6 +1446,8 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
         if r.get("product_name") and _raw_candidate(r, prio, alg, orig):
             p = normalize(r)
             pool.setdefault(p["barcode"], p)
+    for p in _untyped_search(orig, prio, alg):
+        pool.setdefault(p["barcode"], p)
     # Online searches only when there is no local copy: it covers the whole dataset, so a thin pool there means the
     # product really has few neighbours, and going online would just wait out the search rate limit (7 s per level).
     if len(pool) < 40 and not local:
