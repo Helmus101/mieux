@@ -5,6 +5,7 @@ import { additiveInfo } from '@shared/additives';
 import { t } from '@shared/i18n';
 import { formatCents, isLiquid } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
+import KnowCard from '../KnowCard';
 import { priceHeadline } from '@shared/verdict';
 import PqExplain from '../PqExplain';
 import { Bar, Button, Card, Collapsible, haptic, Muted, NovaBadge, AmountScale, NutriScore, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader, ChainLogo } from '../ui';
@@ -124,6 +125,7 @@ export default function Product() {
         </> : <Muted>{t('score.na')}</Muted>}
       </section>
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
+      <KnowCard p={p} />
       {p.score && <Collapsible open={false} title={t('sdim.title')}>
           {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
         <Row wrap><NutriScore grade={p.nutriScore} /></Row>
