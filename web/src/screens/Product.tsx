@@ -48,7 +48,7 @@ export default function Product() {
   const headKind = d ? priceHeadline(d.price_context).kind : null;
   useEffect(() => {          // no observed price: one search for an approximate price and where it is sold
     setWebP(null);
-    if (barcode && d && headKind === 'none') api.getWebPrice(barcode).then(setWebP).catch(() => undefined);
+    if (barcode && d && headKind === 'none') api.getWebPriceQuick(barcode).then((w: any) => { if (w) setWebP(w); });
   }, [barcode, d?.product?.id, headKind]);
   if (err) return (
     <Screen>

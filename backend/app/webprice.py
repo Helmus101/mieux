@@ -60,8 +60,8 @@ def _http(method: str, url: str, headers: Dict[str, str], body: Optional[Dict[st
             with urllib.request.urlopen(req, timeout=12) as r:
                 return json.loads(r.read())
         except urllib.error.HTTPError as e:
-            if e.code not in (429, 500, 502, 503) or attempt == 2:
-                raise
+            if e.code not in (500, 502, 503) or attempt == 2:
+                raise                       # 429 (quota) does not clear in a second: fail at once instead of burning the time limit
         except (urllib.error.URLError, TimeoutError, OSError):
             if attempt == 2:
                 raise
@@ -145,16 +145,21 @@ _PER_UNIT_AFTER = re.compile(r"^\s*(?:/|par\b|le\b|au\b|\bl[e']?\s)\s*(?:kg|kilo
 def _words(text: str) -> set:
     """Lower-case words of 3+ letters, accents removed ('séchée' = 'sechee') so a typo in the accents never breaks a match."""
     t = unicodedata.normalize("NFKD", (text or "").lower())
-    return set(re.findall(r"[a-z0-9]{3,}", "".join(c for c in t if not unicodedata.combining(c))))
+    ws = re.findall(r"[a-z0-9]{3,}", "".join(c for c in t if not unicodedata.combining(c)))
+    return {w[:-1] if len(w) > 4 and w.endswith(("s", "x")) else w for w in ws}      # "aubergine" = "aubergines", "gateau" = "gateaux"
 
 
-def _pack_price(text: str, size_units: float) -> Optional[float]:
+def _pack_price(text: str, size_units: float, size: Optional[Tuple[int, str]] = None) -> Optional[float]:
     """The pack price in a text: ignores prices labelled per kilo / per litre, and a price that is just another price scaled to a kilo."""
     cands, per_kilo = [], []
     for m in _PRICE.finditer(text):
         v = float(m.group(1).replace(" ", "").replace(",", "."))
         if not (0.2 <= v <= 400):
             continue
+        if size:
+            near = _sizes_in(text[max(0, m.start() - 40):m.start()])
+            if near and near[-1] != size:
+                continue                          # "180 g env. 16,99 €/kg": that price belongs to another pack size
         if _PER_UNIT_AFTER.match(text[m.end():m.end() + 14]):
             per_kilo.append(v)                # "10,53 €/kg": no pack price, but the pack price follows from the size
             continue
@@ -191,6 +196,8 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
     name_w = {w for w in _words(product.get("name")) if len(w) > 3} - brand_w
     size_units = q["amount"] / 1000.0
     by_host: Dict[str, Tuple[float, str]] = {}
+    solid: set = set()                                     # hosts whose page is this exact product's own page (address names every word of it)
+    size_t = (round(q["amount"]), q["unit"])
     for url, text in results:
         if not size_re.search(text):
             continue
@@ -203,9 +210,11 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
         if (brand_w and not (brand_w & tw)) or (name_w and not (name_w & tw)):
             continue
         host = urllib.parse.urlparse(url).netloc.replace("www.", "")
-        v = _pack_price(text, size_units)
+        v = _pack_price(text, size_units, size_t)
         if v:
             by_host.setdefault(host, (v, url))
+            if name_w and name_w <= slug and (brand_w & (slug | tw) or not brand_w):
+                solid.add(host)
     if len(by_host) == 1:
         # One site states this exact size and price. A second site that names the same product (every word of the name and the brand) but does not print the size
         # confirms it when one of its prices equals that price (within 3 %).
@@ -224,8 +233,8 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
     if len(by_host) == 1:
         # Still a single source: accepted when it is a supermarket's own page (a chain's site that states this exact size and a price), not a random page.
         (h1, (v1, u1)), = by_host.items()
-        if ch0.canon(h1.replace(".", " ")):
-            by_host[h1 + "#"] = (v1, u1)        # counts as its own confirmation
+        if ch0.canon(h1.replace(".", " ")) or h1 in solid:
+            by_host[h1 + "#"] = (v1, u1)        # a supermarket's page, or the product's own page on a shop site: counts as its own confirmation
     vals = sorted(v for v, _ in by_host.values())
     if len(vals) < 2:
         return None
@@ -246,6 +255,7 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
 
 
 _gemini: Dict[str, Any] = {"down_until": 0.0, "error": None}
+_down: Dict[str, float] = {}          # search provider -> time until which it is skipped (quota used up)
 DAILY_CAP = int(os.environ.get("WEBPRICE_DAILY_CAP", "1500"))     # searches per day (cost guard); stored prices are always served
 _day = {"d": "", "n": 0}
 
@@ -385,10 +395,14 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                         _gemini.update(down_until=time.time() + 600, error=last_error)
                     last_error = "deadline" if deadline and time.time() > deadline else None
                 continue
+            if time.time() < _down.get(name, 0):
+                continue                    # this provider just said "quota used up": skip it for a few minutes
             try:
                 out = _price_from(product, _fetch_results(name, product, http, variant))
             except Exception as e:
                 _set_error(e)
+                if getattr(e, "code", None) == 429:
+                    _down[name] = time.time() + 600
                 continue
             if out:
                 out["provider"] = name

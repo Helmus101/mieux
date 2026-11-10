@@ -681,3 +681,12 @@ def test_a_product_with_no_size_still_gets_a_price_from_gemini_with_the_size_it_
                              "groundingMetadata": {"groundingChunks": [{"web": {"uri": "https://www.carrefour.fr/p/caviar"}}]}}]}
     out = webprice.lookup(prod, transport=lambda u, b, **kw: reply)
     assert out and out["pack_cents"] == 290 and out["size_assumed"] == {"amount": 90.0, "unit": "g"}
+
+
+def test_plural_names_match_and_a_single_product_page_gives_a_price_but_another_pack_size_does_not():
+    from app import webprice
+    prod = {"barcode": "3234750022280", "name": "Caviar d'aubergine au citron et épices", "brand": "Albert Ménès", "quantity": {"amount": 100.0, "unit": "g"}}
+    res = [("https://www.houra.fr/albert-menes-caviar-d-aubergines-au-citron-et-epices-bio-100g/1/", "Albert Ménès Caviar d'Aubergines au Citron et Epices Bio, 100g, , prix : 46,30€/Kg"),
+           ("https://www.supermarchesmatch.fr/fr/p/1/albert-menes-caviar-d-aubergines-citron-et-epices", "Albert Ménès : Caviar d'aubergines citron et épices 100 g ; 180 g env. 16,99€/kg")]
+    got = webprice._price_from(prod, res)
+    assert got and got["pack_cents"] == 463          # 'aubergine' = 'aubergines'; the 180 g price is another pack, so it is ignored
