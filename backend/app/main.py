@@ -1523,7 +1523,7 @@ def _with_confidence(pt):
     return {**pt, "confidence": value.price_confidence(pt)} if pt else None
 
 
-_WARM = ThreadPoolExecutor(max_workers=8)
+_WARM = ThreadPoolExecutor(max_workers=16)
 _SEARCH_DEADLINE: contextvars.ContextVar = contextvars.ContextVar("search_deadline", default=0.0)   # one waiting budget per alternatives request, shared by its price passes
 _INFLIGHT: Dict[str, Any] = {}
 
@@ -1584,7 +1584,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                 return ((c.get("score") or {}).get("total") or 0) + (12 if _chains.own_brand_chain(c.get("brand")) else 0) + 4 * min(3, pop.get("chains") or len(c.get("chains") or [])) + min(10.0, 3 * math.log10((pop.get("scans") or 0) + 1))
             n_priced_ = len([b for b in prices if b != orig["barcode"]])
             scarce = n_priced_ < 3                  # almost nothing priced for this kind of product: search more candidates and wait a little longer
-            todo += sorted(cand, key=_likely_value, reverse=True)[:(30 if scarce else 16)]
+            todo += sorted(cand, key=_likely_value, reverse=True)[:(60 if scarce else 40)]
             if todo:
                 # Stored prices are instant. Missing ones are searched in parallel, but the request waits at most ~7 s in total (the scanned product first);
                 # a search still running keeps going in the background and is stored for next time.
@@ -1592,7 +1592,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                 found = [webprice.cached_only(c) for c in todo]
                 futs = {i: _search_once(c) for i, (c, w) in enumerate(zip(todo, found)) if w is None}
                 if futs:
-                    _wait(list(futs.values()), timeout=max(0.3, min(15.0 if scarce else 12.0, (_SEARCH_DEADLINE.get() or (time.time() + 12)) + (3 if scarce else 0) - time.time())))
+                    _wait(list(futs.values()), timeout=max(0.3, min(24.0 if scarce else 20.0, (_SEARCH_DEADLINE.get() or (time.time() + 20)) + (3 if scarce else 0) - time.time())))
                     for i, f in futs.items():
                         if f.done() and not f.exception():
                             found[i] = f.result()
@@ -1639,7 +1639,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
 @app.post("/v1/products/{barcode}/alternatives")
 @limiter.limit("20/minute")
 def alternatives(request: Request, background: BackgroundTasks, barcode: str, body: AltReq, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
-    _SEARCH_DEADLINE.set(time.time() + 12)
+    _SEARCH_DEADLINE.set(time.time() + 20)
     bad = [p for p in body.priorities if p not in engine.PRIORITIES]
     if bad:
         raise HTTPException(422, f"Unknown priorities: {bad}")
