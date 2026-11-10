@@ -286,7 +286,7 @@ def _gemini_lookup(product: Dict[str, Any], transport: Transport, timeout: Optio
         # Accept only a plausible price for a known size, backed by at least one cited page, in the same unit family as the product
         if qty and 20 <= price_c <= 20000 and sources and (not q or qty[1] == q["unit"]):
             out = {"per100_cents": round(price_c / qty[0] * 100, 1), "pack_cents": price_c, "store": got.get("store"), "source_urls": sources,
-                   "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
+                   "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True, "size_found": {"amount": float(qty[0]), "unit": qty[1]}}
     return out
 
 
@@ -324,7 +324,8 @@ def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]
         sizes = []
         for url, text in results:
             slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))      # the page path, not the site name
-            if (brand_w and not (brand_w & slug)) or not name_w <= slug:
+            need = len(name_w) if len(name_w) <= 2 else max(2, -(-len(name_w) * 3 // 5))      # most of the name, not every word: "au citron et épices" is often shortened in a page address
+            if (brand_w and not (brand_w & (slug | _words(text)))) or len(name_w & slug) < need:
                 continue
             found = _sizes_in(text)
             if found:
@@ -349,6 +350,13 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
     if not (product.get("quantity") or {}).get("amount"):
         assumed = _guess_size(product, http)
         if not assumed:
+            # No size in the database and none found on product pages: Gemini's grounded search states the pack size with the price, and cites its pages.
+            if "gemini" in providers() and time.time() >= _gemini["down_until"] and (not deadline or deadline - time.time() >= 4) and _budget_left():
+                out = _gemini_lookup(product, transport, timeout=(deadline - time.time()) if deadline else None)
+                if out:
+                    out["provider"] = "gemini"
+                    out["size_assumed"] = out.pop("size_found", None)
+                return out
             return None
         product = {**product, "quantity": assumed}
     for variant in (0, 1):                  # the second wording is only tried when the first finds nothing (search results vary from one call to the next)
@@ -369,6 +377,7 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                     return None
                 out = _gemini_lookup(product, transport, timeout=left)
                 if out:
+                    out.pop("size_found", None)
                     out["provider"] = name
                     if assumed:
                         out["size_assumed"] = assumed

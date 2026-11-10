@@ -669,3 +669,15 @@ def test_quick_search_providers_run_before_slow_gemini_and_a_hit_skips_it(monkey
         order.append("gemini"); return {}
     out = webprice.lookup(prod, transport=gemini, http=http)
     assert out and out["provider"] == "serper" and order == ["serper"]     # found by the quick search: the slow Gemini call never ran
+
+
+def test_a_product_with_no_size_still_gets_a_price_from_gemini_with_the_size_it_cites(monkeypatch, tmp_path):
+    from app import webprice
+    for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY", "SERPER_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp9.db"))
+    prod = {"barcode": "3234750022280", "name": "Caviar d'aubergine au citron et épices", "brand": "Albert Ménès", "quantity": None}
+    reply = {"candidates": [{"content": {"parts": [{"text": '{"price_eur": 2.9, "pack_size": "90 g", "store": "Carrefour", "found": true}'}]},
+                             "groundingMetadata": {"groundingChunks": [{"web": {"uri": "https://www.carrefour.fr/p/caviar"}}]}}]}
+    out = webprice.lookup(prod, transport=lambda u, b, **kw: reply)
+    assert out and out["pack_cents"] == 290 and out["size_assumed"] == {"amount": 90.0, "unit": "g"}
