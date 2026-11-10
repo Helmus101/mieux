@@ -634,12 +634,14 @@ def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None
         return None                       # an observed price exists: nothing to approximate
     # If a search for this barcode was started by the alternatives pass, wait on it first to avoid duplicate work
     f = _INFLIGHT.get(barcode)
-    if f is not None and not f.done():
+    w = None
+    if f is not None:
         try:
-            f.result(timeout=min(max_seconds or 8.0, 8.0))
+            w = f.result(timeout=max_seconds or 25.0)
         except Exception:
-            pass
-    w = webprice.lookup(p, deadline=(time.time() + max_seconds) if max_seconds else None, force=force)
+            w = None
+    if w is None:
+        w = webprice.lookup(p, deadline=(time.time() + max_seconds) if max_seconds else None, force=force)
     if w:
         _record_web_chains(s, barcode, w)
         if not w.get("stale") and w.get("per100_cents") is not None:

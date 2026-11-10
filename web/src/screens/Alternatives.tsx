@@ -153,7 +153,11 @@ export default function Alternatives() {
       while (next < todo.length) {
         const c = todo[next++];
         try {
-          const w = await api.getWebPriceQuick(c);
+          let w = await api.getWebPriceQuick(c);
+          if (!w) {
+            await new Promise((res) => setTimeout(res, 2000));
+            w = await api.getWebPriceQuick(c);
+          }
           setFill((f) => ({ ...f, [c]: w }));
         } catch {
           setFill((f) => ({ ...f, [c]: null }));
