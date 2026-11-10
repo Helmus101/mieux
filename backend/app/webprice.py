@@ -85,6 +85,8 @@ def providers() -> list:
     out = [n for n, k in keyed if os.environ.get(k) and (n != "parallel" or os.environ.get("WEBPRICE_PARALLEL") == "1")]
     if os.environ.get("DEEPSEEK_API_KEY") and any(n in out for n in ("serper", "brave", "langsearch")):
         out.append("deepseek")      # last resort: DeepSeek has no search of its own, so it reads the results of the search APIs above
+    if os.environ.get("DEEPSEEK_API_KEY") and os.environ.get("WEBPRICE_DEEPSEEK_DIRECT") == "1":
+        out.append("deepseek_direct")   # off by default: a price from the model's memory, measured at +-23 % median error
     return out
 
 
@@ -375,6 +377,25 @@ def _deepseek_lookup(product: Dict[str, Any], http: Http) -> Optional[Dict[str, 
             "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
 
 
+def _deepseek_direct(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]:
+    """DeepSeek asked for the price from its own knowledge (it cannot search): no source can be cited, so only used when WEBPRICE_DEEPSEEK_DIRECT=1 or forced for a test."""
+    q = product.get("quantity")
+    size = f"{q['amount']:g} {q['unit']}" if q else (product.get("quantityText") or "inconnu")
+    prompt = (f"Quel est le prix habituel en euros en supermarché en France (2025-2026) de : {product.get('name') or ''} ({product.get('brand') or ''}), format {size}, code-barres {product.get('barcode')} ? "
+              "Réponds UNIQUEMENT par un objet JSON : {\"price_eur\": nombre, \"pack_size\": \"ex. 500 g\", \"store\": \"enseigne\", \"found\": true}. Donne ta meilleure estimation, même si tu n'es pas certain.")
+    data = http("POST", "https://api.deepseek.com/chat/completions", {"Content-Type": "application/json", "Authorization": "Bearer " + os.environ["DEEPSEEK_API_KEY"]},
+                {"model": os.environ.get("DEEPSEEK_MODEL", "deepseek-chat"), "temperature": 0, "messages": [{"role": "user", "content": prompt}]})
+    got = _parse(((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "")
+    if not got:
+        return None
+    price_c = round(float(got["price_eur"]) * 100)
+    qty = value.parse_quantity(str(got.get("pack_size") or "")) or ((q["amount"], q["unit"]) if q else None)
+    if not qty or not (20 <= price_c <= 20000) or (q and qty[1] != q["unit"]):
+        return None
+    return {"per100_cents": round(price_c / qty[0] * 100, 1), "pack_cents": price_c, "store": got.get("store"), "source_urls": [],
+            "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
+
+
 def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _post) -> Optional[Dict[str, Any]]:
     """Parallel search; no price when the sites it returns do not agree on this pack size."""
     global last_error
@@ -407,11 +428,11 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                     _gemini.update(down_until=time.time() + 600, error=last_error)
                     last_error = None
                 continue
-            if name == "deepseek":
+            if name in ("deepseek", "deepseek_direct"):
                 if variant:
                     continue
                 try:
-                    out = _deepseek_lookup(product, http)
+                    out = (_deepseek_lookup if name == "deepseek" else _deepseek_direct)(product, http)
                 except Exception as e:
                     _set_error(e)
                     continue
