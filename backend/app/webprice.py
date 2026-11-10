@@ -330,11 +330,9 @@ def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]
             found = _sizes_in(text)
             if found:
                 sizes.append(max(set(found), key=found.count))        # the size this page repeats most
-        if sizes and len(set(sizes)) == 1:
-            amount, unit = sizes[0]
-            return {"amount": float(amount), "unit": unit}
         if sizes:
-            return None                                               # the pages disagree on the size
+            amount, unit = max(sorted(set(sizes)), key=lambda z: (sizes.count(z), -z[0]))           # the pages disagree: take the size most pages give (the price stays marked approximate)
+            return {"amount": float(amount), "unit": unit}
     return None
 
 

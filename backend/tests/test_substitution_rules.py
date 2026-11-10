@@ -617,7 +617,7 @@ def test_size_is_guessed_from_the_exact_product_page_only(monkeypatch):
     assert webprice._guess_size(prod, one) == {"amount": 125.0, "unit": "g"}
     two = par(("https://courses.monoprix.fr/products/monoprix-cerneaux-de-noix-125g/MPX_1", "125g 4,29 €"),
               ("https://www.auchan.fr/p/monoprix-cerneaux-de-noix-250g", "250g 8,10 €"))
-    assert webprice._guess_size(prod, two) is None                                                       # the pages disagree: no guess
+    assert webprice._guess_size(prod, two) == {"amount": 125.0, "unit": "g"}                                 # the pages disagree: the most common size, the smaller one on a tie
 
 
 def test_a_price_from_another_flavour_or_a_listing_page_is_never_used():
