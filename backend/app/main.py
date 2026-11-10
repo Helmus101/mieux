@@ -1545,9 +1545,8 @@ def _search_once(c: Dict[str, Any]):
     return f
 
 
-def _search_targets(orig: Dict[str, Any], orig_unpriced: bool, prods: List[Dict[str, Any]], prices: Dict[str, float], top_quality: int = 12, total: int = 30) -> List[Dict[str, Any]]:
-    """Whom to search the web for, in order: the scanned product if it has no price, then the best-scoring unpriced close substitutes (what the quality tab
-    will show), then the ones most likely to be cheap or good value (house brands, widely sold, popular). Same unit only; close substitutes only."""
+def _search_targets(orig: Dict[str, Any], orig_unpriced: bool, prods: List[Dict[str, Any]], prices: Dict[str, float], top_quality: int = 20, total: int = 30) -> List[Dict[str, Any]]:
+    """Whom to search the web for, in order: the scanned product if it has no price, then the 20 best-scoring unpriced close substitutes (the quality tab shows 10 after removing duplicates), then the ones most likely to be cheap or good value (house brands, widely sold, popular). Same unit only; close substitutes only."""
     oq = orig.get("quantity")
     cand = [c for c in prods if c.get("quantity") and c["barcode"] not in prices and c["barcode"] != orig["barcode"]
             and (not oq or c["quantity"]["unit"] == oq["unit"]) and ((c.get("substitution") or {}).get("level") in (1, 2, None))]

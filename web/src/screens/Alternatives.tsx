@@ -47,7 +47,9 @@ export default function Alternatives() {
   // Prices are found by the server before the list is sent: nothing is added to the page afterwards.
   const webP: Record<string, any> = {};
   const webBusy = false;
-  const rowOf = (e0: any) => { const w = e0.price_per_100_cents == null ? webP[e0.product?.barcode] : null; const e = w ? { ...e0, price_per_100_cents: w.per100_cents, value_score: w.value_score, pack_cents: w.pack_cents, product: { ...e0.product, chains: e0.product.chains?.length ? e0.product.chains : (w.chains ?? []) } } : e0; return ({ ps_web: !!w || e.price_source?.source === "web_search", avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }); };
+  // Anything shown without a price is searched for after the list appears and filled in place (rows never move): barcode -> price found, or null when the search found none.
+  const [fill, setFill] = useState<Record<string, any>>({}); const asked = useRef(new Set<string>());
+  const rowOf = (e0: any) => { const w = e0.price_per_100_cents == null ? (webP[e0.product?.barcode] ?? fill[e0.product?.barcode]) : null; const e = w ? { ...e0, price_per_100_cents: w.per100_cents, value_score: w.value_score, pack_cents: w.pack_cents, product: { ...e0.product, chains: e0.product.chains?.length ? e0.product.chains : (w.chains ?? []) } } : e0; return ({ ps_web: !!w || e.price_source?.source === "web_search", avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }); };
   // What each tab shows: sorted strictly by category requirements.
   const sourceRows = (k: string): any[] => {
     const base = (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []) as any[];
@@ -73,6 +75,16 @@ export default function Alternatives() {
     return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
   })();
   const shown = ranked.slice(0, 10);
+  useEffect(() => {
+    if (busy || !r) return;
+    const todo = shown.filter((e: any) => e.price100 == null && !asked.current.has(e.product.barcode)).map((e: any) => e.product.barcode as string);
+    todo.forEach((c) => asked.current.add(c));
+    for (let i = 0; i < todo.length; i += 8) {
+      const chunk = todo.slice(i, i + 8);
+      api.getWebPrices(chunk).then((res) => setFill((f) => ({ ...f, ...Object.fromEntries(chunk.map((c) => [c, res[c] ?? null])) })))
+        .catch(() => chunk.forEach((c) => asked.current.delete(c)));      // network trouble: ask again next time the rows show
+    }
+  }, [busy, !!r, shown.filter((e: any) => e.price100 == null).map((e: any) => e.product.barcode).join()]);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
   const none = !!r && !busy && !webBusy && !err && ['value', 'budget', 'match', 'closest'].every((k) => listOf(k).length === 0);   // never more than 10 per tab, after the strict filters
   // Exactly three tabs, always: price-quality (opens first), price, quality.
@@ -180,6 +192,7 @@ export default function Alternatives() {
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
                 : e.pack != null ? <b>{formatCents(e.pack)}</b>
                 : w ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b> : null}
+              {u == null && e.pack == null && !w && (fill[e.product.barcode] === null ? <span className="mut sm">{t('alt.noPrice')}</span> : <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span>)}
               {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
               {d && rk === 'budget' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
             </div>
