@@ -112,10 +112,15 @@ def _size_regex(q: Optional[Dict[str, Any]]) -> Optional[re.Pattern]:
 
 
 def _query(product: Dict[str, Any], variant: int = 0) -> str:
+    """First wording: brand, name, size and 'prix €' (snippets that print a price). Second: the barcode with the brand, which brings up the shops' own pages for this exact pack."""
     q = product.get("quantity") or {}
-    tail = ("prix", "prix en ligne supermarché drive")[variant]
+    brand = str(product.get("brand") or "").split(",")[0]
+    code = str(product.get("barcode") or "")
+    if variant and len(code) >= 12:
+        return " ".join(x for x in (code, brand, "prix") if x)
+    tail = ("prix €", "prix supermarché drive")[variant]
     size = f"{q['amount']:g} {q['unit']}" if q.get("amount") else ""
-    return " ".join(x for x in (str(product.get("brand") or "").split(",")[0], str(product.get("name") or ""), size, tail) if x).strip()
+    return " ".join(x for x in (brand, str(product.get("name") or ""), size, tail) if x).strip()
 
 
 def _fetch_results(name: str, product: Dict[str, Any], http: Http, variant: int = 0) -> list:
@@ -142,6 +147,14 @@ def _fetch_results(name: str, product: Dict[str, Any], http: Http, variant: int 
 def _name_words(product: Dict[str, Any], brand_w: set) -> set:
     """The words that identify a product by its name: 4+ letters, not the brand, not a pack size written into the name ("190g", "6x25g")."""
     return {w for w in _words(product.get("name")) if len(w) > 3 and not re.fullmatch(r"\d+(?:x\d+)?(?:g|gr|kg|ml|cl|l)", w)} - brand_w
+
+
+_MANGLED = re.compile(r"(?<![\d,.])(\d{1,3})\.?\s?,\s?(\d{2})\.?\s?€")
+
+
+def _clean(text: str) -> str:
+    """Search snippets sometimes break a price into pieces ("4. ,59. €"): put it back together."""
+    return _MANGLED.sub(r"\1,\2 €", text or "")
 
 
 _PER_UNIT_AFTER = re.compile(r"^\s*(?:/|par\b|le\b|au\b|\bl[e']?\s)\s*(?:kg|kilo|litre|l\b)", re.I)
@@ -203,22 +216,28 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
     by_host: Dict[str, Tuple[float, str]] = {}
     solid: set = set()                                     # hosts whose page is this exact product's own page (address names every word of it)
     size_t = (round(q["amount"]), q["unit"])
+    code = str(product.get("barcode") or "")
+    results = [(u, _clean(t)) for u, t in results]
     for url, text in results:
-        if not size_re.search(text):
-            continue
-        if _LISTING.search(url):
-            continue                                       # search and category pages mix many products: their prices are not this product's
+        if "openfoodfacts" in url:
+            continue                                       # the product database itself, never a shop
         slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))
-        if len(slug) >= 3 and name_w and not (name_w <= slug):
-            continue                                       # a product page whose address names another variant (orange vs noisette): not this product
         tw = _words(text)
-        if (brand_w and not (brand_w & tw)) or (name_w and not (name_w & tw)):
-            continue
+        exact = len(code) >= 8 and (code in url or code in text)      # the barcode names this exact pack: no need to check the name or the size
+        if not exact:
+            if not size_re.search(text):
+                continue
+            if _LISTING.search(url):
+                continue                                   # search and category pages mix many products: their prices are not this product's
+            if len(slug) >= 3 and name_w and not (name_w <= slug):
+                continue                                   # a product page whose address names another variant (orange vs noisette): not this product
+            if (brand_w and not (brand_w & tw)) or (name_w and not (name_w & tw)):
+                continue
         host = urllib.parse.urlparse(url).netloc.replace("www.", "")
         v = _pack_price(text, size_units, size_t)
         if v:
             by_host.setdefault(host, (v, url))
-            if name_w and name_w <= slug and (brand_w & (slug | tw) or not brand_w):
+            if exact or (name_w and name_w <= slug and (brand_w & (slug | tw) or not brand_w)):
                 solid.add(host)
     if len(by_host) == 1:
         # One site states this exact size and price. A second site that names the same product (every word of the name and the brand) but does not print the size
@@ -274,14 +293,16 @@ def _candidate_pages(product: Dict[str, Any], results: list, limit: int = 3) -> 
     brand_w = _words(str(product.get("brand") or "").split(",")[0])
     name_w = _name_words(product, brand_w)
     out, hosts = [], set()
-    if not name_w:
+    code = str(product.get("barcode") or "")
+    if not name_w and len(code) < 8:
         return out
     for url, text in results:
         if _LISTING.search(url):
             continue
         slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))
         host = urllib.parse.urlparse(url).netloc.replace("www.", "")
-        if host in hosts or not name_w <= slug or (brand_w and not (brand_w & (slug | _words(text)))):
+        exact = len(code) >= 8 and code in url
+        if host in hosts or not (exact or (name_w <= slug and (not brand_w or brand_w & (slug | _words(text))))):
             continue
         hosts.add(host)
         out.append(url)

@@ -690,3 +690,26 @@ def test_plural_names_match_and_a_single_product_page_gives_a_price_but_another_
            ("https://www.supermarchesmatch.fr/fr/p/1/albert-menes-caviar-d-aubergines-citron-et-epices", "Albert Ménès : Caviar d'aubergines citron et épices 100 g ; 180 g env. 16,99€/kg")]
     got = webprice._price_from(prod, res)
     assert got and got["pack_cents"] == 463          # 'aubergine' = 'aubergines'; the 180 g price is another pack, so it is ignored
+
+
+def test_a_page_naming_the_barcode_is_this_exact_pack_and_a_snippet_price_broken_into_pieces_is_repaired():
+    from app import webprice
+    prod = {"barcode": "3234750022280", "name": "Caviar d'aubergine au citron et épices", "brand": "Albert Ménès", "quantity": {"amount": 100.0, "unit": "g"}}
+    res = [("https://www.carrefour.fr/p/caviar-d-aubergines-citron-et-epices-bio-albert-menes-3234750022280", "Caviar D'Aubergines Citron Et Épices Bio ALBERT MENES Drive ou Livraison. 4. ,59. €. 45.90 € / KG."),
+           ("https://fr.openfoodfacts.org/produit/3234750022280/caviar", "Caviar d'aubergine au citron et épices – Albert Ménès 3234750022280 4,00 €")]
+    got = webprice._price_from(prod, res)
+    assert got and got["pack_cents"] == 459 and got["stores"] == ["Carrefour"]      # the barcode in the address: no size needed in the snippet; the database page never counts
+    assert webprice._clean("4. ,59. €") == "4,59 €" and webprice._clean("4,59 €") == "4,59 €"
+
+
+def test_a_multipack_written_with_a_star_is_the_whole_pack():
+    from app.value import parse_quantity
+    assert parse_quantity("4*125 g") == (500.0, "g") and parse_quantity("6 x 25 g") == (150.0, "g")
+
+
+def test_the_second_search_wording_uses_the_barcode():
+    from app import webprice
+    prod = {"barcode": "8001060034785", "name": "Pesto alla genovese", "brand": "Saclà", "quantity": {"amount": 190.0, "unit": "g"}}
+    assert webprice._query(prod, 0) == "Saclà Pesto alla genovese 190 g prix €"
+    assert webprice._query(prod, 1) == "8001060034785 Saclà prix"
+    assert webprice._query({**prod, "barcode": "20386238"}, 1) == "Saclà Pesto alla genovese 190 g prix supermarché drive"   # a short code is too ambiguous to search by
