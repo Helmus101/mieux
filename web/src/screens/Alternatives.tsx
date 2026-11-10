@@ -126,7 +126,6 @@ export default function Alternatives() {
                     {unitTxt && <div><span className="mut sm">{t('alt.sumP')}</span><b className="sm2">{unitTxt}</b>{d && <span className="dl" style={{ color: d.tone }}>{d.text}</span>}</div>}
                     {e.vs != null && <div><span className="mut sm">{t('alt.sumV')}</span><b>{e.vs}</b><Bar value={e.vs / 100} /></div>}
                   </div>
-                  {e.detail && <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('score.pqHow', { n: e.detail.nutrition, p: formatCents(Math.round(e.detail.price_per_100_cents * 10)), s: e.detail.size ? sizeLabel(e.detail.size) : '—', d: e.detail.price_date ?? '—' })}</p>}
                   {e.tradeoffs?.length > 0 && <div className="flags" style={{ margin: '14px 0 0' }}>{e.tradeoffs.slice(0, 2).map((x: string) => <span key={x} className="pill w">{x}</span>)}</div>}
                 </div>;
               })()}

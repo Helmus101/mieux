@@ -217,7 +217,8 @@ def _tradeoffs(o, c, sim, lang="fr", price_unknown=False) -> List[str]:
     vd = (c.get("substitution") or {}).get("variant_diff")
     if vd:
         T.append(tr(lang, "tr_variant", a=tr(lang, "var_" + vd[0]), b=tr(lang, "var_" + vd[1])))
-    T.append(tr(lang, "tr_diff_type") if sim < 0.8 else tr(lang, "tr_diff_flavour"))
+    # "A different type of product" only when the substitution rules really say so (level 3 or more); a close substitute (level 1-2) is the same type, at most another flavour or recipe
+    T.append(tr(lang, "tr_diff_type") if (sim < 0.8 and ((c.get("substitution") or {}).get("level") or 1) > 2) else tr(lang, "tr_diff_flavour"))
     return T
 
 

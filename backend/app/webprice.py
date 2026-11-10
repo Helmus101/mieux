@@ -139,6 +139,11 @@ def _fetch_results(name: str, product: Dict[str, Any], http: Http, variant: int 
     return [(r.get("url") or "", " ".join([r.get("title") or ""] + list(r.get("excerpts") or []))) for r in data.get("results", [])]
 
 
+def _name_words(product: Dict[str, Any], brand_w: set) -> set:
+    """The words that identify a product by its name: 4+ letters, not the brand, not a pack size written into the name ("190g", "6x25g")."""
+    return {w for w in _words(product.get("name")) if len(w) > 3 and not re.fullmatch(r"\d+(?:x\d+)?(?:g|gr|kg|ml|cl|l)", w)} - brand_w
+
+
 _PER_UNIT_AFTER = re.compile(r"^\s*(?:/|par\b|le\b|au\b|\bl[e']?\s)\s*(?:kg|kilo|litre|l\b)", re.I)
 
 
@@ -193,7 +198,7 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
     if not q or not size_re:
         return None
     brand_w = _words(str(product.get("brand") or "").split(",")[0])
-    name_w = {w for w in _words(product.get("name")) if len(w) > 3} - brand_w
+    name_w = _name_words(product, brand_w)
     size_units = q["amount"] / 1000.0
     by_host: Dict[str, Tuple[float, str]] = {}
     solid: set = set()                                     # hosts whose page is this exact product's own page (address names every word of it)
@@ -252,6 +257,66 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
     return {"per100_cents": round(price_c / q["amount"] * 100, 1), "pack_cents": price_c, "store": stores[0] if stores else None, "stores": stores,
             "chains": [retail.ID_OF[n] for n in stores if n in retail.ID_OF], "source_urls": [u for _, _, u in agree][:3],
             "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
+
+
+_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+_PAGE_PRICE = re.compile(r'"price"\s*:\s*"?(\d{1,3}(?:[.,]\d{1,2})?)"?|itemprop="price"[^>]*content="(\d+(?:[.,]\d{1,2})?)"|(?:product|og):price:amount"[^>]*content="(\d+(?:[.,]\d{1,2})?)"', re.I)
+
+
+def _get_html(url: str, timeout: float = 6.0) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": _UA, "Accept-Language": "fr-FR,fr;q=0.9", "Accept": "text/html"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read(500000).decode("utf-8", "replace")
+
+
+def _candidate_pages(product: Dict[str, Any], results: list, limit: int = 3) -> list:
+    """Shop pages that are this exact product's own page (the address names every word of it) but whose search snippet carries no price."""
+    brand_w = _words(str(product.get("brand") or "").split(",")[0])
+    name_w = _name_words(product, brand_w)
+    out, hosts = [], set()
+    if not name_w:
+        return out
+    for url, text in results:
+        if _LISTING.search(url):
+            continue
+        slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))
+        host = urllib.parse.urlparse(url).netloc.replace("www.", "")
+        if host in hosts or not name_w <= slug or (brand_w and not (brand_w & (slug | _words(text)))):
+            continue
+        hosts.add(host)
+        out.append(url)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _page_prices(product: Dict[str, Any], results: list, deadline: Optional[float], fetch: Callable[[str], str] = None) -> list:
+    """Read the price off those product pages (structured data in the page). Returns [(url, text)] in the form the matcher reads, with the pack size the page itself states."""
+    fetch = fetch or _get_html
+    q = product.get("quantity") or {}
+    size_re = _size_regex(q)
+    pages = _candidate_pages(product, results)
+    if not pages or not size_re or not q:
+        return []
+    from concurrent.futures import ThreadPoolExecutor
+    left = max(1.0, min(6.0, (deadline - time.time()) - 1)) if deadline else 6.0
+    if deadline and deadline - time.time() < 2:
+        return []
+
+    def one(u):
+        try:
+            html = fetch(u, left) if fetch is _get_html else fetch(u)
+        except Exception:
+            return None
+        if not size_re.search(html):
+            return None                        # the page does not state this pack size: its price may be for another one
+        m = _PAGE_PRICE.search(html)
+        if not m:
+            return None
+        v = float(next(g for g in m.groups() if g).replace(",", "."))
+        return (u, f"{q['amount']:g} {q['unit']} {v:.2f} €") if 0.2 <= v <= 400 else None
+    with ThreadPoolExecutor(max_workers=len(pages)) as ex:
+        return [x for x in ex.map(one, pages) if x]
 
 
 _gemini: Dict[str, Any] = {"down_until": 0.0, "error": None}
@@ -320,7 +385,7 @@ def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]
     """The pack size of a product that has none in the database, read from product pages of this exact product (brand and every word of the name in the page address).
     Only when those pages agree on one size; otherwise None (no price is better than a price for the wrong pack)."""
     brand_w = _words(str(product.get("brand") or "").split(",")[0])
-    name_w = {w for w in _words(product.get("name")) if len(w) > 3} - brand_w
+    name_w = _name_words(product, brand_w)
     if not name_w or not _budget_left():
         return None
     for prov in providers():
@@ -398,7 +463,12 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
             if time.time() < _down.get(name, 0):
                 continue                    # this provider just said "quota used up": skip it for a few minutes
             try:
-                out = _price_from(product, _fetch_results(name, product, http, variant))
+                found = _fetch_results(name, product, http, variant)
+                out = _price_from(product, found)
+                if not out:
+                    extra = _page_prices(product, found, deadline)       # right product page found, but its snippet shows no price: read the page
+                    if extra:
+                        out = _price_from(product, found + extra)
             except Exception as e:
                 _set_error(e)
                 if getattr(e, "code", None) == 429:
