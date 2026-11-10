@@ -1592,7 +1592,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                 found = [webprice.cached_only(c) for c in todo]
                 futs = {i: _search_once(c) for i, (c, w) in enumerate(zip(todo, found)) if w is None}
                 if futs:
-                    _wait(list(futs.values()), timeout=max(0.3, min(8.0 if scarce else 5.0, (_SEARCH_DEADLINE.get() or (time.time() + 5)) + (3 if scarce else 0) - time.time())))
+                    _wait(list(futs.values()), timeout=max(0.3, min(15.0 if scarce else 12.0, (_SEARCH_DEADLINE.get() or (time.time() + 12)) + (3 if scarce else 0) - time.time())))
                     for i, f in futs.items():
                         if f.done() and not f.exception():
                             found[i] = f.result()
@@ -1639,7 +1639,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
 @app.post("/v1/products/{barcode}/alternatives")
 @limiter.limit("20/minute")
 def alternatives(request: Request, background: BackgroundTasks, barcode: str, body: AltReq, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
-    _SEARCH_DEADLINE.set(time.time() + 5)
+    _SEARCH_DEADLINE.set(time.time() + 12)
     bad = [p for p in body.priorities if p not in engine.PRIORITIES]
     if bad:
         raise HTTPException(422, f"Unknown priorities: {bad}")

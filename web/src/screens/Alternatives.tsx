@@ -43,27 +43,9 @@ export default function Alternatives() {
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
   // Candidates with no price: one search each for an approximate price and the supermarkets selling it (stored server-side). A found price puts the card into the
   // price and price-quality tabs as it arrives, so the lists fill up to 10 even where the database has no price.
-  const [webP, setWebP] = useState<Record<string, any>>({});
-  const [webBusy, setWebBusy] = useState(false);
-  const asked = useRef<Set<string>>(new Set());
-  useEffect(() => { asked.current = new Set(); }, [r]);
-  useEffect(() => {
-    const order = rk === 'match' ? ['quality', 'value', 'budget', 'closest'] : rk === 'budget' ? ['budget', 'value', 'quality', 'closest'] : ['value', 'budget', 'quality', 'closest'];   // the open tab is priced first
-    const rows = order.flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
-    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity && !asked.current.has(e.product.barcode)).map((e) => e.product.barcode as string))].slice(0, 32);
-    if (!want.length) { setWebBusy(false); return; }
-    want.forEach((c) => asked.current.add(c));
-    let live = true; const fetched = new Set<number>();
-    setWebBusy(true);
-    (async () => {                                                   // batches of 8, best-ranked first, each shown as it arrives
-      for (let i = 0; i < want.length && live; i += 8) {
-        try { const m = await api.getWebPrices(want.slice(i, i + 8)); if (live) setWebP((cur) => ({ ...cur, ...m })); } catch { /* keep going */ }
-        if (live) fetched.add(i);
-      }
-      if (live) setWebBusy(false);
-    })();
-    return () => { live = false; want.forEach((c, j) => { if (!fetched.has(j - (j % 8))) asked.current.delete(c); }); };   // unfinished batches are asked again
-  }, [r, rk]);
+  // Prices are found by the server before the list is sent: nothing is added to the page afterwards.
+  const webP: Record<string, any> = {};
+  const webBusy = false;
   const rowOf = (e0: any) => { const w = e0.price_per_100_cents == null ? webP[e0.product?.barcode] : null; const e = w ? { ...e0, price_per_100_cents: w.per100_cents, value_score: w.value_score, pack_cents: w.pack_cents, product: { ...e0.product, chains: e0.product.chains?.length ? e0.product.chains : (w.chains ?? []) } } : e0; return ({ ps_web: !!w || e.price_source?.source === "web_search", avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }); };
   // What each tab shows: sorted strictly by category requirements.
   const sourceRows = (k: string): any[] => {
