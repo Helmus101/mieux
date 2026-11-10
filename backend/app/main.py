@@ -1545,6 +1545,25 @@ def _search_once(c: Dict[str, Any]):
     return f
 
 
+def _search_targets(orig: Dict[str, Any], orig_unpriced: bool, prods: List[Dict[str, Any]], prices: Dict[str, float], top_quality: int = 12, total: int = 30) -> List[Dict[str, Any]]:
+    """Whom to search the web for, in order: the scanned product if it has no price, then the best-scoring unpriced close substitutes (what the quality tab
+    will show), then the ones most likely to be cheap or good value (house brands, widely sold, popular). Same unit only; close substitutes only."""
+    oq = orig.get("quantity")
+    cand = [c for c in prods if c.get("quantity") and c["barcode"] not in prices and c["barcode"] != orig["barcode"]
+            and (not oq or c["quantity"]["unit"] == oq["unit"]) and ((c.get("substitution") or {}).get("level") in (1, 2, None))]
+
+    def _likely_value(c):
+        pop = c.get("popularity") or {}
+        return ((c.get("score") or {}).get("total") or 0) + (12 if _chains.own_brand_chain(c.get("brand")) else 0) + 4 * min(3, pop.get("chains") or len(c.get("chains") or [])) + min(10.0, 3 * math.log10((pop.get("scans") or 0) + 1))
+    best = sorted([c for c in cand if (c.get("dataQuality") or {}).get("nutritionComplete") and (c.get("score") or {}).get("total") is not None],
+                  key=lambda c: -(c["score"]["total"]))[:top_quality]
+    seen = {c["barcode"] for c in best}
+    rest = sorted([c for c in cand if c["barcode"] not in seen], key=_likely_value, reverse=True)
+    n_priced = len([b for b in prices if b != orig["barcode"]])
+    cap = total + (30 if n_priced < 3 else 0)
+    return ([orig] if orig_unpriced else []) + (best + rest)[:cap]
+
+
 def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str, Any]], loc: Optional[Loc] = None, approximate: bool = False, only: Optional[List[str]] = None):
     """Price per 100 g/ml for the original and a list of products: your own recent receipt/entry first, else a real community observation.
     DB access stays on this thread (sessions are not thread-safe); only the network calls fan out. Prices are observed or found on the web, never guessed from a category average."""
@@ -1575,22 +1594,13 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
             points[c["barcode"]].update({k: pt[k] for k in ("currency", "price_native", "fx", "stale", "pack_cents") if k in pt})
     if orig_price is not None:
         points[orig["barcode"]] = {k: points[orig["barcode"]][k] for k in ("source", "date", "where", "currency", "price_native", "fx", "stale", "pack_cents", "scope", "store", "distance_km") if k in points[orig["barcode"]]}
-    # Too few observed prices for this kind of product (or none for the scanned one): search the web (Parallel, cached for good in webprice_cache.db) so the
-    # price lists are never empty. Found prices carry source='web_search' + approximate=True; the clients show them with a "~".
-    if webprice.enabled() and (len([b for b in prices if b != orig["barcode"]]) < 10 or orig_price is None):
+    # Products with no observed price are searched on the web (stored for good in webprice_cache.db), the best-quality ones first: they are the ones the
+    # quality tab shows, and a good bar without a price is the one a shopper wants priced. This no longer waits for "too few priced products": other
+    # observed prices in the pool say nothing about the unpriced bar that scores 76. Found prices carry source='web_search' + approximate=True ("~" in the clients).
+    if webprice.enabled():
         try:
-            todo = []
-            if orig_price is None:
-                todo.append(orig)
-            cand = [c for c in prods if c.get("quantity") and c["barcode"] not in prices and c["barcode"] != orig["barcode"]
-                    and (not oq or c["quantity"]["unit"] == oq["unit"]) and ((c.get("substitution") or {}).get("level") in (1, 2, None))]
-
-            def _likely_value(c):     # search first the candidates most likely to be cheap or good value: strong nutrition score, house brands, widely sold and popular products
-                pop = c.get("popularity") or {}
-                return ((c.get("score") or {}).get("total") or 0) + (12 if _chains.own_brand_chain(c.get("brand")) else 0) + 4 * min(3, pop.get("chains") or len(c.get("chains") or [])) + min(10.0, 3 * math.log10((pop.get("scans") or 0) + 1))
-            n_priced_ = len([b for b in prices if b != orig["barcode"]])
-            scarce = n_priced_ < 3                  # almost nothing priced for this kind of product: search more candidates and wait a little longer
-            todo += sorted(cand, key=_likely_value, reverse=True)[:(60 if scarce else 40)]
+            todo = _search_targets(orig, orig_price is None, prods, prices)
+            scarce = len([b for b in prices if b != orig['barcode']]) < 3        # almost nothing priced for this kind of product: wait a little longer
             if todo:
                 # Stored prices are instant. Missing ones are searched in parallel, but the request waits at most ~7 s in total (the scanned product first);
                 # a search still running keeps going in the background and is stored for next time.
