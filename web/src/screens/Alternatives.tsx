@@ -31,31 +31,110 @@ export default function Alternatives() {
   const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy, setDiffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const priceRun = useRef(0);
+  const webPriceRequests = useRef(new Set<AbortController>());
   useEffect(() => {
     if (!barcode || !prios.length) return;
+    let live = true;
+    const currentPriceRun = ++priceRun.current;
+    webPriceRequests.current.forEach((request) => request.abort());
+    webPriceRequests.current.clear();
+    const controller = new AbortController();
     setErr(null);
-    const ck = `alt:${barcode}:${prios.join()}:${myChains.join()}`;
+    setWebP({});
+    setWebStatus({});
+    requestedPrices.current.clear();
+    const ck = `alt:${country}:${barcode}:${prios.join()}:${myChains.join()}:${hasHome ? `${home?.lat},${home?.lon}` : 'all'}:${estimates}`;
     const stale = readCache<any>(ck);
-    if (stale) { setR(stale); setBusy(false); } else setBusy(true);   // show the last answer at once, then refresh it
-    api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 20, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) })
-      .then((x: any) => { setR(x); writeCache(ck, x); })
-      .catch((e: unknown) => setErr(friendlyError(e))).finally(() => setBusy(false));
-  }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
-  // Candidates with no price: one search each for an approximate price and the supermarkets selling it (stored server-side). A found price puts the card into the
-  // price and price-quality tabs as it arrives, so the lists fill up to 10 even where the database has no price.
+    setR(stale ?? null);
+    setBusy(!stale);   // show the last answer at once, then refresh it
+    api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 20, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) }, controller.signal)
+      .then((x: any) => { if (live) { setR(x); writeCache(ck, x); setErr(null); } })
+      .catch((e: unknown) => { if (live && !controller.signal.aborted) setErr(friendlyError(e)); })
+      .finally(() => { if (live) setBusy(false); });
+    return () => {
+      live = false;
+      controller.abort();
+      if (priceRun.current === currentPriceRun) priceRun.current += 1;
+      webPriceRequests.current.forEach((request) => request.abort());
+      webPriceRequests.current.clear();
+    };
+  }, [barcode, country, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
+  // Candidates without observed prices are checked once per product, in ranked batches. A null is settled as unavailable;
+  // a failed request remains retryable and never prevents alternatives from rendering.
   const [webP, setWebP] = useState<Record<string, any>>({});
+  const [webStatus, setWebStatus] = useState<Record<string, 'pending' | 'found' | 'missing' | 'failed'>>({});
+  const requestedPrices = useRef(new Set<string>());
+  const pendingPriceCount = Object.values(webStatus).filter((status) => status === 'pending').length;
+  const failedPriceCount = Object.values(webStatus).filter((status) => status === 'failed').length;
   useEffect(() => {
     const rows = (['value', 'budget', 'quality', 'closest'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
-    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 32);
+    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))]
+      .filter((bc) => !webP[bc] && !requestedPrices.current.has(bc)).slice(0, 32);
     if (!want.length) return;
-    let live = true;
-    (async () => {                                                   // batches of 8, best-ranked first, each shown as it arrives
-      for (let i = 0; i < want.length && live; i += 8) {
-        try { const m = await api.getWebPrices(want.slice(i, i + 8)); if (live) setWebP((cur) => ({ ...cur, ...m })); } catch { /* keep going */ }
+    const currentPriceRun = priceRun.current;
+    want.forEach((bc) => requestedPrices.current.add(bc));
+    setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(want.map((bc) => [bc, 'pending'])) }));
+    (async () => {
+      for (let i = 0; i < want.length && currentPriceRun === priceRun.current; i += 8) {
+        const batch = want.slice(i, i + 8);
+        const controller = new AbortController();
+        webPriceRequests.current.add(controller);
+        try {
+          const result = await api.getWebPriceBatch(batch, controller.signal);
+          if (currentPriceRun !== priceRun.current) return;
+          const failed = new Set(result.failed);
+          setWebP((cur) => ({ ...cur, ...Object.fromEntries(batch.filter((bc) => result.prices[bc]).map((bc) => [bc, result.prices[bc]])) }));
+          setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(batch.map((bc) => [bc, failed.has(bc) ? 'failed' : result.prices[bc] ? 'found' : 'missing'])) }));
+        } catch {
+          if (currentPriceRun === priceRun.current) setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(batch.map((bc) => [bc, 'failed'])) }));
+        } finally {
+          webPriceRequests.current.delete(controller);
+        }
       }
     })();
-    return () => { live = false; };
   }, [r]);
+  const retryWebPrice = async (bc: string) => {
+    if (webStatus[bc] === 'pending') return;
+    const currentPriceRun = priceRun.current;
+    requestedPrices.current.add(bc);
+    setWebStatus((cur) => ({ ...cur, [bc]: 'pending' }));
+    const controller = new AbortController();
+    webPriceRequests.current.add(controller);
+    try {
+      const result = await api.getWebPriceBatch([bc], controller.signal);
+      if (currentPriceRun !== priceRun.current) return;
+      const found = result.prices[bc] ?? null;
+      if (found) setWebP((cur) => ({ ...cur, [bc]: found }));
+      setWebStatus((cur) => ({ ...cur, [bc]: result.failed.includes(bc) ? 'failed' : found ? 'found' : 'missing' }));
+    } catch {
+      if (currentPriceRun === priceRun.current) setWebStatus((cur) => ({ ...cur, [bc]: 'failed' }));
+    } finally {
+      webPriceRequests.current.delete(controller);
+    }
+  };
+  const retryFailedPrices = async () => {
+    const failed = Object.entries(webStatus).filter(([, status]) => status === 'failed').map(([bc]) => bc);
+    for (let i = 0; i < failed.length; i += 8) {
+      const batch = failed.slice(i, i + 8);
+      const currentPriceRun = priceRun.current;
+      batch.forEach((bc) => requestedPrices.current.add(bc));
+      setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(batch.map((bc) => [bc, 'pending'])) }));
+      const controller = new AbortController();
+      webPriceRequests.current.add(controller);
+      try {
+        const result = await api.getWebPriceBatch(batch, controller.signal);
+        if (currentPriceRun !== priceRun.current) return;
+        const retryFailed = new Set(result.failed);
+        setWebP((cur) => ({ ...cur, ...Object.fromEntries(batch.filter((bc) => result.prices[bc]).map((bc) => [bc, result.prices[bc]])) }));
+        setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(batch.map((bc) => [bc, retryFailed.has(bc) ? 'failed' : result.prices[bc] ? 'found' : 'missing'])) }));
+      } catch {
+        if (currentPriceRun === priceRun.current) setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(batch.map((bc) => [bc, 'failed'])) }));
+      } finally {
+        webPriceRequests.current.delete(controller);
+      }
+    }
+  };
   const rowOf = (e0: any) => { const w = e0.price_per_100_cents == null ? webP[e0.product?.barcode] : null; const e = w ? { ...e0, price_per_100_cents: w.per100_cents, value_score: w.value_score, pack_cents: w.pack_cents, product: { ...e0.product, chains: e0.product.chains?.length ? e0.product.chains : (w.chains ?? []) } } : e0; return ({ ps_web: !!w || e.price_source?.source === "web_search", avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }); };
   // What each tab shows: sorted strictly by category requirements.
   const sourceRows = (k: string): any[] => {
@@ -141,11 +220,13 @@ export default function Alternatives() {
       {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
       {tabs.length > 0 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
       <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}{rk === 'value' && <> <PqExplain label /></>}</p>
+      {pendingPriceCount > 0 && <p role="status" className="mut sm">{t('rank.pricePending', { n: pendingPriceCount })}</p>}
+      {failedPriceCount > 0 && <div role="status" className="mut sm" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0 10px' }}><span>{t('rank.priceFailed')}</span><Button small plain onPress={() => { void retryFailedPrices(); }}>{t('rank.retryPrice')}</Button></div>}
       {r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</span>
         {showPrice && <button className="linkbtn" onClick={() => setDiffBy(diffBy === 'kg' ? 'pack' : 'kg')} aria-label={t('diff.byKg') + ' / ' + t('diff.byPack')}>{diffBy === 'kg' ? t('diff.byPack') : t('diff.byKg')}</button>}</p>}
       {busy && <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />{[0, 1, 2].map((n) => <Skeleton key={n} h={112} />)}</>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
-      {r && !busy && !shown.length && (() => {
+      {r && !busy && !shown.length && pendingPriceCount === 0 && failedPriceCount === 0 && (() => {
         const os = r?.original?.score?.total;
         const m = nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : rk === 'closest' ? { title: t('rank.noClosest'), why: t('rank.closestSub') }
@@ -162,11 +243,14 @@ export default function Alternatives() {
         const w = webP[e.product.barcode];
         const chains = ((e.product.chains?.length ? e.product.chains : w?.chains) ?? []) as string[];
         return (
-          <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={() => { haptic('tap'); setDetail(e); }}>
+          <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={(event) => { if ((event.target as HTMLElement).closest('button')) return; haptic('tap'); setDetail(e); }}>
             {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
             <div className="amain">
               <div className="aname">{e.product.name}</div>
               <div className="abrand">{e.product.brand}</div>
+              {e.price100 == null && !w && webStatus[e.product.barcode] === 'pending' && <span className="mut sm" role="status">{t('common.loading')}</span>}
+              {e.price100 == null && !w && webStatus[e.product.barcode] === 'missing' && <span className="mut sm">{t('rank.priceUnavailable')}</span>}
+              {e.price100 == null && !w && webStatus[e.product.barcode] === 'failed' && <Button small plain onPress={() => { void retryWebPrice(e.product.barcode); }}>{t('rank.retryPrice')}</Button>}
               <div className="ameta">
                 {e.product.score && <span className={rk === 'match' ? 'main' : 'sub'}><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>{rk === 'match' && <small> {t('score.' + e.product.score.band)}</small>}
                   {rk === 'match' && r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>}

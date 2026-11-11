@@ -59,7 +59,7 @@ export class MieuxAPI {
     // The local server can be restarting or briefly busy: retry a few times before giving up, then say so in plain words instead of "Network Error".
     this.client.interceptors.response.use(undefined, async (error) => {
       const cfg = error?.config;
-      if (error?.response || !cfg) throw error;
+      if (axios.isCancel(error) || error?.code === 'ERR_CANCELED' || error?.response || !cfg) throw error;
       cfg.__retries = (cfg.__retries ?? 0) + 1;
       if (cfg.__retries <= 3) {
         await new Promise((r) => setTimeout(r, 600 * cfg.__retries));
@@ -114,11 +114,21 @@ export class MieuxAPI {
     return response.data?.price ?? null;
   }
 
-  /** The same for several alternatives at once: { barcode: price | null }. */
-  async getWebPrices(barcodes: string[]) {
-    const response = await this.client.post('/web-prices', { barcodes });
-    return (response.data?.prices ?? {}) as Record<string, any>;
+  /** Batched approximate prices for existing map-only consumers. */
+  async getWebPrices(barcodes: string[], signal?: AbortSignal): Promise<Record<string, any>> {
+    return (await this.getWebPriceBatch(barcodes, signal)).prices;
   }
+
+  /** Includes per-barcode transient failures so callers can retry without confusing them with a real miss. */
+  async getWebPriceBatch(barcodes: string[], signal?: AbortSignal): Promise<{ prices: Record<string, any>; failed: string[] }> {
+    const response = await this.client.post('/web-prices', { barcodes }, { signal });
+    const data = response.data ?? {};
+    return {
+      prices: data.prices && typeof data.prices === 'object' ? data.prices : {},
+      failed: Array.isArray(data.failed) ? data.failed.filter((code: unknown): code is string => typeof code === 'string') : [],
+    };
+  }
+
 
   async searchProducts(query: string) {
     const response = await this.client.get('/search', { params: { q: query } });
@@ -155,8 +165,8 @@ export class MieuxAPI {
     return response.data;
   }
 
-  async getAlternatives(barcode: string, request: any) {
-    const response = await this.client.post(`/products/${barcode}/alternatives`, { ...request, strict_additives: getStrict() });
+  async getAlternatives(barcode: string, request: any, signal?: AbortSignal) {
+    const response = await this.client.post(`/products/${barcode}/alternatives`, { ...request, strict_additives: getStrict() }, { signal });
     return response.data;
   }
 

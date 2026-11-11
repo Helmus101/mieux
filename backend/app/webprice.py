@@ -30,11 +30,44 @@ PROMPT = (
 )
 
 last_error: Optional[str] = None
+_error_state = threading.local()
+
+
+def _clear_lookup_state() -> None:
+    global last_error
+    last_error = None
+    _error_state.current_error = None
+    _error_state.failure = None
+    _error_state.provider_succeeded = False
+
+
+def _clear_current_error() -> None:
+    global last_error
+    last_error = None
+    _error_state.current_error = None
+
+
+def _set_error_message(message: str) -> None:
+    global last_error
+    last_error = message
+    _error_state.current_error = message
+    _error_state.failure = message
 
 
 def _set_error(e: Exception) -> None:
-    global last_error
-    last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
+    _set_error_message((str(getattr(e, "code", "")) + " " + type(e).__name__)[:80])
+
+
+def _mark_provider_success() -> None:
+    _error_state.provider_succeeded = True
+
+
+def _lookup_error() -> Optional[str]:
+    return getattr(_error_state, "failure", None)
+
+
+def _provider_succeeded() -> bool:
+    return bool(getattr(_error_state, "provider_succeeded", False))
 
 
 Transport = Callable[[str, Dict[str, Any]], Dict[str, Any]]
@@ -253,7 +286,6 @@ def _budget_left() -> bool:
 
 def _gemini_lookup(product: Dict[str, Any], transport: Transport) -> Optional[Dict[str, Any]]:
     """One Google-grounded Gemini lookup: a price only when it cites at least one page, for a known size in the same unit. Failures set last_error and return None."""
-    global last_error
     key = os.environ["GEMINI_API_KEY"]
     barcode = str(product.get("barcode") or "")
     q = product.get("quantity")
@@ -262,8 +294,9 @@ def _gemini_lookup(product: Dict[str, Any], transport: Transport) -> Optional[Di
             "tools": [{"google_search": {}}], "generationConfig": {"temperature": 0}}
     try:
         resp = transport(ENDPOINT.format(model=MODEL) + "?key=" + key, body)
+        _mark_provider_success()
     except Exception as e:       # network, quota, bad key, retired model: no price, and do not cache the failure
-        last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
+        _set_error(e)
         return None
     cand = (resp.get("candidates") or [{}])[0]
     text = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
@@ -329,10 +362,9 @@ def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]
 
 def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _post) -> Optional[Dict[str, Any]]:
     """Parallel search; no price when the sites it returns do not agree on this pack size."""
-    global last_error
-    last_error = None
+    _clear_lookup_state()
     if not _budget_left():
-        last_error = "daily cap reached"
+        _set_error_message("daily cap reached")
         return None
     assumed = None
     if not (product.get("quantity") or {}).get("amount"):
@@ -355,12 +387,15 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                     if assumed:
                         out["size_assumed"] = assumed
                     return out
-                if last_error:              # a Gemini failure must not stop a genuine "nothing found" from being cached for the other providers
-                    _gemini.update(down_until=time.time() + 600, error=last_error)
-                    last_error = None
+                current_error = getattr(_error_state, "current_error", None)
+                if current_error:              # a Gemini failure must not stop a genuine "nothing found" from being cached for the other providers
+                    _gemini.update(down_until=time.time() + 600, error=current_error)
+                    _clear_current_error()
                 continue
             try:
-                out = _price_from(product, _fetch_results(name, product, http, variant))
+                results = _fetch_results(name, product, http, variant)
+                out = _price_from(product, results)
+                _mark_provider_success()
             except Exception as e:
                 _set_error(e)
                 continue
@@ -437,10 +472,12 @@ def cached_only(product: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True, http: Optional[Http] = None) -> Optional[Dict[str, Any]]:
     """{per100_cents, pack_cents, store, source_urls, date, source:'web_search', approximate:True} or None."""
-    global last_error
-    key = os.environ.get("GEMINI_API_KEY")
+    _clear_lookup_state()
     barcode = str(product.get("barcode") or "")
-    if not barcode or provider() is None:
+    if not barcode:
+        return None
+    if provider() is None:
+        _set_error_message("no price provider configured")
         return None
     old = None
     if use_cache:
@@ -448,13 +485,19 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
         if fresh:
             return data
         old = data                       # an expired price we found earlier: kept, never thrown away
-    if provider():
-        out = _search_lookup(product, http or _http, transport)
-        if use_cache and out:
-            _store(barcode, out)
-        elif use_cache and last_error is None and not old:
-            _store(barcode, None)        # a genuine "nothing found" is remembered for a few days
-        if not out and old:
-            return {**old, "stale": True}   # the re-search found nothing: keep showing the stored price, marked as older
-        return out
-    return None
+    out = _search_lookup(product, http or _http, transport)
+    if use_cache and out:
+        _store(barcode, out)
+    elif use_cache and _provider_succeeded() and not old:
+        _store(barcode, None)            # only cache a no-price result after at least one provider answered
+    if not out and old:
+        return {**old, "stale": True}   # the re-search found nothing: keep showing the stored price, marked as older
+    return out
+
+
+def lookup_with_status(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True, http: Optional[Http] = None) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """Return a price and an error only when providers could not complete a usable lookup."""
+    result = lookup(product, transport=transport, use_cache=use_cache, http=http)
+    if result or _provider_succeeded():
+        return result, None
+    return result, _lookup_error()
