@@ -18,8 +18,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from . import value
 
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
-FALLBACK_MODELS = ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+# "gemini-flash-latest" is Google's own alias for whatever current model replaces these over time: it is tried early so a
+# retired dated version (like the others here) does not quietly stop the search working until this list is updated by hand.
+FALLBACK_MODELS = ("gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-flash")
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 HIT_TTL = 30 * 86400      # a found price is searched again after 30 days (the old one stays, marked stale, if the new search finds nothing)
 MISS_TTL = 1 * 86400      # a search that found nothing is retried after a day (search results vary, so one miss must not stick for long)
@@ -450,11 +452,11 @@ def _gemini_lookup(product: Dict[str, Any], transport: Transport, timeout: Optio
             if resp:
                 MODEL = m
                 break
-        except Exception as e:       # network, quota, bad key, retired model: no price, and do not cache the failure
+        except Exception as e:       # a retired model, or momentary overload, is worth trying again with a different model
             last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
-            if getattr(e, "code", None) == 404:
+            if getattr(e, "code", None) in (404, 500, 502, 503):
                 continue
-            return None
+            return None               # 429 (quota) and a bad key or malformed request fail the same way on every model: no point burning more calls on another
     if not resp:
         return None
     cand = (resp.get("candidates") or [{}])[0]
@@ -463,14 +465,21 @@ def _gemini_lookup(product: Dict[str, Any], transport: Transport, timeout: Optio
     out = None
     if got:
         price_c = round(float(got["price_eur"]) * 100)
-        qty = value.parse_quantity(str(got.get("pack_size") or "")) or ((q["amount"], q["unit"]) if q else None)
+        said = value.parse_quantity(str(got.get("pack_size") or ""))
+        # When the pack size is already known, trust that over whatever size Gemini names: it only identifies which unit family
+        # (g vs ml) the stated size belongs to, and it must agree with the known size (not just share a unit) or the price is
+        # for some other pack and must not be used. Only when the size is NOT already known is Gemini's own figure accepted.
+        qty = q and (q["amount"], q["unit"])
+        if not qty:
+            qty = said
+        elif said and (said[1] != qty[1] or abs(said[0] - qty[0]) / qty[0] > 0.1):
+            qty = None                   # names a size that doesn't match what we already know: not trustworthy enough to use
         gm = cand.get("groundingMetadata") or {}
         sources = [c["web"]["uri"] for c in gm.get("groundingChunks", []) if c.get("web", {}).get("uri")][:3]
         if not sources and gm.get("webSearchQueries"):
             sources = [f"https://www.google.com/search?q={urllib.parse.quote(q_)}" for q_ in gm.get("webSearchQueries", [])][:3]
-        if not sources and barcode:
-            sources = [f"https://www.google.com/search?q={barcode}"]
-        # Accept only a plausible price for a known size, backed by at least one cited page, in the same unit family as the product
+        # Accept only a plausible price for a known size, backed by at least one real search Gemini is shown to have made
+        # (a cited page, or a search query it ran): without that, there is no way to tell a found price from a guess.
         if qty and 20 <= price_c <= 20000 and sources and (not q or qty[1] == q["unit"]):
             from . import chains as ch, retail, market
             st_name = ch.canon(str(got.get("store") or "").replace(".", " "))

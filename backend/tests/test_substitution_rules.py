@@ -842,3 +842,47 @@ def test_a_search_falls_back_to_serper_within_the_same_lookup_once_gemini_fails(
     out = webprice.lookup(prod, use_cache=False, transport=gemini, http=http)
     assert out and out["provider"] == "serper"
     assert webprice._gemini["down_until"] > 0            # the failure is remembered, so the next lookup skips straight to the fallback
+
+
+def test_gemini_tries_another_model_on_a_retired_one_but_gives_up_at_once_on_a_quota_error(monkeypatch):
+    from app import webprice
+    import urllib.error
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
+    monkeypatch.setattr(webprice, "MODEL", "gemini-retired-model")
+    monkeypatch.setattr(webprice, "FALLBACK_MODELS", ("gemini-retired-model", "gemini-flash-latest"))
+    prod = {"barcode": "3017620422888", "name": "Produit", "brand": "Marque", "quantity": {"amount": 150.0, "unit": "g"}}
+    reply = {"candidates": [{"content": {"parts": [{"text": '{"price_eur": 3.5, "pack_size": "150 g", "store": "Carrefour", "found": true}'}]},
+                             "groundingMetadata": {"groundingChunks": [{"web": {"uri": "https://www.carrefour.fr/p/x"}}]}}]}
+    tried = []
+
+    def transport_404_then_ok(url, body, **kw):
+        tried.append(url)
+        if "retired" in url:
+            raise urllib.error.HTTPError(url, 404, "not found", {}, None)
+        return reply
+    out = webprice._gemini_lookup(prod, transport_404_then_ok)
+    assert out and out["pack_cents"] == 350 and len(tried) == 2            # the retired model failed; the next one was tried and found the price
+
+    tried.clear()
+
+    def transport_429(url, body, **kw):
+        tried.append(url)
+        raise urllib.error.HTTPError(url, 429, "quota", {}, None)
+    out = webprice._gemini_lookup(prod, transport_429)
+    assert out is None and len(tried) == 1                                 # a quota error is account-wide: no point trying a second model
+
+
+def test_gemini_rejects_a_pack_size_that_contradicts_the_one_already_known(monkeypatch):
+    from app import webprice
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
+    prod = {"barcode": "3017620422888", "name": "Produit", "brand": "Marque", "quantity": {"amount": 150.0, "unit": "g"}}
+
+    def reply_with(pack_size):
+        return {"candidates": [{"content": {"parts": [{"text": '{"price_eur": 3.5, "pack_size": "%s", "store": "Carrefour", "found": true}' % pack_size}]},
+                                "groundingMetadata": {"groundingChunks": [{"web": {"uri": "https://www.carrefour.fr/p/x"}}]}}]}
+    agree = webprice._gemini_lookup(prod, lambda u, b, **k: reply_with("150 g"))
+    assert agree and agree["pack_cents"] == 350 and agree["per100_cents"] == round(350 / 150 * 100, 1)
+    close_enough = webprice._gemini_lookup(prod, lambda u, b, **k: reply_with("155 g"))
+    assert close_enough and close_enough["per100_cents"] == round(350 / 150 * 100, 1)        # within 10%: the known size still wins
+    contradicts = webprice._gemini_lookup(prod, lambda u, b, **k: reply_with("500 g"))
+    assert contradicts is None                                              # names a size nothing like the one already known: not trusted
