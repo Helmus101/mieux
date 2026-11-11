@@ -774,3 +774,20 @@ def test_a_provider_that_trickles_bytes_past_its_own_timeout_is_abandoned_at_the
     t0 = _time.time()
     out = webprice.lookup(prod, use_cache=False, http=slow_http, deadline=_time.time() + 1.5)
     assert out is None and _time.time() - t0 < 3        # abandoned near the 1.5 s deadline, not after the full 5 s sleep
+
+
+def test_a_background_search_started_for_alternatives_has_the_same_overall_time_budget_as_the_product_page(monkeypatch, tmp_path):
+    """Without an overall deadline, a background search can try every provider on both wordings with no ceiling, which is what
+    made alternatives rows sit on "Recherche du prix…" far longer than the product page's own, bounded lookup ever would."""
+    import time
+    from app import main as m, webprice
+    monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp10.db"))
+    seen = {}
+
+    def fake_lookup(product, **kw):
+        seen["deadline"] = kw.get("deadline")
+        return None
+    monkeypatch.setattr(webprice, "lookup", fake_lookup)
+    f = m._search_once({"barcode": "3017620422999", "name": "Produit", "brand": "X", "quantity": {"amount": 100.0, "unit": "g"}}, persist=False, force=True)
+    f.result(timeout=5)
+    assert seen["deadline"] is not None and seen["deadline"] <= time.time() + 26

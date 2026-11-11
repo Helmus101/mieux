@@ -42,18 +42,13 @@ export default function Alternatives() {
       .catch((e: unknown) => { if (!gone) setErr(friendlyError(e)); }).finally(() => { if (!gone) setBusy(false); });
     return () => { gone = true; };
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
-  // A missing observed price starts a shared server search. Keep the row pending until
-  // that search completes; "no price" must never mean "we have not finished looking".
+  // A missing observed price gets one search each, the same bounded lookup the product page uses (~30 s, no retry):
+  // webP[barcode] is undefined while that search has not finished, null once it finished and found nothing.
   const [webP, setWebP] = useState<Record<string, any>>({});
-  const [priceState, setPriceState] = useState<Record<string, 'pending' | 'missing'>>({});
   const asked = useRef(new Set<string>());
-  const priceAbort = useRef<AbortController | null>(null);
   useEffect(() => {
     asked.current.clear();
-    priceAbort.current?.abort();
-    priceAbort.current = null;
     setWebP({});
-    setPriceState({});
   }, [barcode]);
   const rowOf = (e0: any) => {
     const w = webP[e0.product?.barcode];
@@ -147,46 +142,26 @@ export default function Alternatives() {
       .map((c: any) => c.product.barcode as string))).slice(0, 32);
     if (!todo.length) return;
     todo.forEach((c) => asked.current.add(c));
-    const controller = new AbortController();
-    priceAbort.current?.abort();
-    priceAbort.current = controller;
-    setPriceState((current) => ({ ...current, ...Object.fromEntries(todo.map((c) => [c, 'pending'])) }));
-    // The API returns `pending` when the same server-side search is still running.
-    // Rechecking that work avoids duplicate provider calls and keeps the result honest.
-    const collectBatch = async (batch: string[]) => {
-        let pending = batch;
-        while (pending.length && !controller.signal.aborted) {
-          try {
-            const result = await api.getWebPriceBatch(pending, controller.signal);
-            if (controller.signal.aborted) return;
-            const stillPending = new Set(result.pending);
-            const complete = pending.filter((c) => !stillPending.has(c));
-            if (complete.length) {
-              setWebP((current) => ({ ...current, ...Object.fromEntries(complete.filter((c) => result.prices[c]).map((c) => [c, result.prices[c]])) }));
-              setPriceState((current) => ({ ...current, ...Object.fromEntries(complete.map((c) => [c, 'missing'])) }));
-            }
-            pending = result.pending;
-            if (pending.length) await new Promise((resolve) => setTimeout(resolve, 1500));
-          } catch {
-            if (!controller.signal.aborted) {
-              // A transport failure is not evidence that a price is unavailable. Keep
-              // the row pending; the next pass can reuse the existing server search.
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-            }
-          }
-        }
+    let gone = false;
+    // One request per row, a handful at a time, in list order: each row fills in as soon as its own search ends
+    // instead of the whole screen waiting on the slowest one. Same lookup and the same ~30 s cap as the product page.
+    let next = 0;
+    const worker = async () => {
+      while (next < todo.length) {
+        const c = todo[next++];
+        const w = await api.getWebPriceQuick(c);
+        if (!gone) setWebP((current) => ({ ...current, [c]: w }));
+      }
     };
-    // Start all four batches at once: a slow lookup for one product must not delay
-    // the price score of another best-quality alternative.
-    void Promise.all(Array.from({ length: Math.ceil(todo.length / 8) }, (_, i) => collectBatch(todo.slice(i * 8, i * 8 + 8))));
-    return () => controller.abort();
+    for (let k = 0; k < Math.min(4, todo.length); k++) void worker();
+    return () => { gone = true; };
   }, [busy, r, barcode]);
   const allUnpriced = r ? Array.from(new Set([
     ...(r.rankings?.quality ?? []), ...(r.rankings?.closest ?? []),
     ...(r.rankings?.value ?? []),
     ...(r.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
   ].filter((e: any) => e.product?.barcode && e.product?.quantity && e.price_per_100_cents == null).map((e: any) => e.product.barcode))).slice(0, 32) : [];
-  const webBusy = allUnpriced.some((barcode) => priceState[barcode] !== 'missing' && !webP[barcode]);
+  const webBusy = allUnpriced.some((barcode) => webP[barcode] === undefined);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
   const none = !!r && !busy && !webBusy && !err && ['value', 'match'].every((k) => listOf(k).length === 0);   // only the two visible rankings count
   const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
@@ -291,7 +266,7 @@ export default function Alternatives() {
                 : e.pack != null ? <b>{formatCents(e.pack)}</b>
                 : w?.per100_cents != null ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b>
                 : w?.pack_cents != null ? <b>~ {formatCents(w.pack_cents)}</b> : null}
-              {u == null && e.pack == null && w?.per100_cents == null && w?.pack_cents == null && (priceState[e.product.barcode] === 'missing' ? <span className="mut sm">{t('alt.noPrice')}</span> : <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span>)}
+              {u == null && e.pack == null && w?.per100_cents == null && w?.pack_cents == null && (webP[e.product.barcode] === undefined ? <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span> : <span className="mut sm">{t('alt.noPrice')}</span>)}
               {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
               {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
             </div>

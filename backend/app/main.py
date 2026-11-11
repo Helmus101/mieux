@@ -1627,13 +1627,15 @@ _INFLIGHT: Dict[str, Any] = {}
 _INFLIGHT_LOCK = threading.RLock()
 
 
-def _search_once(c: Dict[str, Any], persist: bool = True, force: bool = False):
-    """One web search per product at a time: a request that arrives while the same search is running waits on it instead of starting a second one."""
+def _search_once(c: Dict[str, Any], persist: bool = True, force: bool = False, max_seconds: float = 25.0):
+    """One web search per product at a time: a request that arrives while the same search is running waits on it instead of starting a second one.
+    `max_seconds` bounds the whole search (every provider, both wordings), the same budget the single-product endpoint gives a row:
+    without it a background search tries every provider in turn with no overall ceiling and can run for well over a minute."""
     bc = c["barcode"]
     with _INFLIGHT_LOCK:
         f = _INFLIGHT.get(bc)
         if f is None or f.done():
-            f = _WARM.submit(webprice.lookup, c, force=force)
+            f = _WARM.submit(webprice.lookup, c, force=force, deadline=time.time() + max_seconds)
             _INFLIGHT[bc] = f
             def done_cb(fut, b=bc, prod=c, should_persist=persist):
                 with _INFLIGHT_LOCK:
