@@ -200,7 +200,6 @@ export default function Alternatives() {
                   <div className="sum3">
                     <div><span className="mut sm">{t('alt.sumQ')}</span><b>{q ?? '—'}</b>{q != null && <Bar value={q / 100} />}{dq != null && <span className={'dl ' + (dq > 0 ? 'up' : dq < 0 ? 'down' : '')}>{dq === 0 ? t('score.same') : `${dq > 0 ? '+' : '−'}${Math.abs(dq)} ${t('score.pts')}`}</span>}</div>
                     {unitTxt && <div><span className="mut sm">{t('alt.sumP')}</span><b className="sm2">{unitTxt}</b>{d && <span className="dl" style={{ color: d.tone }}>{d.text}</span>}</div>}
-                    {e.vs != null && <div><span className="mut sm">{t('alt.sumV')}</span><b>{e.vs}</b><Bar value={e.vs / 100} /></div>}
                   </div>
                   {e.tradeoffs?.length > 0 && <div className="flags" style={{ margin: '14px 0 0' }}>{e.tradeoffs.slice(0, 2).map((x: string) => <span key={x} className="pill w">{x}</span>)}</div>}
                 </div>;
@@ -221,6 +220,7 @@ export default function Alternatives() {
       <h1 className="atitle">{t('alt.title')}</h1>
       {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
       {!none && tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
+      {!none && rk === 'match' && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('rank.matchSub')}</p>}
       {!none && rk === 'value' && <p className="mut sm" style={{ margin: '8px 0 0' }}><PqExplain label /></p>}
       {!none && r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b></span></p>}
       {busy && <>
@@ -249,7 +249,7 @@ export default function Alternatives() {
         const w = webP[e.product.barcode];
         const chains = ((e.product.chains?.length ? e.product.chains : w?.chains) ?? []) as string[];
         return (
-          <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={() => { haptic('tap'); setDetail(e); }}>
+          <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={() => { haptic('tap'); go(routes.product(e.product.id)); }}>
             {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
             <div className="amain">
               <div className="aname">{e.product.name}</div>
@@ -260,7 +260,7 @@ export default function Alternatives() {
                   <small className="cap">{t('alt.sumQ')}</small></span>}
                 {e.vs != null && rk !== 'match' && <span className={'tile ' + (rk === 'value' ? 'main' : 'sub')} title={t('score.pqHint')}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span><small className="cap">{t('score.pq')}</small></span>}
               </div>
-              {chains.length > 0 && <div className="logos">{chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}{chains.length > 5 && <span className="mut sm">+{chains.length - 5}</span>}</div>}
+              {chains.length > 0 && <div className="logos">{chains.slice(0, 3).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}{chains.length > 3 && <span className="mut sm">+{chains.length - 3}</span>}</div>}
             </div>
             <div className="aprice">
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
@@ -270,6 +270,7 @@ export default function Alternatives() {
               {u == null && e.pack == null && w?.per100_cents == null && w?.pack_cents == null && (webP[e.product.barcode] === undefined ? <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span> : <span className="mut sm">{t('alt.noPrice')}</span>)}
               {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
               {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
+              <button className="pqinfo" aria-label={t('simple.moreInfo')} onClick={(ev) => { ev.stopPropagation(); haptic('tap'); setDetail(e); }}>ⓘ</button>
             </div>
           </article>);
       })}</div>}

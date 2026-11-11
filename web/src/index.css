@@ -197,6 +197,8 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .twoscores>div{display:flex; flex-direction:column; gap:3px; padding:0 4px}
 .twoscores>div+div{padding-left:18px; margin-left:14px; border-left:1px solid var(--line)}
 .twoscores b{font-size:14px; font-weight:600}
+.scorecap{font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:var(--mut)}
+.scoredef{display:block; margin-top:2px; font-size:13px; line-height:1.35}
 .pqchip{display:inline-flex; flex-direction:column; align-items:center; padding:4px 10px; border-radius:12px; background:var(--tint)}
 .pqchip b{font-size:20px; line-height:1.1}
 .pqchip small{font-size:10px; color:var(--mut); font-weight:600}
