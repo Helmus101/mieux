@@ -223,6 +223,14 @@ def _pack_price(text: str, size_units: float, size: Optional[Tuple[int, str]] = 
 
 
 _LISTING = re.compile(r"[?&](?:q|s|search|query|k)=|/search|/recherche|/categor|/rayon|/cat/|/r/|/c/|/liste|/collection|/brand|/marque", re.I)
+# Never a shop, whatever name or brand words its page happens to contain: a social network, a price comparator or
+# aggregator, a news or review site, a forum. A mention of a product there is not evidence of a price for sale.
+_NOT_A_SHOP = re.compile(
+    r"facebook\.com|instagram\.com|twitter\.com|\bx\.com|tiktok\.com|youtube\.com|pinterest\.|reddit\.com|linkedin\.com"
+    r"|idealo\.|nedostavka\.|leguide\.com|kelkoo|shopping\.google|prix\.net|lesnumeriques\.|cherchons\.com"
+    r"|lsa-conso\.fr|ad-hoc-news\.|wikipedia\.org|miaspesa\.it",
+    re.I,
+)
 
 
 def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, Any]]:
@@ -235,13 +243,14 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
     name_w = _name_words(product, brand_w)
     size_units = q["amount"] / 1000.0
     by_host: Dict[str, Tuple[float, str]] = {}
-    solid: set = set()                                     # hosts whose page is this exact product's own page (address names every word of it)
+    solid: set = set()           # hosts whose page names this product by its full name and brand, in the address: a real dedicated product page, not
+                                  # just any page a barcode happens to appear on (a price comparator can list a barcode without being a shop itself)
     size_t = (round(q["amount"]), q["unit"])
     code = str(product.get("barcode") or "")
     results = [(u, _clean(t)) for u, t in results]
     for url, text in results:
-        if "openfoodfacts" in url:
-            continue                                       # the product database itself, never a shop
+        if "openfoodfacts" in url or _NOT_A_SHOP.search(url):
+            continue                                       # the product database, a social network, a price comparator, a news or review site: never a shop
         slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))
         tw = _words(text)
         exact = len(code) >= 8 and (code in url or code in text)      # the barcode names this exact pack: no need to check the name or the size
@@ -259,7 +268,7 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
         v = _pack_price(text, size_units, size_t)
         if v:
             by_host.setdefault(host, (v, url))
-            if exact or (name_w and (name_w <= slug or len(name_w & slug) >= min(2, len(name_w))) and (brand_w & (slug | tw) or not brand_w)):
+            if name_w and (name_w <= slug or len(name_w & slug) >= min(2, len(name_w))) and (brand_w & (slug | tw) or not brand_w):
                 solid.add(host)
     if len(by_host) == 1:
         # One site states this exact size and price. A second site that names the same product (every word of the name and the brand) but does not print the size
@@ -277,10 +286,13 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
                 break
     from . import chains as ch0
     if len(by_host) == 1:
-        # Still a single source: accepted when it is a supermarket's own page (a chain's site that states this exact size and a price), not a random page.
+        # Still a single source: accepted when it is a recognised supermarket's own page, or any site's own dedicated page for
+        # this exact product (full name and brand in the address). A bare barcode match is not enough on its own: a price
+        # comparator or listing site can mention a barcode without being a shop, and one such page is not a check on itself
+        # (this is how a comparator's own figure was once accepted uncorroborated).
         (h1, (v1, u1)), = by_host.items()
         if ch0.canon(h1.replace(".", " ")) or h1 in solid:
-            by_host[h1 + "#"] = (v1, u1)        # a supermarket's page, or the product's own page on a shop site: counts as its own confirmation
+            by_host[h1 + "#"] = (v1, u1)        # a supermarket's page, or a genuine dedicated product page: counts as its own confirmation
     vals = sorted(v for v, _ in by_host.values())
     if len(vals) < 2:
         return None

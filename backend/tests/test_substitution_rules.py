@@ -886,3 +886,26 @@ def test_gemini_rejects_a_pack_size_that_contradicts_the_one_already_known(monke
     assert close_enough and close_enough["per100_cents"] == round(350 / 150 * 100, 1)        # within 10%: the known size still wins
     contradicts = webprice._gemini_lookup(prod, lambda u, b, **k: reply_with("500 g"))
     assert contradicts is None                                              # names a size nothing like the one already known: not trusted
+
+
+def test_a_price_comparator_that_merely_lists_the_barcode_is_never_trusted_alone():
+    """A barcode match lets a page skip the name/brand/size checks so it can be weighed alongside other sources, but it must
+    never, on its own, make an aggregator or listing site count as a confirmed price the way a real shop's own page does."""
+    from app import webprice
+    prod = {"barcode": "8000500082379", "name": "Nutella", "brand": "Ferrero", "quantity": {"amount": 1000.0, "unit": "g"}}
+    comparator = ("https://prices.example.net/fr/product/8000500082379", "8000500082379 6,65 €")
+    assert webprice._price_from(prod, [comparator]) is None
+    shop_dedicated_page = ("https://www.exampleshop.fr/produit/nutella-ferrero-1kg-pate-a-tartiner", "Nutella Ferrero pâte à tartiner 1 kg 8,49 €")
+    assert webprice._price_from(prod, [shop_dedicated_page])["pack_cents"] == 849     # names the product fully in its own address: trusted alone
+
+
+def test_social_media_and_comparator_sites_never_contribute_a_price():
+    from app import webprice
+    prod = {"barcode": "8000500082379", "name": "Nutella", "brand": "Ferrero", "quantity": {"amount": 1000.0, "unit": "g"}}
+    fb = ("https://www.facebook.com/ELeclercGranville/posts/promo-nutella-1kg", "Nutella Ferrero 1kg -20% 10,00 €")
+    idealo = ("https://www.idealo.fr/compare/nutella-1kg", "Nutella Ferrero 1kg comparatif 9,50 €")
+    carrefour = ("https://www.carrefour.fr/p/pate-a-tartiner-nutella-ferrero-1kg", "Nutella Ferrero pâte à tartiner 1 kg 7,49 €")
+    monoprix = ("https://courses.monoprix.fr/p/nutella-ferrero-1kg", "Nutella Ferrero pâte à tartiner 1 kg 8,69 €")
+    assert webprice._price_from(prod, [fb, idealo]) is None                                  # neither is a shop: no price at all
+    got = webprice._price_from(prod, [fb, idealo, carrefour, monoprix])
+    assert got and got["pack_cents"] in (749, 869) and got["stores"] == ["Carrefour", "Monoprix"]   # only the two real shops count
