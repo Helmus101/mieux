@@ -4,7 +4,7 @@ import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
-import { cachedAlternatives, fetchAlternatives, NEAR_KM } from '../alternatives';
+import { readCache, writeCache } from '../swr';
 import PqExplain from '../PqExplain';
 import { Bar, Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
@@ -14,6 +14,7 @@ import SaveButton from '../SaveButton';
 import { friendlyError } from '../errors';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+const NEAR_KM = 5; // only products sold at a chain with a branch within 5 km of home: fixed, not a setting
 const sizeLabel = (q: { amount: number; unit: string }) => (q.amount >= 1000 ? `${Math.round(q.amount / 100) / 10} ${q.unit === 'ml' ? 'L' : 'kg'}`.replace('.', ',') : `${Math.round(q.amount)} ${q.unit}`);
 
 export default function Alternatives() {
@@ -27,91 +28,125 @@ export default function Alternatives() {
   // "Today" filters start from the saved profile and never write back to it.
   // Quality is judged on nutrition only; the price tabs come from the price rankings, so no price priority is sent.
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
-  const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
+  const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy, setDiffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const priceRun = useRef(0);
+  const webPriceRequests = useRef(new Set<AbortController>());
   useEffect(() => {
     if (!barcode || !prios.length) return;
+    let live = true;
+    const currentPriceRun = ++priceRun.current;
+    webPriceRequests.current.forEach((request) => request.abort());
+    webPriceRequests.current.clear();
+    const controller = new AbortController();
     setErr(null);
-    let gone = false;
-    // The product page usually started this very request already: the answer is in the cache or about to arrive.
-    const stale = cachedAlternatives(barcode);
-    if (stale) { setR(stale); setBusy(false); } else setBusy(true);   // show the last answer at once, then refresh it
-    fetchAlternatives(barcode)
-      .then((x: any) => { if (!gone) setR(x); })
-      .catch((e: unknown) => { if (!gone) setErr(friendlyError(e)); }).finally(() => { if (!gone) setBusy(false); });
-    return () => { gone = true; };
-  }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
-  // Candidates with no price: one search each for an approximate price and the supermarkets selling it (stored server-side). A found price puts the card into the
-  // price and price-quality tabs as it arrives, so the lists fill up to 10 even where the database has no price.
-  // Prices are found by the server before the list is sent: nothing is added to the page afterwards.
-  const webP: Record<string, any> = {};
-  const webBusy = false;
-  // Anything shown without a price is searched for after the list appears and filled in place (rows never move): barcode -> price found, or null when the search found none.
-  const [fill, setFill] = useState<Record<string, any>>({}); const asked = useRef(new Set<string>());
-  const rowOf = (e0: any) => {
-    const w = webP[e0.product?.barcode] ?? fill[e0.product?.barcode];
-    const chains = (e0.product?.chains?.length) ? e0.product.chains : (w?.chains?.length ? w.chains : []);
-    const p100 = e0.price_per_100_cents ?? w?.per100_cents;
-    const vs = e0.value_score ?? w?.value_score;
-    const pack = e0.pack_cents ?? w?.pack_cents;
-    const e = w ? {
-      ...e0,
-      price_per_100_cents: p100,
-      value_score: vs,
-      pack_cents: pack,
-      product: { ...e0.product, chains },
-    } : {
-      ...e0,
-      product: { ...e0.product, chains },
+    setWebP({});
+    setWebStatus({});
+    requestedPrices.current.clear();
+    const ck = `alt:${country}:${barcode}:${prios.join()}:${myChains.join()}:${hasHome ? `${home?.lat},${home?.lon}` : 'all'}:${estimates}`;
+    const stale = readCache<any>(ck);
+    setR(stale ?? null);
+    setBusy(!stale);   // show the last answer at once, then refresh it
+    api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 20, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) }, controller.signal)
+      .then((x: any) => { if (live) { setR(x); writeCache(ck, x); setErr(null); } })
+      .catch((e: unknown) => { if (live && !controller.signal.aborted) setErr(friendlyError(e)); })
+      .finally(() => { if (live) setBusy(false); });
+    return () => {
+      live = false;
+      controller.abort();
+      if (priceRun.current === currentPriceRun) priceRun.current += 1;
+      webPriceRequests.current.forEach((request) => request.abort());
+      webPriceRequests.current.clear();
     };
-    return ({
-      ps_web: !!w || e.price_source?.source === "web_search",
-      avail: e.availability,
-      notCheaper: !!e.not_cheaper,
-      notBetterValue: !!e.not_better_value,
-      product: e.product,
-      why: e.why,
-      tradeoffs: e.tradeoffs ?? [],
-      price100: e.price_per_100_cents,
-      estimated: e.estimated,
-      dominated: e.dominated,
-      vs: e.value_score,
-      better: e.better_than_yours,
-      detail: e.value_detail,
-      ps: e.price_score,
-      nearby: e.nearby,
-      conf: e.price_source?.confidence as string | undefined,
-      priceDate: e.price_date ?? e.price_source?.date,
-      stale: e.price_stale ?? e.price_source?.stale,
-      size: e.size ?? e.product.quantity,
-      pack: e.pack_cents,
-      ratio: e.size_ratio,
-    });
+  }, [barcode, country, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
+  // Candidates without observed prices are checked once per product, in ranked batches. A null is settled as unavailable;
+  // a failed request remains retryable and never prevents alternatives from rendering.
+  const [webP, setWebP] = useState<Record<string, any>>({});
+  const [webStatus, setWebStatus] = useState<Record<string, 'pending' | 'found' | 'missing' | 'failed'>>({});
+  const requestedPrices = useRef(new Set<string>());
+  const pendingPriceCount = Object.values(webStatus).filter((status) => status === 'pending').length;
+  const failedPriceCount = Object.values(webStatus).filter((status) => status === 'failed').length;
+  useEffect(() => {
+    const rows = (['value', 'budget', 'quality', 'closest'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
+    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))]
+      .filter((bc) => !webP[bc] && !requestedPrices.current.has(bc)).slice(0, 32);
+    if (!want.length) return;
+    const currentPriceRun = priceRun.current;
+    want.forEach((bc) => requestedPrices.current.add(bc));
+    setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(want.map((bc) => [bc, 'pending'])) }));
+    (async () => {
+      for (let i = 0; i < want.length && currentPriceRun === priceRun.current; i += 8) {
+        const batch = want.slice(i, i + 8);
+        const controller = new AbortController();
+        webPriceRequests.current.add(controller);
+        try {
+          const result = await api.getWebPriceBatch(batch, controller.signal);
+          if (currentPriceRun !== priceRun.current) return;
+          const failed = new Set(result.failed);
+          setWebP((cur) => ({ ...cur, ...Object.fromEntries(batch.filter((bc) => result.prices[bc]).map((bc) => [bc, result.prices[bc]])) }));
+          setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(batch.map((bc) => [bc, failed.has(bc) ? 'failed' : result.prices[bc] ? 'found' : 'missing'])) }));
+        } catch {
+          if (currentPriceRun === priceRun.current) setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(batch.map((bc) => [bc, 'failed'])) }));
+        } finally {
+          webPriceRequests.current.delete(controller);
+        }
+      }
+    })();
+  }, [r]);
+  const retryWebPrice = async (bc: string) => {
+    if (webStatus[bc] === 'pending') return;
+    const currentPriceRun = priceRun.current;
+    requestedPrices.current.add(bc);
+    setWebStatus((cur) => ({ ...cur, [bc]: 'pending' }));
+    const controller = new AbortController();
+    webPriceRequests.current.add(controller);
+    try {
+      const result = await api.getWebPriceBatch([bc], controller.signal);
+      if (currentPriceRun !== priceRun.current) return;
+      const found = result.prices[bc] ?? null;
+      if (found) setWebP((cur) => ({ ...cur, [bc]: found }));
+      setWebStatus((cur) => ({ ...cur, [bc]: result.failed.includes(bc) ? 'failed' : found ? 'found' : 'missing' }));
+    } catch {
+      if (currentPriceRun === priceRun.current) setWebStatus((cur) => ({ ...cur, [bc]: 'failed' }));
+    } finally {
+      webPriceRequests.current.delete(controller);
+    }
   };
+  const retryFailedPrices = async () => {
+    const failed = Object.entries(webStatus).filter(([, status]) => status === 'failed').map(([bc]) => bc);
+    for (let i = 0; i < failed.length; i += 8) {
+      const batch = failed.slice(i, i + 8);
+      const currentPriceRun = priceRun.current;
+      batch.forEach((bc) => requestedPrices.current.add(bc));
+      setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(batch.map((bc) => [bc, 'pending'])) }));
+      const controller = new AbortController();
+      webPriceRequests.current.add(controller);
+      try {
+        const result = await api.getWebPriceBatch(batch, controller.signal);
+        if (currentPriceRun !== priceRun.current) return;
+        const retryFailed = new Set(result.failed);
+        setWebP((cur) => ({ ...cur, ...Object.fromEntries(batch.filter((bc) => result.prices[bc]).map((bc) => [bc, result.prices[bc]])) }));
+        setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(batch.map((bc) => [bc, retryFailed.has(bc) ? 'failed' : result.prices[bc] ? 'found' : 'missing'])) }));
+      } catch {
+        if (currentPriceRun === priceRun.current) setWebStatus((cur) => ({ ...cur, ...Object.fromEntries(batch.map((bc) => [bc, 'failed'])) }));
+      } finally {
+        webPriceRequests.current.delete(controller);
+      }
+    }
+  };
+  const rowOf = (e0: any) => { const w = e0.price_per_100_cents == null ? webP[e0.product?.barcode] : null; const e = w ? { ...e0, price_per_100_cents: w.per100_cents, value_score: w.value_score, pack_cents: w.pack_cents, product: { ...e0.product, chains: e0.product.chains?.length ? e0.product.chains : (w.chains ?? []) } } : e0; return ({ ps_web: !!w || e.price_source?.source === "web_search", avail: e.availability, notCheaper: !!e.not_cheaper, notBetterValue: !!e.not_better_value, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated, dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, detail: e.value_detail, ps: e.price_score, nearby: e.nearby, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date, stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio }); };
   // What each tab shows: sorted strictly by category requirements.
   const sourceRows = (k: string): any[] => {
     const base = (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []) as any[];
     if (k !== 'value' && k !== 'budget') return base;
-    const have = new Set(base.map((x: any) => x.product?.barcode));
-    const extra = [
-      ...(r?.rankings?.quality ?? []),
-      ...(r?.rankings?.closest ?? []),
-      ...(r?.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
-    ].filter((x: any) => {
-      const bc = x.product?.barcode;
-      if (!bc || have.has(bc)) return false;
-      const w = webP[bc] ?? fill[bc];
-      const p100 = x.price_per_100_cents ?? w?.per100_cents;
-      if (p100 == null) return false;
-      have.add(bc);
-      return true;
-    });
+    const have = new Set(base.map((x: any) => x.product.barcode));
+    const extra = [...(r?.rankings?.quality ?? []), ...(r?.rankings?.closest ?? [])].filter((x: any) => x.price_per_100_cents == null && webP[x.product?.barcode] && !have.has(x.product.barcode) && have.add(x.product.barcode));
     return [...base, ...extra];                                      // + candidates priced by the web search
   };
   const listOf = (k: string) => sourceRows(k).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
-    if (myChains.length && !e.product.chains?.some((c: string) => myChains.includes(c))) return false;   // the person picked their shops: a shop found later by the price search counts too
+    if (!(e.product.chains?.length)) return false;                 // only products sold at at least one supermarket chain
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     if (k === 'budget') { const op = r?.original_price?.per100_cents; return e.price100 != null && (op == null || e.price100 < op); }   // cheaper than yours only, cheapest first
     if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never a product scoring the same or lower
@@ -125,57 +160,10 @@ export default function Alternatives() {
     const o = rk === 'value' ? [...l].sort((a: any, b: any) => (b.vs ?? -1) - (a.vs ?? -1)) : l;
     return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
   })();
-  const shown = ranked.slice(0, 10);
-  useEffect(() => {
-    if (busy || !r) return;
-    const shownTodo = shown
-      .filter((e: any) => e.price100 == null && !asked.current.has(e.product?.barcode))
-      .map((e: any) => e.product.barcode as string);
-    const allCands = [
-      ...(r?.rankings?.quality ?? []),
-      ...(r?.rankings?.closest ?? []),
-      ...(r?.rankings?.value ?? []),
-      ...(r?.rankings?.budget ?? []),
-      ...(r?.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
-    ];
-    const restTodo = allCands
-      .filter((c: any) => {
-        const bc = c.product?.barcode;
-        return bc && c.price_per_100_cents == null && !asked.current.has(bc);
-      })
-      .map((c: any) => c.product.barcode as string);
-    const todo = Array.from(new Set([...shownTodo, ...restTodo]));
-    if (!todo.length) return;
-    todo.forEach((c) => asked.current.add(c));
-    // One request per row, four at a time, in display order: each row is filled as soon as its own search ends instead of waiting for the slowest.
-    let next = 0;
-    const worker = async () => {
-      while (next < todo.length) {
-        const c = todo[next++];
-        try {
-          let w = await api.getWebPriceQuick(c);
-          if (!w) {
-            await new Promise((res) => setTimeout(res, 2000));
-            w = await api.getWebPriceQuick(c);
-          }
-          setFill((f) => ({ ...f, [c]: w }));
-        } catch {
-          setFill((f) => ({ ...f, [c]: null }));
-        }
-      }
-    };
-    for (let k = 0; k < Math.min(4, todo.length); k++) void worker();
-  }, [
-    busy,
-    !!r,
-    shown.filter((e: any) => e.price100 == null).map((e: any) => e.product?.barcode).join(),
-    r ? (r.rankings?.quality?.length ?? 0) : 0,
-  ]);
-  // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
-  const none = !!r && !busy && !webBusy && !err && ['value', 'match', 'closest'].every((k) => listOf(k).length === 0);   // never more than 10 per tab, after the strict filters
-  // Two tabs: price-quality (opens first) and quality.
-  // The two price tabs are always offered (an empty one says why); the quality tab is offered only when something scores higher than the scanned product.
-  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
+  const shown = ranked.slice(0, 10);   // never more than 10 per tab, after the strict filters
+  // Exactly three tabs, always: price-quality (opens first), price, quality.
+  // A tab that has nothing better to show is not offered at all (the three modes, in this order, minus the empty ones).
+  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }].filter((x) => listOf(x.key).length > 0) : [];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
@@ -201,7 +189,6 @@ export default function Alternatives() {
     return { text: `${fmt(k)}${liquid ? '/L' : '/kg'}`, tone: tone(k), sub: `${pct > 0 ? '+' : ''}${pct} % ${t('diff.vs')}` };
   };
   const detailBody = (e: any) => (<>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton product={e.product} /></div>
               {(() => {
                 const q = e.product.score?.total, oq = r?.original?.score?.total, dq = q != null && oq != null ? q - oq : null;
                 const d = diffOf(e), u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
@@ -212,6 +199,7 @@ export default function Alternatives() {
                     {unitTxt && <div><span className="mut sm">{t('alt.sumP')}</span><b className="sm2">{unitTxt}</b>{d && <span className="dl" style={{ color: d.tone }}>{d.text}</span>}</div>}
                     {e.vs != null && <div><span className="mut sm">{t('alt.sumV')}</span><b>{e.vs}</b><Bar value={e.vs / 100} /></div>}
                   </div>
+                  {e.detail && <p className="mut sm" style={{ margin: '10px 0 0' }}>{t('score.pqHow', { n: e.detail.nutrition, p: formatCents(Math.round(e.detail.price_per_100_cents * 10)), s: e.detail.size ? sizeLabel(e.detail.size) : '—', d: e.detail.price_date ?? '—' })}</p>}
                   {e.tradeoffs?.length > 0 && <div className="flags" style={{ margin: '14px 0 0' }}>{e.tradeoffs.slice(0, 2).map((x: string) => <span key={x} className="pill w">{x}</span>)}</div>}
                 </div>;
               })()}
@@ -230,26 +218,21 @@ export default function Alternatives() {
       <NavBar onBack={back} />
       <h1 className="atitle">{t('alt.title')}</h1>
       {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
-      {!none && tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
-      {!none && rk === 'value' && <p className="mut sm" style={{ margin: '8px 0 0' }}><PqExplain label /></p>}
-      {!none && r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b></span></p>}
-      {busy && <>
-        <div className="skel-seg" aria-hidden><Skeleton h={44} /></div>
-        <div className="alist" aria-hidden>{[0, 1, 2, 3].map((n) => (
-          <div key={n} className="arow skel-arow"><Skeleton h={60} w={60} /><div><Skeleton h={16} w="80%" /><Skeleton h={13} w="45%" /><Skeleton h={28} w={44} /></div><Skeleton h={20} w={64} /></div>
-        ))}</div>
-        <Loader quiet slowAfter={30000} steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />
-      </>}
+      {tabs.length > 0 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
+      <p className="mut sm" style={{ margin: '4px 0 10px' }}>{t('rank.' + rk + 'Sub')}{rk === 'value' && <> <PqExplain label /></>}</p>
+      {pendingPriceCount > 0 && <p role="status" className="mut sm">{t('rank.pricePending', { n: pendingPriceCount })}</p>}
+      {failedPriceCount > 0 && <div role="status" className="mut sm" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 0 10px' }}><span>{t('rank.priceFailed')}</span><Button small plain onPress={() => { void retryFailedPrices(); }}>{t('rank.retryPrice')}</Button></div>}
+      {r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b>{r.original_size?.amount ? ` · ${sizeLabel(r.original_size)}` : ''}{r.original_price.pack_cents != null ? ` · ${formatCents(r.original_price.pack_cents)}` : ''}</span>
+        {showPrice && <button className="linkbtn" onClick={() => setDiffBy(diffBy === 'kg' ? 'pack' : 'kg')} aria-label={t('diff.byKg') + ' / ' + t('diff.byPack')}>{diffBy === 'kg' ? t('diff.byPack') : t('diff.byKg')}</button>}</p>}
+      {busy && <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />{[0, 1, 2].map((n) => <Skeleton key={n} h={112} />)}</>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
-      {none && <Card><b>{t('emptyAlt.noneTitle')}</b><p className="mut" style={{ margin: '10px 0 0' }}>{t('emptyAlt.noneWhy')}</p></Card>}
-      {r && !busy && !none && !shown.length && (() => {
+      {r && !busy && !shown.length && pendingPriceCount === 0 && failedPriceCount === 0 && (() => {
         const os = r?.original?.score?.total;
         const m = nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : rk === 'closest' ? { title: t('rank.noClosest'), why: t('rank.closestSub') }
           : rk === 'match' ? { title: t('emptyAlt.qualityTitle'), why: os != null ? t('emptyAlt.qualityWhy', { s: os }) : t('emptyAlt.qualityWhyNoScore') }
           : r?.rankings?.no_baseline ? { title: t('emptyAlt.noPriceTitle'), why: t('emptyAlt.noPriceWhy') }
           : rk === 'budget' ? { title: t('emptyAlt.cheaperTitle'), why: t('emptyAlt.cheaperWhy') }
-          : r?.rankings?.original_value_score != null ? { title: t('emptyAlt.betterValueTitle'), why: t('emptyAlt.betterValueWhy', { s: r.rankings.original_value_score }) }
           : { title: t('emptyAlt.valueTitle'), why: t('emptyAlt.valueWhy') };
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
       })()}
@@ -257,30 +240,31 @@ export default function Alternatives() {
       {r && !busy && <div className="alist">{shown.map((e: any, idx: number) => {
         const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
         const d = diffOf(e);
-        const w = webP[e.product.barcode] ?? fill[e.product.barcode];
+        const w = webP[e.product.barcode];
         const chains = ((e.product.chains?.length ? e.product.chains : w?.chains) ?? []) as string[];
         return (
-          <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={() => { haptic('tap'); setDetail(e); }}>
+          <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={(event) => { if ((event.target as HTMLElement).closest('button')) return; haptic('tap'); setDetail(e); }}>
             {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
             <div className="amain">
               <div className="aname">{e.product.name}</div>
               <div className="abrand">{e.product.brand}</div>
+              {e.price100 == null && !w && webStatus[e.product.barcode] === 'pending' && <span className="mut sm" role="status">{t('common.loading')}</span>}
+              {e.price100 == null && !w && webStatus[e.product.barcode] === 'missing' && <span className="mut sm">{t('rank.priceUnavailable')}</span>}
+              {e.price100 == null && !w && webStatus[e.product.barcode] === 'failed' && <Button small plain onPress={() => { void retryWebPrice(e.product.barcode); }}>{t('rank.retryPrice')}</Button>}
               <div className="ameta">
-                {e.product.score && <span className={'tile ' + (rk === 'match' ? 'main' : 'sub')}><span className="tile-row"><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>
-                  {rk === 'match' && r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>
-                  <small className="cap">{t('alt.sumQ')}</small></span>}
-                {e.vs != null && rk !== 'match' && <span className={'tile ' + (rk === 'value' ? 'main' : 'sub')} title={t('score.pqHint')}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span><small className="cap">{t('score.pq')}</small></span>}
+                {e.product.score && <span className={rk === 'match' ? 'main' : 'sub'}><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>{rk === 'match' && <small> {t('score.' + e.product.score.band)}</small>}
+                  {rk === 'match' && r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>}
+                {e.vs != null && rk !== 'match' && <span className={rk === 'value' ? 'main' : 'sub'} title={t('score.pqHint')}><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span><small> {t('score.pq')}</small></span>}
               </div>
               {chains.length > 0 && <div className="logos">{chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}{chains.length > 5 && <span className="mut sm">+{chains.length - 5}</span>}</div>}
             </div>
             <div className="aprice">
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
                 : e.pack != null ? <b>{formatCents(e.pack)}</b>
-                : w?.per100_cents != null ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b>
-                : w?.pack_cents != null ? <b>~ {formatCents(w.pack_cents)}</b> : null}
-              {u == null && e.pack == null && w?.per100_cents == null && w?.pack_cents == null && (fill[e.product.barcode] === null ? <span className="mut sm">{t('alt.noPrice')}</span> : <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span>)}
-              {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
-              {d && rk === 'budget' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
+                : w ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b> : null}
+              {e.pack != null && u && <span className="mut sm">{formatCents(e.pack)}</span>}
+              {d && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
+              <span className="asave" onClick={(ev) => ev.stopPropagation()}><SaveButton product={e.product} /></span>
             </div>
           </article>);
       })}</div>}

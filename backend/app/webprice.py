@@ -38,11 +38,44 @@ PROMPT = (
 )
 
 last_error: Optional[str] = None
+_error_state = threading.local()
+
+
+def _clear_lookup_state() -> None:
+    global last_error
+    last_error = None
+    _error_state.current_error = None
+    _error_state.failure = None
+    _error_state.provider_succeeded = False
+
+
+def _clear_current_error() -> None:
+    global last_error
+    last_error = None
+    _error_state.current_error = None
+
+
+def _set_error_message(message: str) -> None:
+    global last_error
+    last_error = message
+    _error_state.current_error = message
+    _error_state.failure = message
 
 
 def _set_error(e: Exception) -> None:
-    global last_error
-    last_error = (str(getattr(e, "code", "")) + " " + type(e).__name__)[:80]
+    _set_error_message((str(getattr(e, "code", "")) + " " + type(e).__name__)[:80])
+
+
+def _mark_provider_success() -> None:
+    _error_state.provider_succeeded = True
+
+
+def _lookup_error() -> Optional[str]:
+    return getattr(_error_state, "failure", None)
+
+
+def _provider_succeeded() -> bool:
+    return bool(getattr(_error_state, "provider_succeeded", False))
 
 
 Transport = Callable[[str, Dict[str, Any]], Dict[str, Any]]
@@ -451,6 +484,7 @@ def _gemini_lookup(product: Dict[str, Any], transport: Transport, timeout: Optio
             return None
     if not resp:
         return None
+    _mark_provider_success()
     cand = (resp.get("candidates") or [{}])[0]
     text = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
     got = _parse(text)
@@ -568,7 +602,7 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
     last_error = None
     all_results = []
     if not _budget_left():
-        last_error = "daily cap reached"
+        _set_error_message("daily cap reached")
         return None
     assumed = None
     if not (product.get("quantity") or {}).get("amount"):
@@ -625,6 +659,7 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 left = (deadline - time.time()) if deadline else None
                 cap = min(left, 12) if left else 12          # a hard wall-clock cap: a slow provider must never outrun the budget
                 found = _bounded(cap, _fetch_results, name, product, http, variant)
+                _mark_provider_success()
                 all_results.extend(found)
                 out = _price_from(product, found)
                 if not out:
@@ -736,8 +771,12 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
     Use this on explicit user-facing lookups where a timed-out background search may have left a stale miss.
     """
     global last_error
+    _clear_lookup_state()
     barcode = str(product.get("barcode") or "")
-    if not barcode or provider() is None:
+    if not barcode:
+        return None
+    if provider() is None:
+        _set_error_message("no price provider configured")
         return None
     old = None
     if use_cache:
@@ -750,7 +789,10 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
             # force=True + cached miss: fall through and retry the search now
         old = data                       # an expired price we found earlier: kept, never thrown away
     if provider():
-        out = _search_lookup(product, http or _http, transport, deadline)
+        if deadline is None:
+            out = _search_lookup(product, http or _http, transport)
+        else:
+            out = _search_lookup(product, http or _http, transport, deadline=deadline)
         if use_cache and out:
             _store(barcode, out)
         elif use_cache and not old:
@@ -764,3 +806,18 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
             return {**old, "stale": True}   # the re-search found nothing: keep showing the stored price, marked as older
         return out
     return None
+
+
+def lookup_with_status(
+    product: Dict[str, Any],
+    transport: Transport = _post,
+    use_cache: bool = True,
+    http: Optional[Http] = None,
+    deadline: Optional[float] = None,
+    force: bool = False,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """Return a price and an error only when providers could not complete a usable lookup."""
+    result = lookup(product, transport=transport, use_cache=use_cache, http=http, deadline=deadline, force=force)
+    if result or _provider_succeeded():
+        return result, None
+    return result, _lookup_error()
