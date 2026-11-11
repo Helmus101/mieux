@@ -129,9 +129,9 @@ def _query(product: Dict[str, Any], variant: int = 0) -> str:
     q = product.get("quantity") or {}
     brand = str(product.get("brand") or "").split(",")[0]
     code = str(product.get("barcode") or "")
-    if variant and len(code) >= 12:
+    if variant == 1 and len(code) >= 12:
         return " ".join(x for x in (code, brand, "prix") if x)
-    tail = ("prix €", "prix supermarché drive")[variant]
+    tail = ("prix €", "prix supermarché drive")[0 if variant == 0 else 1]
     size = f"{q['amount']:g} {q['unit']}" if q.get("amount") else ""
     return " ".join(x for x in (brand, str(product.get("name") or ""), size, tail) if x).strip()
 
@@ -579,17 +579,19 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
     assumed = None
     if not (product.get("quantity") or {}).get("amount"):
         assumed = _guess_size(product, http)
-        if not assumed:
+        if not assumed and "gemini" in providers() and time.time() >= _gemini["down_until"] and (not deadline or deadline - time.time() >= 4) and _budget_left():
             # No size in the database and none found on product pages: Gemini's grounded search states the pack size with the price, and cites its pages.
-            if "gemini" in providers() and time.time() >= _gemini["down_until"] and (not deadline or deadline - time.time() >= 4) and _budget_left():
-                out = _gemini_lookup(product, transport, timeout=(deadline - time.time()) if deadline else None)
-                if out:
-                    out["provider"] = "gemini"
-                    out["size_assumed"] = out.pop("size_found", None)
+            out = _gemini_lookup(product, transport, timeout=(deadline - time.time()) if deadline else None)
+            if out:
+                out["provider"] = "gemini"
+                out["size_assumed"] = out.pop("size_found", None)
                 return out
+            _gemini.update(down_until=time.time() + 600, error=last_error or "failed")   # the model failed: let the configured search APIs try the size
+            assumed = _guess_size(product, http)
+        if not assumed:
             return None
         product = {**product, "quantity": assumed}
-    for variant in (0, 1):                  # the second wording is only tried when the first finds nothing (search results vary from one call to the next)
+    for variant in (0, 1, 2):               # the next wording is only tried when the previous one finds nothing (search results vary from one call to the next)
         # Gemini is asked first, then the configured search APIs (Serper, then LangSearch). A Gemini that just failed is
         # skipped via down_until. Gemini is tried on both passes: the barcode-based query (variant 1) often yields
         # the most reliable result for French supermarket pages that JS-render their prices.
@@ -608,7 +610,7 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                     last_error = "deadline"
                     return None
                 try:
-                    out = _bounded(min(left, 20) if left else 20, _gemini_lookup, product, transport, timeout=left)
+                    out = _bounded(min(left, 8) if left else 8, _gemini_lookup, product, transport, timeout=left)   # leave room for Serper/LangSearch inside the same deadline
                 except FuturesTimeoutError:
                     out, last_error = None, "deadline"      # a reply that trickled in slowly past our own budget: not a real miss
                 if out:
@@ -633,12 +635,14 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 found = _bounded(cap, _fetch_results, name, product, http, variant)
                 all_results.extend(found)
                 out = _price_from(product, found)
+                extra = []
                 if not out:
                     page_left = (deadline - time.time()) if deadline else None
                     extra = _bounded(min(page_left, 8) if page_left else 8, _page_prices, product, found, deadline)       # right product page found, but its snippet shows no price: read the page
                     if extra:
                         all_results.extend(extra)
                         out = _price_from(product, found + extra)
+
             except FuturesTimeoutError:
                 last_error = "deadline"
                 continue
