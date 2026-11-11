@@ -699,7 +699,9 @@ def web_prices(request: Request, body: WebPricesReq, uid: str = Depends(user), s
     # This endpoint persists completed results below on the request thread.  Avoid a
     # duplicate SQLite write from a worker callback while the test client (or server)
     # is closing a request.
-    futures = {c: _search_once(products[c], persist=False) for c in todo}
+    # This is an explicit user-visible retry: a cached miss from an interrupted or
+    # incomplete earlier search must not prevent alternatives from being priced now.
+    futures = {c: _search_once(products[c], persist=False, force=True) for c in todo}
     done, _ = wait(list(futures.values()), timeout=8.0) if futures else (set(), set())
     found = {}
     pending = []
@@ -1625,13 +1627,13 @@ _INFLIGHT: Dict[str, Any] = {}
 _INFLIGHT_LOCK = threading.RLock()
 
 
-def _search_once(c: Dict[str, Any], persist: bool = True):
+def _search_once(c: Dict[str, Any], persist: bool = True, force: bool = False):
     """One web search per product at a time: a request that arrives while the same search is running waits on it instead of starting a second one."""
     bc = c["barcode"]
     with _INFLIGHT_LOCK:
         f = _INFLIGHT.get(bc)
         if f is None or f.done():
-            f = _WARM.submit(webprice.lookup, c)
+            f = _WARM.submit(webprice.lookup, c, force=force)
             _INFLIGHT[bc] = f
             def done_cb(fut, b=bc, prod=c, should_persist=persist):
                 with _INFLIGHT_LOCK:

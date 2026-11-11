@@ -98,7 +98,7 @@ export default function Alternatives() {
   // What each tab shows: sorted strictly by category requirements.
   const sourceRows = (k: string): any[] => {
     const base = (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []) as any[];
-    if (k !== 'value' && k !== 'budget') return base;
+    if (k !== 'value') return base;
     const have = new Set(base.map((x: any) => x.product?.barcode));
     const extra = [
       ...(r?.rankings?.quality ?? []),
@@ -119,7 +119,6 @@ export default function Alternatives() {
     if (hidden.includes(e.product.id)) return false;
     if (myChains.length && !e.product.chains?.some((c: string) => myChains.includes(c))) return false;   // the person picked their shops: a shop found later by the price search counts too
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
-    if (k === 'budget') { const op = r?.original_price?.per100_cents; return e.price100 != null && (op == null || e.price100 < op); }   // cheaper than yours only, cheapest first
     if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never a product scoring the same or lower
     { const ov = r?.rankings?.original_value_score; return e.price100 != null && (ov == null || e.vs == null || e.vs > ov); }   // value: only a better price-quality score than yours
   });
@@ -127,7 +126,6 @@ export default function Alternatives() {
   const nCh = (e: any) => (e.product.chains?.length ?? 0);
   const ranked = (() => {
     const l = listOf(rk);
-    if (rk === 'budget') return l.map((e: any, i: number) => [e, i] as const).sort((a: any, b: any) => (a[0].price100 - b[0].price100) || (nCh(b[0]) - nCh(a[0])) || (a[1] - b[1])).map((x: any) => x[0]);
     const o = rk === 'value' ? [...l].sort((a: any, b: any) => (b.vs ?? -1) - (a.vs ?? -1)) : l;
     return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
   })();
@@ -185,19 +183,18 @@ export default function Alternatives() {
   }, [busy, r, barcode]);
   const allUnpriced = r ? Array.from(new Set([
     ...(r.rankings?.quality ?? []), ...(r.rankings?.closest ?? []),
-    ...(r.rankings?.value ?? []), ...(r.rankings?.budget ?? []),
+    ...(r.rankings?.value ?? []),
     ...(r.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
   ].filter((e: any) => e.product?.barcode && e.product?.quantity && e.price_per_100_cents == null).map((e: any) => e.product.barcode))).slice(0, 32) : [];
   const webBusy = allUnpriced.some((barcode) => priceState[barcode] !== 'missing' && !webP[barcode]);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
-  const none = !!r && !busy && !webBusy && !err && ['value', 'match', 'closest'].every((k) => listOf(k).length === 0);   // never more than 10 per tab, after the strict filters
-  // Price-quality first, then cheapest, then better quality. The price tab must stay
-  // reachable even while candidate prices are arriving.
-  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
+  const none = !!r && !busy && !webBusy && !err && ['value', 'match'].every((k) => listOf(k).length === 0);   // only the two visible rankings count
+  // The app presents the two useful decisions: best price-quality and best quality.
+  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
-  const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
+  const nothingNear = hasHome && !!r && ['value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
-  const showPrice = rk === 'budget' || rk === 'value';   // price differences belong to the price tabs only
+  const showPrice = rk === 'value';   // price differences belong to the price-quality tab only
   const diffOf = (e: any): { text: string; tone: string; sub?: string } | null => {
     const o = r?.original_price;
     if (!o || !showPrice) return null;
@@ -266,12 +263,10 @@ export default function Alternatives() {
           : rk === 'closest' ? { title: t('rank.noClosest'), why: t('rank.closestSub') }
           : rk === 'match' ? { title: t('emptyAlt.qualityTitle'), why: os != null ? t('emptyAlt.qualityWhy', { s: os }) : t('emptyAlt.qualityWhyNoScore') }
           : r?.rankings?.no_baseline ? { title: t('emptyAlt.noPriceTitle'), why: t('emptyAlt.noPriceWhy') }
-          : rk === 'budget' ? { title: t('emptyAlt.cheaperTitle'), why: t('emptyAlt.cheaperWhy') }
           : r?.rankings?.original_value_score != null ? { title: t('emptyAlt.betterValueTitle'), why: t('emptyAlt.betterValueWhy', { s: r.rankings.original_value_score }) }
           : { title: t('emptyAlt.valueTitle'), why: t('emptyAlt.valueWhy') };
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
       })()}
-      {r && !busy && rk === 'budget' && shown.length > 0 && <p className="mut sm">{t('alt.cheapestNote')}</p>}
       {r && !busy && <div className="alist">{shown.map((e: any, idx: number) => {
         const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
         const d = diffOf(e);
@@ -298,7 +293,7 @@ export default function Alternatives() {
                 : w?.pack_cents != null ? <b>~ {formatCents(w.pack_cents)}</b> : null}
               {u == null && e.pack == null && w?.per100_cents == null && w?.pack_cents == null && (priceState[e.product.barcode] === 'missing' ? <span className="mut sm">{t('alt.noPrice')}</span> : <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span>)}
               {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
-              {d && rk === 'budget' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
+              {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
             </div>
           </article>);
       })}</div>}
