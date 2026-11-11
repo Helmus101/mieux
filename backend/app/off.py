@@ -321,8 +321,14 @@ class OFFClient:
         return self.local.quick_available()
 
     def quick_candidates(self, tags: List[str], field: Optional[str] = None, low: bool = True, required: tuple = (),
-                         ingredients: bool = False, per_tag: int = 400, total: int = 600) -> List[str]:
-        """Codes chosen across whole categories in SQL; empty when the compact index has not been built."""
+                         ingredients: bool = False, per_tag: Optional[int] = None, total: Optional[int] = None) -> List[str]:
+        """Codes chosen across whole categories in SQL; empty when the compact index has not been built.
+
+        The gate that decides comparability should see the category, not the 600 most scanned products. Defaults are
+        configurable so production can trade recall for latency: ALT_PER_TAG (1200) and ALT_TOTAL (2000).
+        """
+        per_tag = per_tag if per_tag is not None else int(os.environ.get("ALT_PER_TAG", "1200"))
+        total = total if total is not None else int(os.environ.get("ALT_TOTAL", "2000"))
         return self.local.quick_candidates(tags, field, low, required, ingredients, per_tag, total)
 
     def quick_products(self, codes: List[str]) -> List[Dict[str, Any]]:

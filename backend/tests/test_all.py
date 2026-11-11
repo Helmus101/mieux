@@ -385,3 +385,27 @@ def test_an_already_cached_web_price_shows_up_even_when_this_candidate_is_not_se
     r = c.post("/v1/products/1/alternatives", headers=H, json={"category_mode": "any", "priorities": ["protein"], "excluded_allergens": ["peanuts"]}).json()
     row = next(x for lst in r["rankings"].values() if isinstance(lst, list) for x in lst if x.get("product", {}).get("id") == "2")
     assert row["price_per_100_cents"] == 45.0
+
+
+def test_a_product_sold_in_france_with_no_known_chain_still_appears(monkeypatch):
+    """Chain attribution (Open Prices sightings, a web search, a house brand) only ever covers a minority of products.
+    Requiring it used to silently drop otherwise-good, genuinely sold-in-France alternatives that simply lack that one
+    piece of evidence; only being sold in France is required now."""
+    monkeypatch.setattr(main.app.state.prices, "chain_summary", lambda *a, **k: [], raising=False)
+    r = c.post("/v1/products/1/alternatives", headers=H, json={"category_mode": "any", "priorities": ["protein", "sugars"], "limit": 5, "excluded_allergens": ["peanuts"]}).json()
+    ids = [a["product_id"] for a in r["alternatives"]]
+    assert ids[0] == "2" and "3" in ids                      # still shown, even with zero known chains
+    assert all(not (a["product"].get("chains")) for a in r["alternatives"])   # confirms this run really had no chain evidence at all
+
+
+def test_unknown_availability_never_reaches_a_ranking_tab_even_without_a_working_price_service(monkeypatch):
+    """This gate used to run only when the price service (chain_of) was reachable. A product with no country data at all
+    (soldInFrance unknown, not explicitly 'sold elsewhere') must never reach a ranking tab regardless of that."""
+    extra = raw("10", "Skyr nature import", 5, 11, grade="a")
+    extra["countries_tags"] = []          # no country data at all: soldInFrance is None, not False
+    monkeypatch.setitem(main.app.state.off.items, "10", extra)
+    monkeypatch.setattr(main.app.state.prices, "chain_summary", lambda *a, **k: [], raising=False)
+    r = c.post("/v1/products/1/alternatives", headers=H, json={"category_mode": "any", "priorities": ["protein", "sugars"], "limit": 10, "excluded_allergens": ["peanuts"]}).json()
+    all_ids = {x["product"]["barcode"] for lst in r["rankings"].values() if isinstance(lst, list) for x in lst if isinstance(x, dict) and "product" in x}
+    all_ids |= {a["product_id"] for a in r["alternatives"]}
+    assert "10" not in all_ids

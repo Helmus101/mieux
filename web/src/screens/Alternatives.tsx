@@ -270,10 +270,10 @@ export default function Alternatives() {
               </div>
             </div>
             <div className="aprice">
-              {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
+              {u ? <b>{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
                 : e.pack != null ? <b>{formatCents(e.pack)}</b>
-                : w?.per100_cents > 0 ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b>
-                : w?.pack_cents > 0 ? <b>~ {formatCents(w.pack_cents)}</b> : null}
+                : w?.per100_cents > 0 ? <b>{formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b>
+                : w?.pack_cents > 0 ? <b>{formatCents(w.pack_cents)}</b> : null}
               {u == null && e.pack == null && !(w?.per100_cents > 0) && !(w?.pack_cents > 0) && (webP[e.product.barcode] === undefined ? <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span> : <span className="mut sm">{t('alt.noPrice')}</span>)}
               {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
               {rk === 'value' && e.vs != null && r?.rankings?.original_value_score != null && (

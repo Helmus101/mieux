@@ -21,7 +21,7 @@ from . import value
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 # "gemini-flash-latest" is Google's own alias for whatever current model replaces these over time: it is tried early so a
 # retired dated version (like the others here) does not quietly stop the search working until this list is updated by hand.
-FALLBACK_MODELS = ("gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-flash")
+FALLBACK_MODELS = ("gemini-3.8-flash", "gemini-flash-latest", "gemini-3.7-flash", "gemini-3.5-flash")
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 HIT_TTL = 30 * 86400      # a found price is searched again after 30 days (the old one stays, marked stale, if the new search finds nothing)
 MISS_TTL = 1 * 86400      # a search that found nothing is retried after a day (search results vary, so one miss must not stick for long)
