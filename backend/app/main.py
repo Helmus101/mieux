@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import os
+import threading
 from typing import Any, Dict, Iterator, List, Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
@@ -679,21 +680,43 @@ def product_web_price(request: Request, barcode: str, uid: str = Depends(user), 
 
 
 @app.post("/v1/web-prices")
-@limiter.limit("10/minute")
+@limiter.limit("60/minute")
 def web_prices(request: Request, body: WebPricesReq, uid: str = Depends(user), s: Session = Depends(get_db)):
-    """The same for up to 8 alternatives at once (looked up in parallel). Returns {prices: {barcode: price-or-null}}."""
-    from concurrent.futures import ThreadPoolExecutor
+    """Return up to eight approximate prices.
+
+    A lookup that is still running is reported separately from a completed miss.  Clients
+    can therefore keep the card in its short loading state and poll the same shared work,
+    rather than displaying "no price" while a provider is still looking.
+    """
+    from concurrent.futures import wait
     from . import webprice
     codes = list(dict.fromkeys(body.barcodes))
     if not webprice.enabled():
-        return {"prices": {c: None for c in codes}}
+        return {"prices": {c: None for c in codes}, "pending": []}
     products = {c: load_product(s, c) for c in codes}        # database reads stay on this thread
     q_of = lambda p: p.get("quantity")                      # noqa: E731
     todo = [c for c in codes if not q_of(products[c]) or not app.state.prices.latest(c, (q_of(products[c])["amount"], q_of(products[c])["unit"]))]
-    with ThreadPoolExecutor(max_workers=4) as ex:
-        found = dict(zip(todo, ex.map(lambda c: webprice.lookup(products[c]), todo)))
+    # This endpoint persists completed results below on the request thread.  Avoid a
+    # duplicate SQLite write from a worker callback while the test client (or server)
+    # is closing a request.
+    futures = {c: _search_once(products[c], persist=False) for c in todo}
+    done, _ = wait(list(futures.values()), timeout=8.0) if futures else (set(), set())
+    found = {}
+    pending = []
+    for c, future in futures.items():
+        if future not in done:
+            pending.append(c)
+            continue
+        try:
+            found[c] = future.result()
+        except Exception:
+            logger.exception("web price lookup failed for %s", c)
+            found[c] = None
     for c, w in found.items():
+        w = _market_chains(w)
+        found[c] = w
         if w and not w.get("stale"):
+            _record_web_chains(s, c, w)
             _record_web_price(s, products[c], w)
     s.commit()
     out = {}
@@ -703,7 +726,7 @@ def web_prices(request: Request, body: WebPricesReq, uid: str = Depends(user), s
             vi_ = value_index.value_index(taxonomy.classify(products[c]).get("type"), (products[c].get("score") or {}).get("total"), w["per100_cents"])
             w = {**w, "value_score": vi_["value_score"] if vi_ else None}
         out[c] = w
-    return {"prices": out}
+    return {"prices": out, "pending": pending}
 
 
 @app.get("/v1/products/{barcode}")
@@ -711,8 +734,14 @@ def product(barcode: str, approximate: bool = False, strict: bool = True, uid: s
     logger.info({"event": "product_lookup", "barcode": barcode, "user_id": uid})
     p = with_user_data(s, uid, load_product(s, barcode), strict)
     pr = prefs_of(s, uid)
+    context = _price_context(s, uid, p, lang, approximate)
+    # Start an approximate lookup immediately when no observed price exists.  The
+    # product screen's request then joins this same future and can turn its result
+    # into a clearly-labelled, approximate price-quality score without a second wait.
+    if webprice.enabled() and not context["your_last"] and not context["community"] and not webprice.cached_only(p):
+        _search_once(p)
     return {"product": p, "fit": engine.fit(p, pr.priorities, pr.allergens, None if pr.diet == "omnivore" else pr.diet, lang),
-            "price_context": _price_context(s, uid, p, lang, approximate)}
+            "price_context": context}
 
 
 def _record_price(s: Session, product_id: str, user_id: Optional[str], source: str, observed_on: Optional[str], pack_cents: Optional[int],
@@ -1593,30 +1622,34 @@ def _with_confidence(pt):
 _WARM = ThreadPoolExecutor(max_workers=16)
 _SEARCH_DEADLINE: contextvars.ContextVar = contextvars.ContextVar("search_deadline", default=0.0)   # one waiting budget per alternatives request, shared by its price passes
 _INFLIGHT: Dict[str, Any] = {}
+_INFLIGHT_LOCK = threading.RLock()
 
 
-def _search_once(c: Dict[str, Any]):
+def _search_once(c: Dict[str, Any], persist: bool = True):
     """One web search per product at a time: a request that arrives while the same search is running waits on it instead of starting a second one."""
     bc = c["barcode"]
-    f = _INFLIGHT.get(bc)
-    if f is None or f.done():
-        f = _WARM.submit(webprice.lookup, c)
-        _INFLIGHT[bc] = f
-        def done_cb(fut, b=bc, prod=c):
-            _INFLIGHT.pop(b, None)
-            if fut.done() and not fut.exception():
-                w_ = fut.result()
-                if w_:
-                    try:
-                        with app.state.sessions() as s2:
-                            _record_web_chains(s2, b, w_)
-                            if not w_.get("stale") and w_.get("per100_cents") is not None:
-                                _record_web_price(s2, prod, w_)
-                            s2.commit()
-                    except Exception:
-                        pass
-        f.add_done_callback(done_cb)
-    return f
+    with _INFLIGHT_LOCK:
+        f = _INFLIGHT.get(bc)
+        if f is None or f.done():
+            f = _WARM.submit(webprice.lookup, c)
+            _INFLIGHT[bc] = f
+            def done_cb(fut, b=bc, prod=c, should_persist=persist):
+                with _INFLIGHT_LOCK:
+                    if _INFLIGHT.get(b) is fut:
+                        _INFLIGHT.pop(b, None)
+                if should_persist and fut.done() and not fut.exception():
+                    w_ = fut.result()
+                    if w_:
+                        try:
+                            with app.state.sessions() as s2:
+                                _record_web_chains(s2, b, w_)
+                                if not w_.get("stale") and w_.get("per100_cents") is not None:
+                                    _record_web_price(s2, prod, w_)
+                                s2.commit()
+                        except Exception:
+                            pass
+            f.add_done_callback(done_cb)
+        return f
 
 
 def _search_targets(orig: Dict[str, Any], orig_unpriced: bool, prods: List[Dict[str, Any]], prices: Dict[str, float], top_quality: int = 20, total: int = 30) -> List[Dict[str, Any]]:

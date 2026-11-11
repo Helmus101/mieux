@@ -53,11 +53,15 @@ export default function Product() {
     return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
   }, [barcode, estimates, attempt]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
-  const [webP, setWebP] = useState<any>(null);       // hooks stay above every early return
+  const [webP, setWebP] = useState<any>(null), [webPriceLoading, setWebPriceLoading] = useState(false);       // hooks stay above every early return
   const headKind = d ? priceHeadline(d.price_context).kind : null;
   useEffect(() => {          // no observed price: one search for an approximate price and where it is sold
+    let live = true;
     setWebP(null);
-    if (barcode && d && headKind === 'none') api.getWebPrice(barcode).then(setWebP).catch(() => undefined);
+    const shouldLookUp = !!barcode && !!d && headKind === 'none';
+    setWebPriceLoading(shouldLookUp);
+    if (shouldLookUp) api.getWebPrice(barcode!).then((w: any) => { if (live) setWebP(w); }).catch(() => undefined).finally(() => { if (live) setWebPriceLoading(false); });
+    return () => { live = false; };
   }, [barcode, d?.product?.id, headKind]);
 
   if (err) {
@@ -170,7 +174,7 @@ export default function Product() {
         </Row> : webP ? <Row wrap style={{ marginTop: 10 }}>
           <Text style={{ color: c.ink, fontWeight: '700' }}>~ {t(liquid ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}{webP.pack_cents != null ? <Text style={{ color: c.mut, fontWeight: '400' }}> · {t('score.packPrice', { p: formatCents(webP.pack_cents) })}</Text> : null}</Text>
           <Pill tone="w">{t('score.webPrice')}</Pill>
-        </Row> : <Muted small>{t('simple.noPrice')}</Muted>}
+        </Row> : <Muted small>{webPriceLoading ? t('alt.pricing') : t('simple.noPrice')}</Muted>}
       </Card>
 
       <KnowCard p={p} />

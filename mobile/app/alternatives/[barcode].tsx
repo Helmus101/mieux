@@ -37,14 +37,44 @@ export default function Alternatives() {
   const [rk, setRk] = useState('value'), [hidden, setHidden] = useState<string[]>([]);
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  // Cards with no price: approximate web price (and supermarkets), fetched in batches of 8 and shown as each arrives.
+  // Cards without an observed price stay in a short loading state while the
+  // server-side lookup completes. A completed miss is the only time we call it missing.
   const [webP, setWebP] = useState<Record<string, any>>({});
+  const [priceState, setPriceState] = useState<Record<string, 'pending' | 'missing'>>({});
+  const askedPrices = useRef(new Set<string>());
+  useEffect(() => {
+    askedPrices.current.clear();
+    setWebP({});
+    setPriceState({});
+  }, [barcode]);
   useEffect(() => {
     const rows = (['value', 'budget', 'quality', 'closest'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
-    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity).map((e) => e.product.barcode as string))].slice(0, 32);
+    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity && !askedPrices.current.has(e.product.barcode)).map((e) => e.product.barcode as string))].slice(0, 32);
     if (!want.length) return;
+    want.forEach((code) => askedPrices.current.add(code));
+    setPriceState((current) => ({ ...current, ...Object.fromEntries(want.map((code) => [code, 'pending'])) }));
     let live = true;
-    (async () => { for (let i = 0; i < want.length && live; i += 8) { try { const m = await api.getWebPrices(want.slice(i, i + 8)); if (live) setWebP((cur) => ({ ...cur, ...m })); } catch { /* keep going */ } } })();
+    void (async () => {
+      for (let i = 0; i < want.length && live; i += 8) {
+        let pending = want.slice(i, i + 8);
+        while (pending.length && live) {
+          try {
+            const result = await api.getWebPriceBatch(pending);
+            if (!live) return;
+            const waiting = new Set(result.pending);
+            const complete = pending.filter((code) => !waiting.has(code));
+            setWebP((current) => ({ ...current, ...Object.fromEntries(complete.filter((code) => result.prices[code]).map((code) => [code, result.prices[code]])) }));
+            setPriceState((current) => ({ ...current, ...Object.fromEntries(complete.map((code) => [code, 'missing'])) }));
+            pending = result.pending;
+            if (pending.length) await new Promise((resolve) => setTimeout(resolve, 1500));
+          } catch {
+            // Network failure is not a negative price result. Keep waiting so a
+            // subsequent request can collect the same server-side search.
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+          }
+        }
+      }
+    })();
     return () => { live = false; };
   }, [r]);
 
@@ -91,6 +121,11 @@ export default function Alternatives() {
     return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
   })();
   const shown = ranked.slice(0, 10);   // never more than 10 per tab, after the strict filters
+  const priceCandidates = [...new Set((['value', 'budget', 'quality', 'closest'] as const)
+    .flatMap((k) => (r?.rankings?.[k] ?? []) as any[])
+    .filter((e: any) => e.price_per_100_cents == null && e.product?.barcode && e.product?.quantity)
+    .map((e: any) => e.product.barcode as string))].slice(0, 32);
+  const webBusy = priceCandidates.some((code) => !webP[code] && priceState[code] !== 'missing');
   // Exactly three tabs, always: price-quality (opens first), price, quality.
   const tabs = [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
@@ -160,7 +195,7 @@ export default function Alternatives() {
       {busy ? <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} /><Skeleton h={120} /></> : null}
       {err ? <Card><Text style={{ color: c.ink, fontWeight: '700' }}>{err.title}</Text><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card> : null}
 
-      {r && !busy && !shown.length ? (() => {
+      {r && !busy && !shown.length && !webBusy ? (() => {
         const m = nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : rk === 'closest' ? { title: t('rank.noClosest'), why: t('rank.closestSub'), action: null }
           : rk === 'match' ? { title: t('emptyAlt.qualityTitle'), why: os != null ? t('emptyAlt.qualityWhy', { s: os }) : t('emptyAlt.qualityWhyNoScore'), action: null }

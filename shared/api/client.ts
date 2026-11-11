@@ -122,10 +122,21 @@ export class MieuxAPI {
     } catch { return null; }
   }
 
-  /** The same for several alternatives at once: { barcode: price | null }. */
+  /** Batched approximate prices, including lookups which are still running. */
+  async getWebPriceBatch(barcodes: string[], signal?: AbortSignal): Promise<{ prices: Record<string, any>; pending: string[] }> {
+    // The server spends at most eight seconds waiting for shared searches. Do not let
+    // the generic retry interceptor turn that into several overlapping searches.
+    const response = await this.client.post('/web-prices', { barcodes }, { signal, timeout: 12000, __retries: 3 } as any);
+    const data = response.data ?? {};
+    return {
+      prices: data.prices && typeof data.prices === 'object' ? data.prices : {},
+      pending: Array.isArray(data.pending) ? data.pending.filter((code: unknown): code is string => typeof code === 'string') : [],
+    };
+  }
+
+  /** Compatibility helper for callers that only need completed prices. */
   async getWebPrices(barcodes: string[]) {
-    const response = await this.client.post('/web-prices', { barcodes });
-    return (response.data?.prices ?? {}) as Record<string, any>;
+    return (await this.getWebPriceBatch(barcodes)).prices;
   }
 
   async searchProducts(query: string) {

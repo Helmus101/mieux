@@ -44,11 +44,15 @@ export default function Product() {
     return () => clearTimeout(id);
   }, [barcode, d?.product?.id]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
-  const [webP, setWebP] = useState<any>(null);       // hooks stay above every early return
+  const [webP, setWebP] = useState<any>(null), [webPriceLoading, setWebPriceLoading] = useState(false);       // hooks stay above every early return
   const headKind = d ? priceHeadline(d.price_context).kind : null;
   useEffect(() => {          // no observed price: one search for an approximate price and where it is sold
+    let live = true;
     setWebP(null);
-    if (barcode && d && headKind === 'none') api.getWebPriceQuick(barcode).then((w: any) => { if (w) setWebP(w); });
+    const shouldLookUp = !!barcode && !!d && headKind === 'none';
+    setWebPriceLoading(shouldLookUp);
+    if (shouldLookUp) api.getWebPriceQuick(barcode!).then((w: any) => { if (live && w) setWebP(w); }).finally(() => { if (live) setWebPriceLoading(false); });
+    return () => { live = false; };
   }, [barcode, d?.product?.id, headKind]);
   if (err) return (
     <Screen>
@@ -118,7 +122,7 @@ export default function Product() {
             {p.quantityText && <span className="mut sm">{p.quantityText}</span>}
           </div>
         </div>
-        {head.kind !== 'none' ? <p className="pprice"><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webP ? <p className="pprice"><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}</b>{packTxt(packOf(Math.round(webP.per100_cents * 10), webP.pack_cents))}{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="pprice mut">{t('simple.noPrice')}</p>}
+        {head.kind !== 'none' ? <p className="pprice"><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webP ? <p className="pprice"><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}</b>{packTxt(packOf(Math.round(webP.per100_cents * 10), webP.pack_cents))}{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="pprice mut">{webPriceLoading ? <><span className="mini-ring" />{t('alt.pricing')}</> : t('simple.noPrice')}</p>}
         {p.score ? <>
           <div className="twoscores">
             <div><span className="mut sm">{t('score.title')}</span><div className={'stile ' + (p.score.tone === 'b' ? 'b' : p.score.tone === 'w' ? 'w' : 'g')}>{p.score.total}<small>{t('score.outOf')}</small></div><b>{t('score.' + p.score.band)}</b></div>

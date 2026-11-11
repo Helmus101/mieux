@@ -42,15 +42,21 @@ export default function Alternatives() {
       .catch((e: unknown) => { if (!gone) setErr(friendlyError(e)); }).finally(() => { if (!gone) setBusy(false); });
     return () => { gone = true; };
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
-  // Candidates with no price: one search each for an approximate price and the supermarkets selling it (stored server-side). A found price puts the card into the
-  // price and price-quality tabs as it arrives, so the lists fill up to 10 even where the database has no price.
-  // Prices are found by the server before the list is sent: nothing is added to the page afterwards.
-  const webP: Record<string, any> = {};
-  const webBusy = false;
-  // Anything shown without a price is searched for after the list appears and filled in place (rows never move): barcode -> price found, or null when the search found none.
-  const [fill, setFill] = useState<Record<string, any>>({}); const asked = useRef(new Set<string>());
+  // A missing observed price starts a shared server search. Keep the row pending until
+  // that search completes; "no price" must never mean "we have not finished looking".
+  const [webP, setWebP] = useState<Record<string, any>>({});
+  const [priceState, setPriceState] = useState<Record<string, 'pending' | 'missing'>>({});
+  const asked = useRef(new Set<string>());
+  const priceAbort = useRef<AbortController | null>(null);
+  useEffect(() => {
+    asked.current.clear();
+    priceAbort.current?.abort();
+    priceAbort.current = null;
+    setWebP({});
+    setPriceState({});
+  }, [barcode]);
   const rowOf = (e0: any) => {
-    const w = webP[e0.product?.barcode] ?? fill[e0.product?.barcode];
+    const w = webP[e0.product?.barcode];
     const chains = (e0.product?.chains?.length) ? e0.product.chains : (w?.chains?.length ? w.chains : []);
     const p100 = e0.price_per_100_cents ?? w?.per100_cents;
     const vs = e0.value_score ?? w?.value_score;
@@ -101,7 +107,7 @@ export default function Alternatives() {
     ].filter((x: any) => {
       const bc = x.product?.barcode;
       if (!bc || have.has(bc)) return false;
-      const w = webP[bc] ?? fill[bc];
+      const w = webP[bc];
       const p100 = x.price_per_100_cents ?? w?.per100_cents;
       if (p100 == null) return false;
       have.add(bc);
@@ -128,9 +134,6 @@ export default function Alternatives() {
   const shown = ranked.slice(0, 10);
   useEffect(() => {
     if (busy || !r) return;
-    const shownTodo = shown
-      .filter((e: any) => e.price100 == null && !asked.current.has(e.product?.barcode))
-      .map((e: any) => e.product.barcode as string);
     const allCands = [
       ...(r?.rankings?.quality ?? []),
       ...(r?.rankings?.closest ?? []),
@@ -138,44 +141,59 @@ export default function Alternatives() {
       ...(r?.rankings?.budget ?? []),
       ...(r?.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
     ];
-    const restTodo = allCands
+    const todo = Array.from(new Set(allCands
       .filter((c: any) => {
         const bc = c.product?.barcode;
-        return bc && c.price_per_100_cents == null && !asked.current.has(bc);
+        return bc && c.product?.quantity && c.price_per_100_cents == null && !asked.current.has(bc);
       })
-      .map((c: any) => c.product.barcode as string);
-    const todo = Array.from(new Set([...shownTodo, ...restTodo]));
+      .map((c: any) => c.product.barcode as string))).slice(0, 32);
     if (!todo.length) return;
     todo.forEach((c) => asked.current.add(c));
-    // One request per row, four at a time, in display order: each row is filled as soon as its own search ends instead of waiting for the slowest.
-    let next = 0;
-    const worker = async () => {
-      while (next < todo.length) {
-        const c = todo[next++];
-        try {
-          let w = await api.getWebPriceQuick(c);
-          if (!w) {
-            await new Promise((res) => setTimeout(res, 2000));
-            w = await api.getWebPriceQuick(c);
+    const controller = new AbortController();
+    priceAbort.current?.abort();
+    priceAbort.current = controller;
+    setPriceState((current) => ({ ...current, ...Object.fromEntries(todo.map((c) => [c, 'pending'])) }));
+    // The API returns `pending` when the same server-side search is still running.
+    // Rechecking that work avoids duplicate provider calls and keeps the result honest.
+    void (async () => {
+      for (let i = 0; i < todo.length && !controller.signal.aborted; i += 8) {
+        const batch = todo.slice(i, i + 8);
+        let pending = batch;
+        while (pending.length && !controller.signal.aborted) {
+          try {
+            const result = await api.getWebPriceBatch(pending, controller.signal);
+            if (controller.signal.aborted) return;
+            const stillPending = new Set(result.pending);
+            const complete = pending.filter((c) => !stillPending.has(c));
+            if (complete.length) {
+              setWebP((current) => ({ ...current, ...Object.fromEntries(complete.filter((c) => result.prices[c]).map((c) => [c, result.prices[c]])) }));
+              setPriceState((current) => ({ ...current, ...Object.fromEntries(complete.map((c) => [c, 'missing'])) }));
+            }
+            pending = result.pending;
+            if (pending.length) await new Promise((resolve) => setTimeout(resolve, 1500));
+          } catch {
+            if (!controller.signal.aborted) {
+              // A transport failure is not evidence that a price is unavailable. Keep
+              // the row pending; the next pass can reuse the existing server search.
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+            }
           }
-          setFill((f) => ({ ...f, [c]: w }));
-        } catch {
-          setFill((f) => ({ ...f, [c]: null }));
         }
       }
-    };
-    for (let k = 0; k < Math.min(4, todo.length); k++) void worker();
-  }, [
-    busy,
-    !!r,
-    shown.filter((e: any) => e.price100 == null).map((e: any) => e.product?.barcode).join(),
-    r ? (r.rankings?.quality?.length ?? 0) : 0,
-  ]);
+    })();
+    return () => controller.abort();
+  }, [busy, r, barcode]);
+  const allUnpriced = r ? Array.from(new Set([
+    ...(r.rankings?.quality ?? []), ...(r.rankings?.closest ?? []),
+    ...(r.rankings?.value ?? []), ...(r.rankings?.budget ?? []),
+    ...(r.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
+  ].filter((e: any) => e.product?.barcode && e.product?.quantity && e.price_per_100_cents == null).map((e: any) => e.product.barcode))).slice(0, 32) : [];
+  const webBusy = allUnpriced.some((barcode) => priceState[barcode] !== 'missing' && !webP[barcode]);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
   const none = !!r && !busy && !webBusy && !err && ['value', 'match', 'closest'].every((k) => listOf(k).length === 0);   // never more than 10 per tab, after the strict filters
-  // Two tabs: price-quality (opens first) and quality.
-  // The two price tabs are always offered (an empty one says why); the quality tab is offered only when something scores higher than the scanned product.
-  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
+  // Price-quality first, then cheapest, then better quality. The price tab must stay
+  // reachable even while candidate prices are arriving.
+  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'budget', label: t('rank.budget') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
@@ -257,7 +275,7 @@ export default function Alternatives() {
       {r && !busy && <div className="alist">{shown.map((e: any, idx: number) => {
         const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
         const d = diffOf(e);
-        const w = webP[e.product.barcode] ?? fill[e.product.barcode];
+        const w = webP[e.product.barcode];
         const chains = ((e.product.chains?.length ? e.product.chains : w?.chains) ?? []) as string[];
         return (
           <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={() => { haptic('tap'); setDetail(e); }}>
@@ -278,7 +296,7 @@ export default function Alternatives() {
                 : e.pack != null ? <b>{formatCents(e.pack)}</b>
                 : w?.per100_cents != null ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b>
                 : w?.pack_cents != null ? <b>~ {formatCents(w.pack_cents)}</b> : null}
-              {u == null && e.pack == null && w?.per100_cents == null && w?.pack_cents == null && (fill[e.product.barcode] === null ? <span className="mut sm">{t('alt.noPrice')}</span> : <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span>)}
+              {u == null && e.pack == null && w?.per100_cents == null && w?.pack_cents == null && (priceState[e.product.barcode] === 'missing' ? <span className="mut sm">{t('alt.noPrice')}</span> : <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span>)}
               {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
               {d && rk === 'budget' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
             </div>
