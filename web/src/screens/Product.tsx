@@ -123,7 +123,10 @@ export default function Product() {
           </div>
         </div>
         {head.kind !== 'none' ? <p className="pprice"><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webP ? <p className="pprice"><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}</b>{packTxt(packOf(Math.round(webP.per100_cents * 10), webP.pack_cents))}{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="pprice mut">{webPriceLoading ? <><span className="mini-ring" />{t('alt.pricing')}</> : t('simple.noPrice')}</p>}
-        {p.score ? <>
+        {p.score ? (webPriceLoading && !webP ? <>
+          <div className="skel-two" aria-hidden><Skeleton h={64} w={90} /><Skeleton h={64} w={90} /></div>
+          <p className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</p>
+        </> : <>
           <div className="twoscores">
             <div><span className="mut sm">{t('score.title')}</span><div className={'stile ' + (p.score.tone === 'b' ? 'b' : p.score.tone === 'w' ? 'w' : 'g')}>{p.score.total}<small>{t('score.outOf')}</small></div><b>{t('score.' + p.score.band)}</b></div>
             <div title={t('score.pqHint')}><span className="mut sm">{t('score.pq')} <PqExplain /></span>{pc?.value ? <><div className={'stile ' + (pc.value.value_score >= 65 ? 'g' : pc.value.value_score >= 40 ? 'w' : 'b')}>{pc.value.approximate ? '≈ ' : ''}{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{pc.value.approximate && (pc.value.basis_pack_cents != null ? <div className="mut sm">{t('score.pqApprox', { p: formatCents(pc.value.basis_pack_cents) })}</div> : pc.value.basis_per100_cents != null ? <div className="mut sm">≈ {formatCents(Math.round(pc.value.basis_per100_cents * 10))}/kg</div> : null)}</> : webP?.value_score != null ? <><div className={'stile ' + (webP.value_score >= 65 ? 'g' : webP.value_score >= 40 ? 'w' : 'b')}>≈ {webP.value_score}<small>{t('score.outOf')}</small></div><b>{webP.value_score >= 65 ? t('score.pqGood') : webP.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{webP.pack_cents != null ? <div className="mut sm">{t('score.pqApprox', { p: formatCents(webP.pack_cents) })}</div> : webP.per100_cents != null ? <div className="mut sm">≈ {formatCents(Math.round(webP.per100_cents * 10))}/kg</div> : null}</> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}</div>
@@ -133,7 +136,7 @@ export default function Product() {
             {((p.score.additives?.items ?? []) as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 3).map((x) => <li key={x.code} className={x.level === 'D' ? 'b' : 'w'} onClick={() => setSheet(x.code)} style={{ cursor: 'pointer' }}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</li>)}
             {p.score.incomplete && <li className="g">{t('sdim.incomplete')}</li>}
           </ul>
-        </> : <Muted>{t('score.na')}</Muted>}
+        </>) : <Muted>{t('score.na')}</Muted>}
       </section>
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
       <KnowCard p={p} />
