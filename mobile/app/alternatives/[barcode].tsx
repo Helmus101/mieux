@@ -54,9 +54,8 @@ export default function Alternatives() {
     want.forEach((code) => askedPrices.current.add(code));
     setPriceState((current) => ({ ...current, ...Object.fromEntries(want.map((code) => [code, 'pending'])) }));
     let live = true;
-    void (async () => {
-      for (let i = 0; i < want.length && live; i += 8) {
-        let pending = want.slice(i, i + 8);
+    const collectBatch = async (batch: string[]) => {
+        let pending = batch;
         while (pending.length && live) {
           try {
             const result = await api.getWebPriceBatch(pending);
@@ -73,8 +72,9 @@ export default function Alternatives() {
             await new Promise((resolve) => setTimeout(resolve, 2000));
           }
         }
-      }
-    })();
+    };
+    // Launch every batch now so one slow product cannot stall other price scores.
+    void Promise.all(Array.from({ length: Math.ceil(want.length / 8) }, (_, i) => collectBatch(want.slice(i * 8, i * 8 + 8))));
     return () => { live = false; };
   }, [r]);
 
@@ -200,6 +200,7 @@ export default function Alternatives() {
           : { title: t('emptyAlt.valueTitle'), why: t('emptyAlt.valueWhy'), action: null };
         return <Card><Text style={{ color: c.ink, fontWeight: '700' }}>{m.title}</Text><Muted>{m.why}</Muted>{m.action}</Card>;
       })() : null}
+      {r && !busy && !shown.length && webBusy ? <Card><Muted>{t('alt.pricing')}</Muted></Card> : null}
 
 
       {r && !busy ? shown.map((e: any, i: number) => {

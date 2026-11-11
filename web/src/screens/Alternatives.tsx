@@ -153,9 +153,7 @@ export default function Alternatives() {
     setPriceState((current) => ({ ...current, ...Object.fromEntries(todo.map((c) => [c, 'pending'])) }));
     // The API returns `pending` when the same server-side search is still running.
     // Rechecking that work avoids duplicate provider calls and keeps the result honest.
-    void (async () => {
-      for (let i = 0; i < todo.length && !controller.signal.aborted; i += 8) {
-        const batch = todo.slice(i, i + 8);
+    const collectBatch = async (batch: string[]) => {
         let pending = batch;
         while (pending.length && !controller.signal.aborted) {
           try {
@@ -177,8 +175,10 @@ export default function Alternatives() {
             }
           }
         }
-      }
-    })();
+    };
+    // Start all four batches at once: a slow lookup for one product must not delay
+    // the price score of another best-quality alternative.
+    void Promise.all(Array.from({ length: Math.ceil(todo.length / 8) }, (_, i) => collectBatch(todo.slice(i * 8, i * 8 + 8))));
     return () => controller.abort();
   }, [busy, r, barcode]);
   const allUnpriced = r ? Array.from(new Set([
@@ -189,7 +189,6 @@ export default function Alternatives() {
   const webBusy = allUnpriced.some((barcode) => priceState[barcode] !== 'missing' && !webP[barcode]);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
   const none = !!r && !busy && !webBusy && !err && ['value', 'match'].every((k) => listOf(k).length === 0);   // only the two visible rankings count
-  // The app presents the two useful decisions: best price-quality and best quality.
   const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
   const nothingNear = hasHome && !!r && ['value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
@@ -257,7 +256,7 @@ export default function Alternatives() {
       </>}
       {err && <Card><b>{err.title}</b><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
       {none && <Card><b>{t('emptyAlt.noneTitle')}</b><p className="mut" style={{ margin: '10px 0 0' }}>{t('emptyAlt.noneWhy')}</p></Card>}
-      {r && !busy && !none && !shown.length && (() => {
+      {r && !busy && !none && !webBusy && !shown.length && (() => {
         const os = r?.original?.score?.total;
         const m = nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : rk === 'closest' ? { title: t('rank.noClosest'), why: t('rank.closestSub') }
@@ -267,6 +266,7 @@ export default function Alternatives() {
           : { title: t('emptyAlt.valueTitle'), why: t('emptyAlt.valueWhy') };
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
       })()}
+      {r && !busy && !none && webBusy && !shown.length && <Card><span className="mini-ring" /> <Muted>{t('alt.pricing')}</Muted></Card>}
       {r && !busy && <div className="alist">{shown.map((e: any, idx: number) => {
         const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
         const d = diffOf(e);

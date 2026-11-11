@@ -702,7 +702,7 @@ def web_prices(request: Request, body: WebPricesReq, uid: str = Depends(user), s
     # This is an explicit user-visible retry: a cached miss from an interrupted or
     # incomplete earlier search must not prevent alternatives from being priced now.
     futures = {c: _search_once(products[c], persist=False, force=True) for c in todo}
-    done, _ = wait(list(futures.values()), timeout=8.0) if futures else (set(), set())
+    done, _ = wait(list(futures.values()), timeout=2.0) if futures else (set(), set())
     found = {}
     pending = []
     for c, future in futures.items():
@@ -1708,15 +1708,15 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
     if webprice.enabled():
         try:
             todo = _search_targets(orig, orig_price is None, prods, prices)
-            scarce = len([b for b in prices if b != orig['barcode']]) < 3        # almost nothing priced for this kind of product: wait a little longer
             if todo:
-                # Stored prices are instant. Missing ones are searched in parallel, but the request waits at most ~7 s in total (the scanned product first);
-                # a search still running keeps going in the background and is stored for next time.
+                # Stored prices are instant. Start missing searches in parallel, then
+                # return the quality list quickly; clients poll the same futures and
+                # add price-quality scores as they arrive.
                 from concurrent.futures import wait as _wait
                 found = [webprice.cached_only(c) for c in todo]
                 futs = {i: _search_once(c) for i, (c, w) in enumerate(zip(todo, found)) if w is None}
                 if futs:
-                    _wait(list(futs.values()), timeout=max(0.3, min(14.0 if scarce else 10.0, (_SEARCH_DEADLINE.get() or (time.time() + 10)) + (3 if scarce else 0) - time.time())))
+                    _wait(list(futs.values()), timeout=max(0.3, min(2.0, (_SEARCH_DEADLINE.get() or (time.time() + 2)) - time.time())))
                     for i, f in futs.items():
                         if f.done() and not f.exception():
                             found[i] = f.result()
