@@ -158,16 +158,6 @@ app = FastAPI(title="Mieux API", version="0.2")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS configuration
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8010").split(",")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 app.add_middleware(GZipMiddleware, minimum_size=800)
 
 
@@ -223,6 +213,17 @@ async def log_requests(request: Request, call_next):
     duration = (time.time() - start) * 1000  # milliseconds
     logger.info(f"req {request.method} {request.url.path} status={response.status_code} ms={duration:.0f}")
     return response
+
+# CORS is added last, so it is the outermost middleware. A response replayed by the idempotency cache (or built by any
+# other middleware) then still carries Access-Control-Allow-Origin; otherwise the browser blocks a repeated cross-origin POST.
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8010").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # One local Open Food Facts copy per market (scripts/import_off_dump.py, OFF_COUNTRY); app.state.off forwards to the request's market.

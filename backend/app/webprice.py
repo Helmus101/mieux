@@ -706,7 +706,8 @@ def _cached(barcode: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
     if not row:
         return False, None
     data = json.loads(row[1]) if row[1] else None
-    ttl = HIT_TTL if data else MISS_TTL
+    # "Sold here, no price" is a miss, not a hit: retry it after MISS_TTL, and at once when the lookup is forced.
+    ttl = HIT_TTL if data and not data.get("no_price") else MISS_TTL
     return (time.time() - row[0] < ttl), data
 
 
@@ -742,7 +743,7 @@ def cached_only(product: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True, http: Optional[Http] = None, deadline: Optional[float] = None, force: bool = False) -> Optional[Dict[str, Any]]:
     """{per100_cents, pack_cents, store, source_urls, date, source:'web_search', approximate:True} or None.
 
-    force=True: bypass a cached miss and retry the search (but still serve a cached hit, since a found price is reliable).
+    force=True: bypass a cached miss or a "sold here, no price" record and retry the search (but still serve a cached price, since a found price is reliable).
     Use this on explicit user-facing lookups where a timed-out background search may have left a stale miss.
     """
     global last_error
@@ -753,10 +754,10 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
     if use_cache:
         fresh, data = _cached(barcode)
         if fresh:
-            if data is not None:
+            if data is not None and not data.get("no_price"):
                 return data             # a real price found earlier: serve it
             if not force:
-                return None             # cached miss, no force: respect the TTL
+                return data             # cached miss (or "sold here, no price"): respect the TTL
             # force=True + cached miss: fall through and retry the search now
         old = data                       # an expired price we found earlier: kept, never thrown away
     if provider():
