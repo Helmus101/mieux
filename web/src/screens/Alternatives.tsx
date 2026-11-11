@@ -124,7 +124,9 @@ export default function Alternatives() {
     const o = rk === 'value' ? [...l].sort((a: any, b: any) => (b.vs ?? -1) - (a.vs ?? -1)) : l;
     return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
   })();
-  const shown = ranked.slice(0, 10);
+  // Three alternatives per category at first; the button opens the rest, up to ten.
+  const [more, setMore] = useState<string[]>([]);
+  const shown = ranked.slice(0, more.includes(rk) ? 10 : 3);
   useEffect(() => {
     if (busy || !r) return;
     const allCands = [
@@ -272,6 +274,7 @@ export default function Alternatives() {
             </div>
           </article>);
       })}</div>}
+      {r && !busy && ranked.length > 3 && !more.includes(rk) && <div className="amore"><Button small onPress={() => setMore((m) => [...m, rk])}>{t('alt.showMore', { n: Math.min(ranked.length, 10) - 3 })}</Button></div>}
       <Sheet open={!!detail} onClose={() => setDetail(null)} title={detail?.product.name}>{detail && detailBody(detail)}</Sheet>
       <Toast text={note} />
     </Screen>

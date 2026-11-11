@@ -227,6 +227,7 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .atitle{font-size:26px; margin:4px 0 2px}
 .asub{margin:0 0 10px; font-size:15px}
 .alist{margin:6px 0}
+.amore{display:flex; justify-content:center; padding:14px 0 4px; border-top:1px solid var(--line)}
 .arow{display:grid; grid-template-columns:60px 1fr auto; gap:14px; align-items:start; padding:16px 0; border-top:1px solid var(--line); cursor:pointer}
 .arow:first-child{border-top:0}
 .arow:active{background:var(--tint)}
