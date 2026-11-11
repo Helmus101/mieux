@@ -375,7 +375,7 @@ def test_value_list_does_not_require_beating_the_scanned_product():
 def test_search_price_needs_two_sites_that_mention_the_pack_size(monkeypatch, tmp_path):
     from app import webprice
     monkeypatch.delenv("GEMINI_API_KEY", raising=False); monkeypatch.delenv("BRAVE_API_KEY", raising=False)
-    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp3.db"))
+    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setenv("WEBPRICE_PROVIDERS", "parallel"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp3.db"))
     assert webprice.providers() == ["parallel"]
     prod = {"barcode": "3017620422003", "name": "Nutella pâte à tartiner", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
 
@@ -400,11 +400,11 @@ def test_gemini_is_asked_first_then_the_others(monkeypatch, tmp_path):
     from app import webprice
     for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY"):
         monkeypatch.delenv(k, raising=False)
-    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp6.db"))
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setenv("WEBPRICE_PROVIDERS", "gemini,parallel"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp6.db"))
     assert webprice.providers() == ["gemini", "parallel"]
-    monkeypatch.delenv("PARALLEL_API_KEY"); monkeypatch.setenv("BRAVE_API_KEY", "x")
-    assert webprice.providers() == ["gemini", "brave"]                          # free-tier search APIs come after Gemini
-    monkeypatch.setenv("PARALLEL_API_KEY", "p")
+    monkeypatch.delenv("PARALLEL_API_KEY"); monkeypatch.setenv("BRAVE_API_KEY", "x"); monkeypatch.setenv("WEBPRICE_PROVIDERS", "gemini,brave")
+    assert webprice.providers() == ["gemini", "brave"]                          # free-tier search APIs come after Gemini, when explicitly enabled alongside it
+    monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setenv("WEBPRICE_PROVIDERS", "gemini,parallel")
     prod = {"barcode": "3017620422003", "name": "Nutella", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
     reply = {"candidates": [{"content": {"parts": [{"text": '{"price_eur": 3.2, "pack_size": "400 g", "store": "Auchan", "found": true}'}]},
                              "groundingMetadata": {"groundingChunks": [{"web": {"uri": "https://www.auchan.fr/a"}}]}}]}
@@ -424,7 +424,7 @@ def test_gemini_is_asked_first_then_the_others(monkeypatch, tmp_path):
 
 def test_web_price_is_cached_per_barcode(monkeypatch, tmp_path):
     from app import webprice
-    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp5.db"))
+    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setenv("WEBPRICE_PROVIDERS", "parallel"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp5.db"))
     calls = []
 
     def http(method, url, headers, body):
@@ -459,7 +459,7 @@ def test_money_and_quality_lists_prefer_products_shoppers_know():
 def test_web_price_endpoints_return_price_and_supermarket(monkeypatch, tmp_path):
     from fastapi.testclient import TestClient
     from app import main, webprice
-    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp9.db"))
+    monkeypatch.setenv("GEMINI_API_KEY", "k"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp9.db"))
     monkeypatch.setattr(main.app.state.prices, "latest", lambda *a, **k: None, raising=False)
     fake = {"per100_cents": 80.0, "pack_cents": 320, "store": "Auchan", "stores": ["Auchan", "Carrefour"], "chains": ["auchan", "carrefour"], "source_urls": ["https://a.fr"], "date": "2026-11-08", "source": "web_search", "approximate": True}
     monkeypatch.setattr(webprice, "lookup", lambda p, **k: fake)
@@ -471,7 +471,7 @@ def test_web_price_endpoints_return_price_and_supermarket(monkeypatch, tmp_path)
     assert r["price"]["stores"] == ["Auchan", "Carrefour"] and r["price"]["approximate"] is True
     r2 = c.post("/v1/web-prices", json={"barcodes": ["3579260039060", "3175680011480"]}, headers=h).json()
     assert set(r2["prices"]) == {"3579260039060", "3175680011480"} and r2["prices"]["3175680011480"]["pack_cents"] == 320
-    monkeypatch.delenv("PARALLEL_API_KEY")
+    monkeypatch.delenv("GEMINI_API_KEY")
     assert c.get("/v1/products/3579260039060/web-price", headers=h).json() == {"price": None}
 
 
@@ -486,6 +486,7 @@ def test_pizza_sticks_are_breadsticks_not_pizza():
 
 def test_parallel_is_main_and_langsearch_the_fallback(monkeypatch, tmp_path):
     from app import webprice
+    monkeypatch.setenv("WEBPRICE_PROVIDERS", "parallel,langsearch")
     monkeypatch.setenv("LANGSEARCH_API_KEY", "ls"); monkeypatch.setenv("PARALLEL_API_KEY", "pa"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp4.db"))
     assert webprice.providers() == ["parallel", "langsearch"]
     prod = {"barcode": "3017620422003", "name": "Nutella pâte à tartiner", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
@@ -607,7 +608,7 @@ def test_pack_price_ignores_shop_conditions_and_matches_the_per_kilo_price():
 
 def test_size_is_guessed_from_the_exact_product_page_only(monkeypatch):
     from app import webprice
-    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.delenv("GEMINI_API_KEY", raising=False); monkeypatch.delenv("LANGSEARCH_API_KEY", raising=False)
+    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setenv("WEBPRICE_PROVIDERS", "parallel"); monkeypatch.delenv("GEMINI_API_KEY", raising=False); monkeypatch.delenv("LANGSEARCH_API_KEY", raising=False)
     monkeypatch.setattr(webprice, "_day", {"d": "", "n": 0})
     prod = {"barcode": "3350033972711", "name": "Cerneaux de noix", "brand": "Monoprix", "quantity": None}
     def par(*pages):
@@ -630,12 +631,18 @@ def test_a_price_from_another_flavour_or_a_listing_page_is_never_used():
     assert webprice._price_from(prod, [right])["pack_cents"] == 565          # a supermarket's own page for exactly this variant
 
 
-def test_parallel_is_off_unless_asked_for(monkeypatch):
+def test_the_default_is_gemini_only_even_with_other_provider_keys_set(monkeypatch):
+    """Gemini is the one price search used in production: another provider's key being present (left over, or set for some
+    other reason) must never pull it back in on its own. WEBPRICE_PROVIDERS is the only way to use it, for tests or for a
+    deliberate, explicit override."""
     from app import webprice
-    monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setenv("SERPER_API_KEY", "s"); monkeypatch.delenv("WEBPRICE_PARALLEL")
-    assert webprice.providers() == ["serper"]
-    monkeypatch.setenv("WEBPRICE_PARALLEL", "1")
-    assert webprice.providers() == ["serper", "parallel"]
+    monkeypatch.delenv("WEBPRICE_PROVIDERS", raising=False)
+    monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setenv("SERPER_API_KEY", "s"); monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    assert webprice.providers() == []
+    monkeypatch.setenv("GEMINI_API_KEY", "g")
+    assert webprice.providers() == ["gemini"]
+    monkeypatch.setenv("WEBPRICE_PROVIDERS", "serper,parallel")
+    assert webprice.providers() == ["serper", "parallel"]                       # an explicit override still works, for tests or a deliberate re-enable
 
 
 
@@ -657,7 +664,7 @@ def test_quick_search_providers_run_before_slow_gemini_and_a_hit_skips_it(monkey
     from app import webprice
     for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY"):
         monkeypatch.delenv(k, raising=False)
-    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("SERPER_API_KEY", "s")
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("SERPER_API_KEY", "s"); monkeypatch.setenv("WEBPRICE_PROVIDERS", "serper,gemini")
     monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp8.db"))
     prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
     order = []

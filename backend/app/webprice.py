@@ -83,14 +83,12 @@ def _http(method: str, url: str, headers: Dict[str, str], body: Optional[Dict[st
 
 
 def providers() -> list:
-    """Gemini (Google-grounded search) first, then the free-tier search APIs (Serper, Brave), then LangSearch; each only when its key is set.
-    Parallel is used only when WEBPRICE_PARALLEL=1. WEBPRICE_PROVIDERS (comma list) overrides the order, for tests."""
+    """Gemini's Google-grounded search only: one authoritative, cited lookup per product, not several search APIs reconciled
+    against each other. WEBPRICE_PROVIDERS (comma list) overrides this, for tests and for deliberately re-enabling the others."""
     forced = os.environ.get("WEBPRICE_PROVIDERS")
     if forced:
         return [n for n in forced.split(",") if n]
-    keyed = (("gemini", "GEMINI_API_KEY"), ("serper", "SERPER_API_KEY"), ("brave", "BRAVE_API_KEY"), ("parallel", "PARALLEL_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY"))
-    out = [n for n, k in keyed if os.environ.get(k) and (n != "parallel" or os.environ.get("WEBPRICE_PARALLEL") == "1")]
-    return out
+    return ["gemini"] if os.environ.get("GEMINI_API_KEY") else []
 
 
 def provider() -> Optional[str]:

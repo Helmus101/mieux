@@ -27,7 +27,7 @@ export default function Alternatives() {
   // "Today" filters start from the saved profile and never write back to it.
   // Quality is judged on nutrition only; the price tabs come from the price rankings, so no price priority is sent.
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
-  const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value');
+  const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value'); const [showMore, setShowMore] = useState(false);
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function Alternatives() {
     const o = rk === 'value' ? [...l].sort((a: any, b: any) => (b.vs ?? -1) - (a.vs ?? -1)) : l;
     return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
   })();
-  const shown = ranked.slice(0, 10);
+  const shown = ranked.slice(0, showMore ? 10 : 3);
   useEffect(() => {
     if (busy || !r) return;
     const allCands = [
@@ -139,7 +139,7 @@ export default function Alternatives() {
         const bc = c.product?.barcode;
         return bc && c.product?.quantity && c.price_per_100_cents == null && !asked.current.has(bc);
       })
-      .map((c: any) => c.product.barcode as string))).slice(0, 32);
+      .map((c: any) => c.product.barcode as string))).slice(0, 12);          // at most the 10 the "show more" button can ever reveal, plus a small margin for reordering
     if (!todo.length) return;
     todo.forEach((c) => asked.current.add(c));
     let gone = false;
@@ -160,12 +160,13 @@ export default function Alternatives() {
     ...(r.rankings?.quality ?? []), ...(r.rankings?.closest ?? []),
     ...(r.rankings?.value ?? []),
     ...(r.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
-  ].filter((e: any) => e.product?.barcode && e.product?.quantity && e.price_per_100_cents == null).map((e: any) => e.product.barcode))).slice(0, 32) : [];
+  ].filter((e: any) => e.product?.barcode && e.product?.quantity && e.price_per_100_cents == null).map((e: any) => e.product.barcode))).slice(0, 12) : [];
   const webBusy = allUnpriced.some((barcode) => webP[barcode] === undefined);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
   const none = !!r && !busy && !webBusy && !err && ['value', 'match'].every((k) => listOf(k).length === 0);   // only the two visible rankings count
   const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
+  useEffect(() => { setShowMore(false); }, [barcode, rk]);
   const nothingNear = hasHome && !!r && ['value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
   const showPrice = rk === 'value';   // price differences belong to the price-quality tab only
@@ -272,6 +273,7 @@ export default function Alternatives() {
             </div>
           </article>);
       })}</div>}
+      {r && !busy && !showMore && ranked.length > 3 && <Button small plain onPress={() => { haptic('tap'); setShowMore(true); }}>{t('alt.showMore')}</Button>}
       <Sheet open={!!detail} onClose={() => setDetail(null)} title={detail?.product.name}>{detail && detailBody(detail)}</Sheet>
       <Toast text={note} />
     </Screen>
