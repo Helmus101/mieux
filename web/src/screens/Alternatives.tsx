@@ -6,7 +6,7 @@ import { useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
 import { cachedAlternatives, fetchAlternatives, NEAR_KM } from '../alternatives';
 import PqExplain from '../PqExplain';
-import { Button, Card, Muted, NavBar, Screen, Segmented, Skeleton, Loader, Toast, haptic } from '../ui';
+import { Button, Card, ChainLogo, Muted, NavBar, Screen, Segmented, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
 import { friendlyError } from '../errors';
@@ -21,10 +21,11 @@ export default function Alternatives() {
   const hasHome = home?.lat != null;
   const country = useProfile((s) => s.country);
   const myChains = (useProfile((s) => s.chains) ?? []).filter((id) => chainsFor(country).some((c) => c.id === id));
+  const chainName = (id: string) => chainsFor(country).find((c) => c.id === id)?.name ?? id.charAt(0).toUpperCase() + id.slice(1);
   // "Today" filters start from the saved profile and never write back to it.
   // Quality is judged on nutrition only; the price tabs come from the price rankings, so no price priority is sent.
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
-  const [tries, setTry] = useState(0); const picked = useRef(false); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value'); const [showMore, setShowMore] = useState(false);
+  const [tries, setTry] = useState(0); const picked = useRef(false); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value'); const [showMore, setShowMore] = useState(false); const [chain, setChain] = useState<string | null>(null);
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function Alternatives() {
       ratio: e.size_ratio,
     });
   };
-  // What each tab shows: sorted strictly by category requirements.
+  // What each tab shows: Quality keeps better nutrition only; Value keeps products better on value OR nutrition, never worse on both.
   const sourceRows = (k: string): any[] => {
     const base = (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []) as any[];
     if (k !== 'value') return base;
@@ -107,14 +108,19 @@ export default function Alternatives() {
     });
     return [...base, ...extra];                                      // + candidates priced by the web search
   };
-  const listOf = (k: string) => {
+  const listOf = (k: string, ignoreChain = false) => {
     const seen = new Set<string>();
     return sourceRows(k).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
+    if (!ignoreChain && chain && !(e.product.chains ?? []).includes(chain)) return false;   // an availability filter only: the ranking order is unchanged
     if (myChains.length && !e.product.chains?.some((c: string) => myChains.includes(c))) return false;   // the person picked their shops: a shop found later by the price search counts too
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
-    if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never a product scoring the same or lower
-    return e.price100 != null && e.vs != null;   // value: every comparable product with a real price-quality score
+    const oq = r?.original?.score?.total;                    // a missing baseline is not proof of being better
+    const betterQ = oq != null && (e.product.score?.total ?? -1) > oq;
+    if (k === 'match') return betterQ;                       // better quality only: never a product scoring the same or lower
+    const ov = r?.rankings?.original_value_score;
+    const betterV = ov != null && e.vs != null && e.vs > ov;
+    return e.price100 != null && e.vs != null && (betterV || betterQ);   // at least one dimension must beat the scanned product
     }).filter((e: any) => {
       // The same product under another barcode or pack size is one row: keep the best-ranked one.
       const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean).map((w) => w.replace(/s$/, '')).join(' ');
@@ -166,10 +172,18 @@ export default function Alternatives() {
   // Prices load per row: a slow lookup never holds the list, and Quality never waits for a price.
   const webBusy = rk === 'value' && ranked.slice(0, showMore ? 10 : 3).some((e: any) => e.price100 == null && !!e.product?.quantity && webP[e.product.barcode] === undefined);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
-  const none = !!r && !busy && !webBusy && !err && ['value', 'match'].every((k) => listOf(k).length === 0);   // only the two visible rankings count
-  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
+  // Only the stores chosen in Settings (Profil → Mes enseignes). With none chosen, the known stores present in
+  // the results: an online grocer outside that list (Greenweez) never becomes a filter or an availability line.
+  const chainOptions = (() => {
+    if (myChains.length) return myChains;
+    const pool = listOf(rk, true);
+    return chainsFor(country).map((c) => c.id).filter((id) => pool.some((e: any) => (e.product.chains ?? []).includes(id)));
+  })();
+  const none = !!r && !busy && !webBusy && !err && ['value', 'match'].every((k) => listOf(k, true).length === 0);   // only the two visible rankings count, before any chain filter
+  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match', true).length > 0) : [];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
-  useEffect(() => { setShowMore(false); }, [barcode, rk]);
+  useEffect(() => { setShowMore(false); setChain(null); }, [barcode, rk]);
+  useEffect(() => { if (chain && !chainOptions.includes(chain)) setChain(null); }, [chain, chainOptions.join()]);
   const nothingNear = hasHome && !!r && ['value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
   const showPrice = rk === 'value';   // price differences belong to the price-quality tab only
@@ -201,6 +215,12 @@ export default function Alternatives() {
       {!none && tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
       {!none && rk === 'match' && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('rank.matchSub')}</p>}
       {!none && rk === 'value' && <p className="mut sm" style={{ margin: '8px 0 0' }}><PqExplain label /></p>}
+      {!none && chainOptions.length > 1 && (
+        <div className="chainfilter" role="group" aria-label={t('alt.filterChain')}>
+          <button type="button" className={'chainchip all' + (chain == null ? ' on' : '')} aria-pressed={chain == null} onClick={() => setChain(null)}>{t('alt.allChains')}</button>
+          {chainOptions.map((id) => <button type="button" key={id} className={'chainchip' + (chain === id ? ' on' : '')} aria-pressed={chain === id} onClick={() => setChain(chain === id ? null : id)}><ChainLogo id={id} name={chainName(id)} size={19} />{chainName(id)}</button>)}
+        </div>
+      )}
       {!none && r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b></span></p>}
       {rk === 'value' && r?.rankings?.original_value_score != null && ranked.length > 0 && (ranked[0].vs ?? 0) <= r.rankings.original_value_score && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('alt.alreadyBestValue')}</p>}
       {busy && <>
@@ -214,7 +234,8 @@ export default function Alternatives() {
       {none && <Card><b>{t('emptyAlt.noneTitle')}</b><p className="mut" style={{ margin: '10px 0 0' }}>{t('emptyAlt.noneWhy')}</p></Card>}
       {r && !busy && !none && !webBusy && !shown.length && (() => {
         const os = r?.original?.score?.total;
-        const m = nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
+        const m = chain ? { title: t('alt.noChainTitle', { c: chainName(chain) }), why: t('alt.noChainWhy'), action: <Button small onPress={() => setChain(null)}>{t('alt.allChains')}</Button> }
+          : nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : rk === 'closest' ? { title: t('rank.noClosest'), why: t('rank.closestSub') }
           : rk === 'match' ? { title: t('emptyAlt.qualityTitle'), why: os != null ? t('emptyAlt.qualityWhy', { s: os }) : t('emptyAlt.qualityWhyNoScore') }
           : rk === 'value' ? { title: t('emptyAlt.valueNoneTitle'), why: t('emptyAlt.valueNoneWhy') }
@@ -234,6 +255,11 @@ export default function Alternatives() {
             <div className="amain">
               <div className="aname">{e.product.name}</div>
               <div className="abrand">{e.product.brand}</div>
+              {(() => {
+                // Availability is only shown for stores from Settings, and only the chosen ones when a selection exists.
+                const cs = (e.product.chains ?? []).filter((id: string) => chainsFor(country).some((c) => c.id === id) && (!myChains.length || myChains.includes(id)));
+                return <div className="achains" title={cs.map(chainName).join(', ')}>{cs.length ? <>{t('alt.seenAt')} {cs.slice(0, 3).map(chainName).join(' · ')}{cs.length > 3 ? ` +${cs.length - 3}` : ''}</> : t('alt.chainUnknown')}</div>;
+              })()}
               <div className="ameta">
                 {rk === 'match' && e.product.score && <span className="tile main"><span className="tile-row"><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>
                   {r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>
@@ -247,7 +273,6 @@ export default function Alternatives() {
                 : w?.per100_cents > 0 ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b>
                 : w?.pack_cents > 0 ? <b>~ {formatCents(w.pack_cents)}</b> : null}
               {u == null && e.pack == null && !(w?.per100_cents > 0) && !(w?.pack_cents > 0) && (webP[e.product.barcode] === undefined ? <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span> : <span className="mut sm">{t('alt.noPrice')}</span>)}
-              {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
               {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
               {rk === 'value' && e.vs != null && r?.rankings?.original_value_score != null && (
                 <span className={'valuecmp ' + (e.vs > r.rankings.original_value_score ? 'up' : 'down')}>{e.vs > r.rankings.original_value_score ? t('alt.betterValue') : t('alt.worseValue')}</span>

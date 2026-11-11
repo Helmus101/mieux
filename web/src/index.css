@@ -297,6 +297,12 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .peek-x:active{color:var(--ink)}
 .peek-open{align-self:flex-start; margin-top:4px; padding:8px 0; min-height:44px; border:0; background:none; color:var(--accent); font-weight:700; font-size:13px; cursor:pointer; text-decoration:underline; text-underline-offset:3px}
 .flagbtn{min-width:44px; min-height:44px; border:0; background:none; color:var(--mut); font-size:15px; cursor:pointer; padding:0}
+.chainfilter{display:flex; gap:8px; overflow-x:auto; padding:10px 0 2px; scrollbar-width:none}
+.chainfilter::-webkit-scrollbar{display:none}
+.chainchip{flex:none; display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:0 12px 0 8px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--ink); font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap}
+.chainchip.all{padding:0 14px}
+.chainchip.on{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+.achains{font-size:11.5px; color:var(--mut); margin-top:2px}
 .valuecmp{font-size:12px; font-weight:600; margin-top:2px}
 .valuecmp.up{color:var(--accent)}
 .valuecmp.down{color:var(--mut)}
