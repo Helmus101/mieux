@@ -12,6 +12,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from . import value
@@ -158,8 +160,12 @@ _MANGLED = re.compile(r"(?<![\d,.])(\d{1,3})\.?\s?,\s?(\d{2})\.?\s?€")
 
 
 def _clean(text: str) -> str:
-    """Search snippets sometimes break a price into pieces ("4. ,59. €"): put it back together."""
-    return _MANGLED.sub(r"\1,\2 €", text or "")
+    """Search snippets sometimes break a price into pieces ("4. ,59. €"): put it back together. A page rendered to Markdown
+    (the 'parallel' provider) escapes punctuation ("5\\.65€") and puts each fragment of a price on its own line ("5\\n\\n,65\\n\\n€"):
+    both leave a bare "65" or "61" right before the "€", which used to be read as the whole price."""
+    t = (text or "").replace("\\.", ".").replace("\\-", "-")
+    t = re.sub(r"(\d)\s+([,.]\d{1,2})\b", r"\1\2", t)      # "5\n\n,65" -> "5,65": a decimal fraction split onto its own line
+    return _MANGLED.sub(r"\1,\2 €", t)
 
 
 _PER_UNIT_AFTER = re.compile(r"^\s*(?:/|par\b|le\b|au\b|\bl[e']?\s)\s*(?:kg|kilo|litre|l\b)", re.I)
@@ -187,8 +193,9 @@ def _pack_price(text: str, size_units: float, size: Optional[Tuple[int, str]] = 
         if _PER_UNIT_AFTER.match(text[m.end():m.end() + 14]):
             per_kilo.append(v)                # "10,53 €/kg": no pack price, but the pack price follows from the size
             continue
-        if re.search(r"(?:min|minimum|panier|livraison|offert|dès|des|frais)\W{0,3}$", text[max(0, m.start() - 16):m.start()], re.I):
-            continue                          # "Min 60,00 €", "Montant du panier 0,00 €": a shop's own conditions, not the product
+        if re.search(r"(?:min|minimum|panier|livraison|gratuite?s?|offert|offerte?s?|d[eè]s|[aà]\s?[-.]?\s?p(?:artir)?\.?\s?d[e']?|des|frais|au\s?-\s?dessus)\W{0,6}$",
+                     text[max(0, m.start() - 40):m.start()], re.I):
+            continue                          # "Min 60,00 €", "Livraison gratuite àpd 39€": a shop's own conditions, not the product's price
         cands.append(v)
     if size_units > 0:
         per_unit = {b for a_ in cands for b in cands if a_ != b and abs(a_ / size_units - b) / b < 0.06}
@@ -230,12 +237,12 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
         slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))
         tw = _words(text)
         exact = len(code) >= 8 and (code in url or code in text)      # the barcode names this exact pack: no need to check the name or the size
+        if _LISTING.search(url):
+            continue                                       # search and category pages mix many products, even when they mention this barcode among others
         if not exact:
             full_text = text + " " + urllib.parse.unquote(url)
             if not (size_re.search(text) or size_re.search(full_text)):
                 continue
-            if _LISTING.search(url):
-                continue                                   # search and category pages mix many products: their prices are not this product's
             if len(slug) >= 3 and name_w and not (name_w <= slug):
                 continue                                   # a product page whose address names another variant (orange vs noisette): not this product
             if (brand_w and not (brand_w & tw)) or (name_w and not (name_w & tw)):
@@ -274,10 +281,13 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
     if len(agree) < 2:
         return None
     price_c = round(med * 100)
-    from . import chains as ch, retail
+    from . import chains as ch, retail, market
     stores = []
     for h, _, _ in agree:
         name = ch.canon(h.rstrip("#").replace(".", " "))          # courses.monoprix.fr -> Monoprix
+        cid = retail.ID_OF.get(name) if name else None
+        if cid and not retail.in_market(cid, market.current()):
+            continue                                               # a chain from another country is never this market's own
         if name and name not in stores:
             stores.append(name)
     return {"per100_cents": round(price_c / q["amount"] * 100, 1), "pack_cents": price_c, "store": stores[0] if stores else None, "stores": stores,
@@ -400,6 +410,20 @@ def _budget_left() -> bool:
     return True
 
 
+def _bounded(wall_cap: Optional[float], fn, *args, **kwargs):
+    """Run fn with a hard wall-clock cap (`wall_cap`, seconds). A socket timeout only limits a single read; a server that trickles
+    bytes slowly (seen from the 'parallel' provider) can otherwise keep a call alive, and so the whole search, for minutes past its
+    deadline. The thread is abandoned rather than joined on a timeout, so this call itself never waits past `wall_cap`."""
+    if not wall_cap or wall_cap <= 0:
+        return fn(*args, **kwargs)
+    ex = ThreadPoolExecutor(max_workers=1)
+    fut = ex.submit(fn, *args, **kwargs)
+    try:
+        return fut.result(timeout=wall_cap)
+    finally:
+        ex.shutdown(wait=False)
+
+
 def _gemini_lookup(product: Dict[str, Any], transport: Transport, timeout: Optional[float] = None) -> Optional[Dict[str, Any]]:
     """One Google-grounded Gemini lookup: a price only when it cites at least one page, for a known size in the same unit. Failures set last_error and return None."""
     global last_error, MODEL
@@ -442,10 +466,15 @@ def _gemini_lookup(product: Dict[str, Any], transport: Transport, timeout: Optio
             sources = [f"https://www.google.com/search?q={barcode}"]
         # Accept only a plausible price for a known size, backed by at least one cited page, in the same unit family as the product
         if qty and 20 <= price_c <= 20000 and sources and (not q or qty[1] == q["unit"]):
-            from . import chains as ch, retail
-            st_name = ch.canon(str(got.get("store") or "").replace(".", " ")) or got.get("store")
+            from . import chains as ch, retail, market
+            st_name = ch.canon(str(got.get("store") or "").replace(".", " "))
+            st_cid = retail.ID_OF.get(st_name) if st_name else None
+            if st_cid and not retail.in_market(st_cid, market.current()):
+                st_name, st_cid = None, None       # a store from another country is never this market's own
+            elif not st_name:
+                st_name = got.get("store")         # an unrecognised name (no known chain, so no market check applies): kept as free text, no logo
             out = {"per100_cents": round(price_c / qty[0] * 100, 1), "pack_cents": price_c, "store": st_name, "stores": [st_name] if st_name else [],
-                   "chains": [retail.ID_OF[st_name]] if st_name and st_name in retail.ID_OF else [],
+                   "chains": [st_cid] if st_cid else [],
                    "source_urls": sources,
                    "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True, "size_found": {"amount": float(qty[0]), "unit": qty[1]}}
     return out
@@ -498,9 +527,8 @@ def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]
 
 
 def _extract_grocers(product: Dict[str, Any], results: list) -> Tuple[List[str], List[str]]:
-    """Extract all French supermarket chains and grocery stores where this product is present.
-    Returns (store_names, chain_ids)."""
-    from . import chains as ch, retail
+    """Grocery chains of the current market where this product is present. Returns (store_names, chain_ids)."""
+    from . import chains as ch, retail, market
     brand_w = _words(str(product.get("brand") or "").split(",")[0])
     name_w = _name_words(product, brand_w)
     code = str(product.get("barcode") or "")
@@ -517,21 +545,16 @@ def _extract_grocers(product: Dict[str, Any], results: list) -> Tuple[List[str],
         if not (has_name and has_brand):
             continue
 
+        # A recognised supermarket chain only: never invent one from an arbitrary site name (a price comparator, a blog, a video site
+        # mentioning the product is not evidence that a shop sells it). Stocking evidence must never be guessed (see retail.discover).
         host = urllib.parse.urlparse(url).netloc.replace("www.", "")
-        cname = ch.canon(host.replace(".", " "))
-        if not cname:
-            for store_candidate, rx in ch.CHAINS.items():
-                if re.search(rx, host, re.I) or re.search(rx, text[:150], re.I):
-                    cname = store_candidate
-                    break
-        if not cname:
-            clean_host = host.split(".")[0].replace("-", " ").title()
-            if len(clean_host) >= 4 and clean_host.lower() not in ("drive", "courses", "shop", "boutique", "magasin", "recherche", "produit"):
-                cname = clean_host
+        cname = ch.canon(host.replace(".", " ")) or next((n for n, rx in ch.CHAINS.items() if re.search(rx, host, re.I)), None)
 
         if cname and cname not in stores:
-            stores.append(cname)
             cid = retail.ID_OF.get(cname)
+            if cid and not retail.in_market(cid, market.current()):
+                continue                 # a chain from another country never counts here ("Target" showing up in a French search)
+            stores.append(cname)
             if cid and cid not in chains:
                 chains.append(cid)
 
@@ -578,7 +601,10 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 if left is not None and left < 4:
                     last_error = "deadline"
                     return None
-                out = _gemini_lookup(product, transport, timeout=left)
+                try:
+                    out = _bounded(min(left, 20) if left else 20, _gemini_lookup, product, transport, timeout=left)
+                except FuturesTimeoutError:
+                    out, last_error = None, "deadline"      # a reply that trickled in slowly past our own budget: not a real miss
                 if out:
                     out.pop("size_found", None)
                     out["provider"] = name
@@ -589,21 +615,27 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                     out["chains"] = list(dict.fromkeys((out.get("chains") or []) + disc_chains))
                     return out
                 if last_error:              # a Gemini failure must not stop a genuine "nothing found" from being cached for the other providers
-                    if "Timeout" not in last_error:
+                    if "Timeout" not in last_error and last_error != "deadline":
                         _gemini.update(down_until=time.time() + 600, error=last_error)
-                    last_error = "deadline" if deadline and time.time() > deadline else None
+                    last_error = "deadline" if (deadline and time.time() > deadline) or last_error == "deadline" else None
                 continue
             if time.time() < _down.get(name, 0):
                 continue                    # this provider just said "quota used up": skip it for a few minutes
             try:
-                found = _fetch_results(name, product, http, variant)
+                left = (deadline - time.time()) if deadline else None
+                cap = min(left, 12) if left else 12          # a hard wall-clock cap: a slow provider must never outrun the budget
+                found = _bounded(cap, _fetch_results, name, product, http, variant)
                 all_results.extend(found)
                 out = _price_from(product, found)
                 if not out:
-                    extra = _page_prices(product, found, deadline)       # right product page found, but its snippet shows no price: read the page
+                    page_left = (deadline - time.time()) if deadline else None
+                    extra = _bounded(min(page_left, 8) if page_left else 8, _page_prices, product, found, deadline)       # right product page found, but its snippet shows no price: read the page
                     if extra:
                         all_results.extend(extra)
                         out = _price_from(product, found + extra)
+            except FuturesTimeoutError:
+                last_error = "deadline"
+                continue
             except Exception as e:
                 _set_error(e)
                 if getattr(e, "code", None) == 429:

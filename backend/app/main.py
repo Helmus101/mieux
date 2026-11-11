@@ -619,6 +619,19 @@ class WebPricesReq(BaseModel):
     barcodes: List[str] = Field(..., min_length=1, max_length=8)
 
 
+def _market_chains(w: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Drop any chain from another market a web price may carry (a row cached before this check existed, or a provider that is not
+    market-aware). Applied wherever a web price leaves webprice.lookup, so an old cached row can never show a foreign chain either."""
+    if not w:
+        return w
+    code = market.current()
+    chains = [c for c in (w.get("chains") or []) if retail.in_market(c, code)]
+    if chains == (w.get("chains") or []):
+        return w
+    stores = [n for n in (w.get("stores") or []) if retail.ID_OF.get(n) is None or retail.ID_OF[n] in chains]
+    return {**w, "chains": chains, "stores": stores, "store": stores[0] if stores else None}
+
+
 def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None, force: bool = False) -> Optional[Dict[str, Any]]:
     """An approximate web price (and the supermarkets it was found at) for a product with no observed price. None otherwise.
 
@@ -642,6 +655,7 @@ def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None
             w = None
     if w is None:
         w = webprice.lookup(p, deadline=(time.time() + max_seconds) if max_seconds else None, force=force)
+    w = _market_chains(w)
     if w:
         _record_web_chains(s, barcode, w)
         if not w.get("stale") and w.get("per100_cents") is not None:
@@ -721,7 +735,7 @@ def _record_web_chains(s: Session, barcode: str, w: Dict[str, Any]) -> None:
     urls = w.get("source_urls") or []
     primary_url = urls[0] if urls else None
     for cid in chains:
-        if cid in retail.NAME_OF:
+        if cid in retail.NAME_OF and retail.in_market(cid, market.current()):   # never record a chain from another country as selling this product here
             r = s.query(db.ChainProductListing).filter_by(product_id=barcode, chain_id=cid).first()
             if not r:
                 s.add(db.ChainProductListing(
@@ -1672,6 +1686,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                         if f.done() and not f.exception():
                             found[i] = f.result()
                 for c, w in zip(todo, found):
+                    w = _market_chains(w)
                     if not w:
                         continue
                     if w.get("chains"):

@@ -713,3 +713,64 @@ def test_the_second_search_wording_uses_the_barcode():
     assert webprice._query(prod, 0) == "Saclà Pesto alla genovese 190 g prix €"
     assert webprice._query(prod, 1) == "8001060034785 Saclà prix"
     assert webprice._query({**prod, "barcode": "20386238"}, 1) == "Saclà Pesto alla genovese 190 g prix supermarché drive"   # a short code is too ambiguous to search by
+
+
+def test_a_chain_from_another_market_is_never_credited_with_selling_a_french_product(monkeypatch):
+    from app import webprice
+    monkeypatch.setenv("WEBPRICE_PROVIDERS", "serper")
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    res = [("https://www.carrefour.fr/p/barres-chocolat-orange-dukan", "Dukan Barres chocolat orange 150 g 3,50 €"),
+           ("https://www.target.com/p/dukan-barres-chocolat-orange-150g", "Dukan Barres chocolat orange 150 g $3.60")]
+    got = webprice._price_from(prod, res)
+    assert got is None or "target" not in [s.lower() for s in (got.get("stores") or [])]    # a single French source with no second agreeing French one: no price
+    stores, chains = webprice._extract_grocers(prod, res)
+    assert "target" not in [c.lower() for c in chains] and not any("target" in s.lower() for s in stores)
+
+
+def test_a_price_right_before_a_free_delivery_threshold_is_never_read_as_the_product_price():
+    from app import webprice
+    text = "Dukan Barre Orange Nappage Chocolat 6 Acheter ici ! Livraison GRATUITE 24H àpd 39€, Expre"
+    assert webprice._pack_price(text, 150 / 1000, (150, "g")) is None
+
+
+def test_a_barcode_match_still_skips_a_category_or_search_page():
+    from app import webprice
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    res = [("https://www.exemple.fr/categorie/barres?q=dukan", "Toutes les barres Dukan 3017620422888 à partir de 2,50 €"),
+           ("https://www.carrefour.fr/p/barres-chocolat-orange-dukan-3017620422888", "Dukan Barres chocolat orange 150 g 3,50 €"),
+           ("https://courses.monoprix.fr/p/dukan-barres-chocolat-orange-3017620422888", "Dukan Barres chocolat orange 150 g 3,55 €")]
+    got = webprice._price_from(prod, res)
+    assert got and 349 <= got["pack_cents"] <= 356    # the category page (barcode among many) never contributes; Carrefour + Monoprix agree
+
+
+def test_extract_grocers_never_invents_a_chain_from_an_unrelated_site():
+    from app import webprice
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    res = [("https://www.idealo.fr/compare/dukan-barres-chocolat-orange", "Dukan Barres chocolat orange 150 g comparatif de prix"),
+           ("https://www.youtube.com/watch?v=xyz", "Dukan Barres chocolat orange 150 g : notre avis")]
+    stores, chains = webprice._extract_grocers(prod, res)
+    assert stores == [] and chains == []    # a comparator and a video site are never shops
+
+
+def test_a_price_split_across_markdown_lines_or_escaped_is_read_whole():
+    from app import webprice
+    # a markdown-rendered page (the 'parallel' provider) often escapes the decimal point and puts the fraction on its own line
+    assert webprice._clean("Drive ou Livraison\n\n5\n\n,65\n\n€\n\n22\\.60 € / KG") == "Drive ou Livraison\n\n5,65\n\n€\n\n22.60 € / KG"
+    prod = {"barcode": "3017620422888", "name": "Café moulu", "brand": "Malongo", "quantity": {"amount": 250.0, "unit": "g"}}
+    res = [("https://www.carrefour.fr/p/cafe-moulu-malongo-3017620422888", "Café Moulu MALONGO la boite de 250 g\n\nDrive ou Livraison\n\n5\n\n,65\n\n€\n\n22\\.60 € / KG"),
+           ("https://www.monoprix.fr/p/cafe-moulu-malongo", "Malongo Café moulu pur arabica 250g\n\n5\\.61€\n\n22\\.44€ / Kg")]
+    got = webprice._price_from(prod, res)
+    assert got and 550 <= got["pack_cents"] <= 575          # ~5,6 €, not the bare "65" / "61" a naive read would pick up
+
+
+def test_a_provider_that_trickles_bytes_past_its_own_timeout_is_abandoned_at_the_wall_clock_cap(monkeypatch):
+    import time as _time
+    from app import webprice
+    monkeypatch.setenv("WEBPRICE_PROVIDERS", "serper")
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    def slow_http(method, url, headers, body=None):
+        _time.sleep(5)          # longer than the deadline given to lookup(); a socket-level timeout would not catch this
+        return {"organic": []}
+    t0 = _time.time()
+    out = webprice.lookup(prod, use_cache=False, http=slow_http, deadline=_time.time() + 1.5)
+    assert out is None and _time.time() - t0 < 3        # abandoned near the 1.5 s deadline, not after the full 5 s sleep

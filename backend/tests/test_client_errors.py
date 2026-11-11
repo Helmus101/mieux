@@ -26,3 +26,17 @@ def test_reports_are_validated():
     assert c.post("/v1/client-errors", json={"message": ""}).status_code == 422
     assert c.post("/v1/client-errors", json={"message": "x" * 601}).status_code == 422
     assert c.post("/v1/client-errors", json={"message": "x", "kind": "weird"}).status_code == 422
+
+
+def test_market_chains_strips_a_foreign_chain_and_its_free_text_name():
+    from app import main as m
+    w = {"chains": ["target", "carrefour"], "stores": ["Target", "Carrefour"], "store": "Target", "per100_cents": 300}
+    got = m._market_chains(w)        # market.current() defaults to FR in this test process
+    assert got["chains"] == ["carrefour"] and got["stores"] == ["Carrefour"] and got["store"] == "Carrefour"
+
+
+def test_market_chains_leaves_a_clean_result_untouched():
+    from app import main as m
+    w = {"chains": ["carrefour"], "stores": ["Carrefour"], "store": "Carrefour"}
+    assert m._market_chains(w) is w
+    assert m._market_chains(None) is None
