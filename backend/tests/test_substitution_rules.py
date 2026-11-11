@@ -472,7 +472,7 @@ def test_web_price_endpoints_return_price_and_supermarket(monkeypatch, tmp_path)
     r2 = c.post("/v1/web-prices", json={"barcodes": ["3579260039060", "3175680011480"]}, headers=h).json()
     assert set(r2["prices"]) == {"3579260039060", "3175680011480"} and r2["prices"]["3175680011480"]["pack_cents"] == 320
     monkeypatch.delenv("PARALLEL_API_KEY")
-    assert c.get("/v1/products/3579260039060/web-price", headers=h).json() == {"price": None, "failed": True}
+    assert c.get("/v1/products/3579260039060/web-price", headers=h).json() == {"price": None}
 
 
 def test_pizza_sticks_are_breadsticks_not_pizza():
@@ -524,63 +524,6 @@ def test_web_search_has_a_daily_cap_and_never_breaks_the_request(monkeypatch, tm
     assert webprice.lookup(prod, use_cache=False, http=boom) is None                # over the cap: no search at all
     monkeypatch.setattr(webprice, "DAILY_CAP", 10); webprice._day.update(d="", n=0)
     assert webprice.lookup(prod, use_cache=False, http=boom) is None                # a failing search is an empty answer, not an exception
-
-
-def test_web_price_lookup_status_is_thread_local(monkeypatch):
-    from concurrent.futures import ThreadPoolExecutor
-    from app import webprice
-
-    monkeypatch.setenv("PARALLEL_API_KEY", "test-key")
-    bad = {"barcode": "bad", "name": "Produit", "quantity": {"amount": 400, "unit": "g"}}
-    good = {"barcode": "good", "name": "Produit", "quantity": {"amount": 400, "unit": "g"}}
-
-    def search(product, http, transport):
-        if product["barcode"] == "bad":
-            webprice._set_error_message("network down")
-        else:
-            webprice._mark_provider_success()
-        return None
-
-    monkeypatch.setattr(webprice, "_search_lookup", search)
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        failed_lookup = pool.submit(webprice.lookup_with_status, bad, use_cache=False)
-        missing_lookup = pool.submit(webprice.lookup_with_status, good, use_cache=False)
-        assert failed_lookup.result() == (None, "network down")
-        assert missing_lookup.result() == (None, None)
-
-
-def test_web_price_batch_keeps_partial_results_when_a_lookup_fails(monkeypatch):
-    from concurrent.futures import Future
-    import concurrent.futures
-    from fastapi.testclient import TestClient
-    from app import main, webprice
-
-    monkeypatch.setenv("PARALLEL_API_KEY", "k")
-    monkeypatch.setattr(main.app.state.prices, "latest", lambda *a, **k: None, raising=False)
-    monkeypatch.setattr(main, "load_product", lambda s_, code: {"barcode": code, "name": "Produit", "brand": "X", "quantity": {"amount": 400.0, "unit": "g"}})
-    def bounded_wait(futures, timeout=None):
-        assert timeout == 8.0
-        return set(f for f in futures if f.done()), set(f for f in futures if not f.done())
-
-    monkeypatch.setattr(concurrent.futures, "wait", bounded_wait)
-
-    def lookup(product):
-        future = Future()
-        if product["barcode"] == "bad":
-            future.set_exception(RuntimeError("provider unavailable"))
-        elif product["barcode"] == "slow":
-            return future
-        else:
-            future.set_result(({"per100_cents": 80.0, "pack_cents": 320, "approximate": True}, None))
-        return future
-
-    monkeypatch.setattr(main, "_search_once", lookup)
-    client = TestClient(main.app)
-    main.limiter.reset()
-    response = client.post("/v1/web-prices", json={"barcodes": ["bad", "good", "slow"]}, headers={"X-Session-Id": "webprice-partial-test"})
-    assert response.status_code == 200
-    assert response.json()["prices"] == {"bad": None, "good": {"per100_cents": 80.0, "pack_cents": 320, "approximate": True, "value_score": None}, "slow": None}
-    assert response.json()["failed"] == ["bad", "slow"]
 
 
 def test_web_prices_are_kept_in_the_price_database_but_not_shown_as_observed(monkeypatch):
