@@ -1919,7 +1919,9 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             # (the value tab used to carry the ranking engine's own cohort score, which differed from the other tabs).
             vi_ = value_index.value_index(orig_type_, (r_["product"].get("score") or {}).get("total"), r_.get("price_per_100_cents"))
             if vi_:
-                r_["value_score"] = vi_["value_score"]
+                # The index is the shared number; on the value tab keep the freshness/derived discount the ranking applied.
+                prev = r_.get("value_score")
+                r_["value_score"] = min(prev, vi_["value_score"]) if (key_ == "value" and prev is not None) else vi_["value_score"]
             elif r_.get("value_score") is None:
                 r_["value_score"] = None
             own_ = _chains.own_brand_chain(r_["product"].get("brand")) or _chains.canon(str(r_["product"].get("brand") or "")) or _chains.canon(str(r_["product"].get("name") or ""))
@@ -1996,8 +1998,10 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     rk_ = res.get("rankings") or {}
     if isinstance(rk_.get("budget"), list) and orig_price is not None:
         rk_["budget"] = [x for x in rk_["budget"] if x.get("price_per_100_cents") is not None and x["price_per_100_cents"] < orig_price]
-    if isinstance(rk_.get("value"), list) and rk_.get("original_value_score") is not None:
-        rk_["value"] = [x for x in rk_["value"] if x.get("value_score") is None or x["value_score"] > rk_["original_value_score"]]
+    if isinstance(rk_.get("value"), list):
+        # Best value is the best quality-price balance in the category, even when the scanned product is already good.
+        # Keep every row with a real score and let the screen say whether it beats the scanned product.
+        rk_["value"] = [x for x in rk_["value"] if x.get("value_score") is not None]
     o_sc_ = (orig.get("score") or {}).get("total")
     if isinstance(rk_.get("quality"), list) and o_sc_ is not None:
         rk_["quality"] = [x for x in rk_["quality"] if ((x.get("product") or {}).get("score") or {}).get("total") is not None and x["product"]["score"]["total"] > o_sc_]

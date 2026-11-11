@@ -107,13 +107,23 @@ export default function Alternatives() {
     });
     return [...base, ...extra];                                      // + candidates priced by the web search
   };
-  const listOf = (k: string) => sourceRows(k).map(rowOf).filter((e: any) => {
+  const listOf = (k: string) => {
+    const seen = new Set<string>();
+    return sourceRows(k).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
     if (myChains.length && !e.product.chains?.some((c: string) => myChains.includes(c))) return false;   // the person picked their shops: a shop found later by the price search counts too
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never a product scoring the same or lower
-    { const ov = r?.rankings?.original_value_score; return e.price100 != null && e.vs != null && (ov == null || e.vs > ov); }   // value: only a product with a real value score, better than yours
-  });
+    return e.price100 != null && e.vs != null;   // value: every comparable product with a real price-quality score
+    }).filter((e: any) => {
+      // The same product under another barcode or pack size is one row: keep the best-ranked one.
+      const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean).map((w) => w.replace(/s$/, '')).join(' ');
+      const key = norm(String(e.product.brand ?? '')) + '|' + norm(String(e.product.name ?? ''));
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
   // The score alone decides the order: a known supermarket never lifts a lower score above a higher one.
   const ranked = (() => {
     const l = listOf(rk);
@@ -192,6 +202,7 @@ export default function Alternatives() {
       {!none && rk === 'match' && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('rank.matchSub')}</p>}
       {!none && rk === 'value' && <p className="mut sm" style={{ margin: '8px 0 0' }}><PqExplain label /></p>}
       {!none && r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b></span></p>}
+      {rk === 'value' && r?.rankings?.original_value_score != null && ranked.length > 0 && (ranked[0].vs ?? 0) <= r.rankings.original_value_score && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('alt.alreadyBestValue')}</p>}
       {busy && <>
         <div className="skel-seg" aria-hidden><Skeleton h={44} /></div>
         <div className="alist" aria-hidden>{[0, 1, 2, 3].map((n) => (
@@ -206,6 +217,7 @@ export default function Alternatives() {
         const m = nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : rk === 'closest' ? { title: t('rank.noClosest'), why: t('rank.closestSub') }
           : rk === 'match' ? { title: t('emptyAlt.qualityTitle'), why: os != null ? t('emptyAlt.qualityWhy', { s: os }) : t('emptyAlt.qualityWhyNoScore') }
+          : rk === 'value' ? { title: t('emptyAlt.valueNoneTitle'), why: t('emptyAlt.valueNoneWhy') }
           : r?.rankings?.no_baseline ? { title: t('emptyAlt.noPriceTitle'), why: t('emptyAlt.noPriceWhy') }
           : r?.rankings?.original_value_score != null ? { title: t('emptyAlt.betterValueTitle'), why: t('emptyAlt.betterValueWhy', { s: r.rankings.original_value_score }) }
           : { title: t('emptyAlt.valueTitle'), why: t('emptyAlt.valueWhy') };
@@ -237,6 +249,9 @@ export default function Alternatives() {
               {u == null && e.pack == null && !(w?.per100_cents > 0) && !(w?.pack_cents > 0) && (webP[e.product.barcode] === undefined ? <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span> : <span className="mut sm">{t('alt.noPrice')}</span>)}
               {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
               {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
+              {rk === 'value' && e.vs != null && r?.rankings?.original_value_score != null && (
+                <span className={'valuecmp ' + (e.vs > r.rankings.original_value_score ? 'up' : 'down')}>{e.vs > r.rankings.original_value_score ? t('alt.betterValue') : t('alt.worseValue')}</span>
+              )}
               <button className="flagbtn" aria-label={t('sub.notComparable')} title={t('sub.notComparable')} onClick={async (ev) => { ev.stopPropagation(); try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}>⚑</button>
             </div>
           </article>);

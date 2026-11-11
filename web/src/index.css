@@ -297,6 +297,9 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .peek-x:active{color:var(--ink)}
 .peek-open{align-self:flex-start; margin-top:4px; padding:8px 0; min-height:44px; border:0; background:none; color:var(--accent); font-weight:700; font-size:13px; cursor:pointer; text-decoration:underline; text-underline-offset:3px}
 .flagbtn{min-width:44px; min-height:44px; border:0; background:none; color:var(--mut); font-size:15px; cursor:pointer; padding:0}
+.valuecmp{font-size:12px; font-weight:600; margin-top:2px}
+.valuecmp.up{color:var(--accent)}
+.valuecmp.down{color:var(--mut)}
 
 /* ===== 11. Other screens and components ===== */
 @keyframes enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}

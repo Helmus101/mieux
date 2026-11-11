@@ -321,7 +321,7 @@ class OFFClient:
         return self.local.quick_available()
 
     def quick_candidates(self, tags: List[str], field: Optional[str] = None, low: bool = True, required: tuple = (),
-                         ingredients: bool = False, per_tag: int = 220, total: int = 260) -> List[str]:
+                         ingredients: bool = False, per_tag: int = 400, total: int = 600) -> List[str]:
         """Codes chosen across whole categories in SQL; empty when the compact index has not been built."""
         return self.local.quick_candidates(tags, field, low, required, ingredients, per_tag, total)
 
