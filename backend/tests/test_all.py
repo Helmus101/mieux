@@ -369,3 +369,19 @@ def test_category_budgets_and_receipt_status():
     assert b["status"]["spent_cents"] == 359                                  # but the unidentified line is still in the total
     assert c.get("/v1/budget/forecast", headers=Hc).status_code == 200 and c.get("/v1/savings", headers=Hc).status_code == 200
     assert c.get("/v1/prices?product=3", headers=Hc).status_code == 200
+
+
+def test_an_already_cached_web_price_shows_up_even_when_this_candidate_is_not_searched_again(monkeypatch):
+    """A price found earlier (through that product's own page, say) must appear for every alternatives request from then on,
+    not only when this candidate happens to be among the limited set the server starts a fresh search for this time."""
+    from app import webprice
+    monkeypatch.setattr(main, "_search_targets", lambda *a, **k: [])          # no candidate is chosen for a fresh search this time
+    monkeypatch.setattr(main, "_own_price", lambda *a, **k: None)
+    monkeypatch.setattr(main, "_community", lambda *a, **k: None)             # no observed/community price for anyone: isolates the web-cache fallback
+    cached = {"per100_cents": 45.0, "pack_cents": 180, "store": "Carrefour", "stores": ["Carrefour"], "chains": ["carrefour"],
+              "source_urls": ["https://x.fr"], "date": "2026-11-10", "source": "web_search", "approximate": True}
+    monkeypatch.setattr(webprice, "enabled", lambda: True)
+    monkeypatch.setattr(webprice, "cached_only", lambda p: cached if p.get("barcode") == "2" else None)
+    r = c.post("/v1/products/1/alternatives", headers=H, json={"category_mode": "any", "priorities": ["protein"], "excluded_allergens": ["peanuts"]}).json()
+    row = next(x for lst in r["rankings"].values() if isinstance(lst, list) for x in lst if x.get("product", {}).get("id") == "2")
+    assert row["price_per_100_cents"] == 45.0

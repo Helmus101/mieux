@@ -1704,6 +1704,28 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
             points[c["barcode"]].update({k: pt[k] for k in ("currency", "price_native", "fx", "stale", "pack_cents") if k in pt})
     if orig_price is not None:
         points[orig["barcode"]] = {k: points[orig["barcode"]][k] for k in ("source", "date", "where", "currency", "price_native", "fx", "stale", "pack_cents", "scope", "store", "distance_km") if k in points[orig["barcode"]]}
+    # A web price already found for ANY candidate (through this product's own page, an earlier visit, or a search started
+    # for a different alternatives request) is read from the cache here, no network call: it must never be missing just
+    # because this candidate was not among the limited set searched below. A fresh search still runs for the rest.
+    if webprice.enabled():
+        if orig_price is None:
+            w = _market_chains(webprice.cached_only(orig))
+            if w and w.get("per100_cents") is not None and not w.get("stale"):
+                orig_price = w["per100_cents"]
+                points[orig["barcode"]] = {"source": "web_search", "approximate": True, "date": w.get("date"), "where": ", ".join(w.get("stores") or []) or None, "pack_cents": w.get("pack_cents")}
+        for c in prods:
+            bc = c["barcode"]
+            if bc in prices or not c.get("quantity"):
+                continue
+            w = _market_chains(webprice.cached_only(c))
+            if not w:
+                continue
+            if w.get("chains"):
+                c["chains"] = list(dict.fromkeys((c.get("chains") or []) + w["chains"]))
+            if w.get("per100_cents") is None or w.get("stale"):
+                continue
+            prices[bc] = w["per100_cents"]
+            points[bc] = {"source": "web_search", "approximate": True, "date": w.get("date"), "where": ", ".join(w.get("stores") or []) or None, "pack_cents": w.get("pack_cents")}
     # Products with no observed price are searched on the web (stored for good in webprice_cache.db), the best-quality ones first: they are the ones the
     # quality tab shows, and a good bar without a price is the one a shopper wants priced. This no longer waits for "too few priced products": other
     # observed prices in the pool say nothing about the unpriced bar that scores 76. Found prices carry source='web_search' + approximate=True ("~" in the clients).
