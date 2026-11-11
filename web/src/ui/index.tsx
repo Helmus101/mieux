@@ -60,14 +60,15 @@ export function Segmented({ options, value, onChange }: { options: { key: string
 }
 export const Bar = ({ value }: { value: number }) => <div className="bar"><i style={{ width: Math.max(2, Math.min(100, value * 100)) + '%' }} /></div>;
 /** steps: messages shown one after the other (every 2 s) so a long wait visibly makes progress. */
-export function Loader({ label, onRetry, steps }: { label?: string; onRetry?: () => void; steps?: string[] }) {
+/** quiet: no spinner, only the step line (used under a skeleton that already shows the screen's shape). */
+export function Loader({ label, onRetry, steps, slowAfter = 8000, quiet }: { label?: string; onRetry?: () => void; steps?: string[]; slowAfter?: number; quiet?: boolean }) {
   const [slow, setSlow] = useState(false), [i, setI] = useState(0);
-  useEffect(() => { const id = setTimeout(() => setSlow(true), 8000); return () => clearTimeout(id); }, []);
+  useEffect(() => { const id = setTimeout(() => setSlow(true), slowAfter); return () => clearTimeout(id); }, []);
   useEffect(() => { if (!steps || steps.length < 2) return; const id = setInterval(() => setI((n) => Math.min(n + 1, steps.length - 1)), 2000); return () => clearInterval(id); }, [steps]);
   if (steps?.length) label = steps[Math.min(i, steps.length - 1)];
   return (
-    <div className="loader" role="status" aria-live="polite">
-      <div className="ring" /><p className="lbl">{(label ?? t('common.loading')).replace(/…$/, '')}<span className="dots3"><i /><i /><i /></span></p>
+    <div className={'loader' + (quiet ? ' quiet' : '')} role="status" aria-live="polite">
+      {!quiet && <div className="ring" />}<p className="lbl">{(label ?? t('common.loading')).replace(/…$/, '')}<span className="dots3"><i /><i /><i /></span></p>
       {slow && <div className="slow"><p className="mut sm">{t('common.slow')}</p><Button onPress={onRetry ?? (() => location.reload())}>{t('common.reload')}</Button></div>}
     </div>
   );

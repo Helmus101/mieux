@@ -38,9 +38,10 @@ def test_classification_says_why_and_how_sure():
 
 
 def test_unclassified_products_only_match_the_exact_same_leaf():
-    a, b = P("Mystère A", ["en:odd", "en:odd-leaf"]), P("Mystère B", ["en:odd", "en:odd-leaf"])
+    a, b = P("Mystère alpha", ["en:odd", "en:odd-leaf"]), P("Énigme beta", ["en:odd", "en:odd-leaf"])
     assert sub(a, b) is None       # a shared category leaf alone is not proof of substitutability
-    assert sub(a, P("Mystère C", ["en:odd", "en:other-leaf"])) is None
+    assert sub(a, P("Mystère gamma", ["en:odd", "en:other-leaf"])) is None
+    assert sub(a, P("Mystère gamma", ["en:odd", "en:odd-leaf"])) is not None   # same leaf and a shared name word
 
 
 def test_implausible_data_is_caught():
@@ -402,7 +403,7 @@ def test_gemini_is_asked_first_then_the_others(monkeypatch, tmp_path):
     monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp6.db"))
     assert webprice.providers() == ["gemini", "parallel"]
     monkeypatch.delenv("PARALLEL_API_KEY"); monkeypatch.setenv("BRAVE_API_KEY", "x")
-    assert webprice.providers() == ["gemini"]                                   # Brave is never used
+    assert webprice.providers() == ["gemini", "brave"]                          # free-tier search APIs come after Gemini
     monkeypatch.setenv("PARALLEL_API_KEY", "p")
     prod = {"barcode": "3017620422003", "name": "Nutella", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
     reply = {"candidates": [{"content": {"parts": [{"text": '{"price_eur": 3.2, "pack_size": "400 g", "store": "Auchan", "found": true}'}]},
@@ -673,7 +674,7 @@ def test_size_is_guessed_from_the_exact_product_page_only(monkeypatch):
     assert webprice._guess_size(prod, one) == {"amount": 125.0, "unit": "g"}
     two = par(("https://courses.monoprix.fr/products/monoprix-cerneaux-de-noix-125g/MPX_1", "125g 4,29 €"),
               ("https://www.auchan.fr/p/monoprix-cerneaux-de-noix-250g", "250g 8,10 €"))
-    assert webprice._guess_size(prod, two) is None                                                       # the pages disagree: no guess
+    assert webprice._guess_size(prod, two) == {"amount": 125.0, "unit": "g"}                                 # the pages disagree: the most common size, the smaller one on a tie
 
 
 def test_a_price_from_another_flavour_or_a_listing_page_is_never_used():
@@ -684,3 +685,149 @@ def test_a_price_from_another_flavour_or_a_listing_page_is_never_used():
     assert webprice._price_from(prod, [wrong_flavour, listing]) is None
     right = ("https://www.auchan.fr/dukan-barres-au-chocolat-et-orange/p-1", "Dukan Barres au chocolat et orange 150 g 5,65 €")
     assert webprice._price_from(prod, [right])["pack_cents"] == 565          # a supermarket's own page for exactly this variant
+
+
+def test_parallel_is_off_unless_asked_for(monkeypatch):
+    from app import webprice
+    monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setenv("SERPER_API_KEY", "s"); monkeypatch.delenv("WEBPRICE_PARALLEL")
+    assert webprice.providers() == ["serper"]
+    monkeypatch.setenv("WEBPRICE_PARALLEL", "1")
+    assert webprice.providers() == ["serper", "parallel"]
+
+
+
+def test_an_interactive_lookup_stops_at_its_deadline_and_does_not_cache_the_timeout_as_a_miss(monkeypatch, tmp_path):
+    import time
+    from app import webprice
+    for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY", "SERPER_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp7.db"))
+    prod = {"barcode": "3017620422999", "name": "Barre", "brand": "Marque", "quantity": {"amount": 180.0, "unit": "g"}}
+    calls = []
+    assert webprice.lookup(prod, transport=lambda u, b: calls.append(u), deadline=time.time() - 1) is None
+    assert calls == []                                                   # the deadline had passed: no provider was called
+    fresh, data = webprice._cached("3017620422999")
+    assert not fresh and data is None                                    # a timeout is not remembered as "no price exists"
+
+
+def test_quick_search_providers_run_before_slow_gemini_and_a_hit_skips_it(monkeypatch, tmp_path):
+    from app import webprice
+    for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("SERPER_API_KEY", "s")
+    monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp8.db"))
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    order = []
+    def http(method, url, headers, body):
+        order.append("serper")
+        return {"organic": [{"link": "https://www.carrefour.fr/p/barres-chocolat-orange-dukan", "snippet": "Dukan Barres chocolat orange 150 g 3,50 €"},
+                            {"link": "https://courses.monoprix.fr/p/barres-chocolat-orange-dukan", "snippet": "Dukan Barres chocolat orange 150 g 3,60 €"}]}
+    def gemini(url, body, **kw):
+        order.append("gemini"); return {}
+    out = webprice.lookup(prod, transport=gemini, http=http)
+    assert out and out["provider"] == "serper" and order == ["serper"]     # found by the quick search: the slow Gemini call never ran
+
+
+def test_a_product_with_no_size_still_gets_a_price_from_gemini_with_the_size_it_cites(monkeypatch, tmp_path):
+    from app import webprice
+    for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY", "SERPER_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp9.db"))
+    prod = {"barcode": "3234750022280", "name": "Caviar d'aubergine au citron et épices", "brand": "Albert Ménès", "quantity": None}
+    reply = {"candidates": [{"content": {"parts": [{"text": '{"price_eur": 2.9, "pack_size": "90 g", "store": "Carrefour", "found": true}'}]},
+                             "groundingMetadata": {"groundingChunks": [{"web": {"uri": "https://www.carrefour.fr/p/caviar"}}]}}]}
+    out = webprice.lookup(prod, transport=lambda u, b, **kw: reply)
+    assert out and out["pack_cents"] == 290 and out["size_assumed"] == {"amount": 90.0, "unit": "g"}
+
+
+def test_plural_names_match_and_a_single_product_page_gives_a_price_but_another_pack_size_does_not():
+    from app import webprice
+    prod = {"barcode": "3234750022280", "name": "Caviar d'aubergine au citron et épices", "brand": "Albert Ménès", "quantity": {"amount": 100.0, "unit": "g"}}
+    res = [("https://www.houra.fr/albert-menes-caviar-d-aubergines-au-citron-et-epices-bio-100g/1/", "Albert Ménès Caviar d'Aubergines au Citron et Epices Bio, 100g, , prix : 46,30€/Kg"),
+           ("https://www.supermarchesmatch.fr/fr/p/1/albert-menes-caviar-d-aubergines-citron-et-epices", "Albert Ménès : Caviar d'aubergines citron et épices 100 g ; 180 g env. 16,99€/kg")]
+    got = webprice._price_from(prod, res)
+    assert got and got["pack_cents"] == 463          # 'aubergine' = 'aubergines'; the 180 g price is another pack, so it is ignored
+
+
+def test_a_page_naming_the_barcode_is_this_exact_pack_and_a_snippet_price_broken_into_pieces_is_repaired():
+    from app import webprice
+    prod = {"barcode": "3234750022280", "name": "Caviar d'aubergine au citron et épices", "brand": "Albert Ménès", "quantity": {"amount": 100.0, "unit": "g"}}
+    res = [("https://www.carrefour.fr/p/caviar-d-aubergines-citron-et-epices-bio-albert-menes-3234750022280", "Caviar D'Aubergines Citron Et Épices Bio ALBERT MENES Drive ou Livraison. 4. ,59. €. 45.90 € / KG."),
+           ("https://fr.openfoodfacts.org/produit/3234750022280/caviar", "Caviar d'aubergine au citron et épices – Albert Ménès 3234750022280 4,00 €")]
+    got = webprice._price_from(prod, res)
+    assert got and got["pack_cents"] == 459 and got["stores"] == ["Carrefour"]      # the barcode in the address: no size needed in the snippet; the database page never counts
+    assert webprice._clean("4. ,59. €") == "4,59 €" and webprice._clean("4,59 €") == "4,59 €"
+
+
+def test_a_multipack_written_with_a_star_is_the_whole_pack():
+    from app.value import parse_quantity
+    assert parse_quantity("4*125 g") == (500.0, "g") and parse_quantity("6 x 25 g") == (150.0, "g")
+
+
+def test_the_second_search_wording_uses_the_barcode():
+    from app import webprice
+    prod = {"barcode": "8001060034785", "name": "Pesto alla genovese", "brand": "Saclà", "quantity": {"amount": 190.0, "unit": "g"}}
+    assert webprice._query(prod, 0) == "Saclà Pesto alla genovese 190 g prix €"
+    assert webprice._query(prod, 1) == "8001060034785 Saclà prix"
+    assert webprice._query({**prod, "barcode": "20386238"}, 1) == "Saclà Pesto alla genovese 190 g prix supermarché drive"   # a short code is too ambiguous to search by
+
+
+def test_a_chain_from_another_market_is_never_credited_with_selling_a_french_product(monkeypatch):
+    from app import webprice
+    monkeypatch.setenv("WEBPRICE_PROVIDERS", "serper")
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    res = [("https://www.carrefour.fr/p/barres-chocolat-orange-dukan", "Dukan Barres chocolat orange 150 g 3,50 €"),
+           ("https://www.target.com/p/dukan-barres-chocolat-orange-150g", "Dukan Barres chocolat orange 150 g $3.60")]
+    got = webprice._price_from(prod, res)
+    assert got is None or "target" not in [s.lower() for s in (got.get("stores") or [])]    # a single French source with no second agreeing French one: no price
+    stores, chains = webprice._extract_grocers(prod, res)
+    assert "target" not in [c.lower() for c in chains] and not any("target" in s.lower() for s in stores)
+
+
+def test_a_price_right_before_a_free_delivery_threshold_is_never_read_as_the_product_price():
+    from app import webprice
+    text = "Dukan Barre Orange Nappage Chocolat 6 Acheter ici ! Livraison GRATUITE 24H àpd 39€, Expre"
+    assert webprice._pack_price(text, 150 / 1000, (150, "g")) is None
+
+
+def test_a_barcode_match_still_skips_a_category_or_search_page():
+    from app import webprice
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    res = [("https://www.exemple.fr/categorie/barres?q=dukan", "Toutes les barres Dukan 3017620422888 à partir de 2,50 €"),
+           ("https://www.carrefour.fr/p/barres-chocolat-orange-dukan-3017620422888", "Dukan Barres chocolat orange 150 g 3,50 €"),
+           ("https://courses.monoprix.fr/p/dukan-barres-chocolat-orange-3017620422888", "Dukan Barres chocolat orange 150 g 3,55 €")]
+    got = webprice._price_from(prod, res)
+    assert got and 349 <= got["pack_cents"] <= 356    # the category page (barcode among many) never contributes; Carrefour + Monoprix agree
+
+
+def test_extract_grocers_never_invents_a_chain_from_an_unrelated_site():
+    from app import webprice
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    res = [("https://www.idealo.fr/compare/dukan-barres-chocolat-orange", "Dukan Barres chocolat orange 150 g comparatif de prix"),
+           ("https://www.youtube.com/watch?v=xyz", "Dukan Barres chocolat orange 150 g : notre avis")]
+    stores, chains = webprice._extract_grocers(prod, res)
+    assert stores == [] and chains == []    # a comparator and a video site are never shops
+
+
+def test_a_price_split_across_markdown_lines_or_escaped_is_read_whole():
+    from app import webprice
+    # a markdown-rendered page (the 'parallel' provider) often escapes the decimal point and puts the fraction on its own line
+    assert webprice._clean("Drive ou Livraison\n\n5\n\n,65\n\n€\n\n22\\.60 € / KG") == "Drive ou Livraison\n\n5,65\n\n€\n\n22.60 € / KG"
+    prod = {"barcode": "3017620422888", "name": "Café moulu", "brand": "Malongo", "quantity": {"amount": 250.0, "unit": "g"}}
+    res = [("https://www.carrefour.fr/p/cafe-moulu-malongo-3017620422888", "Café Moulu MALONGO la boite de 250 g\n\nDrive ou Livraison\n\n5\n\n,65\n\n€\n\n22\\.60 € / KG"),
+           ("https://www.monoprix.fr/p/cafe-moulu-malongo", "Malongo Café moulu pur arabica 250g\n\n5\\.61€\n\n22\\.44€ / Kg")]
+    got = webprice._price_from(prod, res)
+    assert got and 550 <= got["pack_cents"] <= 575          # ~5,6 €, not the bare "65" / "61" a naive read would pick up
+
+
+def test_a_provider_that_trickles_bytes_past_its_own_timeout_is_abandoned_at_the_wall_clock_cap(monkeypatch):
+    import time as _time
+    from app import webprice
+    monkeypatch.setenv("WEBPRICE_PROVIDERS", "serper")
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+    def slow_http(method, url, headers, body=None):
+        _time.sleep(5)          # longer than the deadline given to lookup(); a socket-level timeout would not catch this
+        return {"organic": []}
+    t0 = _time.time()
+    out = webprice.lookup(prod, use_cache=False, http=slow_http, deadline=_time.time() + 1.5)
+    assert out is None and _time.time() - t0 < 3        # abandoned near the 1.5 s deadline, not after the full 5 s sleep

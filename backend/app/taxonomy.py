@@ -22,12 +22,13 @@ R = [
     ("crackers", "cereals_bakery", "snack_cracker", "cracker", "cracker", "snacking", r"crackers|crispbreads|pretzels|rice-cakes|galettes", r"cracker|bretzel|pretzel|galette de riz|knäcke"),
     ("breakfast_cereal", "cereals_bakery", "cereal", "cereal", "cereal", "breakfast", r"breakfast-cereals|cereal-flakes|cornflakes|extruded-cereals", r"corn ?flakes|c[ée]r[ée]ales|pétales|petales|chocapic|special k"),
     ("muesli", "cereals_bakery", "cereal", "muesli", "cereal", "breakfast", r"mueslis|granola|oat-flakes|porridge|cereal-clusters", r"muesli|granola|porridge|flocons d.avoine|cruesly|crunchy|clusters?"),
-    ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles"),
+    ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles|vermicel|gnocchi"),
     ("rice", "cereals_bakery", "grain", "grain", "grain", "meal", r"\brices?\b(?!-based)|basmati", r"^riz\b|\briz (basmati|long|complet|thai)"),
     # ---- pantry and condiments (granular types so staples like pesto or soy sauce get their own alternatives)
     ("cocoa_powder", "sweet", "cocoa", "powder", "powder", "drink_mix", r"cocoa-powders|instant-chocolate-powders|chocolate-powders", r"cacao (en poudre|maigre|sucr|soluble)|poudre de cacao|chocolat en poudre|banania|nesquik|benco|ovomaltine"),
     ("soy_sauce", "condiments", "sauce", "soy_sauce", "liquid", "seasoning", r"soy-sauces|soya-sauces", r"sauce soja|soy sauce|shoyu|tamari"),
     ("pesto", "condiments", "sauce", "pesto", "jar", "meal", r"(?:^|\s)en:(?:green-|red-)?pestos?(?:\s|$)", r"pesto"),
+    ("dip", "condiments", "dip", "dip", "tub", "snacking", r"(?:^|\s)en:(?:dips|hummus|houmous|taramas?|tzatziki|guacamoles?)(?:\s|$)|fr:(?:houmous|taramas?|tzatziki)", r"houm[ou]{1,2}s|hummus|tarama|tzatziki|guacamole|ktipiti|baba ghan|mouhamara|dip\b"),
     ("tapenade", "condiments", "sauce", "tapenade", "jar", "meal", r"(?:^|\s)en:(?:tapenades?|antipasti|olive-spreads?)(?:\s|$)", r"tapenade|caviar d.aubergine|cr[èe]me d.olive|cr[èe]me de poivron|antipasti|sp[ée]cialit[ée] (?:[àa]|aux?) (?:la |l.)?(?:tomate|olive|poivron|aubergine)"),
     ("sugar", "pantry", "sugar", "sugar", "granulated", "baking", r"(?:^|\s)en:(?:white-|cane-|brown-|powdered-|icing-)?sugars?(?:\s|$)", r"^sucre|\bsucre (blanc|roux|semoule|en poudre|glace|de canne)|\bsugar\b"),
     ("syrup", "pantry", "sweetener", "syrup", "liquid", "sweetener", r"agave-syrups|maple-syrups", r"sirop d.agave|sirop d.[ée]rable|agave syrup|maple syrup"),
@@ -48,13 +49,15 @@ R = [
     ("flavoured_yogurt", "dairy", "yogurt", "spoonable", "spoon", "dessert", r"flavoured-yogurts|fruit-yogurts|sweetened-yogurts|yogurts-with-fruits", r"(vanille|fruit|fraise|abricot|p[êe]che|coco|caramel|citron|cerise|banane|vanilla|aux fruits)(?![^a-z]*barre|[^a-z]*bar|[^a-z]*barres)"),
     ("plain_yogurt", "dairy", "yogurt", "spoonable", "spoon", "breakfast", r"yogurts|yoghurts|plain-yogurts|greek-yogurts|skyr|fermented-milks", r"yaourt|yogourt|yogurt|skyr|grec|nature"),
     ("fromage_blanc", "dairy", "fresh_cheese", "spoonable", "spoon", "breakfast", r"fromages-blancs|fresh-cheeses|petits-suisses|faisselle|quark", r"fromage blanc|petit suisse|faisselle|quark"),
+    ("cream_cheese", "dairy", "cheese", "spreadable_cheese", "tub", "spread_cook", r"cheese-spreads|cream-cheeses|spreadable-cheeses|fromages-[àa]-tartiner|labneh", r"labn[eé]h?\b|carr[ée] frais|philadelphia|cream cheese|fromage (frais )?[àa] tartiner|[àa] tartiner.*(ail|fines herbes|nature)|formaggio fresco|spalmabile|kiri\b|st[- ]?m[ée]range|boursin|apericube|vache qui rit|tartare"),
     ("cheese", "dairy", "cheese", "cheese", "cheese", "meal", r"cheeses|fromages", r"fromage|camembert|emmental|comt[ée]|brie|gouda|mozzarella|chèvre|chevre"),
+    ("eggs", "dairy", "eggs", "eggs", "eggs", "cooking", r"eggs|oeufs", r"\bu?[oœ]e?ufs?\b(?!.*(chocolat|p[âa]ques|plat|mayonnaise|brouill))"),
     ("milk", "dairy", "milk", "liquid", "drink", "breakfast", r"^en:milks$|whole-milks|semi-skimmed-milks|skimmed-milks|uht-milks|cow-milks", r"^lait\b|lait (demi|entier|écrém|ecrem|uht)"),
     ("cream", "dairy", "cream", "liquid", "cooking", "cooking", r"creams|cr[èe]mes-fra[iî]ches", r"cr[èe]me (fra[iî]che|liquide|enti[èe]re)|cr[èe]me fra"),
-    ("butter", "dairy", "fat", "fat", "spread", "spread_cook", r"(?:^|\s)en:(?:butters|margarines)\b", r"^beurre\b|margarine"),
+    ("butter", "dairy", "fat", "fat", "spread", "spread_cook", r"(?:^|\s)en:(?:butters|margarines|vegetable-fats)\b|matieres-grasses-vegetales", r"^beurre\b|margarine|\bflora\b|\bbecel\b|\bproactiv\b|v[ée]g[ée]tal doux|plant.?based butter"),
     # ---- drinks
     ("plant_drink", "drinks", "plant_drink", "liquid", "drink", "breakfast", r"plant-based-milks|milk-substitutes|rice-based-drinks|oat-based-drinks|soy-milks|almond-milks|hazelnut-based-drinks|plant-milks", r"boisson (v[ée]g[ée]tale|au riz|[àa] l.avoine|soja|amande|coco|avoine)|lait (d.|de )?(amande|avoine|soja|coco|riz)|bevande"),
-    ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"jus (de|d.)|nectar|pur jus"),
+    ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"jus (de|d.)|nectar|pur jus|tropico|capri.?sun|oasis\b|boisson aux fruits"),
     ("soda", "drinks", "soda", "liquid", "drink", "any", r"sodas|carbonated-drinks|colas|sweetened-beverages|lemonades|energy-drinks", r"cola|limonade|soda|boisson gazeuse|orangina|fanta|sprite|energy"),
     ("water", "drinks", "water", "liquid", "drink", "any", r"waters|spring-waters|mineral-waters", r"^eau\b|eau (min[ée]rale|de source|gazeuse|plate)"),
     ("capsule_nespresso", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"nespresso", r"nespresso"),
@@ -69,8 +72,8 @@ R = [
     ("tea", "drinks", "tea", "tea", "tea", "hot_drink", r"(?:^|\s)en:(?:teas|black-teas|green-teas|iced-teas)\b|tea-bags", r"\bth[eé]\b|\btea\b"),
     # ---- spreads and sweet
     ("chocolate_spread", "sweet", "spread", "spread", "spread", "breakfast", r"chocolate-spreads|hazelnut-spreads|cocoa-and-hazelnuts-spreads|chocolate-and-hazelnut-spreads|pates-a-tartiner-au-chocolat|pates-a-tartiner-aux-noisettes|pates-a-tartiner-au-cacao|produits-a-tartiner-sucres|pates-a-tartiner(?!-vegetal)", r"p[âa]te [àa] tartiner|nutella|pasta cao|chocolate spread"),
-    ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|compotes|fruit-and-vegetable-preserves|fruit-preserves|fruit-purees|apple-compotes", r"confiture|marmelade|compote|gel[ée]e"),
-    ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre de cacahu|peanut butter|pur[ée]e d.(amande|noisette)"),
+    ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|compotes|fruit-and-vegetable-preserves|fruit-preserves|fruit-purees|apple-compotes", r"confiture|confettura|marmelade|compote|gel[ée]e"),
+    ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre (de |d.)(cacahu|amande|noisette|cajou)|peanut butter|(almond|cashew|hazelnut) butter|pur[ée]e (d.|de )?(amandes?|noisettes?|cajou|noix de cajou|cacahu[eè]tes?|pistaches?|noix de p[ée]can|s[ée]same)|cr[èe]me d.amandes?\b(?!.*(dessert|glac))|tahin"),
     ("honey", "sweet", "spread", "spread", "spread", "breakfast", r"honeys", r"\bmiel\b"),
     # ---- chocolate confectionery (tablets, bars for confectionery use - NOT snack bars)
     # IMPORTANT: Chocolate tablets are confectionery, not snack bars, even if they contain nuts or fruit
@@ -82,7 +85,7 @@ R = [
     ("chewing_gum", "sweet", "candy", "gum", "gum", "snacking", r"chewing-gums?|chewing gums?", r"chewing[- ]?gum|\btrident\b|hollywood|freedent"),
     ("licorice", "sweet", "candy", "licorice", "licorice", "snacking", r"liquorice|licorice|r[ée]glisse", r"r[ée]glisse|liquorice|licorice|amarelli"),
     ("gummies", "sweet", "candy", "gummy", "gummy", "snacking", r"gummies|jelly-candies|fruit-gums|marshmallows", r"gomm(e|es) (fruit|ours)|gummi|gummies|ourson|haribo|jelly|marshmallow|guimauve|fruits? gums?"),
-    ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops", r"bonbon|gomme|r[ée]glisse|sucette"),
+    ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops", r"bonbon|gomme|r[ée]glisse|sucette|mentos|dragées?|chewy|caramels? mous"),
     # ---- savoury snacks, meals
     ("chips", "snacks", "chips", "chips", "chips", "snacking", r"chips|crisps|potato-crisps|tortilla-chips|puffs", r"chips|tortilla|crisps"),
     ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|dried-fruits|seeds", r"amande|cajou|cacahu|pistache|noix|noisette|fruits secs|graines"),
@@ -133,8 +136,8 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "gummies": {"gummies": 1, "licorice": 2},
     "chips": {"chips": 1, "crackers": 3},   # nuts are not a substitute for crackers or chips (they were level 2 via the rank distance)
     "nuts": {"nuts": 1},
-    "cheese": {"cheese": 1},
-    "cream": {"cream": 1}, "butter": {"butter": 1}, "oil": {"oil": 1},
+    "cheese": {"cheese": 1}, "cream_cheese": {"cream_cheese": 1},   # spreadable fresh cheeses (labneh, cream cheese, Carré Frais) only substitute each other; never mozzarella or emmental
+    "eggs": {"eggs": 1}, "cream": {"cream": 1}, "butter": {"butter": 1}, "oil": {"oil": 1},
     "snack_bars": {
         "fruit_nut_bar": 1,
         "cereal_bar": 2,
@@ -159,7 +162,7 @@ _BROAD_LEAFS = {
 
 
 # A preserve/jam tag on a product whose name names no fruit at all is a tagging error, not a jam.
-_JAM_WORDS = re.compile(r"confiture|marmelade|compote|gel[ée]e|pur[ée]e|fruit|fraise|framboise|myrtille|m[ûu]re|cassis|abricot|pruneau|pomme|poire|figue|orange|citron|agrume|melon|p[êe]che|cerise|banane|coing|rhubarbe", re.I)
+_JAM_WORDS = re.compile(r"confiture|confettura|marmellata|jam\b|conserve|preserve|marmelade|compote|gel[ée]e|pur[ée]e|fruit|fraise|framboise|myrtille|m[ûu]re|cassis|abricot|pruneau|pomme|poire|figue|orange|citron|agrume|melon|p[êe]che|cerise|banane|coing|rhubarbe", re.I)
 
 
 def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
@@ -172,25 +175,33 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Machine systems and forms named in the product name win over a generic tag: a Nespresso capsule does not fit a Dolce Gusto machine, sliced brioche is not a pastry.
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
+        if tid == "cheese" and _CHEESE_DISH.search(name):
+            continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast") and nr.search(name):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
 
     # Priority 1: High-specificity product type tags + name agreement (highest confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
+        if tid == "cheese" and _CHEESE_DISH.search(name):
+            continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if tr.search(tags) and nr.search(name):
             if tid == "jam" and not _JAM_WORDS.search(name):
                 continue   # 'preserves' tag on barley and lentils: a tagging error, never a jam
             return {"type": tid, **_META[tid], "source": "tags_and_name", "confidence": "high", "reason": f"specific category tag '{tr.pattern[:30]}' and name '{nr.pattern[:30]}' agree"}
 
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
-    specific = ("tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
-                "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar")
+    specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
+                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
+        if tid == "cheese" and _CHEESE_DISH.search(name):
+            continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if nr.search(name) and tid in specific:
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"name matches specific form: {nr.pattern[:40]}"}
 
     # Priority 3: Broad category tags with supporting name evidence (medium confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
+        if tid == "cheese" and _CHEESE_DISH.search(name):
+            continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if tr.search(tags):
             if tid == "jam" and not _JAM_WORDS.search(name):
                 continue   # 'preserves' tag on barley and lentils: a tagging error, never a jam
@@ -200,6 +211,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Priority 4: Name-only matches for general types (low confidence - may be ambiguous)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
+        if tid == "cheese" and _CHEESE_DISH.search(name):
+            continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if nr.search(name) or nr.search(generic_name):
             # Reject generic "bar" matches without context
             if tid in ("fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar"):
@@ -214,6 +227,9 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 _CLASS_CACHE: Dict[Any, Dict[str, Any]] = {}
+
+
+_CHEESE_DISH = re.compile(r"cr[êe]pes?|galettes?|pizza|quiche|sandwich|burger|gratin|lasagn|ravioli|tortellini|croque|tarte|feuillet[ée]|cordon bleu|nuggets|salade|tartiflette|raclette (kit|pour)|jambon|poulet|saumon|pâtes|pates|panini|wrap|bagel|soupe|velout[ée]|b[ée]chamel|sauce", re.I)
 
 
 def classify(p: Dict[str, Any]) -> Dict[str, Any]:
@@ -240,6 +256,33 @@ def level_between(a: str, b: str) -> Optional[int]:
     return best
 
 
+_GENERIC_LEAF = {"en:groceries", "en:foods", "en:beverages", "en:plant-based-foods", "en:plant-based-foods-and-beverages", "fr:autres-produits", "en:dietary-supplements", "en:meals", "en:snacks", "en:sauces", "en:condiments", "en:frozen-foods", "en:meats"}
+_UNTYPED_STOP = set("avec sans pour dans plus bio extra fins fine fines france francais française français origine nature naturel naturelle format maxi mini grand grande petit petite recette original originale traditionnel traditionnelle selection sélection qualité saveur gout goût premium light".split())
+
+
+def _untyped_tokens(p: Dict[str, Any]) -> set:
+    brand = {w for w in re.split(r"[^a-zà-ÿ0-9]+", (p.get("brand") or "").lower()) if w}
+    return {w for w in re.split(r"[^a-zà-ÿ]+", (p.get("name") or "").lower()) if len(w) > 3 and w not in _UNTYPED_STOP and w not in brand}
+
+
+def _untyped_substitute(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Two products the taxonomy has no type for (a rarely classified kind of food): they substitute each other when they share a specific category and a name word,
+    or most of their distinctive name words. Never a type-less product for a typed one."""
+    ot, ct = _untyped_tokens(orig), _untyped_tokens(cand)
+    shared = ot & ct
+    if not shared:
+        return None
+    ol = [c for c in (orig.get("categories") or []) if c not in _GENERIC_LEAF]
+    cl = [c for c in (cand.get("categories") or []) if c not in _GENERIC_LEAF]
+    same_leaf = bool(ol and cl and ol[-1] == cl[-1])
+    close = len(shared) / max(1, min(len(ot), len(ct))) >= 0.67
+    if ol and cl and not (same_leaf or set(ol[-2:]) & set(cl[-2:])):
+        return None             # both are categorised and the categories differ
+    if not (same_leaf or close):
+        return None
+    return {"level": 2, "label": LABELS[2], "type": None, "same_type": False, "variant_diff": None, "confidence": "medium", "orig_confidence": "medium", "cand_confidence": "medium", "form_match": True, "use_match": True}
+
+
 def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """HARD COMPATIBILITY GATE: Level 1-4 and why, or None when the candidate is not a substitute.
     Independent of nutrition and price. Enforces strict rules:
@@ -248,6 +291,8 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
     - Level 3/4 products can enter closest tab but not price/quality/value rankings
     """
     co, cc = classify(orig), classify(cand)  # always computed fresh: a rule change must reach products that are already cached
+    if not co["type"] and not cc["type"]:
+        return _untyped_substitute(orig, cand)
 
     # HARD GATE: Reject low-confidence classifications
     if co["confidence"] in ("none", "low") or cc["confidence"] in ("none", "low"):
@@ -310,6 +355,8 @@ _VARIANTS = {
              ("cashew", r"cajou|cashew"), ("pistachio", r"pistache|pistachio"), ("pecan", r"p[ée]can|pecan"), ("coconut", r"noix de coco|coconut"),
              ("dried_fruit", r"fruits? secs?|raisin|abricot|datte|figue|cranberr|pruneau|dried[- ]fruit"), ("seeds", r"graines|seeds|tournesol|courge|s[ée]same|lin\b|chia"),
              ("mixed", r"m[ée]lange|mix|cocktail|assorti")],
+    "dip": [("hummus", r"houm[ou]{1,2}s|hummus"), ("tarama", r"tarama"), ("tzatziki", r"tzatziki"), ("guacamole", r"guacamole"), ("pepper", r"ktipiti|poivron|mouhamara"), ("aubergine", r"aubergine|baba")],   # a houmous leads to houmous, a tarama to tarama
+    "peanut_butter": [("almond", r"amande|almond"), ("hazelnut", r"noisette|hazelnut"), ("peanut", r"cacahu|peanut|arachide"), ("cashew", r"cajou|cashew"), ("sesame", r"s[ée]same|tahin|tahini"), ("pistachio", r"pistache|pistachio"), ("pecan", r"p[ée]can|pecan")],   # an almond purée is not a peanut butter
     "milk": [("skimmed", r"[ée]cr[ée]m|skimmed"), ("whole", r"entier|whole")],
 }
 
@@ -336,7 +383,7 @@ def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
-_HARD_VARIANT_TYPES = {"nuts"}
+_HARD_VARIANT_TYPES = {"nuts", "peanut_butter", "dip"}
 
 
 # Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.
@@ -345,10 +392,14 @@ TYPE_TERMS: Dict[str, List[str]] = {
     "speculoos": ["speculoos", "spéculoos", "speculaas", "biscoff"],
     "herbal_lozenge": ["pastilles gorge", "ricola", "valda", "bonbons plantes menthol"],
     "chocolate_spread": ["pâte à tartiner"],
+    "peanut_butter": ["purée d'amande", "purée de noisette", "purée de cacahuète", "purée de cajou", "purée de sésame", "beurre de cacahuète", "tahin"],
+    "eggs": ["oeufs", "œufs"],
+    "dip": ["houmous", "tarama", "tzatziki", "guacamole", "ktipiti"],
     "tapenade": ["tapenade", "spécialité à la tomate", "caviar d'aubergine"],
     "fish_canned": ["thon", "sardines", "maquereau", "saumon conserve"],
     "butter": ["beurre"], "baguette": ["baguette", "pain de campagne"], "sandwich_bread": ["pain de mie"],
     "plain_yogurt": ["yaourt nature", "yaourt grec", "skyr"], "milk": ["lait demi-écrémé", "lait entier", "lait écrémé", "lait uht"],
+    "cream_cheese": ["labneh", "carré frais", "fromage à tartiner", "cream cheese", "philadelphia", "boursin"],
     "cheese": ["emmental", "gruyère", "comté", "camembert", "mozzarella", "fromage râpé"],
     "ham": ["jambon", "lardons"], "soup": ["soupe", "velouté"], "pizza": ["pizza"], "chips": ["chips"], "tea": ["thé", "infusion"],
     "nuts": [],

@@ -1,1 +1,29 @@
-{"name":"Mieux","short_name":"Mieux","description":"Scannez un produit, trouvez mieux ou moins cher.","lang":"fr","start_url":"/app","scope":"/","display":"standalone","orientation":"portrait","background_color":"#FFFFFF","theme_color":"#1F4D3A","icons":[{"src":"/icon-180.png","sizes":"180x180","type":"image/png"},{"src":"/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"},{"src":"/favicon.svg","sizes":"any","type":"image/svg+xml"}]}
+{
+  "id": "/app",
+  "name": "Mieux",
+  "short_name": "Mieux",
+  "description": "Scannez un produit, trouvez mieux ou moins cher.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#1F4D3A",
+  "categories": ["food", "health", "shopping", "lifestyle"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Scanner un produit", "short_name": "Scanner", "url": "/app/scan", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Produits enregistrés", "short_name": "Enregistrés", "url": "/app/list", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Comparer", "short_name": "Comparer", "url": "/app/compare", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

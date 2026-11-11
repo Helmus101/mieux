@@ -87,6 +87,7 @@ def test_levels_describe_closeness_and_never_cross_clusters():
 
 
 def test_unclassified_products_only_match_their_own_leaf_category():
-    a, b = P("Truc rare", ["en:foo", "en:bar"]), P("Autre truc", ["en:foo", "en:bar"])
+    a, b = P("Truc rare", ["en:foo", "en:bar"]), P("Machin autre", ["en:foo", "en:bar"])
     assert substitution(a, b) is None          # a shared category leaf alone is not proof of substitutability
     assert substitution(a, P("Truc différent", ["en:foo", "en:baz"])) is None
+    assert substitution(a, P("Truc rare bio", ["en:foo", "en:bar"]))["level"] == 2   # same leaf and a shared name word: comparable

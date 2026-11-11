@@ -9,6 +9,7 @@ import { searchAddress, type Home } from '../place';
 import { isInstalled, openInstall } from '../install';
 import { accountEnabled, signOut, useAccount } from '../account';
 import AuthForm from '../AuthForm';
+import { APP_VERSION } from '../report';
 
 export default function Profile() {
   const p = useProfile();
@@ -62,7 +63,7 @@ export default function Profile() {
           <Cell onPress={erase}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
         </Group>
       </Section>
-      <p className="about-credit">{t('brand.credit')}</p>
+      <p className="about-credit">{t('brand.credit')}<br />Mieux {APP_VERSION}</p>
     </Screen>
   );
 }

@@ -15,7 +15,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import delete
 from sqlalchemy import func
@@ -450,6 +450,25 @@ def health():
     return {"ok": True}
 
 
+# ---- client errors: the web app reports uncaught errors so a broken release shows up in the server logs, without a third-party tracker
+class ClientErrorIn(BaseModel):
+    message: str = Field(min_length=1, max_length=600)
+    stack: Optional[str] = Field(default=None, max_length=4000)
+    url: Optional[str] = Field(default=None, max_length=400)
+    version: Optional[str] = Field(default=None, max_length=60)
+    kind: str = Field(default="error", pattern="^(error|promise|chunk|boundary)$")
+
+
+@app.post("/v1/client-errors", status_code=204)
+@limiter.limit("10/minute")
+def client_error(request: Request, body: ClientErrorIn):
+    """Logged, never stored: one line per report with the app version, so logs can be grepped for `client_error`."""
+    ua = request.headers.get("user-agent", "")[:200]
+    stack = (body.stack or "").replace("\n", " | ")[:1200]
+    logger.warning(f"client_error kind={body.kind} version={body.version or '-'} url={body.url or '-'} ua={ua!r} msg={body.message!r} stack={stack!r}")
+    return Response(status_code=204)
+
+
 # ---- usage: how many people actually use Mieux (anonymous, cookie-free)
 class VisitIn(BaseModel):
     surface: str = Field(pattern="^(landing|app)$")
@@ -601,8 +620,25 @@ class WebPricesReq(BaseModel):
     barcodes: List[str] = Field(..., min_length=1, max_length=8)
 
 
-def _web_price_for(s: Session, barcode: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
-    """Return an approximate price and a retryable error separately from a genuine no-match."""
+def _market_chains(w: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Drop any chain from another market a web price may carry (a row cached before this check existed, or a provider that is not
+    market-aware). Applied wherever a web price leaves webprice.lookup, so an old cached row can never show a foreign chain either."""
+    if not w:
+        return w
+    code = market.current()
+    chains = [c for c in (w.get("chains") or []) if retail.in_market(c, code)]
+    if chains == (w.get("chains") or []):
+        return w
+    stores = [n for n in (w.get("stores") or []) if retail.ID_OF.get(n) is None or retail.ID_OF[n] in chains]
+    return {**w, "chains": chains, "stores": stores, "store": stores[0] if stores else None}
+
+
+def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None, force: bool = False) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """Return an approximate price and a retryable error separately from a genuine no-match.
+
+    force=True: bypass a cached miss so a background search that timed out during the alternatives call doesn't
+    block an explicit user-facing lookup for 24 hours. Cached hits (a real price found earlier) are always served.
+    """
     from . import webprice
     if not webprice.enabled():
         return None, "no price provider configured"
@@ -610,13 +646,30 @@ def _web_price_for(s: Session, barcode: str) -> Tuple[Optional[Dict[str, Any]], 
     q = p.get("quantity")
     if q and app.state.prices.latest(barcode, (q["amount"], q["unit"])):
         return None, None
-    try:
-        w, error = webprice.lookup_with_status(p)
-    except Exception:
-        logger.exception("web price lookup failed for %s", barcode)
-        return None, "price lookup failed"
-    if w and not w.get("stale"):
-        _record_web_price(s, p, w)
+    error = None
+    # If a search for this barcode was started by the alternatives pass, wait on it first to avoid duplicate work
+    f = _INFLIGHT.get(barcode)
+    w = None
+    if f is not None:
+        try:
+            result = f.result(timeout=max_seconds or 25.0)
+            if isinstance(result, tuple) and len(result) == 2:
+                w, error = result
+            else:
+                w = result
+        except Exception:
+            w = None
+    if w is None:
+        try:
+            w, error = webprice.lookup_with_status(p, deadline=(time.time() + max_seconds) if max_seconds else None, force=force)
+        except Exception:
+            logger.exception("web price lookup failed for %s", barcode)
+            return None, "price lookup failed"
+    w = _market_chains(w)
+    if w:
+        _record_web_chains(s, barcode, w)
+        if not w.get("stale") and w.get("per100_cents") is not None:
+            _record_web_price(s, p, w)
         s.commit()
     if w and w.get("per100_cents") is not None:
         vi_ = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), w["per100_cents"])
@@ -625,10 +678,14 @@ def _web_price_for(s: Session, barcode: str) -> Tuple[Optional[Dict[str, Any]], 
 
 
 @app.get("/v1/products/{barcode}/web-price")
-@limiter.limit("20/minute")
+@limiter.limit("60/minute")
 def product_web_price(request: Request, barcode: str, uid: str = Depends(user), s: Session = Depends(get_db)):
-    """One search for a product with a price-or-null result and a retryable failure flag."""
-    price, error = _web_price_for(s, barcode)
+    """One search for a product with no price: returns {price: {pack_cents, per100_cents, stores, chains, source_urls, approximate}} or {price: null}.
+
+    Always retries past cached misses (force=True): the background search during the alternatives call may have timed
+    out and left a fresh miss, but the dedicated 25-second slot here is enough for the same product.
+    """
+    price, error = _web_price_for(s, barcode, max_seconds=25, force=True)
     return {"price": price, "failed": bool(error and not price)}
 
 
@@ -704,6 +761,34 @@ def _record_price(s: Session, product_id: str, user_id: Optional[str], source: s
                           currency=(native or {}).get("currency", market.currency()), price_native=(native or {}).get("price_native"), fx=(native or {}).get("fx"), stale=bool((native or {}).get("stale"))))
 
 
+def _record_web_chains(s: Session, barcode: str, w: Dict[str, Any]) -> None:
+    """Record any grocers/chains discovered by web search in chain_product_listings so they persist in the database."""
+    chains = w.get("chains") or []
+    urls = w.get("source_urls") or []
+    primary_url = urls[0] if urls else None
+    for cid in chains:
+        if cid in retail.NAME_OF and retail.in_market(cid, market.current()):   # never record a chain from another country as selling this product here
+            r = s.query(db.ChainProductListing).filter_by(product_id=barcode, chain_id=cid).first()
+            if not r:
+                s.add(db.ChainProductListing(
+                    product_id=barcode,
+                    chain_id=cid,
+                    match_type="name_brand_size",
+                    match_confidence=0.85,
+                    listing_status="listed",
+                    source="web_search",
+                    source_url=primary_url,
+                    price_per100_cents=w.get("per100_cents"),
+                ))
+            elif not r.price_per100_cents and w.get("per100_cents"):
+                r.price_per100_cents = w.get("per100_cents")
+                r.last_checked = db.now()
+    try:
+        s.commit()
+    except Exception:
+        s.rollback()
+
+
 def _record_web_price(s: Session, product: Dict[str, Any], w: Dict[str, Any]) -> None:
     """Keep a price found by the web search in the price database (one row per product and day, source 'web_search', confidence 'approximate').
     These rows build up a history but never feed the price shown as observed (see _price_history)."""
@@ -739,21 +824,13 @@ def _price_context(s: Session, uid: str, p: Dict[str, Any], lang: str = "fr", ap
     q = (p["quantity"]["amount"], p["quantity"]["unit"]) if p.get("quantity") else None
     comm = app.state.prices.latest(p["barcode"], q)
     base = (value.per100(own["unit_price_cents"], q) if (own and q) else None) or (comm["per100_cents"] if comm else None)
-    if base is None and approximate:
-        e0 = estimate.estimate_per100(p, [])
-        base = e0[0] if (e0 and q) else None
-    est = None
-    if approximate and not own and not comm:
-        e = estimate.estimate_per100(p, [])
-        if e:
-            est = {"per100_cents": e[0], "basis": e[1], "chains": estimate.chain_prices(e[0], q[0] if q else None)}
+    est = None  # a price is observed or found on the web; it is never guessed from a category average
     real_base = (value.per100(own["unit_price_cents"], q) if (own and q) else None) or (comm["per100_cents"] if comm else None)    # observed prices only, never an estimate
     pq_score = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), real_base)
     if pq_score is None:
-        # No observed price: still give a price-quality score, from the stored web price if there is one (no network call here), else the category estimate; always marked approximate.
+        # No observed price: a price-quality score only from the stored web price if there is one (no network call here), always marked approximate. Never from a category average.
         w_ = webprice.cached_only(p) if webprice.enabled() else None
-        e_ = estimate.estimate_per100(p, []) if q else None
-        basis = ("web_search", w_["per100_cents"], w_.get("pack_cents")) if (w_ and w_.get("per100_cents")) else (("estimate", e_[0], None) if e_ else None)
+        basis = ("web_search", w_["per100_cents"], w_.get("pack_cents")) if (w_ and w_.get("per100_cents")) else None
         if basis:
             vi_ = value_index.value_index(taxonomy.classify(p).get("type"), (p.get("score") or {}).get("total"), basis[1])
             if vi_:
@@ -1165,12 +1242,7 @@ def store_prices(request: Request, barcode: str, body: Loc, uid: str = Depends(u
         stores.append({"store": own["retailer"] or "?", "name": own["retailer"], "city": None, "per100_cents": round(value.per100(own["unit_price_cents"], (q["amount"], q["unit"])), 1),
                        "pack_cents": own["unit_price_cents"], "date": own["date"], "distance_km": None, "source": "your_receipt"})
         stores.sort(key=lambda x: x["per100_cents"])
-    est = None
-    if not stores:
-        e = estimate.estimate_per100(p, [])
-        if e:
-            est = {"basis": e[1], "per100_cents": e[0], "chains": estimate.chain_prices(e[0], q["amount"] if q else None)}
-    return {"stores": stores, "estimated": est, "pack_size": q, "radius_km": body.radius_km,
+    return {"stores": stores, "estimated": None, "pack_size": q, "radius_km": body.radius_km,
             "note": tr(lang, "stores_note")}
 
 
@@ -1382,6 +1454,23 @@ def _search_any(orig: Dict[str, Any]) -> List[Dict[str, Any]]:
         return []
 
 
+def _untyped_search(orig: Dict[str, Any], prio, allergens) -> List[Dict[str, Any]]:
+    """For a product the taxonomy cannot type: candidates found by its most distinctive name words (all of them, then each of the two longest)."""
+    if taxonomy.classify(orig).get("type"):
+        return []
+    words = sorted(taxonomy._untyped_tokens(orig), key=len, reverse=True)[:3]
+    out: Dict[str, Dict[str, Any]] = {}
+    for q in ([" ".join(words)] if len(words) > 1 else []) + words[:2]:
+        try:
+            for r in app.state.off.search_name(q):
+                if r.get("product_name") and _raw_candidate(r, prio or [], allergens or [], orig):
+                    p = normalize(r)
+                    out.setdefault(p["barcode"], p)
+        except (OFFError, AttributeError):
+            continue
+    return list(out.values())
+
+
 def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[List[str]] = None,
            allergens: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     """Candidate pool for the deep search, read from the whole local copy of Open Food Facts when it is there.
@@ -1400,6 +1489,8 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             if r.get("product_name") and _raw_candidate(r, priorities or [], allergens or [], orig):
                 p = normalize(r)
                 found.setdefault(p["barcode"], p)
+        for p in _untyped_search(orig, priorities, allergens):
+            found.setdefault(p["barcode"], p)
         return list(found.values())
     tags = list(reversed(base))  # most specific first
     if mode != "similar":
@@ -1454,6 +1545,8 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
         if r.get("product_name") and _raw_candidate(r, prio, alg, orig):
             p = normalize(r)
             pool.setdefault(p["barcode"], p)
+    for p in _untyped_search(orig, prio, alg):
+        pool.setdefault(p["barcode"], p)
     # Online searches only when there is no local copy: it covers the whole dataset, so a thin pool there means the
     # product really has few neighbours, and going online would just wait out the search rate limit (7 s per level).
     if len(pool) < 40 and not local:
@@ -1529,7 +1622,7 @@ def _with_confidence(pt):
     return {**pt, "confidence": value.price_confidence(pt)} if pt else None
 
 
-_WARM = ThreadPoolExecutor(max_workers=8)
+_WARM = ThreadPoolExecutor(max_workers=16)
 _SEARCH_DEADLINE: contextvars.ContextVar = contextvars.ContextVar("search_deadline", default=0.0)   # one waiting budget per alternatives request, shared by its price passes
 _INFLIGHT: Dict[str, Any] = {}
 _INFLIGHT_LOCK = threading.RLock()
@@ -1544,18 +1637,48 @@ def _search_once(c: Dict[str, Any]):
             f = _WARM.submit(webprice.lookup_with_status, c)
             _INFLIGHT[bc] = f
 
-            def clear(done, barcode=bc):
+            def done_cb(done, barcode=bc, prod=c):
                 with _INFLIGHT_LOCK:
                     if _INFLIGHT.get(barcode) is done:
                         _INFLIGHT.pop(barcode, None)
+                if done.done() and not done.exception():
+                    result = done.result()
+                    w_ = result[0] if isinstance(result, tuple) and len(result) == 2 else result
+                    if w_:
+                        try:
+                            with app.state.sessions() as s2:
+                                _record_web_chains(s2, barcode, w_)
+                                if not w_.get("stale") and w_.get("per100_cents") is not None:
+                                    _record_web_price(s2, prod, w_)
+                                s2.commit()
+                        except Exception:
+                            pass
 
-            f.add_done_callback(clear)
+            f.add_done_callback(done_cb)
         return f
+
+
+def _search_targets(orig: Dict[str, Any], orig_unpriced: bool, prods: List[Dict[str, Any]], prices: Dict[str, float], top_quality: int = 20, total: int = 30) -> List[Dict[str, Any]]:
+    """Whom to search the web for, in order: the scanned product if it has no price, then the 20 best-scoring unpriced close substitutes (the quality tab shows 10 after removing duplicates), then the ones most likely to be cheap or good value (house brands, widely sold, popular). Same unit only; close substitutes only."""
+    oq = orig.get("quantity")
+    cand = [c for c in prods if c["barcode"] not in prices and c["barcode"] != orig["barcode"]
+            and (not oq or not c.get("quantity") or c["quantity"]["unit"] == oq["unit"]) and ((c.get("substitution") or {}).get("level") in (1, 2, None))]
+
+    def _likely_value(c):
+        pop = c.get("popularity") or {}
+        return ((c.get("score") or {}).get("total") or 0) + (12 if _chains.own_brand_chain(c.get("brand")) else 0) + 4 * min(3, pop.get("chains") or len(c.get("chains") or [])) + min(10.0, 3 * math.log10((pop.get("scans") or 0) + 1))
+    best = sorted([c for c in cand if (c.get("dataQuality") or {}).get("nutritionComplete") and (c.get("score") or {}).get("total") is not None],
+                  key=lambda c: -(c["score"]["total"]))[:top_quality]
+    seen = {c["barcode"] for c in best}
+    rest = sorted([c for c in cand if c["barcode"] not in seen], key=_likely_value, reverse=True)
+    n_priced = len([b for b in prices if b != orig["barcode"]])
+    cap = total + (30 if n_priced < 3 else 0)
+    return ([orig] if orig_unpriced else []) + (best + rest)[:cap]
 
 
 def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str, Any]], loc: Optional[Loc] = None, approximate: bool = False, only: Optional[List[str]] = None):
     """Price per 100 g/ml for the original and a list of products: your own recent receipt/entry first, else a real community observation.
-    DB access stays on this thread (sessions are not thread-safe); only the network calls fan out. Estimates only when approximate=True."""
+    DB access stays on this thread (sessions are not thread-safe); only the network calls fan out. Prices are observed or found on the web, never guessed from a category average."""
     oq = orig.get("quantity")
     points: Dict[str, Any] = {}
     shops: Dict[str, List[Dict[str, Any]]] = {}
@@ -1583,22 +1706,13 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
             points[c["barcode"]].update({k: pt[k] for k in ("currency", "price_native", "fx", "stale", "pack_cents") if k in pt})
     if orig_price is not None:
         points[orig["barcode"]] = {k: points[orig["barcode"]][k] for k in ("source", "date", "where", "currency", "price_native", "fx", "stale", "pack_cents", "scope", "store", "distance_km") if k in points[orig["barcode"]]}
-    # Too few observed prices for this kind of product (or none for the scanned one): search the web (Parallel, cached for good in webprice_cache.db) so the
-    # price lists are never empty. Found prices carry source='web_search' + approximate=True; the clients show them with a "~".
-    if webprice.enabled() and (len([b for b in prices if b != orig["barcode"]]) < 10 or (oq and orig_price is None)):
+    # Products with no observed price are searched on the web (stored for good in webprice_cache.db), the best-quality ones first: they are the ones the
+    # quality tab shows, and a good bar without a price is the one a shopper wants priced. This no longer waits for "too few priced products": other
+    # observed prices in the pool say nothing about the unpriced bar that scores 76. Found prices carry source='web_search' + approximate=True ("~" in the clients).
+    if webprice.enabled():
         try:
-            todo = []
-            if oq and orig_price is None:
-                todo.append(orig)
-            cand = [c for c in prods if c.get("quantity") and c["barcode"] not in prices and c["barcode"] != orig["barcode"]
-                    and (not oq or c["quantity"]["unit"] == oq["unit"]) and ((c.get("substitution") or {}).get("level") in (1, 2, None))]
-
-            def _likely_value(c):     # search first the candidates most likely to be cheap or good value: strong nutrition score, house brands, widely sold and popular products
-                pop = c.get("popularity") or {}
-                return ((c.get("score") or {}).get("total") or 0) + (12 if _chains.own_brand_chain(c.get("brand")) else 0) + 4 * min(3, pop.get("chains") or len(c.get("chains") or [])) + min(10.0, 3 * math.log10((pop.get("scans") or 0) + 1))
-            n_priced_ = len([b for b in prices if b != orig["barcode"]])
-            scarce = n_priced_ < 3                  # almost nothing priced for this kind of product: search more candidates and wait a little longer
-            todo += sorted(cand, key=_likely_value, reverse=True)[:(30 if scarce else 16)]
+            todo = _search_targets(orig, orig_price is None, prods, prices)
+            scarce = len([b for b in prices if b != orig['barcode']]) < 3        # almost nothing priced for this kind of product: wait a little longer
             if todo:
                 # Stored prices are instant. Missing ones are searched in parallel, but the request waits at most ~7 s in total (the scanned product first);
                 # a search still running keeps going in the background and is stored for next time.
@@ -1606,13 +1720,19 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                 found = [webprice.cached_only(c) for c in todo]
                 futs = {i: _search_once(c) for i, (c, w) in enumerate(zip(todo, found)) if w is None}
                 if futs:
-                    _wait(list(futs.values()), timeout=max(0.3, min(8.0 if scarce else 5.0, (_SEARCH_DEADLINE.get() or (time.time() + 5)) + (3 if scarce else 0) - time.time())))
+                    _wait(list(futs.values()), timeout=max(0.3, min(14.0 if scarce else 10.0, (_SEARCH_DEADLINE.get() or (time.time() + 10)) + (3 if scarce else 0) - time.time())))
                     for i, f in futs.items():
                         if f.done() and not f.exception():
                             result = f.result()
                             found[i] = result[0] if isinstance(result, tuple) and len(result) == 2 else result
                 for c, w in zip(todo, found):
-                    if not w or w.get("per100_cents") is None:
+                    w = _market_chains(w)
+                    if not w:
+                        continue
+                    if w.get("chains"):
+                        _record_web_chains(s, c["barcode"], w)
+                        c["chains"] = list(dict.fromkeys((c.get("chains") or []) + w["chains"]))
+                    if w.get("per100_cents") is None:
                         continue
                     if c["barcode"] == orig["barcode"]:
                         orig_price = w["per100_cents"]
@@ -1624,20 +1744,6 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
                         _record_web_price(s, c, w)
         except Exception:                      # the web search is an extra: whatever goes wrong, the alternatives still come back
             logger.exception("web price fallback failed")
-    if approximate:
-        # Estimates only where nothing was observed, always tagged source='estimate' (never a verified price).
-        observed = [v for k, v in prices.items() if k != orig["barcode"]]
-        for c in [orig] + list(prods):
-            q = c.get("quantity")
-            if not q or (c["barcode"] in prices) or (c["barcode"] == orig["barcode"] and orig_price is not None) or (oq and q["unit"] != oq["unit"]):
-                continue
-            est = estimate.estimate_per100(c, observed)
-            if est:
-                if c["barcode"] == orig["barcode"]:
-                    orig_price = est[0]
-                else:
-                    prices[c["barcode"]] = est[0]
-                points[c["barcode"]] = {"source": "estimate", "date": None, "where": est[1]}
     # Keep community observations in the product price database so history accumulates (one row per product/date).
     for c in [orig] + list(prods):
         pt, q = points.get(c["barcode"]), c.get("quantity")
@@ -1654,7 +1760,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
 @app.post("/v1/products/{barcode}/alternatives")
 @limiter.limit("20/minute")
 def alternatives(request: Request, background: BackgroundTasks, barcode: str, body: AltReq, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
-    _SEARCH_DEADLINE.set(time.time() + 5)
+    _SEARCH_DEADLINE.set(time.time() + 10)
     bad = [p for p in body.priorities if p not in engine.PRIORITIES]
     if bad:
         raise HTTPException(422, f"Unknown priorities: {bad}")
@@ -1763,7 +1869,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         return {"state": "unknown"}, None
     for a_ in res.get("alternatives", []):
         a_["availability"], a_["store_price"] = _availability(a_["product"])
-    orig_type_ = taxonomy.classify(res.get("original") or {}).get("type") if res.get("original") else None
+    orig_type_ = taxonomy.classify(orig).get("type")      # the scanned product itself (res["original"] is only filled in later)
     for key_ in ("budget", "value", "quality", "closest"):
         seen_, kept_ = set(), []
         for r_ in res["rankings"].get(key_, []):
@@ -1788,8 +1894,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         if key_ == "value":
             kept_ = [r_ for _, r_ in sorted(enumerate(kept_), key=lambda ir: (-(ir[1].get("value_score") if ir[1].get("value_score") is not None else -1), ir[0]))]   # ordered by the number shown
         res["rankings"][key_] = kept_
-    _o = res.get("original") or {}
-    _vo = value_index.value_index(orig_type_, (_o.get("score") or {}).get("total"), orig_price) if (orig_type_ and orig_price is not None) else None
+    _o = orig
+    _vo = value_index.value_index(orig_type_, (_o.get("score") or {}).get("total"), orig_price) if orig_price is not None else None      # same call as every row (pooled reference when the type is unknown)
     if _vo:
         res["rankings"]["original_value_score"] = _vo["value_score"]      # the scanned product's score from the same index
     if "diagnostics" in res:
@@ -1919,8 +2025,7 @@ def comparisons(request: Request, body: CmpReq, uid: str = Depends(user), s: Ses
         elif hist and hist[0]["per100_cents"] is not None:
             prices[p["id"]] = {"per100_cents": hist[0]["per100_cents"], "pack_cents": hist[0]["pack_cents"], "source": hist[0]["source"], "date": hist[0]["date"]}
         else:
-            e = estimate.estimate_per100(p, []) if body.approximate else None
-            prices[p["id"]] = {"per100_cents": e[0], "pack_cents": round(e[0] * q["amount"] / 100) if q else None, "source": "estimate", "date": None} if e else None
+            prices[p["id"]] = None
     return {"products": [{"id": p["id"], "name": p["name"], "nutriScore": p["nutriScore"], "brand": p.get("brand"), "imageUrl": p.get("imageUrl"), "score": (p.get("score") or {}).get("total"), "price": prices[p["id"]]} for p in P], **engine.compare(P)}
 
 

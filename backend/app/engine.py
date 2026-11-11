@@ -217,7 +217,8 @@ def _tradeoffs(o, c, sim, lang="fr", price_unknown=False) -> List[str]:
     vd = (c.get("substitution") or {}).get("variant_diff")
     if vd:
         T.append(tr(lang, "tr_variant", a=tr(lang, "var_" + vd[0]), b=tr(lang, "var_" + vd[1])))
-    T.append(tr(lang, "tr_diff_type") if sim < 0.8 else tr(lang, "tr_diff_flavour"))
+    if sim < 0.8 and ((c.get("substitution") or {}).get("level") or 1) > 2:
+        T.append(tr(lang, "tr_diff_type"))
     return T
 
 
@@ -497,6 +498,15 @@ QUALITY_FLOOR = 5
 QUALITY_IMPROVEMENT = 5
 
 
+def _older_than(date: Optional[str], days: int) -> bool:
+    """True when an ISO date is more than `days` days old (an unknown date counts as old)."""
+    from datetime import date as _d
+    try:
+        return (_d.today() - _d.fromisoformat(str(date)[:10])).days > days
+    except (TypeError, ValueError):
+        return True
+
+
 def _verified_price(price100: Optional[float], point: Optional[Dict[str, Any]], supplied: bool, max_age_days: int) -> bool:
     """Only an observed, dated price for this exact barcode may win Cheapest or Best value.
     Inferred pack-size prices (copied from a sibling pack) and estimates never qualify: they are indicative, not verified.
@@ -669,6 +679,7 @@ def rank_cheapest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict
             "why": why,
             "conf_rank": conf_rank,
             "price_source": pt if pt else None,
+            "price_stale": _older_than(pt.get("date"), 90),
             "quality_score": c_sc,
         })
     
@@ -958,7 +969,7 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
     # Step 3: Build rankings
     # Closest: all levels 1-4, no price influence
     closest_items = rank_closest(orig, strict_pool, prices, points, lang)   # keeps levels 1-2 only
-    cheapest = rank_cheapest(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang)
+    cheapest = rank_cheapest(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang, max_age_days=365)   # an observed price up to a year old counts; older than 90 days it is flagged price_stale
     quality_items = rank_quality(orig, high_confidence, prices, points, lang)
     best_val = rank_best_value(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang)
     budget_items, value_items = cheapest["items"], best_val["items"]

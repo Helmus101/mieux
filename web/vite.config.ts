@@ -1,8 +1,17 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
 
 const here = (p: string) => path.resolve(__dirname, p);
+
+/** "1.0.0+31e0d0e": shown in the profile and sent with error reports, so a report can be matched to a build. */
+function appVersion(): string {
+  const v = JSON.parse(readFileSync(here('package.json'), 'utf8')).version as string;
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || (() => { try { return execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString(); } catch { return ''; } })();
+  return sha ? `${v}+${sha.trim().slice(0, 7)}` : v;
+}
 
 /**
  * SEO: canonical, og:url and sitemap.xml must be absolute, and the domain is only known at build time.
@@ -57,6 +66,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, here('.'), 'VITE_');
   return {
     plugins: [react(), seo(env.VITE_SITE_URL || '')],
+    define: { __APP_VERSION__: JSON.stringify(appVersion()) },
     resolve: {
       alias: {
         '@shared': here('../shared'),

@@ -33,7 +33,7 @@ def parse_quantity(text: Optional[str], numeric: Any = None, unit: Optional[str]
     if not text:
         return None
     t = text.lower().replace(",", ".")
-    m = re.search(r"(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|g|mg|ml|cl|dl|l)\b", t)
+    m = re.search(r"(\d+)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(kg|g|mg|ml|cl|dl|l)\b", t)     # "6 x 125 g", "4*125 g"
     if m:
         n, a, u = int(m.group(1)), float(m.group(2)), m.group(3)
         return n * a * _UNITS[u][1], _UNITS[u][0]

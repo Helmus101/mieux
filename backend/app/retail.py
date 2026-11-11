@@ -20,6 +20,7 @@ SEED = [  # id, name, website, has_catalogue, catalogue_access
     ("franprix", "Franprix", "https://www.franprix.fr", True, "none"), ("casino", "Casino", "https://www.casino.fr", True, "none"), ("superu", "Super U", "https://www.coursesu.com", True, "blocked"),
     ("picard", "Picard", "https://www.picard.fr", True, "none"), ("biocoop", "Biocoop", "https://www.biocoop.fr", False, "none"),
     ("naturalia", "Naturalia", "https://www.naturalia.fr", True, "none"), ("lavieclaire", "La Vie Claire", "https://www.lavieclaire.com", True, "none"), ("grandfrais", "Grand Frais", "https://www.grandfrais.com", False, "none"), ("cora", "Cora", "https://www.cora.fr", True, "none"), ("match", "Match", "https://www.supermarchesmatch.fr", False, "none"),
+    ("greenweez", "Greenweez", "https://www.greenweez.com", True, "none"), ("lafourche", "La Fourche", "https://www.lafourche.fr", True, "none"), ("onatera", "Onatera", "https://www.onatera.com", True, "none"), ("kazidomi", "Kazidomi", "https://www.kazidomi.com", True, "none"),
     ("walmart", "Walmart", "https://www.walmart.com", False, "none"), ("kroger", "Kroger", "https://www.kroger.com", False, "none"), ("costco", "Costco", "https://www.costco.com", False, "none"),
     ("target", "Target", "https://www.target.com", False, "none"), ("albertsons", "Albertsons", "https://www.albertsons.com", False, "none"), ("safeway", "Safeway", "https://www.safeway.com", False, "none"),
     ("publix", "Publix", "https://www.publix.com", False, "none"), ("wholefoods", "Whole Foods", "https://www.wholefoodsmarket.com", False, "none"),
@@ -31,13 +32,15 @@ SEED = [  # id, name, website, has_catalogue, catalogue_access
 ]
 ID_OF = {"Carrefour": "carrefour", "Monoprix": "monoprix", "Intermarché": "intermarche", "E.Leclerc": "leclerc", "Auchan": "auchan", "Lidl": "lidl", "Aldi": "aldi", "Franprix": "franprix",
          "Casino": "casino", "Super U": "superu", "Picard": "picard", "Biocoop": "biocoop", "Naturalia": "naturalia", "La Vie Claire": "lavieclaire", "Grand Frais": "grandfrais", "Cora": "cora", "Match": "match",
+         "Greenweez": "greenweez", "La Fourche": "lafourche", "Onatera": "onatera", "Kazidomi": "kazidomi",
          "Walmart": "walmart", "Kroger": "kroger", "Costco": "costco", "Target": "target", "Albertsons": "albertsons", "Safeway": "safeway", "Publix": "publix", "Whole Foods": "wholefoods",
          "Trader Joe's": "traderjoes", "H-E-B": "heb", "Wegmans": "wegmans", "Sprouts": "sprouts", "Food Lion": "foodlion", "Stop & Shop": "stopshop", "Meijer": "meijer", "Sam's Club": "sams",
          "BJ's": "bjs", "Hy-Vee": "hyvee", "ShopRite": "shoprite", "Harris Teeter": "harristeeter", "Winn-Dixie": "winndixie"}
 NAME_OF = {v: k for k, v in ID_OF.items()}
 US_IDS = {"walmart", "kroger", "costco", "target", "albertsons", "safeway", "publix", "wholefoods", "traderjoes", "heb", "wegmans", "sprouts", "foodlion", "stopshop", "meijer", "sams", "bjs",
           "hyvee", "shoprite", "harristeeter", "winndixie", "aldi", "lidl"}  # Aldi and Lidl trade in both countries
-FR_ONLY = {"carrefour", "monoprix", "intermarche", "leclerc", "auchan", "franprix", "casino", "superu", "picard", "biocoop", "naturalia", "lavieclaire", "grandfrais", "cora", "match"}
+FR_ONLY = {"carrefour", "monoprix", "intermarche", "leclerc", "auchan", "franprix", "casino", "superu", "picard", "biocoop", "naturalia", "lavieclaire", "grandfrais", "cora", "match",
+           "greenweez", "lafourche", "onatera", "kazidomi"}
 
 
 def in_market(chain_id: str, code: str = "FR") -> bool:

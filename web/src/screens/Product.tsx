@@ -5,15 +5,16 @@ import { additiveInfo } from '@shared/additives';
 import { t } from '@shared/i18n';
 import { formatCents, isLiquid } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
+import KnowCard from '../KnowCard';
 import { priceHeadline } from '@shared/verdict';
 import PqExplain from '../PqExplain';
-import { Bar, Button, Card, Collapsible, haptic, Muted, NovaBadge, AmountScale, NutriScore, ScoreBar, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader, ChainLogo } from '../ui';
+import { Bar, Button, Card, Collapsible, haptic, Muted, NovaBadge, AmountScale, NutriScore, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader, ChainLogo } from '../ui';
 import { routes, useNav } from '../nav';
 import SaveButton from '../SaveButton';
-import KnowCard from '../KnowCard';
 import Where from '../Where';
 import DesktopQRBanner from '../DesktopQRBanner';
 import { countScan } from '../account';
+import { prefetchAlternatives } from '../alternatives';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -35,12 +36,19 @@ export default function Product() {
       .catch((e: any) => { if (!cancelled && autoTries.current < 2 && e?.response?.status !== 400 && !(e?.response && ![404, 502, 503, 504].includes(e.response.status))) { autoTries.current += 1; retryTimer = setTimeout(() => setAttempt((n) => n + 1), 1200); return; } const snap = useHistory.getState().productById(barcode); if (snap && e?.response?.status !== 404) { setD({ product: snap, fit: [], price_context: null }); setOffline(true); } else setErr(e?.response?.status === 404 ? { kind: e.response.data?.detail === 'not_food' ? 'notfood' : 'notfound', msg: '' } : e?.response?.status === 400 ? { kind: 'invalid', msg: '' } : e?.response?.status === 429 ? { kind: 'rate', msg: '' } : e?.response?.status === 401 ? { kind: 'auth', msg: 'HTTP 401' } : e?.response ? { kind: 'server', msg: `HTTP ${e.response.status}${typeof e.response.data?.detail === 'string' ? ' · ' + e.response.data.detail : ''}` } : { kind: 'network', msg: e.message }); });
     return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
   }, [barcode, estimates, attempt]);
+  // While the product page is read, the alternatives are already searched with the same request the alternatives screen will make,
+  // so that screen opens with the list ready (and the server has stored the prices it found).
+  useEffect(() => {
+    if (!barcode || !d?.product) return;
+    const id = setTimeout(() => prefetchAlternatives(barcode), 400);
+    return () => clearTimeout(id);
+  }, [barcode, d?.product?.id]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
   const [webP, setWebP] = useState<any>(null);       // hooks stay above every early return
   const headKind = d ? priceHeadline(d.price_context).kind : null;
   useEffect(() => {          // no observed price: one search for an approximate price and where it is sold
     setWebP(null);
-    if (barcode && d && headKind === 'none') api.getWebPrice(barcode).then(setWebP).catch(() => undefined);
+    if (barcode && d && headKind === 'none') api.getWebPriceQuick(barcode).then((w: any) => { if (w) setWebP(w); });
   }, [barcode, d?.product?.id, headKind]);
   if (err) return (
     <Screen>
@@ -61,7 +69,14 @@ export default function Product() {
       {err.kind === 'notfound' && <Button plain onPress={() => setAttempt((n) => n + 1)}>{t('common.retry')}</Button>}
     </Screen>
   );
-  if (!d) return <Screen><NavBar onBack={back} /><Loader steps={t('common.stepsProduct').split('|')} onRetry={() => setAttempt((n) => n + 1)} /><Skeleton h={90} /><Skeleton h={120} /></Screen>;
+  if (!d) return (
+    <Screen>
+      <NavBar onBack={back} />
+      <div className="skel-prod" aria-hidden><Skeleton h={96} w={96} /><div><Skeleton h={14} w="40%" /><Skeleton h={22} w="85%" /><Skeleton h={22} w="60%" /></div></div>
+      <div className="skel-two" aria-hidden><Skeleton h={64} w={90} /><Skeleton h={64} w={90} /></div>
+      <Loader quiet steps={t('common.stepsProduct').split('|')} onRetry={() => setAttempt((n) => n + 1)} />
+    </Screen>
+  );
 
   const p = d.product, pc = d.price_context;
   const liquid = isLiquid(p), per = liquid ? 'ml' : 'g';
@@ -103,13 +118,12 @@ export default function Product() {
             {p.quantityText && <span className="mut sm">{p.quantityText}</span>}
           </div>
         </div>
-        {head.kind !== 'none' ? <p className="pprice"><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webP ? <p className="pprice"><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}</b>{packTxt(packOf(Math.round(webP.per100_cents * 10), webP.pack_cents))} <Pill tone="w">{t('score.webPrice')}</Pill>{webP.size_assumed && <span className="mut sm"> · {t('score.sizeAssumed', { s: Math.round(webP.size_assumed.amount) + ' ' + webP.size_assumed.unit })}</span>}{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="pprice mut">{t('simple.noPrice')}</p>}
+        {head.kind !== 'none' ? <p className="pprice"><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webP ? <p className="pprice"><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}</b>{packTxt(packOf(Math.round(webP.per100_cents * 10), webP.pack_cents))}{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="pprice mut">{t('simple.noPrice')}</p>}
         {p.score ? <>
           <div className="twoscores">
             <div><span className="mut sm">{t('score.title')}</span><div className={'stile ' + (p.score.tone === 'b' ? 'b' : p.score.tone === 'w' ? 'w' : 'g')}>{p.score.total}<small>{t('score.outOf')}</small></div><b>{t('score.' + p.score.band)}</b></div>
-            <div title={t('score.pqHint')}><span className="mut sm">{t('score.pq')} <PqExplain /></span>{pc?.value ? <><div className={'stile ' + (pc.value.value_score >= 65 ? 'g' : pc.value.value_score >= 40 ? 'w' : 'b')}>{pc.value.approximate ? '≈ ' : ''}{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{pc.value.approximate && <div className="mut sm">{t('score.pqApprox', { p: formatCents(pc.value.basis_pack_cents) })}</div>}</> : webP?.value_score != null ? <><div className={'stile ' + (webP.value_score >= 65 ? 'g' : webP.value_score >= 40 ? 'w' : 'b')}>≈ {webP.value_score}<small>{t('score.outOf')}</small></div><b>{webP.value_score >= 65 ? t('score.pqGood') : webP.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b><div className="mut sm">{t('score.pqApprox', { p: formatCents(webP.pack_cents) })}</div></> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}</div>
+            <div title={t('score.pqHint')}><span className="mut sm">{t('score.pq')} <PqExplain /></span>{pc?.value ? <><div className={'stile ' + (pc.value.value_score >= 65 ? 'g' : pc.value.value_score >= 40 ? 'w' : 'b')}>{pc.value.approximate ? '≈ ' : ''}{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{pc.value.approximate && (pc.value.basis_pack_cents != null ? <div className="mut sm">{t('score.pqApprox', { p: formatCents(pc.value.basis_pack_cents) })}</div> : pc.value.basis_per100_cents != null ? <div className="mut sm">≈ {formatCents(Math.round(pc.value.basis_per100_cents * 10))}/kg</div> : null)}</> : webP?.value_score != null ? <><div className={'stile ' + (webP.value_score >= 65 ? 'g' : webP.value_score >= 40 ? 'w' : 'b')}>≈ {webP.value_score}<small>{t('score.outOf')}</small></div><b>{webP.value_score >= 65 ? t('score.pqGood') : webP.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{webP.pack_cents != null ? <div className="mut sm">{t('score.pqApprox', { p: formatCents(webP.pack_cents) })}</div> : webP.per100_cents != null ? <div className="mut sm">≈ {formatCents(Math.round(webP.per100_cents * 10))}/kg</div> : null}</> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}</div>
           </div>
-          <ScoreBar total={p.score.total} label={t('score.spectrum')} />
           <ul className="fl">
             {(p.score.flags ?? []).slice(0, 3).map((f: any) => <li key={f.key} className={f.level === 'bad' ? 'b' : 'w'}>{t('flag.' + f.key)}</li>)}
             {((p.score.additives?.items ?? []) as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 3).map((x) => <li key={x.code} className={x.level === 'D' ? 'b' : 'w'} onClick={() => setSheet(x.code)} style={{ cursor: 'pointer' }}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</li>)}
@@ -151,6 +165,7 @@ export default function Product() {
         const all = [...(p.score.additives?.items ?? [])] as any[];
         const items = all.filter((x) => x.known || !all.some((o) => o !== x && x.code.startsWith(o.code))).sort((x, y) => y.level.localeCompare(x.level) || x.code.localeCompare(y.code));
         const risky = items.filter((x) => x.level === 'C' || x.level === 'D');
+        if (!items.length) return null;
         return <Collapsible open={false} title={`${t('addl.title')} · ${items.length ? t('addl.count', { n: items.length }) + (risky.length ? ' · ' + t('addl.bad', { n: risky.length }) : '') : t('addl.none')}`}>
           {items.length === 0 && <p className="mut">{t('addl.none')}</p>}
           {items.map((a: any) => {
@@ -184,7 +199,6 @@ export default function Product() {
         })()}
         <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('product.correct')}</a>
       </Collapsible>
-      <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('score.page')}</a>
       <Button plain onPress={() => { addCompare(p.id); go(routes.compare); }}>{t('product.compare')}</Button>
 
       <Sheet open={!!sheet} onClose={() => setSheet(null)} title={sheet ? sheet.toUpperCase() + (info ? ' · ' + info.name : sItem?.name ? ' · ' + sItem.name : '') : ''}>

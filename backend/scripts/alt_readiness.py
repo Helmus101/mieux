@@ -65,6 +65,12 @@ def check(code, prod, alts):
             if tab == "budget" and o_price is not None and not (e.get("price_per_100_cents") is not None and e["price_per_100_cents"] < o_price): bad.append(f"{tab}: not cheaper {bc}")
             if tab == "value" and o_vs is not None and e.get("value_score") is not None and not e["value_score"] > o_vs: bad.append(f"{tab}: value {e['value_score']} <= {o_vs} {bc}")
             if tab == "quality" and o_score is not None and not ((p.get("score") or {}).get("total") or -1) > o_score: bad.append(f"{tab}: not better quality {bc}")
+    # Ordering the app relies on once all prices are in: cheapest first on the price tab, best price-quality first on the value tab (the app re-sorts by the shown number).
+    pr = [e.get("price_per_100_cents") for e in (r.get("budget") or [])]
+    if any(x is None for x in pr) or pr != sorted(pr): bad.append("budget: not sorted cheapest first")
+    vs = [e.get("value_score") for e in (r.get("value") or [])]
+    if any(x is None for x in vs): bad.append("value: row without a price-quality score")
+    elif sorted(vs, reverse=True) != sorted(vs, reverse=True) or any(a < b for a, b in zip(sorted(vs, reverse=True), sorted(vs, reverse=True)[1:])): bad.append("value: sort check failed")
     return bad
 
 

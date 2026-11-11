@@ -259,26 +259,22 @@ def test_indicators_and_three_rankings():
     assert r2["rankings"]["budget"] == [] and r2["rankings"]["value"] == [] and r2["original_indicators"] is None
 
 
-def test_estimates_are_labelled_and_only_fill_gaps():
+def test_a_price_is_never_guessed_from_a_category_average():
     from app import estimate as E
-    assert E.category_price_per100(["en:dairies", "en:yogurts"]) == 32.0
-    assert E.category_price_per100(["en:unknown-thing"]) is None
-    est, basis = E.estimate_per100({"categories": ["en:yogurts"]}, [20.0, 30.0, 40.0])
-    assert (est, basis) == (30.0, "peers")
-    ch = E.chain_prices(100.0, 400)
+    assert not hasattr(E, "estimate_per100") and not hasattr(E, "category_price_per100")      # removed on purpose
+    ch = E.chain_prices(100.0, 400)                                                           # chain levels apply only to a price that exists
     assert ch[0]["chain"] in ("Lidl", "Aldi") and ch[-1]["chain"].startswith("Naturalia") and ch[0]["pack_cents"] == 344
     main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None, "stores": lambda self, *a: []})()
     for r in main.app.state.off.items.values(): r["quantity"] = "400 g"
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
     Hq = {"X-Session-Id": "estimate-user-1", "X-Lang": "en"}
-    r = c.post("/v1/products/1/alternatives", headers=Hq, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"], "approximate": True}).json()
-    assert r["original_estimated"] and r["original_price"]["source"]["source"] == "estimate" and r["paris_estimate"]
-    assert all(a["estimated"] for a in r["alternatives"] if a["price_per_100_cents"] is not None)
-    r2 = c.post("/v1/products/1/alternatives", headers=Hq, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"], "approximate": False}).json()
-    assert r2["original_price"] is None and "paris_estimate" not in r2                    # opt out: no estimates at all
-    assert c.get("/v1/products/1", headers=Hq).json()["price_context"]["estimate"] is None        # real data only by default
-    pc = c.get("/v1/products/1?approximate=true", headers=Hq).json()["price_context"]
-    assert pc["estimate"]["basis"] == "category" and pc["indicators"] is not None
+    for approx in (True, False):                                                              # even when a client still asks for estimates
+        r = c.post("/v1/products/1/alternatives", headers=Hq, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"], "approximate": approx}).json()
+        assert r["original_price"] is None and "paris_estimate" not in r and not r.get("original_estimated")
+        assert all(a["price_per_100_cents"] is None and not a["estimated"] for a in r["alternatives"])
+    for qs in ("", "?approximate=true"):
+        pc = c.get("/v1/products/1" + qs, headers=Hq).json()["price_context"]
+        assert pc["estimate"] is None and (pc["value"] is None or pc["value"].get("basis_source") != "estimate")
 
 
 def test_product_price_database_is_per_product_not_per_shop():

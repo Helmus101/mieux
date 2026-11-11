@@ -17,6 +17,7 @@ CHAINS: Dict[str, str] = {
     "Carrefour": r"carrefour", "Auchan": r"auchan", "E.Leclerc": r"leclerc", "Intermarché": r"intermarch", "Lidl": r"\blidl\b", "Aldi": r"\baldi\b",
     "Monoprix": r"monoprix", "Franprix": r"franprix", "Casino": r"casino|petit casino|spar\b", "Super U": r"super u|coursesu|hyper u|u express|syst[eè]me u|\bu\b",
     "Picard": r"picard", "Biocoop": r"biocoop", "Naturalia": r"naturalia", "La Vie Claire": r"vie claire", "Grand Frais": r"grand frais", "Cora": r"\bcora\b", "Match": r"\bmatch\b",
+    "Greenweez": r"greenweez", "La Fourche": r"lafourche|la fourche", "Onatera": r"onatera", "Kazidomi": r"kazidomi",
     # United States (Aldi and Lidl above also trade there)
     "Walmart": r"wal-?mart", "Kroger": r"\bkroger\b", "Costco": r"costco", "Target": r"\btarget\b", "Albertsons": r"albertsons", "Safeway": r"safeway", "Publix": r"publix",
     "Whole Foods": r"whole foods", "Trader Joe's": r"trader joe", "H-E-B": r"\bh-?e-?b\b", "Wegmans": r"wegmans", "Sprouts": r"sprouts", "Food Lion": r"food lion",

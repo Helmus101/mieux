@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { Analytics } from '@vercel/analytics/react';
 import Root from './Root';
 import { setApiBase, setStrict } from '@shared/config';
+import { installErrorReporting } from './report';
+import { registerServiceWorker } from './sw-client';
 // index.css is imported by App: the landing page has its own stylesheet and no app CSS.
 
 const envBase = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_BASE_URL;
@@ -10,6 +12,7 @@ if (envBase) setApiBase(envBase);
 
 // Always use strict mode (Yuka-like additive evaluation)
 setStrict(true);
+installErrorReporting();
 
 // Start downloading the app's first screens in parallel with the shell instead of one after the other (phones skip the landing page).
 if (/iPhone|iPod|Android/i.test(navigator.userAgent) || window.location.pathname.startsWith('/app')) {
@@ -30,6 +33,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 );
 
-if ('serviceWorker' in navigator && location.protocol !== 'http:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-  window.addEventListener('load', () => { navigator.serviceWorker?.register('/sw.js').catch(() => undefined); });
-}
+registerServiceWorker();
