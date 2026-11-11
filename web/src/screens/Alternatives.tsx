@@ -172,17 +172,19 @@ export default function Alternatives() {
   // Prices load per row: a slow lookup never holds the list, and Quality never waits for a price.
   const webBusy = rk === 'value' && ranked.slice(0, showMore ? 10 : 3).some((e: any) => e.price100 == null && !!e.product?.quantity && webP[e.product.barcode] === undefined);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
-  // Only the stores chosen in Settings (Profil → Mes enseignes). With none chosen, the known stores present in
-  // the results: an online grocer outside that list (Greenweez) never becomes a filter or an availability line.
+  // The same store list on Valeur and Qualité, so the filter is present and stable on both tabs.
+  // Only stores chosen in Settings (Profil → Mes enseignes); with none chosen, the known stores present in
+  // either ranking. An online grocer outside that list (Greenweez) never becomes a filter or an availability line.
   const chainOptions = (() => {
     if (myChains.length) return myChains;
-    const pool = listOf(rk, true);
+    const pool = [...listOf('value', true), ...listOf('match', true)];
     return chainsFor(country).map((c) => c.id).filter((id) => pool.some((e: any) => (e.product.chains ?? []).includes(id)));
   })();
   const none = !!r && !busy && !webBusy && !err && ['value', 'match'].every((k) => listOf(k, true).length === 0);   // only the two visible rankings count, before any chain filter
   const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match', true).length > 0) : [];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
-  useEffect(() => { setShowMore(false); setChain(null); }, [barcode, rk]);
+  useEffect(() => { setShowMore(false); }, [barcode, rk]);
+  useEffect(() => { setChain(null); }, [barcode]);   // switching Valeur/Qualité keeps the chosen store
   useEffect(() => { if (chain && !chainOptions.includes(chain)) setChain(null); }, [chain, chainOptions.join()]);
   const nothingNear = hasHome && !!r && ['value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
@@ -245,12 +247,12 @@ export default function Alternatives() {
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
       })()}
       {r && !busy && !none && webBusy && !shown.length && <Card><span className="mini-ring" /> <Muted>{t('alt.pricing')}</Muted></Card>}
-      {r && !busy && <div className="alist">{shown.map((e: any, idx: number) => {
+      {r && !busy && <div className="alist">{shown.map((e: any) => {
         const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
         const d = diffOf(e);
         const w = webP[e.product.barcode];
         return (
-          <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={() => { haptic('tap'); go(routes.product(e.product.id)); }}>
+          <article key={e.product.id} className="arow" onClick={() => { haptic('tap'); go(routes.product(e.product.id)); }}>
             {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
             <div className="amain">
               <div className="aname">{e.product.name}</div>

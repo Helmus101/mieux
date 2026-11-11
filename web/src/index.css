@@ -246,8 +246,6 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .aprice b small{font-size:12.5px; font-weight:500; color:var(--mut)}
 .adiff{font-weight:600}
 .asave{margin-top:6px}
-.arow.top{padding-left:12px; border-left:3px solid var(--accent)}
-.arow.top .aname{font-weight:700}
 /* each score tile says what it is: Qualité (nutrition and additives) or Prix-qualité (that score against the price per kilo) */
 .ameta .tile{display:inline-flex; flex-direction:column; align-items:flex-start; gap:4px}
 .ameta .tile-row{display:inline-flex; align-items:baseline; gap:2px}
