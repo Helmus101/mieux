@@ -7,6 +7,16 @@ os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 from app import engine, taxonomy  # noqa: E402
 
+import pytest  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _reset_gemini_state():
+    """Every test starts with Gemini available: a failure in one test must not leak its pause into the next."""
+    from app import webprice
+    webprice._gemini.update(down_until=0.0, error=None)
+    yield
+
 
 def P(name, cats, **n):
     return {"barcode": name, "id": name, "name": name, "brand": "Marque", "categories": cats, "nutriments": {"energyKcal100g": 100, "saturatedFat100g": 1, "sugars100g": 5, "salt100g": 0.5, "protein100g": 5, "fiber100g": 2, **n},

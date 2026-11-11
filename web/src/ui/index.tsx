@@ -138,8 +138,9 @@ export function NovaBadge({ group, estimated }: { group: number | null | undefin
 }
 
 /** Closed-by-default section: the web twin of mobile's Collapsible (native <details>, keyboard accessible). */
-export function Collapsible({ title, children, open }: { title: string; children: ReactNode; open?: boolean }) {
-  return <details className="coll" open={open}><summary onClick={() => haptic('tap')}>{title}</summary><div className="coll-body">{children}</div></details>;
+export function Collapsible({ title, children, open, onOpen }: { title: string; children: ReactNode; open?: boolean; onOpen?: () => void }) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  return <details ref={ref} className="coll" open={open}><summary onClick={() => { haptic('tap'); if (!ref.current?.open) onOpen?.(); }}>{title}</summary><div className="coll-body">{children}</div></details>;
 }
 
 /** Large friendly header block at the top of a screen. */

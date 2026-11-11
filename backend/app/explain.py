@@ -1,6 +1,9 @@
 """Natural-language explanation of a comparison. All numbers come from the engine (facts). A language model may only rephrase them;
 its output is rejected if it contains any number that is not in the facts, or a health claim. The deterministic template is the fallback."""
+import os
 import re
+
+import httpx
 
 from . import market
 from typing import Any, Dict, List, Optional, Protocol, Set
@@ -87,3 +90,92 @@ def explain(f: Dict[str, Any], lang: str, llm: Optional[LLM]) -> Dict[str, Any]:
     if out and valid(out, f):
         return {"text": out, "source": "llm", "facts": f}
     return {"text": base, "source": "template", "facts": f, "llm_rejected": bool(out)}
+
+
+def score_facts(p: Dict[str, Any]) -> Dict[str, Any]:
+    """Every number a score explanation may mention, taken from the computed score (never invented)."""
+    s = p.get("score") or {}
+    f: Dict[str, Any] = {"original": p.get("name"), "total": s.get("total")}
+    for part in s.get("parts") or []:
+        key = part.get("key")
+        if key:
+            f[f"part_{key}"] = round(float(part.get("got") or 0))
+    if s.get("caps"):
+        f["caps"] = len(s["caps"])
+    conf = (s.get("confidence") or {}).get("pct")
+    if conf is not None:
+        f["confidence_pct"] = conf
+    if p.get("novaGroup"):
+        f["nova"] = p["novaGroup"]
+    return {k: v for k, v in f.items() if v is not None}
+
+
+ST = {
+    "fr": {"lead": "Note de qualité : {total}/100.", "parts": {"nutrition": "nutrition", "additives": "additifs", "ingredients": "ingrédients", "organic": "bio"},
+           "part": " {label} {n}/100.", "caps": " La note est plafonnée par {n} point(s) faible(s).", "confidence": " Données complètes à {p} %."},
+    "en": {"lead": "Quality score: {total}/100.", "parts": {"nutrition": "nutrition", "additives": "additives", "ingredients": "ingredients", "organic": "organic"},
+           "part": " {label} {n}/100.", "caps": " The score is capped by {n} weakness(es).", "confidence": " Data {p}% complete."},
+}
+
+
+def score_template(f: Dict[str, Any], lang: str = "fr") -> str:
+    t = ST["fr" if lang == "fr" else "en"]
+    text = t["lead"].format(total=f.get("total"))
+    for k, label in t["parts"].items():
+        if f.get(f"part_{k}") is not None:
+            text += t["part"].format(label=label, n=f[f"part_{k}"])
+    if f.get("caps"):
+        text += t["caps"].format(n=f["caps"])
+    if f.get("confidence_pct") is not None:
+        text += t["confidence"].format(p=f["confidence_pct"])
+    return text.strip()
+
+
+SCORE_SYSTEM = {"fr": "Tu expliques une note de qualité alimentaire en 2 phrases maximum, en français. N'utilise QUE les nombres fournis dans les faits. N'ajoute aucune information, aucune affirmation de santé, aucun conseil médical.",
+                "en": "You explain a food quality score in at most 2 sentences. Use ONLY the numbers given in the facts. Add no information, no health claim, no medical advice."}
+
+
+def score_explain(f: Dict[str, Any], lang: str, llm: Optional[LLM]) -> Dict[str, Any]:
+    """The deterministic sentence is the fallback; a model may only rephrase the same facts."""
+    base = market.localize_money(score_template(f, lang))
+    if llm is None:
+        return {"text": base, "source": "template", "facts": f}
+    out = llm.complete(SCORE_SYSTEM["fr" if lang == "fr" else "en"], f"Faits : {f}\nPhrase de référence : {base}")
+    if out and valid(out, f):
+        return {"text": out, "source": "llm", "facts": f}
+    return {"text": base, "source": "template", "facts": f, "llm_rejected": bool(out)}
+
+
+class GeminiLLM:
+    """Rephrases facts with Gemini. Any failure returns None so callers keep the deterministic template."""
+
+    endpoint = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+    def __init__(self, transport=None):
+        self._transport = transport or _http_post
+
+    def complete(self, system: str, user: str) -> Optional[str]:
+        key = os.environ.get("GEMINI_API_KEY")
+        if not key:
+            return None
+        models = [m for m in (os.environ.get("GEMINI_MODEL"), "gemini-3.8-flash", "gemini-2.5-flash") if m]
+        body = {"systemInstruction": {"parts": [{"text": system}]},
+                "contents": [{"parts": [{"text": user}]}],
+                "generationConfig": {"temperature": 0.2, "maxOutputTokens": 300, "thinkingConfig": {"thinkingBudget": 0}}}
+        for model in dict.fromkeys(models):
+            try:
+                resp = self._transport(self.endpoint.format(model=model) + "?key=" + key, body, None, 15)
+            except Exception:
+                continue
+            cands = (resp or {}).get("candidates") or []
+            if not cands:
+                continue
+            text = "".join(part.get("text", "") for part in ((cands[0].get("content") or {}).get("parts") or []))
+            if text.strip():
+                return text.strip()
+        return None
+
+
+def _http_post(url: str, body: Dict[str, Any], headers: Optional[Dict[str, str]] = None, timeout: float = 25) -> Optional[Dict[str, Any]]:
+    r = httpx.post(url, json=body, headers=headers, timeout=timeout)
+    return r.json() if r.status_code == 200 else None

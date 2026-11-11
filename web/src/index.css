@@ -480,6 +480,7 @@ kbd{font:600 12px ui-monospace,Menlo,monospace; background:var(--card); border:1
 .twoscores .stile{align-self:flex-start}
 
 /* shape system: controls 8px, surfaces 12px, pills only for selectable chips and compact status */
+.ai-note{margin:10px 0 8px; padding:12px 14px; background:var(--tint); border-radius:8px; font-size:15px; line-height:1.55}
 .card{border-radius:12px}
 .sheet{border-top-left-radius:12px; border-top-right-radius:12px}
 

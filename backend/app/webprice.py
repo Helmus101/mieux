@@ -93,9 +93,9 @@ def providers() -> list:
         return [n for n in forced.split(",") if n]
     out = ["gemini"] if os.environ.get("GEMINI_API_KEY") else []
     if time.time() < _gemini["down_until"]:
-        fallback = next((n for n, k in (("serper", "SERPER_API_KEY"), ("brave", "BRAVE_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY")) if os.environ.get(k)), None)
-        if fallback:
-            out.append(fallback)
+        for name, key in (("serper", "SERPER_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY"), ("brave", "BRAVE_API_KEY")):
+            if os.environ.get(key) and name not in out:
+                out.append(name)          # Gemini first, then the configured search APIs, in that order
     return out
 
 
@@ -590,10 +590,10 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
             return None
         product = {**product, "quantity": assumed}
     for variant in (0, 1):                  # the second wording is only tried when the first finds nothing (search results vary from one call to the next)
-        # Quick providers (Serper, LangSearch) go first — about a second each. Gemini's grounded search can take 10–15 s so
-        # it runs last on each variant pass, but it IS tried on both passes: the barcode-based query (variant 1) often
-        # yields the most reliable result for French supermarket pages that JS-render their prices.
-        order = [n for n in providers() if n != "gemini"] + [n for n in providers() if n == "gemini"]
+        # Gemini is asked first, then the configured search APIs (Serper, then LangSearch). A Gemini that just failed is
+        # skipped via down_until. Gemini is tried on both passes: the barcode-based query (variant 1) often yields
+        # the most reliable result for French supermarket pages that JS-render their prices.
+        order = providers()               # Gemini first, then the configured search APIs; a failed Gemini is skipped via down_until
         for name in order:
             if deadline and time.time() > deadline:
                 last_error = "deadline"

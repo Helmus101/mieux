@@ -53,9 +53,9 @@ export default function Alternatives() {
   const rowOf = (e0: any) => {
     const w = webP[e0.product?.barcode];
     const chains = (e0.product?.chains?.length) ? e0.product.chains : (w?.chains?.length ? w.chains : []);
-    const p100 = e0.price_per_100_cents ?? w?.per100_cents;
+    const p100 = e0.price_per_100_cents > 0 ? e0.price_per_100_cents : (w?.per100_cents > 0 ? w.per100_cents : null);
     const vs = e0.value_score ?? w?.value_score;
-    const pack = e0.pack_cents ?? w?.pack_cents;
+    const pack = e0.pack_cents > 0 ? e0.pack_cents : (w?.pack_cents > 0 ? w.pack_cents : null);
     const e = w ? {
       ...e0,
       price_per_100_cents: p100,
@@ -265,9 +265,9 @@ export default function Alternatives() {
             <div className="aprice">
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
                 : e.pack != null ? <b>{formatCents(e.pack)}</b>
-                : w?.per100_cents != null ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b>
-                : w?.pack_cents != null ? <b>~ {formatCents(w.pack_cents)}</b> : null}
-              {u == null && e.pack == null && w?.per100_cents == null && w?.pack_cents == null && (webP[e.product.barcode] === undefined ? <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span> : <span className="mut sm">{t('alt.noPrice')}</span>)}
+                : w?.per100_cents > 0 ? <b>~ {formatCents(Math.round(w.per100_cents * 10))}<small>/{isLiquid(e.product) ? 'L' : 'kg'}</small></b>
+                : w?.pack_cents > 0 ? <b>~ {formatCents(w.pack_cents)}</b> : null}
+              {u == null && e.pack == null && !(w?.per100_cents > 0) && !(w?.pack_cents > 0) && (webP[e.product.barcode] === undefined ? <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span> : <span className="mut sm">{t('alt.noPrice')}</span>)}
               {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
               {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
               <button className="pqinfo" aria-label={t('simple.moreInfo')} onClick={(ev) => { ev.stopPropagation(); haptic('tap'); setDetail(e); }}>ⓘ</button>

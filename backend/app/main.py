@@ -235,7 +235,8 @@ app.state.prices = market.PerMarket({
     "FR": value.OpenPricesClient(),
     "US": value.OpenPricesClient(local_path=os.environ.get("OP_LOCAL_US", os.path.join(_HERE, "op_local_us.db")), country="US", base="USD"),
 })
-app.state.llm = None  # no language model: explanations are always built from the computed facts
+app.state.llm = None  # comparison explanations stay deterministic
+app.state.score_llm = exp.GeminiLLM() if os.environ.get("GEMINI_API_KEY") else None  # rephrases the quality score; the template is the fallback
 app.state.sessions = db.make_session_factory()
 visit_batcher.set_app_state(app.state)  # Enable background visit batching
 with app.state.sessions() as _s:
@@ -626,6 +627,9 @@ def _market_chains(w: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     if not w:
         return w
     code = market.current()
+    for key in ("per100_cents", "pack_cents"):
+        if w.get(key) is not None and w[key] <= 0:
+            w = {**w, key: None}          # a zero/negative price is a missing price, never a 0,00 EUR shelf price
     chains = [c for c in (w.get("chains") or []) if retail.in_market(c, code)]
     if chains == (w.get("chains") or []):
         return w
@@ -1081,6 +1085,20 @@ def explain_comparison(request: Request, body: ExplainIn, uid: str = Depends(use
     o100, ap, pts, _ = _price_map(s, uid, o, [a])
     facts = exp.make_facts(o, a, o100, ap.get(a["barcode"]))
     return exp.explain(facts, lang, app.state.llm)
+
+
+class ScoreExplainIn(BaseModel):
+    barcode: str
+
+
+@app.post("/v1/score-explain")
+@limiter.limit("20/minute")
+def explain_score(request: Request, body: ScoreExplainIn, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
+    """Plain-language explanation of the quality score. Numbers are computed here; a model can only rephrase them."""
+    p = load_product(s, body.barcode)
+    if not p or (p.get("score") or {}).get("total") is None:
+        raise HTTPException(404, "No quality score for this product")
+    return exp.score_explain(exp.score_facts(p), lang, app.state.score_llm)
 
 
 class ManualPrice(BaseModel):

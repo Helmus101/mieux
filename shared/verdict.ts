@@ -15,7 +15,9 @@ export function verdictOf(fit: any[]): { tone: Tone; text: string } | null {
 
 /** The single price figure shown first. 'real' = observed (receipt/community), 'estimate' = opt-in estimate, 'none' = unknown. cents per kg. */
 export function priceHeadline(pc: any): { kind: 'real' | 'estimate' | 'none'; perKgCents?: number } {
-  if (pc?.indicators?.price_per_kg_eur != null) return { kind: 'real', perKgCents: Math.round(pc.indicators.price_per_kg_eur * 100) };
-  if (pc?.estimate) return { kind: 'estimate', perKgCents: Math.round(pc.estimate.per100_cents * 10) };
+  const kg = pc?.indicators?.price_per_kg_eur;
+  if (kg != null && kg > 0) return { kind: 'real', perKgCents: Math.round(kg * 100) };
+  const est = pc?.estimate?.per100_cents;
+  if (est != null && est > 0) return { kind: 'estimate', perKgCents: Math.round(est * 10) };
   return { kind: 'none' };
 }

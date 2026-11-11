@@ -253,6 +253,12 @@ export class MieuxAPI {
     return response.data;
   }
 
+  /** Plain-language explanation of a product's quality score, rephrased by a model and guarded by the computed facts. */
+  async scoreExplain(barcode: string) {
+    const response = await this.client.post('/score-explain', { barcode });
+    return response.data;
+  }
+
   async getBudget() {
     const response = await this.client.get('/budget');
     return response.data;

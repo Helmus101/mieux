@@ -53,6 +53,15 @@ export default function Product() {
     if (shouldLookUp) api.getWebPriceQuick(barcode!).then((w: any) => { if (live && w) setWebP(w); }).finally(() => { if (live) setWebPriceLoading(false); });
     return () => { live = false; };
   }, [barcode, d?.product?.id, headKind]);
+  const [aiNote, setAiNote] = useState<{ text: string; source?: string } | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const aiAsked = useRef(false);
+  const explainScore = () => {
+    if (!barcode || aiAsked.current) return;
+    aiAsked.current = true; setAiBusy(true);
+    api.scoreExplain(barcode).then((x: any) => setAiNote(x)).catch(() => undefined).finally(() => setAiBusy(false));
+  };
+  useEffect(() => { aiAsked.current = false; setAiNote(null); setAiBusy(false); }, [barcode]);
   if (err) return (
     <Screen>
       <NavBar onBack={back} />
@@ -88,8 +97,10 @@ export default function Product() {
   const factor = (bases.find((b) => b.key === basis) ?? bases[0]).f;
   const amt = (v: number | null | undefined) => (v == null ? '—' : String(Math.round(v * factor * 10) / 10).replace('.', ','));
   const head = priceHeadline(pc);
-  const packOf = (perKgCents?: number | null, explicit?: number | null) => (explicit != null ? explicit : (perKgCents != null && p.quantity?.amount ? Math.round(perKgCents * p.quantity.amount / 1000) : null));
-  const packTxt = (c: number | null) => (c != null ? <span className="mut"> · {t('score.packPrice', { p: formatCents(c) })}</span> : null);
+  const packOf = (perKgCents?: number | null, explicit?: number | null) => (explicit != null && explicit > 0 ? explicit : (perKgCents != null && perKgCents > 0 && p.quantity?.amount ? Math.round(perKgCents * p.quantity.amount / 1000) : null));
+  const packTxt = (c: number | null) => (c != null && c > 0 ? <span className="mut"> · {t('score.packPrice', { p: formatCents(c) })}</span> : null);
+  const webPerKg = webP?.per100_cents > 0 ? Math.round(webP.per100_cents * 10) : null;
+  const webPack = webP?.pack_cents > 0 ? webP.pack_cents : null;
   const info = sheet ? additiveInfo(sheet) : null;
   const sItem = sheet ? ((p.score?.additives?.items ?? []) as any[]).find((x) => x.code === sheet) : null;
   return (
@@ -121,14 +132,14 @@ export default function Product() {
             {p.quantityText && <span className="mut sm">{p.quantityText}</span>}
           </div>
         </div>
-        {head.kind !== 'none' ? <p className="pprice"><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webP ? <p className="pprice"><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(Math.round(webP.per100_cents * 10)) })}</b>{packTxt(packOf(Math.round(webP.per100_cents * 10), webP.pack_cents))}{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="pprice mut">{webPriceLoading ? <><span className="mini-ring" />{t('alt.pricing')}</> : t('simple.noPrice')}</p>}
+        {head.kind !== 'none' ? <p className="pprice"><b>{head.kind === 'estimate' ? '~ ' : ''}{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webPerKg != null ? <p className="pprice"><b>~ {t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(webPerKg) })}</b>{packTxt(packOf(webPerKg, webPack))}{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="pprice mut">{webPriceLoading ? <><span className="mini-ring" />{t('alt.pricing')}</> : <>{t('simple.noPrice')}{webP?.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</>}</p>}
         {p.score ? (webPriceLoading && !webP ? <>
           <div className="skel-two" aria-hidden><Skeleton h={64} w={90} /><Skeleton h={64} w={90} /></div>
           <p className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</p>
         </> : <>
           <div className="twoscores">
             <div><span className="scorecap">{t('score.quality')}</span><div className={'stile ' + (p.score.tone === 'b' ? 'b' : p.score.tone === 'w' ? 'w' : 'g')}>{p.score.total}<small>{t('score.outOf')}</small></div><b>{t('score.' + p.score.band)}</b><span className="mut sm scoredef">{t('score.defQuality')}</span></div>
-            <div title={t('score.pqHint')}><span className="scorecap">{t('score.value')} <PqExplain /></span>{pc?.value ? <><div className={'stile ' + (pc.value.value_score >= 65 ? 'g' : pc.value.value_score >= 40 ? 'w' : 'b')}>{pc.value.approximate ? '≈ ' : ''}{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{pc.value.approximate && (pc.value.basis_pack_cents != null ? <div className="mut sm">{t('score.pqApprox', { p: formatCents(pc.value.basis_pack_cents) })}</div> : pc.value.basis_per100_cents != null ? <div className="mut sm">≈ {formatCents(Math.round(pc.value.basis_per100_cents * 10))}/kg</div> : null)}</> : webP?.value_score != null ? <><div className={'stile ' + (webP.value_score >= 65 ? 'g' : webP.value_score >= 40 ? 'w' : 'b')}>≈ {webP.value_score}<small>{t('score.outOf')}</small></div><b>{webP.value_score >= 65 ? t('score.pqGood') : webP.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{webP.pack_cents != null ? <div className="mut sm">{t('score.pqApprox', { p: formatCents(webP.pack_cents) })}</div> : webP.per100_cents != null ? <div className="mut sm">≈ {formatCents(Math.round(webP.per100_cents * 10))}/kg</div> : null}</> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}<span className="mut sm scoredef">{t('score.defValue')}</span></div>
+            <div title={t('score.pqHint')}><span className="scorecap">{t('score.value')} <PqExplain /></span>{pc?.value ? <><div className={'stile ' + (pc.value.value_score >= 65 ? 'g' : pc.value.value_score >= 40 ? 'w' : 'b')}>{pc.value.approximate ? '≈ ' : ''}{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{pc.value.approximate && (pc.value.basis_pack_cents != null ? <div className="mut sm">{t('score.pqApprox', { p: formatCents(pc.value.basis_pack_cents) })}</div> : pc.value.basis_per100_cents != null ? <div className="mut sm">≈ {formatCents(Math.round(pc.value.basis_per100_cents * 10))}/kg</div> : null)}</> : webP?.value_score != null ? <><div className={'stile ' + (webP.value_score >= 65 ? 'g' : webP.value_score >= 40 ? 'w' : 'b')}>≈ {webP.value_score}<small>{t('score.outOf')}</small></div><b>{webP.value_score >= 65 ? t('score.pqGood') : webP.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{webPack != null ? <div className="mut sm">{t('score.pqApprox', { p: formatCents(webPack) })}</div> : webPerKg != null ? <div className="mut sm">≈ {formatCents(webPerKg)}/kg</div> : null}</> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}<span className="mut sm scoredef">{t('score.defValue')}</span></div>
           </div>
           <ul className="fl">
             {(p.score.flags ?? []).slice(0, 3).map((f: any) => <li key={f.key} className={f.level === 'bad' ? 'b' : 'w'}>{t('flag.' + f.key)}</li>)}
@@ -138,7 +149,9 @@ export default function Product() {
         </>) : <Muted>{t('score.na')}</Muted>}
       </section>
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
-      {p.score && <Collapsible open={false} title={t('sdim.title')}>
+      {p.score && <Collapsible open={false} title={t('sdim.title')} onOpen={explainScore}>
+          {aiBusy && <p className="mut sm"><span className="mini-ring" />{t('ex.loading')}</p>}
+          {aiNote && <p className="ai-note">{aiNote.text}{aiNote.source !== 'llm' && <span className="mut sm"> · {t('ex.template')}</span>}</p>}
           {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
         <Row wrap><NutriScore grade={p.nutriScore} /></Row>
           <p className="mut sm">{t('sdim.profile', { x: t('prof.' + p.score.profile) })} · {t('sdim.confidence', { x: t('sdim.conf_' + p.score.confidence.level), p: p.score.confidence.pct })}{p.score.incomplete ? ' · ' + t('sdim.incomplete') : ''}</p>
