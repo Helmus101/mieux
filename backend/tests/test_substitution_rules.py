@@ -798,3 +798,37 @@ def test_a_background_search_started_for_alternatives_has_the_same_overall_time_
     f = m._search_once({"barcode": "3017620422999", "name": "Produit", "brand": "X", "quantity": {"amount": 100.0, "unit": "g"}}, persist=False, force=True)
     f.result(timeout=5)
     assert seen["deadline"] is not None and seen["deadline"] <= time.time() + 26
+
+
+def test_a_configured_search_api_stands_in_once_gemini_fails_and_stops_once_it_recovers(monkeypatch, tmp_path):
+    """Gemini is tried alone normally; once it fails (its quota, say) the other configured provider is used for the ten
+    minutes it is skipped, so a run of searches is not simply empty for that whole window."""
+    import time as _time
+    from app import webprice
+    monkeypatch.delenv("WEBPRICE_PROVIDERS", raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("SERPER_API_KEY", "s")
+    monkeypatch.setattr(webprice, "_gemini", {"down_until": 0.0, "error": None})
+    assert webprice.providers() == ["gemini"]                                 # normally: Gemini only
+    webprice._gemini["down_until"] = _time.time() + 600                       # Gemini just failed
+    assert webprice.providers() == ["gemini", "serper"]                       # the configured free-tier API stands in while it is skipped
+    webprice._gemini["down_until"] = 0.0                                      # the cooldown passed
+    assert webprice.providers() == ["gemini"]                                 # back to Gemini alone
+
+
+def test_a_search_falls_back_to_serper_within_the_same_lookup_once_gemini_fails(monkeypatch, tmp_path):
+    from app import webprice
+    monkeypatch.delenv("WEBPRICE_PROVIDERS", raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "g"); monkeypatch.setenv("SERPER_API_KEY", "s")
+    monkeypatch.setattr(webprice, "_gemini", {"down_until": 0.0, "error": None})
+    monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp11.db"))
+    prod = {"barcode": "3017620422888", "name": "Barres chocolat orange", "brand": "Dukan", "quantity": {"amount": 150.0, "unit": "g"}}
+
+    def gemini(url, body, **kw):
+        raise RuntimeError("quota exceeded")
+
+    def http(method, url, headers, body):
+        return {"organic": [{"link": "https://www.carrefour.fr/p/barres-chocolat-orange-dukan", "snippet": "Dukan Barres chocolat orange 150 g 3,50 €"},
+                            {"link": "https://courses.monoprix.fr/p/barres-chocolat-orange-dukan", "snippet": "Dukan Barres chocolat orange 150 g 3,55 €"}]}
+    out = webprice.lookup(prod, use_cache=False, transport=gemini, http=http)
+    assert out and out["provider"] == "serper"
+    assert webprice._gemini["down_until"] > 0            # the failure is remembered, so the next lookup skips straight to the fallback

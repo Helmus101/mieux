@@ -83,12 +83,20 @@ def _http(method: str, url: str, headers: Dict[str, str], body: Optional[Dict[st
 
 
 def providers() -> list:
-    """Gemini's Google-grounded search only: one authoritative, cited lookup per product, not several search APIs reconciled
-    against each other. WEBPRICE_PROVIDERS (comma list) overrides this, for tests and for deliberately re-enabling the others."""
+    """Gemini's Google-grounded search only, normally: one authoritative, cited lookup per product, not several search APIs
+    reconciled against each other. If Gemini just failed (its quota ran out, or any other error), the first configured
+    free-tier search API stands in for it until Gemini is tried again (see `_gemini["down_until"]`), rather than finding
+    nothing for the ten minutes it is skipped. WEBPRICE_PROVIDERS (comma list) overrides all of this, for tests and for
+    deliberately re-enabling the others."""
     forced = os.environ.get("WEBPRICE_PROVIDERS")
     if forced:
         return [n for n in forced.split(",") if n]
-    return ["gemini"] if os.environ.get("GEMINI_API_KEY") else []
+    out = ["gemini"] if os.environ.get("GEMINI_API_KEY") else []
+    if time.time() < _gemini["down_until"]:
+        fallback = next((n for n, k in (("serper", "SERPER_API_KEY"), ("brave", "BRAVE_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY")) if os.environ.get(k)), None)
+        if fallback:
+            out.append(fallback)
+    return out
 
 
 def provider() -> Optional[str]:
