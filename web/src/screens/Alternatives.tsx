@@ -6,15 +6,12 @@ import { useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
 import { cachedAlternatives, fetchAlternatives, NEAR_KM } from '../alternatives';
 import PqExplain from '../PqExplain';
-import { Bar, Button, Card, ChainLogo, Muted, NavBar, NovaBadge, NutriScore, Pill, Row, Screen, Segmented, Sheet, Skeleton, Loader, Toast, haptic } from '../ui';
+import { Button, Card, Muted, NavBar, Screen, Segmented, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
-import Where from '../Where';
-import SaveButton from '../SaveButton';
 import { friendlyError } from '../errors';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const sizeLabel = (q: { amount: number; unit: string }) => (q.amount >= 1000 ? `${Math.round(q.amount / 100) / 10} ${q.unit === 'ml' ? 'L' : 'kg'}`.replace('.', ',') : `${Math.round(q.amount)} ${q.unit}`);
 
 export default function Alternatives() {
   const { barcode } = useParams<{ barcode: string }>();
@@ -27,7 +24,7 @@ export default function Alternatives() {
   // "Today" filters start from the saved profile and never write back to it.
   // Quality is judged on nutrition only; the price tabs come from the price rankings, so no price priority is sent.
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
-  const [tries, setTry] = useState(0); const picked = useRef(false); const [detail, setDetail] = useState<any | null>(null); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value'); const [showMore, setShowMore] = useState(false);
+  const [tries, setTry] = useState(0); const picked = useRef(false); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value'); const [showMore, setShowMore] = useState(false);
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
@@ -115,14 +112,12 @@ export default function Alternatives() {
     if (myChains.length && !e.product.chains?.some((c: string) => myChains.includes(c))) return false;   // the person picked their shops: a shop found later by the price search counts too
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never a product scoring the same or lower
-    { const ov = r?.rankings?.original_value_score; return e.price100 != null && (ov == null || e.vs == null || e.vs > ov); }   // value: only a better price-quality score than yours
+    { const ov = r?.rankings?.original_value_score; return e.price100 != null && e.vs != null && (ov == null || e.vs > ov); }   // value: only a product with a real value score, better than yours
   });
-  // Products with a known supermarket come first (Quality and Price-quality tabs, each group in its own order); on the price tab the cheapest stays first and chains only break ties.
-  const nCh = (e: any) => (e.product.chains?.length ?? 0);
+  // The score alone decides the order: a known supermarket never lifts a lower score above a higher one.
   const ranked = (() => {
     const l = listOf(rk);
-    const o = rk === 'value' ? [...l].sort((a: any, b: any) => (b.vs ?? -1) - (a.vs ?? -1)) : l;
-    return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
+    return rk === 'value' ? [...l].sort((a: any, b: any) => (b.vs ?? -1) - (a.vs ?? -1)) : l;
   })();
   const shown = ranked.slice(0, showMore ? 10 : 3);
   useEffect(() => {
@@ -134,12 +129,14 @@ export default function Alternatives() {
       ...(r?.rankings?.budget ?? []),
       ...(r?.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
     ];
-    const todo = Array.from(new Set(allCands
+    const visible = ranked.map((e: any) => e.product?.barcode).filter(Boolean);
+    const ordered = [...visible.map((bc: string) => allCands.find((c: any) => c.product?.barcode === bc)).filter(Boolean), ...allCands];
+    const todo = Array.from(new Set(ordered
       .filter((c: any) => {
         const bc = c.product?.barcode;
         return bc && c.product?.quantity && c.price_per_100_cents == null && !asked.current.has(bc);
       })
-      .map((c: any) => c.product.barcode as string))).slice(0, 12);          // at most the 10 the "show more" button can ever reveal, plus a small margin for reordering
+      .map((c: any) => c.product.barcode as string))).slice(0, showMore ? 10 : 3);   // the three rows on screen first; the rest only when the list is expanded
     if (!todo.length) return;
     todo.forEach((c) => asked.current.add(c));
     let gone = false;
@@ -155,13 +152,9 @@ export default function Alternatives() {
     };
     for (let k = 0; k < Math.min(4, todo.length); k++) void worker();
     return () => { gone = true; };
-  }, [busy, r, barcode]);
-  const allUnpriced = r ? Array.from(new Set([
-    ...(r.rankings?.quality ?? []), ...(r.rankings?.closest ?? []),
-    ...(r.rankings?.value ?? []),
-    ...(r.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
-  ].filter((e: any) => e.product?.barcode && e.product?.quantity && e.price_per_100_cents == null).map((e: any) => e.product.barcode))).slice(0, 12) : [];
-  const webBusy = allUnpriced.some((barcode) => webP[barcode] === undefined);
+  }, [busy, r, barcode, showMore, rk]);
+  // Prices load per row: a slow lookup never holds the list, and Quality never waits for a price.
+  const webBusy = rk === 'value' && ranked.slice(0, showMore ? 10 : 3).some((e: any) => e.price100 == null && !!e.product?.quantity && webP[e.product.barcode] === undefined);
   // Nothing at all in any tab (once the price search has finished): no tabs, one plain note saying there is no alternative.
   const none = !!r && !busy && !webBusy && !err && ['value', 'match'].every((k) => listOf(k).length === 0);   // only the two visible rankings count
   const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match').length > 0) : [];
@@ -190,30 +183,6 @@ export default function Alternatives() {
     const k = (e.price100 - o.per100_cents) * 10, pct = Math.round(((e.price100 - o.per100_cents) / o.per100_cents) * 100);
     return { text: `${fmt(k)}${liquid ? '/L' : '/kg'}`, tone: tone(k), sub: `${pct > 0 ? '+' : ''}${pct} % ${t('diff.vs')}` };
   };
-  const detailBody = (e: any) => (<>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}><SaveButton product={e.product} /></div>
-              {(() => {
-                const q = e.product.score?.total, oq = r?.original?.score?.total, dq = q != null && oq != null ? q - oq : null;
-                const d = diffOf(e), u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
-                const unitTxt = u ? `${formatCents(u.perUnitCents)}/${u.unit === 'L' ? 'L' : 'kg'}` : null;
-                return <div className="sumcard">
-                  <div className="sum3">
-                    <div><span className="mut sm">{t('alt.sumQ')}</span><b>{q ?? '—'}</b>{q != null && <Bar value={q / 100} />}{dq != null && <span className={'dl ' + (dq > 0 ? 'up' : dq < 0 ? 'down' : '')}>{dq === 0 ? t('score.same') : `${dq > 0 ? '+' : '−'}${Math.abs(dq)} ${t('score.pts')}`}</span>}</div>
-                    {unitTxt && <div><span className="mut sm">{t('alt.sumP')}</span><b className="sm2">{unitTxt}</b>{d && <span className="dl" style={{ color: d.tone }}>{d.text}</span>}</div>}
-                  </div>
-                  {e.tradeoffs?.length > 0 && <div className="flags" style={{ margin: '14px 0 0' }}>{e.tradeoffs.slice(0, 2).map((x: string) => <span key={x} className="pill w">{x}</span>)}</div>}
-                </div>;
-              })()}
-              {(() => { const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product)); return u ? <p className="mut sm" style={{ margin: '0 0 6px' }}>{t('diff.real')} : <b>{t(u.unit === 'L' ? 'simple.perL' : 'simple.perKg', { p: formatCents(u.perUnitCents) })}</b>{e.pack != null ? ` · ${t('size.pack', { s: e.size?.amount ? sizeLabel(e.size) : '' })} ${formatCents(e.pack)}` : ''}</p> : null; })()}
-              {e.dominated && <p className="mut sm" style={{ margin: '0 0 6px' }}>{t('alt.dominated')}</p>}
-              <Row wrap><NutriScore grade={e.product.nutriScore} /><NovaBadge group={e.product.novaGroup} estimated={e.product.novaEstimated} />{e.estimated && <Pill tone="w">{t('est.pill')}</Pill>}{e.conf && !e.estimated && <Pill tone={e.conf === 'low' ? 'w' : 'g'}>{t('alt.conf_' + e.conf)}</Pill>}{e.product.frEvidence === 'off_tag' && <Pill tone="g">{t('where.toConfirm')}</Pill>}</Row>
-                            <Row wrap>
-                <Button primary onPress={() => { setDetail(null); go(routes.product(e.product.id)); }}>{t('alt.seeProduct')}</Button>
-                <Button small plain onPress={async () => { try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setDetail(null); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}><span style={{ marginRight: 6 }}>⚑</span>{t('sub.notComparable')}</Button>
-              </Row>
-              <h3 style={{ marginTop: 24 }}>{t('where.title')}</h3><Where barcode={e.product.id} liquid={isLiquid(e.product)} />
-              {e.product.chains?.length > 0 && <div className="logos">{e.product.chains.slice(0, 6).map((c: string) => <ChainLogo key={c} id={c} size={22} />)}{(e.product.chains?.length ?? 0) > 6 && <span className="mut sm">+{e.product.chains.length - 6}</span>}</div>}
-  </>);
   return (
     <Screen>
       <NavBar onBack={back} />
@@ -247,7 +216,6 @@ export default function Alternatives() {
         const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
         const d = diffOf(e);
         const w = webP[e.product.barcode];
-        const chains = ((e.product.chains?.length ? e.product.chains : w?.chains) ?? []) as string[];
         return (
           <article key={e.product.id} className={'arow' + (idx === 0 ? ' top' : '')} onClick={() => { haptic('tap'); go(routes.product(e.product.id)); }}>
             {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
@@ -255,12 +223,11 @@ export default function Alternatives() {
               <div className="aname">{e.product.name}</div>
               <div className="abrand">{e.product.brand}</div>
               <div className="ameta">
-                {e.product.score && <span className={'tile ' + (rk === 'match' ? 'main' : 'sub')}><span className="tile-row"><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>
-                  {rk === 'match' && r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>
+                {rk === 'match' && e.product.score && <span className="tile main"><span className="tile-row"><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>
+                  {r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>
                   <small className="cap">{t('alt.sumQ')}</small></span>}
-                {e.vs != null && rk !== 'match' && <span className={'tile ' + (rk === 'value' ? 'main' : 'sub')} title={t('score.pqHint')}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span><small className="cap">{t('score.pq')}</small></span>}
+                {rk !== 'match' && e.vs != null && <span className="tile main" title={t('score.pqHint')}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span><small className="cap">{t('score.pq')}</small></span>}
               </div>
-              {chains.length > 0 && <div className="logos">{chains.slice(0, 3).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}{chains.length > 3 && <span className="mut sm">+{chains.length - 3}</span>}</div>}
             </div>
             <div className="aprice">
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
@@ -270,12 +237,11 @@ export default function Alternatives() {
               {u == null && e.pack == null && !(w?.per100_cents > 0) && !(w?.pack_cents > 0) && (webP[e.product.barcode] === undefined ? <span className="mut sm"><span className="mini-ring" />{t('alt.pricing')}</span> : <span className="mut sm">{t('alt.noPrice')}</span>)}
               {e.stale && !e.ps_web && <span className="mut sm">{t('alt.conf_low')}</span>}
               {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
-              <button className="pqinfo" aria-label={t('simple.moreInfo')} onClick={(ev) => { ev.stopPropagation(); haptic('tap'); setDetail(e); }}>ⓘ</button>
+              <button className="flagbtn" aria-label={t('sub.notComparable')} title={t('sub.notComparable')} onClick={async (ev) => { ev.stopPropagation(); try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}>⚑</button>
             </div>
           </article>);
       })}</div>}
       {r && !busy && !showMore && ranked.length > 3 && <Button small plain onPress={() => { haptic('tap'); setShowMore(true); }}>{t('alt.showMore')}</Button>}
-      <Sheet open={!!detail} onClose={() => setDetail(null)} title={detail?.product.name}>{detail && detailBody(detail)}</Sheet>
       <Toast text={note} />
     </Screen>
   );

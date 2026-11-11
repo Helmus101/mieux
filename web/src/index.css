@@ -111,8 +111,7 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .card.tint{background:var(--tint); border-color:var(--line)}
 .row{display:flex; align-items:center; gap:16px}
 .card>p.mut.sm:first-child{margin-top:0}
-.card{border:1px solid var(--line); box-shadow:none; border-radius:12px; background:var(--surface)}
-.card{background:var(--card); border-radius:8px; box-shadow:var(--shadow); padding:16px; margin:12px 0}
+.card{background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:none; padding:16px; margin:12px 0}
 .group{background:transparent; border:0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); border-radius:0; overflow:hidden; box-shadow:none; margin:12px 0}
 .cell{display:flex; align-items:center; gap:14px; position:relative; transition:background .15s; padding:12px 2px; min-height:52px}
 
@@ -242,7 +241,6 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .ameta em{font-style:normal; font-size:13px; font-weight:600; margin-left:6px}
 .ameta em.up{color:var(--accent)}
 .ameta em.down{color:var(--bad)}
-.arow .logos{margin:8px 0 0; gap:7px}
 .aprice{display:flex; flex-direction:column; align-items:flex-end; gap:2px; text-align:right}
 .aprice b{font-size:19px; font-weight:700; letter-spacing:-.4px}
 .aprice b small{font-size:12.5px; font-weight:500; color:var(--mut)}
@@ -289,12 +287,16 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .toasts{position:fixed; left:0; right:0; bottom:calc(92px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; align-items:center; gap:8px; z-index:60; pointer-events:none}
 .toast2{pointer-events:auto; display:flex; align-items:center; gap:14px; background:rgba(30,30,30,.94); color:#fff; padding:12px 16px; border-radius:99px; font-size:15px; box-shadow:0 6px 24px rgba(0,0,0,.25); touch-action:pan-y; animation:toastin .22s ease}
 .toast2 button{background:none; border:0; color:#9fe6b8; font-weight:700; font-size:15px; cursor:pointer; padding:6px 4px}
-.peek{position:absolute; left:12px; right:12px; bottom:calc(150px + env(safe-area-inset-bottom)); z-index:5; display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--surface); color:var(--ink); border-radius:12px; box-shadow:0 10px 36px rgba(0,0,0,.35); cursor:pointer; touch-action:pan-x; animation:peekin .22s ease; min-height:64px}
+.peek{position:absolute; left:12px; right:12px; bottom:calc(150px + env(safe-area-inset-bottom)); z-index:5; display:flex; align-items:center; gap:12px; padding:12px 40px 12px 14px; background:var(--surface); color:var(--ink); border-radius:12px; box-shadow:0 10px 36px rgba(0,0,0,.35); cursor:pointer; touch-action:pan-x; animation:peekin .22s ease; min-height:64px}
 .peek img{width:48px; height:48px; object-fit:contain; border-radius:8px; background:#fff; flex:none}
 .peek-main{flex:1; min-width:0; display:flex; flex-direction:column}
 .peek-main b{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .peek-score{font-size:30px; font-weight:700; line-height:1; text-align:right; display:flex; flex-direction:column; align-items:flex-end}
 .peek-score small{font-size:12px; font-weight:600; margin-top:3px}
+.peek-x{position:absolute; top:0; right:0; width:44px; height:44px; border:0; background:none; color:var(--mut); font-size:24px; line-height:1; cursor:pointer}
+.peek-x:active{color:var(--ink)}
+.peek-open{align-self:flex-start; margin-top:4px; padding:8px 0; min-height:44px; border:0; background:none; color:var(--accent); font-weight:700; font-size:13px; cursor:pointer; text-decoration:underline; text-underline-offset:3px}
+.flagbtn{min-width:44px; min-height:44px; border:0; background:none; color:var(--mut); font-size:15px; cursor:pointer; padding:0}
 
 /* ===== 11. Other screens and components ===== */
 @keyframes enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
