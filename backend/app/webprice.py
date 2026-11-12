@@ -139,15 +139,18 @@ def _size_regex(q: Optional[Dict[str, Any]]) -> Optional[re.Pattern]:
 
 
 def _query(product: Dict[str, Any], variant: int = 0) -> str:
-    """First wording: brand, name, size and 'prix €' (snippets that print a price). Second: the barcode with the brand, which brings up the shops' own pages for this exact pack."""
+    """First wording: brand, name, size and 'prix €' (snippets that print a price). Second: adds the barcode to that
+    same name-first wording, which brings up the shops' own pages for this exact pack - the barcode never replaces
+    the name: a 13-digit number alone is a poor query for a search engine or a model, with nothing to recognise."""
     q = product.get("quantity") or {}
     brand = str(product.get("brand") or "").split(",")[0]
     code = str(product.get("barcode") or "")
-    if variant == 1 and len(code) >= 12:
-        return " ".join(x for x in (code, brand, "prix") if x)
-    tail = ("prix €", "prix supermarché drive")[0 if variant == 0 else 1]
     size = f"{q['amount']:g} {q['unit']}" if q.get("amount") else ""
-    return " ".join(x for x in (brand, str(product.get("name") or ""), size, tail) if x).strip()
+    base = (brand, str(product.get("name") or ""), size)
+    if variant == 1 and len(code) >= 12:
+        return " ".join(x for x in base + (code, "prix") if x)
+    tail = ("prix €", "prix supermarché drive")[0 if variant == 0 else 1]
+    return " ".join(x for x in base + (tail,) if x).strip()
 
 
 def _fetch_results(name: str, product: Dict[str, Any], http: Http, variant: int = 0) -> list:

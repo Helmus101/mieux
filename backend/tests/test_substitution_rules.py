@@ -830,11 +830,11 @@ def test_a_multipack_written_with_a_star_is_the_whole_pack():
     assert parse_quantity("4*125 g") == (500.0, "g") and parse_quantity("6 x 25 g") == (150.0, "g")
 
 
-def test_the_second_search_wording_uses_the_barcode():
+def test_the_second_search_wording_adds_the_barcode_to_the_name_never_instead_of_it():
     from app import webprice
     prod = {"barcode": "8001060034785", "name": "Pesto alla genovese", "brand": "Saclà", "quantity": {"amount": 190.0, "unit": "g"}}
     assert webprice._query(prod, 0) == "Saclà Pesto alla genovese 190 g prix €"
-    assert webprice._query(prod, 1) == "8001060034785 Saclà prix"
+    assert webprice._query(prod, 1) == "Saclà Pesto alla genovese 190 g 8001060034785 prix"   # name first, barcode narrows it further, never alone
     assert webprice._query({**prod, "barcode": "20386238"}, 1) == "Saclà Pesto alla genovese 190 g prix supermarché drive"   # a short code is too ambiguous to search by
 
 
