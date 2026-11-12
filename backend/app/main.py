@@ -2023,13 +2023,15 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     rk_ = res.get("rankings") or {}
     if isinstance(rk_.get("value"), list):
         # Only what beats the scanned product on value OR quality. Worse on both is never shown, at the API or in the app.
+        # But when the scanned product has neither a quality score nor a value baseline, there is nothing to beat: showing
+        # zero candidates would hide every real alternative just because the original is a data gap, not because none beat it.
         o_v = rk_.get("original_value_score")
         o_q = (orig.get("score") or {}).get("total")
         def _beats(x):
             v = x.get("value_score")
             q = ((x.get("product") or {}).get("score") or {}).get("total")
             return (o_v is not None and v is not None and v > o_v) or (o_q is not None and q is not None and q > o_q)
-        rk_["value"] = [x for x in rk_["value"] if x.get("value_score") is not None and _beats(x)]
+        rk_["value"] = [x for x in rk_["value"] if x.get("value_score") is not None and (_beats(x) if (o_v is not None or o_q is not None) else True)]
     o_sc_ = (orig.get("score") or {}).get("total")
     if isinstance(rk_.get("quality"), list) and o_sc_ is not None:
         rk_["quality"] = [x for x in rk_["quality"] if ((x.get("product") or {}).get("score") or {}).get("total") is not None and x["product"]["score"]["total"] > o_sc_]

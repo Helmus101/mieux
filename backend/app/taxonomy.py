@@ -101,6 +101,7 @@ R = [
     # raw/frozen produce are not interchangeable (different preparation, different use), so each gets its own type.
     ("grilled_vegetables", "produce", "fruit_veg", "grilled", "jar", "antipasti", r"grilled-vegetables|antipasti|marinated-vegetables|roasted-peppers|roasted-vegetables|fruits|vegetables|fresh-plant", r"poivrons? grill[ée]s?|l[ée]gumes? grill[ée]s?|aubergines? grill[ée]es?|courgettes? grill[ée]es?|antipasti|l[ée]gumes? marin[ée]s?|poivrons? r[ôo]tis?"),
     ("vegetable_puree", "produce", "fruit_veg", "puree", "puree", "meal", r"vegetable-purees|pur[ée]es-de-legumes|fruits|vegetables|fresh-plant", r"pur[ée]e de (?:brocoli|carotte|courgette|potiron|panais|c[ée]leri|patates? douces?|petits? pois|choux?[ -]fleur|l[ée]gumes?)"),
+    ("mushrooms", "produce", "fruit_veg", "mushroom", "mushroom", "cooking_ingredient", r"mushrooms|canned-mushrooms|dried-mushrooms|fresh-mushrooms|fungi|fruits|vegetables|fresh-plant", r"champignons?|c[eè]pes?|girolles?|morilles?|pleurotes?|shiitak[ei]|portobello|chanterelles?"),
     ("fruits_veg", "produce", "fruit_veg", "produce", "produce", "meal", r"fruits|vegetables|fresh-plant|plant-based-foods-and-beverages-fruits|canned-vegetables", r"l[ée]gumes|haricots verts|petits pois|tomates? (pel|concass)|carotte|pomme de terre"),
     ("legumes", "produce", "legumes", "legumes", "legumes", "meal", r"legumes|pulses|lentils|chickpeas|beans|pois-chiches", r"lentille|pois chiche|haricots (rouges|blancs)|f[èe]ves"),
     # ---- sauces, oils
@@ -198,7 +199,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
-                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough")
+                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid == "cheese" and _CHEESE_DISH.search(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
@@ -301,9 +302,16 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
     if not co["type"] and not cc["type"]:
         return _untyped_substitute(orig, cand)
 
-    # HARD GATE: Reject low-confidence classifications
+    # HARD GATE: Reject low-confidence classifications, with one exception: two products whose names independently
+    # named the exact same specific type still agree with each other, even without a supporting category tag (common
+    # for a product with thin or non-canonical Open Food Facts data - a missing category must not mean zero
+    # alternatives when the name alone already says plainly what it is). Capped below at level 2: name alone never
+    # earns "almost identical". Either side fully unclassified, or the two sides naming different types, still rejects.
+    name_only_agreement = False
     if co["confidence"] in ("none", "low") or cc["confidence"] in ("none", "low"):
-        return None  # Cannot confidently classify one or both products
+        if co["confidence"] == "none" or cc["confidence"] == "none" or co["type"] != cc["type"]:
+            return None
+        name_only_agreement = True
 
     # HARD GATE: Both must have a valid type
     if not co["type"] or not cc["type"]:
@@ -318,6 +326,8 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
     lv = level_between(co["type"], cc["type"])
     if lv is None:
         return None  # No cluster relationship exists - completely incompatible types
+    if name_only_agreement:
+        lv = max(lv, 2)   # name alone, with no category tag on either side, never reaches "almost identical"
 
     # Variant handling
     vo, vc = variant(orig, co["type"]), variant(cand, cc["type"])
@@ -409,6 +419,10 @@ TYPE_TERMS: Dict[str, List[str]] = {
     "cream_cheese": ["labneh", "carré frais", "fromage à tartiner", "cream cheese", "philadelphia", "boursin"],
     "cheese": ["emmental", "gruyère", "comté", "camembert", "mozzarella", "fromage râpé"],
     "ham": ["jambon", "lardons"], "soup": ["soupe", "velouté"], "pizza": ["pizza"], "chips": ["chips"], "tea": ["thé", "infusion"],
+    "mushrooms": ["champignons", "cèpes", "girolles", "morilles", "pleurotes", "chanterelles"],
+    "pizza_dough": ["pâte à pizza"],
+    "grilled_vegetables": ["légumes grillés", "poivrons grillés", "antipasti"],
+    "vegetable_puree": ["purée de légumes"],
     "nuts": [],
 }
 

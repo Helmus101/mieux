@@ -990,3 +990,31 @@ def test_pizza_dough_is_not_a_substitute_for_a_finished_pizza():
     pizza = P("Pizza Margherita", ["en:pizzas"])
     assert sub(dough, pizza) is None
     assert sub(dough, dough2)["level"] == 1
+
+
+def test_mushrooms_have_their_own_type_and_find_each_other_without_a_category_tag():
+    """Many mushroom products (dried cèpes, canned champignons) carry no Open Food Facts category tag at all.
+    Before this type existed, two such products were both 'unclassified' and could only match by generic name-word
+    overlap, or not at all - mushrooms must find each other confidently from the name alone."""
+    cepes = P("Cèpes en morceau", [])
+    champignons = P("Champignons de Paris émincés", [])
+    girolles = P("Girolles entières", [])
+    carotte = P("Carottes râpées", [])
+    assert taxonomy.classify(cepes)["type"] == "mushrooms" and taxonomy.classify(cepes)["confidence"] == "high"
+    assert sub(cepes, champignons)["level"] == 1
+    assert sub(cepes, girolles)["level"] == 1
+    assert sub(cepes, carotte) is None
+    assert "champignons" in taxonomy.search_terms(cepes)
+
+
+def test_a_product_with_no_category_tag_still_substitutes_when_both_names_agree_on_the_same_specific_type():
+    """A thin Open Food Facts record with no usable category tag used to be rejected outright by the confidence gate,
+    even when its name plainly says what it is and another product's name agrees: 'Jambonneau de porc cuit' and
+    'Jambon de Paris' both name ham, so a missing category tag must not mean zero alternatives. Capped at level 2:
+    name alone is never 'almost identical'. A name that resolves to a different type must still be rejected."""
+    jambonneau = P("Jambonneau de porc cuit", [])
+    jambon = P("Jambon de Paris", [])
+    quiche = P("Quiche au jambon", [])
+    r = sub(jambonneau, jambon)
+    assert r is not None and r["level"] == 2 and r["same_type"] is True
+    assert sub(jambonneau, quiche) is None
