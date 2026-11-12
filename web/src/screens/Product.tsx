@@ -35,13 +35,13 @@ export default function Product() {
       .catch((e: any) => { if (!cancelled && autoTries.current < 2 && e?.response?.status !== 400 && !(e?.response && ![404, 502, 503, 504].includes(e.response.status))) { autoTries.current += 1; retryTimer = setTimeout(() => setAttempt((n) => n + 1), 1200); return; } const snap = useHistory.getState().productById(barcode); if (snap && e?.response?.status !== 404) { setD({ product: snap, fit: [], price_context: null }); setOffline(true); } else setErr(e?.response?.status === 404 ? { kind: e.response.data?.detail === 'not_food' ? 'notfood' : 'notfound', msg: '' } : e?.response?.status === 400 ? { kind: 'invalid', msg: '' } : e?.response?.status === 429 ? { kind: 'rate', msg: '' } : e?.response?.status === 401 ? { kind: 'auth', msg: 'HTTP 401' } : e?.response ? { kind: 'server', msg: `HTTP ${e.response.status}${typeof e.response.data?.detail === 'string' ? ' · ' + e.response.data.detail : ''}` } : { kind: 'network', msg: e.message }); });
     return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
   }, [barcode, estimates, attempt]);
-  // While the product page is read, the alternatives are already searched with the same request the alternatives screen will make,
-  // so that screen opens with the list ready (and the server has stored the prices it found).
+  // Started the moment the barcode is known, in parallel with the product fetch itself (the server loads the product
+  // for this search on its own, so there is nothing here to wait for): the same request the alternatives screen will
+  // make, so that screen opens with the list ready and the server has already stored the prices it found.
   useEffect(() => {
-    if (!barcode || !d?.product) return;
-    const id = setTimeout(() => prefetchAlternatives(barcode), 400);
-    return () => clearTimeout(id);
-  }, [barcode, d?.product?.id]);
+    if (!barcode) return;
+    prefetchAlternatives(barcode);
+  }, [barcode]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
   const [webP, setWebP] = useState<any>(null), [webPriceLoading, setWebPriceLoading] = useState(false);       // hooks stay above every early return
   const headKind = d ? priceHeadline(d.price_context).kind : null;
