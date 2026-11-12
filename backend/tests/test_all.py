@@ -14,7 +14,7 @@ def raw(code, name, sugars, prot, cats=("en:dairies", "en:yogurts"), ing="milk",
     nm = {"energy-kcal_100g": 90, "fat_100g": 2, "saturated-fat_100g": 1, "carbohydrates_100g": 8, "sugars_100g": sugars, "proteins_100g": prot, "salt_100g": .1, "fiber_100g": .5}
     nm = {k: v for k, v in nm.items() if v is not None}
     if sugars is None: nm.pop("sugars_100g", None)
-    return {"code": code, "product_name": name, "brands": "B", "categories_tags": list(cats), "nutriments": nm, "ingredients_text": ing,
+    return {"code": code, "product_name": name, "brands": "B", "categories_tags": list(cats), "nutriments": nm, "ingredients_text": ing, "quantity": "400 g",
             "allergens_tags": list(allergens), "ingredients_analysis_tags": list(an), "nutriscore_grade": grade, "last_modified_t": 1700000000, "countries_tags": ["en:france"]}
 
 
@@ -36,7 +36,7 @@ class FakeOFF:
 
 main.app.state.off = FakeOFF()
 c = TestClient(main.app)
-main.app.state.prices = type("Stocked", (), {"latest": lambda self, *a, **k: None, "chain_summary": lambda self, *a, **k: [{"chain": "Carrefour"}]})()  # every product is sold somewhere
+main.app.state.prices = type("Stocked", (), {"latest": lambda self, *a, **k: {"source": "open_prices", "per100_cents": 50.0, "date": __import__("datetime").date.today().isoformat(), "where": "X"}, "chain_summary": lambda self, *a, **k: [{"chain": "Carrefour"}]})()  # every product is sold somewhere, at a real observed price
 H = {"X-Session-Id": "test-session-1", "X-Lang": "en"}
 CHAIN_SUMMARY = lambda self, *a, **k: [{"chain": "Carrefour"}]  # noqa: E731
 
@@ -177,6 +177,7 @@ def test_budget_priority_ranks_by_verified_price_only():
 
 
 def test_french_by_default():
+    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": 50.0, "date": __import__("datetime").date.today().isoformat(), "where": "X"}, "chain_summary": CHAIN_SUMMARY})()
     r = c.post("/v1/products/1/alternatives", headers={"X-Session-Id": "fr-user-001"}, json={"category_mode": "any", "priorities": ["protein"], "excluded_allergens": ["peanuts"]}).json()
     txt = " ".join(r["alternatives"][0]["improvements"] + r["alternatives"][0]["tradeoffs"])
     assert "protéines" in txt and "en plus" in txt
@@ -199,10 +200,10 @@ def test_value_ranking_and_price_comparison_always_present():
     # a non-price priority still returns the price comparison
     r2 = c.post("/v1/products/1/alternatives", headers=Hv, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"]}).json()
     assert r2["original_price"]["per100_cents"] == 50.0 and r2["alternatives"][0]["value"] is not None and r2["alternatives"][0]["price_source"]["source"] == "open_prices"
-    # no price anywhere -> no price claims
+    # no price anywhere -> no alternative is shown at all (a product without a price is eliminated, not just unranked)
     main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None, "chain_summary": CHAIN_SUMMARY})()
     r3 = c.post("/v1/products/1/alternatives", headers=Hv, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"], "approximate": False}).json()
-    assert r3["original_price"] is None and r3["alternatives"][0]["value"] is None
+    assert r3["original_price"] is None and r3["alternatives"] == []
 
 
 def test_store_prices_by_location_and_alternatives_use_nearby():

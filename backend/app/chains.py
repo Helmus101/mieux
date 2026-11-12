@@ -63,6 +63,17 @@ def canon(text: Optional[str]) -> Optional[str]:
     return None
 
 
+def canon_match(text: Optional[str]) -> Optional[str]:
+    """canon() for product names/brands: only a specific supermarket name counts. The bare 'u' in Super U's regex (or a
+    short token inside a longer word) must not turn 'u' or 'matcha' into supermarket evidence."""
+    t = (text or "").lower()
+    for name, rx in CHAINS.items():
+        m = re.search(rx, t)
+        if m and (len(m.group(0).strip()) >= 4 or " " in m.group(0)):
+            return name
+    return None
+
+
 def own_brand_chain(brand: Optional[str]) -> Optional[str]:
     b = (brand or "").lower()
     for frag, chain in OWN_BRANDS.items():

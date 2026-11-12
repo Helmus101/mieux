@@ -5,7 +5,7 @@
 For every barcode in scripts/alt_panel.json it loads the product and its alternatives and checks the rules we promise users:
   - no error, every product answers 200; alternatives never empty by accident (reported, not failed)
   - each returned tab at most 100 server-side (the apps show 3 then expand to 10), no duplicates, never the scanned product, no category-path names
-  - every alternative is a real branded product sold in France, has at least one recognised supermarket chain, and is a level 1-2 substitute
+  - every alternative is a real branded product sold in France, has at least one recognised supermarket chain, has a real price, and is a level 1-2 substitute
   - Valeur: a verified recent price and a price-quality score above the scanned product's when that baseline exists; Qualité: a higher nutrition score
   - prices from the web search are flagged approximate
   - the same product shows the same price-quality score in every tab
@@ -58,6 +58,7 @@ def check(code, prod, alts):
             if p.get("soldInFrance") is not True: bad.append(f"{tab}: not sold in France {bc}")
             if not str(p.get("brand") or "").strip(): bad.append(f"{tab}: no identifiable brand {bc}")
             if not p.get("chains"): bad.append(f"{tab}: no supermarket chain evidence {bc}")
+            if e.get("price_per_100_cents") is None: bad.append(f"{tab}: no price {bc}")
             lv = (e.get("substitution") or p.get("substitution") or {}).get("level")
             if lv not in (1, 2): bad.append(f"{tab}: level {lv} {bc}")
             ps = e.get("price_source") or {}

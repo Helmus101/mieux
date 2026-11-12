@@ -1468,6 +1468,12 @@ def _candidate_chain_ids(c: Dict[str, Any], chain_of: Any = None) -> List[str]:
     cid = retail.ID_OF.get(own or "")
     if cid:
         ids.append(cid)
+    if not ids:
+        # No sighting and no own brand: the supermarket's own name in the product name or brand still counts as evidence.
+        named = _chains.canon_match(c.get("name")) or _chains.canon_match(str(c.get("brand") or ""))
+        cid = retail.ID_OF.get(named or "")
+        if cid:
+            ids.append(cid)
     ids += _brand_chain_ids(c.get("brand"), c.get("name"))
     out = []
     for i in ids:
@@ -1925,8 +1931,13 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     body.chains = [c for c in body.chains if c in retail.NAME_OF]  # ids of chains that no longer exist (saved on the device) are ignored
     sel_names = [retail.NAME_OF[c] for c in body.chains]
     chain_of = getattr(app.state.prices, "chain_summary", None)
-    for c in peers:  # attach every chain evidence we have; the hard France gate is applied after cached web prices are read
+    for c in peers:  # attach every chain evidence we have
         c["chains"] = _candidate_chain_ids(c, chain_of)
+    if market.current() == "FR":
+        # First elimination, before any ranking work: in France a candidate must be sold in France AND have real
+        # supermarket evidence (an Open Prices sighting, a web-price shop, the chain's own brand, brand-level retail
+        # data, or the supermarket's name in the product itself).
+        peers = [c for c in peers if c.get("soldInFrance") is True and c.get("chains")]
     # Popularity of each candidate: how often it is scanned (Open Food Facts) and whether chains are known to sell it. The money and quality
     # lists use it to keep obscure products from topping a ranking (see engine.is_popular).
     local_ = getattr(app.state.off, "local", None)
@@ -1970,6 +1981,13 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         peers = kept
     need_prices = bool({"budget", "value"} & set(body.priorities))
     note = None
+
+    def _has_price(bc: str) -> bool:
+        # Second elimination: a displayed alternative must have a real price - an observed receipt/community price or a
+        # cached web find. A category estimate is not a price.
+        pt = points.get(bc) or {}
+        return prices.get(bc) is not None and pt.get("source") != "estimate"
+
     # The price comparison is always part of the answer. Pool = the engine's picks + the best-matching comparable products,
     # priced together (cached, threaded). Prices are never invented.
     pool_src = engine.prefilter(orig, peers, allergens, diet, body.category_mode, priorities=body.priorities)
@@ -1979,6 +1997,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         orig_price, prices, points, shops = _price_map(s, uid, orig, priced, body.location, body.approximate, sel_names)
         if market.current() == "FR":
             peers = [c for c in peers if c.get("chains")]   # France: a displayed alternative needs real supermarket evidence
+        peers = [c for c in peers if _has_price(c["barcode"])]   # no price, no alternative
         res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, engine.MAX_SHOWN, prices, orig_price, lang)
         pool = peers
     else:
@@ -1987,6 +2006,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         orig_price, prices, points, shops = _price_map(s, uid, orig, pool, body.location, body.approximate, sel_names)
         if market.current() == "FR":
             pool = [c for c in pool if c.get("chains")]
+        pool = [c for c in pool if _has_price(c["barcode"])]
         for a in res["alternatives"]:
             a["price_per_100_cents"] = prices.get(a["product"]["barcode"])
             a["value"] = engine.value_card(orig, a["product"], orig_price, a["price_per_100_cents"])
@@ -2013,7 +2033,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             hit = app.state.prices.store_price(pr_["barcode"], (q_["amount"], q_["unit"]), body.location.lat, body.location.lon, body.location.radius_km)
         if hit:
             return {"state": "observed_at_store", "store": hit.get("store"), "date": hit.get("date"), "distance_km": hit.get("distance_km")}, hit
-        chain_ = _chains.own_brand_chain(pr_.get("brand")) or _chains.canon(str(pr_.get("brand") or "").split(",")[0]) or next((retail.NAME_OF[i] for i in pr_.get("chains") or [] if i in retail.NAME_OF), None)
+        chain_ = _chains.own_brand_chain(pr_.get("brand")) or _chains.canon_match(str(pr_.get("brand") or "").split(",")[0]) or _chains.canon_match(str(pr_.get("name") or "")) or next((retail.NAME_OF[i] for i in pr_.get("chains") or [] if i in retail.NAME_OF), None)
         if chain_:
             return {"state": "seen_at_chain", "chain": chain_}, None   # a store brand is sold by that chain; the card names the chain
             return {"state": "seen_at_chain"}, None   # a store brand is sold by that chain
@@ -2023,7 +2043,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     def _fill_chains(pr_: Dict[str, Any]) -> None:
         if pr_.get("chains"):
             return
-        own_ = _chains.own_brand_chain(pr_.get("brand")) or _chains.canon(str(pr_.get("brand") or "").split(",")[0]) or _chains.canon(str(pr_.get("name") or ""))
+        own_ = _chains.own_brand_chain(pr_.get("brand")) or _chains.canon_match(str(pr_.get("brand") or "")) or _chains.canon_match(str(pr_.get("name") or ""))
         cid_ = retail.ID_OF.get(own_) if own_ else None
         ids = ([cid_] if cid_ else []) + _brand_chain_ids(pr_.get("brand"), pr_.get("name"))
         pr_["chains"] = list(dict.fromkeys(i for i in ids if retail.in_market(i, market.current())))
@@ -2048,7 +2068,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
                 r_["value_score"] = vi_["value_score"]
             elif r_.get("value_score") is None:
                 r_["value_score"] = None
-            own_ = _chains.own_brand_chain(r_["product"].get("brand")) or _chains.canon(str(r_["product"].get("brand") or "")) or _chains.canon(str(r_["product"].get("name") or ""))
+            own_ = _chains.own_brand_chain(r_["product"].get("brand")) or _chains.canon_match(str(r_["product"].get("brand") or "")) or _chains.canon_match(str(r_["product"].get("name") or ""))
             cid_ = retail.ID_OF.get(own_) if own_ else None
             if cid_ and cid_ not in (r_["product"].get("chains") or []):
                 r_["product"]["chains"] = [cid_] + list(r_["product"].get("chains") or [])   # a store brand always shows its chain logo
@@ -2114,7 +2134,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     # quality or price-quality tab unfiltered if this gate were ever skipped.
     _chain_ok = lambda x: market.current() != "FR" or bool((x.get("product") or {}).get("chains"))   # noqa: E731
     _brand_ok = lambda x: bool(str((x.get("product") or {}).get("brand") or "").strip())   # noqa: E731
-    _ok = lambda x: (x.get("product") or {}).get("soldInFrance") is True and _chain_ok(x) and _brand_ok(x)   # noqa: E731
+    _ok = lambda x: (x.get("product") or {}).get("soldInFrance") is True and _chain_ok(x) and _brand_ok(x) and _has_price((x.get("product") or {}).get("barcode"))   # noqa: E731
     # A second unconditional floor, over every tab the same way: an alternative must score at least 50 on quality.
     # Unknown (no score at all) is not proof it is good enough, so it is held to the same bar, not exempted from it.
     _q_ok = lambda x: ((x.get("product") or {}).get("score") or {}).get("total", -1) >= 50   # noqa: E731
