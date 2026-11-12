@@ -2,7 +2,6 @@
 
 export * from './types';
 export * from './api/client';
-export * from './stores/authStore';
 export * from './stores/preferencesStore';
 export * from './utils/format';
 

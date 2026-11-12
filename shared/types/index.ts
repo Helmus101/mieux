@@ -113,18 +113,3 @@ export interface PurchaseHistory {
   unit_price_cents: number;
 }
 
-export interface AuthResponse {
-  access_token: string;
-  token_type: string;
-  user_id: string;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-}

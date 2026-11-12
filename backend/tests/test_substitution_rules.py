@@ -270,8 +270,9 @@ def test_repeated_idempotency_key_replays_the_first_answer():
     from app import main
     c = TestClient(main.app)
     h = {"X-Session-Id": "idem-session-1", "Idempotency-Key": "k-1"}
-    a = c.post("/v1/auth/register", json={"email": "idem1@example.com", "password": "Passw0rd!x"}, headers=h)
-    b = c.post("/v1/auth/register", json={"email": "idem1@example.com", "password": "Passw0rd!x"}, headers=h)
+    body = {"postcode": "75001"}
+    a = c.post("/v1/geocode", json=body, headers=h)
+    b = c.post("/v1/geocode", json=body, headers=h)
     assert a.status_code < 400 and b.status_code == a.status_code and b.headers.get("Idempotent-Replay") == "true"
 
 

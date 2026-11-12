@@ -12,7 +12,6 @@ import CommandMenu from './CommandMenu';
 import NetStatus from './NetStatus';
 import UpdateToast from './UpdateToast';
 import { useEdgeSwipeBack } from './gestures';
-import { ACCOUNT_REQUIRED, accountEnabled, initAccount, useAccount } from './account';
 import { APP_PATH } from './install';
 import './index.css';
 
@@ -81,16 +80,11 @@ function Shell() {
   const { pathname } = useLocation();
   const { back } = useNav();
   const { onboarded, priorities, diet, allergens, language } = profile;
-  useEffect(() => { initAccount(); }, []);
   useEdgeSwipeBack(back, sectionOf(pathname) !== 'scan');  // the scanner is full screen: no gesture there
   // Set locale on app load
   useEffect(() => { if (language) setLocale(language); }, [language]);
-  // Keep the (local) server in sync so fit checks and price-aware ranking use the saved profile.
-  useEffect(() => { api.setPrefs(apiPrefs({ priorities, diet, allergens })); if (onboarded) api.updatePreferences(apiPrefs({ priorities, diet, allergens }) as never).catch(() => undefined); }, [onboarded, priorities, diet, allergens]);
-  const signedIn = useAccount((a) => a.email), accountReady = useAccount((a) => a.ready);
-  if (accountEnabled && ACCOUNT_REQUIRED && !accountReady) return <Screen><Loader /></Screen>;
-  // The add-to-home-screen banner shows from the very first screen (sign-in, onboarding), not only inside the app.
-  if (accountEnabled && ACCOUNT_REQUIRED && !signedIn) return <><Suspense fallback={null}><Onboarding gate /></Suspense></>;  // an account is required to use the app
+  // Keep the server in sync so fit checks and price-aware ranking use the saved profile.
+  useEffect(() => { if (onboarded) api.updatePreferences(apiPrefs({ priorities, diet, allergens }) as never).catch(() => undefined); }, [onboarded, priorities, diet, allergens]);
   if (!onboarded) return <><Suspense fallback={null}><Onboarding /></Suspense></>;
   return (
     <div className="app">

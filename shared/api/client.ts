@@ -6,9 +6,6 @@ import type {
   Receipt,
   Purchase,
   UserPreferences,
-  AuthResponse,
-  LoginRequest,
-  RegisterRequest,
 } from '../types';
 
 
@@ -17,9 +14,7 @@ export interface Identity extends IdentityInput { first_seen: string | null; las
 
 export class MieuxAPI {
   private client: AxiosInstance;
-  private token: string | null = null;
   private sessionId: string | null = null;
-  private prefsHeader: string | null = null;
   private country = 'FR';  // which market the shopper is in: picks the product database on the server
 
   // Anonymous session so scanning works without an account; persisted through the platform storage adapter.
@@ -41,12 +36,7 @@ export class MieuxAPI {
       config.baseURL = getApiBase();
       config.headers['X-Lang'] = getLocale();
       config.headers['X-Country'] = this.country;
-      this.sessionId = this.sessionId ?? MieuxAPI.anonymousSession();
-      config.headers['X-Session-Id'] = this.sessionId;  // always sent: if the server cannot verify the token it falls back to this anonymous session instead of failing
-      if (this.token) {
-        config.headers.Authorization = `Bearer ${this.token}`;
-        if (this.prefsHeader) config.headers['X-Prefs'] = this.prefsHeader;  // a signed-in account stores nothing: restrictions travel with each request
-      }
+      config.headers['X-Session-Id'] = this.sessionId ?? MieuxAPI.anonymousSession();
       if ((config.method ?? '').toLowerCase() === 'post') {
         // Same request twice within 10 s (double tap, automatic retry) carries the same key, so the server can answer once.
         const raw = `${config.url}|${typeof config.data === 'string' ? config.data : JSON.stringify(config.data ?? '')}|${Math.floor(Date.now() / 10000)}`;
@@ -70,36 +60,8 @@ export class MieuxAPI {
     });
   }
 
-  setToken(token: string) {
-    this.token = token;
-  }
-
-  clearToken() {
-    this.token = null;
-  }
-
-  setPrefs(prefs: { diet: string; priorities: string[]; allergens: string[] }) {
-    this.prefsHeader = encodeURIComponent(JSON.stringify(prefs));
-  }
-
   setSessionId(sessionId: string) {
     this.sessionId = sessionId;
-  }
-
-  clearAuth() {
-    this.token = null;
-    this.sessionId = MieuxAPI.anonymousSession();
-  }
-
-  // Auth endpoints
-  async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await this.client.post('/auth/login', data);
-    return response.data;
-  }
-
-  async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await this.client.post('/auth/register', data);
-    return response.data;
   }
 
   // Product endpoints

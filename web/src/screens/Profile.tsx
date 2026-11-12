@@ -3,12 +3,10 @@ import { t, setLocale } from '@shared/i18n';
 import { clearAll } from '@shared/storage';
 import { useProfile, useHistory } from '@shared/stores';
 import { useState } from 'react';
-import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Row, Segmented } from '../ui';
+import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Segmented } from '../ui';
 import { chainsFor, COUNTRIES, type Country } from '@shared/chains';
 import { searchAddress, type Home } from '../place';
 import { isInstalled, openInstall } from '../install';
-import { accountEnabled, signOut, useAccount } from '../account';
-import AuthForm from '../AuthForm';
 import { APP_VERSION } from '../report';
 
 export default function Profile() {
@@ -16,7 +14,6 @@ export default function Profile() {
   const hist = useHistory();
   const [, setTick] = useState(0);
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
-  const email = useAccount((a) => a.email), scans = useAccount((a) => a.scans), pending = useAccount((a) => a.pending), syncError = useAccount((a) => a.syncError);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const exp = async () => { const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = 'mieux-donnees.json'; a.click(); };
   const erase = async () => { if (!confirm(t('profile.eraseConfirm'))) return; await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset(); location.href = '/'; };
@@ -24,11 +21,6 @@ export default function Profile() {
     <Screen>
       <NavBar />
       <LargeTitle>{t('profile.title')}</LargeTitle>
-      {accountEnabled && <Section title={t('account.title')}>
-        {email ? <Group><Cell>{t('account.as', { x: email })}</Cell><Cell><Row spread><span>{t('account.scans')}</span><b>{scans ?? '…'}</b></Row>{pending > 0 && <p className="mut sm" style={{ margin: '6px 0 0' }}>{t('account.pending', { n: pending })}{syncError ? ` · ${syncError}` : ''}</p>}</Cell><Cell onPress={() => { signOut(); }}>{t('account.out')}</Cell></Group> : <>
-          <p className="mut sm">{t('account.optional')} {t('account.hint')}</p>
-          <AuthForm /></>}
-      </Section>}
       <Section title={t('simple.loc')}>
         <input value={p.name ?? ''} onChange={(e) => p.setName(e.target.value)} placeholder={t('about.namePh')} autoComplete="given-name" />
         <input value={q} onChange={(e) => type(e.target.value)} placeholder={p.place ? (p.place.label ?? ([p.place.city, p.place.postcode].filter(Boolean).join(' · ') || t('about.addrPh'))) : t('about.addrPh')} autoComplete="street-address" style={{ marginTop: 12 }} />

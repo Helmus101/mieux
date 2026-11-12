@@ -42,7 +42,6 @@ from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
 from .products import normalize, SCHEMA_VERSION
-from .auth import get_user_or_anonymous, create_access_token
 
 # Structured logging (basic setup for now)
 import logging
@@ -257,44 +256,18 @@ def get_db() -> Iterator[Session]:
         s.close()
 
 
-def user(
-    authorization: Optional[str] = Header(None),
-    x_session_id: Optional[str] = Header(None),
-    s: Session = Depends(get_db)
-) -> str:
-    """Get user ID from JWT token or anonymous session.
-
-    Supports both authenticated users (via JWT) and anonymous sessions (via X-Session-Id).
-    Accounts are optional so scanning is never blocked.
-    """
-    try:
-        user_obj, session_id = get_user_or_anonymous(authorization, x_session_id)
-    except HTTPException:
-        # If neither auth nor session provided, fall back to session-only
-        if x_session_id and len(x_session_id) >= 8:
-            user_obj, session_id = None, x_session_id
-        else:
-            raise
-
-    if user_obj:
-        user_id = user_obj["id"]
-        # Create or update user record with supabase_id if present
-        if not s.get(db.User, user_id):
-            try:
-                s.add(db.User(id=user_id, supabase_id=user_obj.get("supabase_id")))
-                s.commit()
-            except IntegrityError:  # a parallel first request created it
-                s.rollback()
-        return user_id
-    else:
-        # Anonymous session
-        if not s.get(db.User, session_id):
-            try:
-                s.add(db.User(id=session_id))
-                s.commit()
-            except IntegrityError:  # a parallel first request created it
-                s.rollback()
-        return session_id
+def user(x_session_id: Optional[str] = Header(None), s: Session = Depends(get_db)) -> str:
+    """Every request is anonymous: the device sends X-Session-Id and that is the user. No accounts, no tokens."""
+    if not x_session_id or len(x_session_id) < 8:
+        raise HTTPException(401, "X-Session-Id header required")
+    uid = x_session_id
+    if not s.get(db.User, uid):
+        try:
+            s.add(db.User(id=uid))
+            s.commit()
+        except IntegrityError:  # a parallel first request created it
+            s.rollback()
+    return uid
 
 
 # ---- models
@@ -302,16 +275,6 @@ class Prefs(BaseModel):
     diet: str = "omnivore"
     priorities: List[str] = []
     allergens: List[str] = []
-
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
-class RegisterRequest(BaseModel):
-    email: str
-    password: str
 
 
 class Loc(BaseModel):
@@ -2362,46 +2325,6 @@ def erase(uid: str = Depends(user), s: Session = Depends(get_db)):
     s.execute(delete(db.User).where(db.User.id == uid))
     s.commit()
     return {"deleted": True}
-
-
-# ---- auth endpoints
-@app.post("/v1/auth/login")
-@limiter.limit("10/minute")
-def login(request: Request, body: LoginRequest, s: Session = Depends(get_db)):
-    """Login with email and password (placeholder for local auth).
-
-    In a real implementation, you would hash passwords and verify them.
-    For now, this creates/returns a user and generates a JWT token.
-    """
-    # Simple implementation: use email as user_id
-    user_id = body.email
-    user = s.get(db.User, user_id)
-    if not user:
-        user = db.User(id=user_id)
-        s.add(user)
-        s.commit()
-
-    token = create_access_token({"sub": user_id})
-    return {"access_token": token, "token_type": "bearer", "user_id": user_id}
-
-
-@app.post("/v1/auth/register")
-@limiter.limit("5/minute")
-def register(request: Request, body: RegisterRequest, s: Session = Depends(get_db)):
-    """Register a new user (placeholder for local auth).
-
-    In a real implementation, you would hash the password before storing.
-    """
-    user_id = body.email
-    if s.get(db.User, user_id):
-        raise HTTPException(400, "User already exists")
-
-    user = db.User(id=user_id)
-    s.add(user)
-    s.commit()
-
-    token = create_access_token({"sub": user_id})
-    return {"access_token": token, "token_type": "bearer", "user_id": user_id}
 
 
 # ---- health endpoints
