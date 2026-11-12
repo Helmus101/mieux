@@ -1,6 +1,6 @@
-"""How accurate is the Google-grounded Gemini price? Compares it with prices we KNOW (retailer exports and Open Prices, last 90 days).
+"""How accurate is the web-search price? Compares it with prices we KNOW (retailer exports and Open Prices, last 90 days).
 
-    cd backend && .venv/bin/python -m scripts.backtest_webprice [N]       # key from backend/.env (GEMINI_API_KEY=...); default 200 products
+    cd backend && .venv/bin/python -m scripts.backtest_webprice [N]       # keys from backend/.env (DEEPSEEK_API_KEY and/or GEMINI_API_KEY); default 200 products
 
 Prints the share found, and the error of price per 100 g/ml: median, and the share within 10 %, 20 %, 30 %. Decide with these numbers whether to ship."""
 import json
@@ -51,7 +51,7 @@ def main(n: int = 200) -> None:
             continue
         tried += 1
         got = webprice.lookup(p, use_cache=False)
-        if got:
+        if got and got.get("per100_cents"):
             found += 1
             errs.append(abs(got["per100_cents"] - truth["per100_cents"]) / truth["per100_cents"])
     if not tried:

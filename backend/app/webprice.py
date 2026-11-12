@@ -1,7 +1,9 @@
-"""Approximate shelf price from a Google-grounded Gemini lookup, for products that have no observed price.
+"""Approximate shelf price from a cited web search (DeepSeek's in-house search first, then Google-grounded Gemini), for
+products that have no observed price. When the search finds no usable price, DeepSeek's model with server-side web search is
+asked for one last cited answer.
 
 Never an observed price: callers must label it ("~", source "web_search") and keep it out of the cheapest / best-value winners. Off unless
-GEMINI_API_KEY is set. Results (and misses) are cached per barcode so a product is looked up once, not on every scan."""
+DEEPSEEK_API_KEY or GEMINI_API_KEY is set. Results (and misses) are cached per barcode so a product is looked up once, not on every scan."""
 import json
 import os
 import re
@@ -19,10 +21,12 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from . import value
 
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-pro")
 # "gemini-flash-latest" is Google's own alias for whatever current model replaces these over time: it is tried early so a
 # retired dated version (like the others here) does not quietly stop the search working until this list is updated by hand.
 FALLBACK_MODELS = ("gemini-3.8-flash", "gemini-flash-latest", "gemini-3.7-flash", "gemini-3.5-flash")
 ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+DEEPSEEK_RESPONSES = "https://api.deepseek.com/responses"
 HIT_TTL = 30 * 86400      # a found price is searched again after 30 days (the old one stays, marked stale, if the new search finds nothing)
 MISS_TTL = 1 * 86400      # a search that found nothing is retried after a day (search results vary, so one miss must not stick for long)
 _DEFAULT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -36,7 +40,7 @@ PROMPT = (
     "Trouve le prix actuel en euros de ce produit alimentaire en France (en supermarché, drive, magasin bio, ou boutique en ligne française). "
     "Produit : {name}{brand}. Code-barres : {ean}. Format : {size}.\n"
     "Réponds UNIQUEMENT par un objet JSON : {{\"price_eur\": nombre, \"pack_size\": \"ex. 500 g\", \"store\": \"nom du magasin ou site\", \"found\": true}}. "
-    "Si tu trouves le prix de ce produit pour ce format (ou format approchant), donne-le. Si vraiment aucun prix n'existe nulle part, réponds {{\"found\": false}}."
+    "Si tu trouves le prix de ce produit pour ce format exact, donne-le. N'utilise jamais le prix d'un autre format. Si vraiment aucun prix n'existe pour ce format, réponds {{\"found\": false}}."
 )
 
 last_error: Optional[str] = None
@@ -51,7 +55,11 @@ Transport = Callable[[str, Dict[str, Any]], Dict[str, Any]]
 
 
 def _post(url: str, body: Dict[str, Any], timeout: float = 25) -> Dict[str, Any]:
-    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    headers = {"Content-Type": "application/json"}
+    key = os.environ.get("DEEPSEEK_API_KEY")
+    if key and url.startswith("https://api.deepseek.com/"):
+        headers["Authorization"] = "Bearer " + key          # DeepSeek's key travels in a header, never in the URL
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 
@@ -59,6 +67,7 @@ def _post(url: str, body: Dict[str, Any], timeout: float = 25) -> Dict[str, Any]
 BRAVE = "https://api.search.brave.com/res/v1/web/search"
 LANGSEARCH = "https://api.langsearch.com/v1/web-search"
 PARALLEL = "https://api.parallel.ai/v1/search"
+DEEPSEEK = "https://api.deepseek.com/v1/tools/search"      # DeepSeek's own web search: structured results with snippets and summaries
 _PRICE = re.compile(
     r"(?:(?:€|eur\b|euros?)\s*(\d{1,3}(?:[ .]\d{3})*(?:[,.]\d{1,2})?)|(\d{1,3}(?:[ .]\d{3})*(?:[,.]\d{1,2})?)\s*(?:€|eur\b|euros?\b))",
     re.I
@@ -85,19 +94,22 @@ def _http(method: str, url: str, headers: Dict[str, str], body: Optional[Dict[st
 
 
 def providers() -> list:
-    """Gemini's Google-grounded search only, normally: one authoritative, cited lookup per product, not several search APIs
-    reconciled against each other. If Gemini just failed (its quota ran out, or any other error), the first configured
-    free-tier search API stands in for it until Gemini is tried again (see `_gemini["down_until"]`), rather than finding
-    nothing for the ten minutes it is skipped. WEBPRICE_PROVIDERS (comma list) overrides all of this, for tests and for
-    deliberately re-enabling the others."""
+    """DeepSeek's built-in web search first, then Gemini's Google-grounded search: one cited lookup per product, not several
+    search APIs reconciled against each other. If the first provider just failed (quota, overload), the next configured one
+    stands in, and the free-tier search APIs are added while it is paused, rather than finding nothing. WEBPRICE_PROVIDERS
+    (comma list) overrides all of this, for tests and for deliberately enabling the others."""
     forced = os.environ.get("WEBPRICE_PROVIDERS")
     if forced:
         return [n for n in forced.split(",") if n]
-    out = ["gemini"] if os.environ.get("GEMINI_API_KEY") else []
-    if time.time() < _gemini["down_until"]:
+    out = []
+    if os.environ.get("DEEPSEEK_API_KEY"):
+        out.append("deepseek")
+    if os.environ.get("GEMINI_API_KEY"):
+        out.append("gemini")
+    if time.time() < _gemini["down_until"] or time.time() < _down.get("deepseek", 0):
         for name, key in (("serper", "SERPER_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY"), ("brave", "BRAVE_API_KEY")):
             if os.environ.get(key) and name not in out:
-                out.append(name)          # Gemini first, then the configured search APIs, in that order
+                out.append(name)          # the configured search APIs come last, in that order
     return out
 
 
@@ -141,6 +153,11 @@ def _query(product: Dict[str, Any], variant: int = 0) -> str:
 def _fetch_results(name: str, product: Dict[str, Any], http: Http, variant: int = 0) -> list:
     """[(url, text)] from one search provider."""
     query = _query(product, variant)
+    if name == "deepseek":
+        data = http("POST", DEEPSEEK, {"Content-Type": "application/json", "Authorization": "Bearer " + os.environ["DEEPSEEK_API_KEY"]},
+                    {"query": query[:128], "count": 20, "need_content": False})
+        return [(r.get("url") or "", " ".join(x for x in (r.get("title") or "", r.get("snippet") or "", r.get("summary") or "") if x))
+                for r in data.get("results", [])]
     if name == "brave":
         data = http("GET", BRAVE + "?" + urllib.parse.urlencode({"q": query, "country": "fr", "search_lang": "fr", "count": 10}),
                     {"X-Subscription-Token": os.environ["BRAVE_API_KEY"], "Accept": "application/json"}, None)
@@ -417,7 +434,9 @@ def _page_prices(product: Dict[str, Any], results: list, deadline: Optional[floa
 _gemini: Dict[str, Any] = {"down_until": 0.0, "error": None}
 _down: Dict[str, float] = {}          # search provider -> time until which it is skipped (quota used up)
 DAILY_CAP = int(os.environ.get("WEBPRICE_DAILY_CAP", "1500"))     # searches per day (cost guard); stored prices are always served
+AI_DAILY_CAP = int(os.environ.get("WEBPRICE_AI_DAILY_CAP", "100"))  # last-resort model calls per day: each one runs several web searches
 _day = {"d": "", "n": 0}
+_ai_day = {"d": "", "n": 0}
 
 
 def _budget_left() -> bool:
@@ -427,6 +446,16 @@ def _budget_left() -> bool:
     if _day["n"] >= DAILY_CAP:
         return False
     _day["n"] += 1
+    return True
+
+
+def _ai_budget_left() -> bool:
+    today = time.strftime("%Y-%m-%d")
+    if _ai_day["d"] != today:
+        _ai_day.update(d=today, n=0)
+    if _ai_day["n"] >= AI_DAILY_CAP:
+        return False
+    _ai_day["n"] += 1
     return True
 
 
@@ -505,6 +534,70 @@ def _gemini_lookup(product: Dict[str, Any], transport: Transport, timeout: Optio
                    "source_urls": sources,
                    "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True, "size_found": {"amount": float(qty[0]), "unit": qty[1]}}
     return out
+
+
+def _deepseek_lookup(product: Dict[str, Any], transport: Transport, timeout: Optional[float] = None) -> Optional[Dict[str, Any]]:
+    """DeepSeek's model with server-side web search, used only when the search results have no usable price. A price is
+    accepted only when the answer cites a page it actually opened, and names a pack size in the same unit as the product."""
+    key = os.environ.get("DEEPSEEK_API_KEY")
+    if not key:
+        return None
+    barcode = str(product.get("barcode") or "")
+    q = product.get("quantity")
+    size = f"{q['amount']:g} {q['unit']}" if q else (product.get("quantityText") or "inconnu")
+    body = {"model": DEEPSEEK_MODEL, "input": PROMPT.format(name=product.get("name") or "", brand=f" ({product['brand']})" if product.get("brand") else "", ean=barcode, size=size),
+            "tools": [{"type": "web_search"}], "reasoning": {"effort": "none"}, "max_output_tokens": 300, "temperature": 0}
+    try:
+        resp = transport(DEEPSEEK_RESPONSES, body, timeout=timeout) if (timeout and transport is _post) else transport(DEEPSEEK_RESPONSES, body)
+    except Exception as e:
+        _set_error(e)
+        if getattr(e, "code", None) == 429:
+            _down["deepseek_ai"] = time.time() + 600
+        return None
+    if not resp:
+        return None
+    got = None
+    for item in reversed(resp.get("output") or []):
+        if item.get("type") != "message":
+            continue
+        text = "".join(c.get("text", "") for c in item.get("content") or [] if c.get("type") == "output_text")
+        got = _parse(text)
+        if got:
+            break
+    if not got:
+        return None
+    sources = []
+    for item in resp.get("output") or []:
+        if item.get("type") != "web_search_call":
+            continue
+        action = item.get("action") or {}
+        if action.get("type") == "open_page" and action.get("url"):
+            url = str(action["url"]).split("#ws_call_id=")[0]
+            if "openfoodfacts" in url.lower() or _NOT_A_SHOP.search(url):
+                continue                 # the product database or a comparator is not a shop page with a price
+            if url not in sources:
+                sources.append(url)
+    if not sources:
+        return None                      # a price with no page behind it is a guess, not a search result
+    price_c = round(float(got["price_eur"]) * 100)
+    said = value.parse_quantity(str(got.get("pack_size") or ""))
+    qty = q and (q["amount"], q["unit"])
+    if not qty:
+        qty = said
+    elif said and (said[1] != qty[1] or abs(said[0] - qty[0]) / qty[0] > 0.1):
+        qty = None                       # a different pack: not this product's price
+    if not (qty and 20 <= price_c <= 20000 and (not q or qty[1] == q["unit"])):
+        return None
+    from . import chains as ch, retail, market
+    st_name = ch.canon(str(got.get("store") or "").replace(".", " "))
+    st_cid = retail.ID_OF.get(st_name) if st_name else None
+    if st_cid and not retail.in_market(st_cid, market.current()):
+        st_name, st_cid = None, None     # a store from another country is never this market's own
+    elif not st_name:
+        st_name = got.get("store")       # an unrecognised shop name: kept as free text, no logo
+    return {"per100_cents": round(price_c / qty[0] * 100, 1), "pack_cents": price_c, "store": st_name, "stores": [st_name] if st_name else [],
+            "chains": [st_cid] if st_cid else [], "source_urls": sources[:3],
+            "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True, "size_found": {"amount": float(qty[0]), "unit": qty[1]}}
 
 
 _SIZE = re.compile(r"(?<![\d,.])(\d{1,4}(?:[,.]\d{1,2})?)\s?(kg|g|gr|cl|ml|l)\b", re.I)
@@ -600,6 +693,17 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
     assumed = None
     if not (product.get("quantity") or {}).get("amount"):
         assumed = _guess_size(product, http)
+        if not assumed and "deepseek" in providers() and time.time() >= _down.get("deepseek_ai", 0) and time.time() >= _down.get("deepseek", 0) and (not deadline or deadline - time.time() >= 5) and _budget_left() and _ai_budget_left():
+            # No size in the database and none found on product pages: DeepSeek's own web search states the pack size with the price.
+            left = (deadline - time.time()) if deadline else None
+            try:
+                out = _bounded(min(left, 25) if left else 25, _deepseek_lookup, product, transport, timeout=left)
+            except FuturesTimeoutError:
+                out = None
+            if out:
+                out["provider"] = "deepseek_ai"
+                out["size_assumed"] = out.pop("size_found", None)
+                return out
         if not assumed and "gemini" in providers() and time.time() >= _gemini["down_until"] and (not deadline or deadline - time.time() >= 4) and _budget_left():
             # No size in the database and none found on product pages: Gemini's grounded search states the pack size with the price, and cites its pages.
             out = _gemini_lookup(product, transport, timeout=(deadline - time.time()) if deadline else None)
@@ -616,7 +720,7 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
         # Gemini is asked first, then the configured search APIs (Serper, then LangSearch). A Gemini that just failed is
         # skipped via down_until. Gemini is tried on both passes: the barcode-based query (variant 1) often yields
         # the most reliable result for French supermarket pages that JS-render their prices.
-        order = providers()               # Gemini first, then the configured search APIs; a failed Gemini is skipped via down_until
+        order = providers()               # DeepSeek first, then Gemini, then the configured search APIs; a failed one is skipped via down_until
         for name in order:
             if deadline and time.time() > deadline:
                 last_error = "deadline"
@@ -682,6 +786,23 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 return out
         if not product.get("brand"):
             break                           # an unbranded product is rarely found by a second try: do not pay for it
+    # Last resort: the search results had no two agreeing prices, but DeepSeek's model with its own web search may have
+    # opened the right shop page. It must cite an opened page and state this pack size, exactly like the Gemini path.
+    if "deepseek" in providers() and time.time() >= _down.get("deepseek_ai", 0) and time.time() >= _down.get("deepseek", 0):
+        left = (deadline - time.time()) if deadline else None
+        if (left is None or left >= 5) and _budget_left() and _ai_budget_left():
+            try:
+                out = _bounded(min(left, 25) if left else 25, _deepseek_lookup, product, transport, timeout=left)
+            except FuturesTimeoutError:
+                out = None
+            if out:
+                out["provider"] = "deepseek_ai"
+                if assumed:
+                    out["size_assumed"] = assumed
+                disc_stores, disc_chains = _extract_grocers(product, all_results)
+                out["stores"] = list(dict.fromkeys((out.get("stores") or []) + disc_stores))
+                out["chains"] = list(dict.fromkeys((out.get("chains") or []) + disc_chains))
+                return out
     disc_stores, disc_chains = _extract_grocers(product, all_results)
     if disc_chains or disc_stores:
         return {
