@@ -37,95 +37,45 @@ export default function Alternatives() {
   const [rk, setRk] = useState('value'), [hidden, setHidden] = useState<string[]>([]);
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  // Cards without an observed price stay in a short loading state while the
-  // server-side lookup completes. A completed miss is the only time we call it missing.
-  const [webP, setWebP] = useState<Record<string, any>>({});
-  const [priceState, setPriceState] = useState<Record<string, 'pending' | 'missing'>>({});
-  const askedPrices = useRef(new Set<string>());
-  useEffect(() => {
-    askedPrices.current.clear();
-    setWebP({});
-    setPriceState({});
-  }, [barcode]);
-  useEffect(() => {
-    const rows = (['value', 'quality', 'closest'] as const).flatMap((k) => (r?.rankings?.[k] ?? []) as any[]);
-    const want = [...new Set(rows.filter((e) => e.price_per_100_cents == null && e.product?.barcode && e.product.quantity && !askedPrices.current.has(e.product.barcode)).map((e) => e.product.barcode as string))].slice(0, 32);
-    if (!want.length) return;
-    want.forEach((code) => askedPrices.current.add(code));
-    setPriceState((current) => ({ ...current, ...Object.fromEntries(want.map((code) => [code, 'pending'])) }));
-    let live = true;
-    const collectBatch = async (batch: string[]) => {
-        let pending = batch;
-        while (pending.length && live) {
-          try {
-            const result = await api.getWebPriceBatch(pending);
-            if (!live) return;
-            const waiting = new Set(result.pending);
-            const complete = pending.filter((code) => !waiting.has(code));
-            setWebP((current) => ({ ...current, ...Object.fromEntries(complete.filter((code) => result.prices[code]).map((code) => [code, result.prices[code]])) }));
-            setPriceState((current) => ({ ...current, ...Object.fromEntries(complete.map((code) => [code, 'missing'])) }));
-            pending = result.pending;
-            if (pending.length) await new Promise((resolve) => setTimeout(resolve, 1500));
-          } catch {
-            // Network failure is not a negative price result. Keep waiting so a
-            // subsequent request can collect the same server-side search.
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-          }
-        }
-    };
-    // Launch every batch now so one slow product cannot stall other price scores.
-    void Promise.all(Array.from({ length: Math.ceil(want.length / 8) }, (_, i) => collectBatch(want.slice(i * 8, i * 8 + 8))));
-    return () => { live = false; };
-  }, [r]);
-
+  const [showMore, setShowMore] = useState(false);
   useEffect(() => {
     if (!barcode || !prios.length) return;
     setBusy(true); setErr(null);
-    api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 20, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) })
+    api.getAlternatives(barcode, { priorities: prios, category_mode: mode, limit: 10, substitution_max: subMax, same_size: sameSize, chains: myChains, price_constraint: pc, approximate: estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) })
       .then((x: any) => setR(x))
       .catch((e: unknown) => setErr(friendlyError(e)))
       .finally(() => setBusy(false));
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
 
-  const rowOf = (e0: any) => {
-    const w = e0.price_per_100_cents == null ? webP[e0.product?.barcode] : null;   // a price found by the web search puts the card into the price tabs
-    const e = w ? { ...e0, price_per_100_cents: w.per100_cents, value_score: w.value_score, pack_cents: w.pack_cents, product: { ...e0.product, chains: e0.product.chains?.length ? e0.product.chains : (w.chains ?? []) } } : e0;
-    return {
-    ps_web: !!w || e.price_source?.source === "web_search", avail: e.availability, product: e.product, why: e.why, tradeoffs: e.tradeoffs ?? [], price100: e.price_per_100_cents, estimated: e.estimated,
-    dominated: e.dominated, vs: e.value_score, better: e.better_than_yours, conf: e.price_source?.confidence as string | undefined, priceDate: e.price_date ?? e.price_source?.date,
-    stale: e.price_stale ?? e.price_source?.stale, size: e.size ?? e.product.quantity, pack: e.pack_cents, ratio: e.size_ratio,
-  }; };
-  const os = r?.original?.score?.total;
-  const sourceRows = (k: string): any[] => {
-    const base = (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []) as any[];
-    if (k !== 'value') return base;
-    const have = new Set(base.map((x: any) => x.product.barcode));
-    const extra = [...(r?.rankings?.quality ?? []), ...(r?.rankings?.closest ?? [])].filter((x: any) => x.price_per_100_cents == null && webP[x.product?.barcode] && !have.has(x.product.barcode) && have.add(x.product.barcode));
-    return [...base, ...extra];                                      // + candidates priced by the web search
-  };
+  const rowOf = (e: any) => ({
+    ps_web: e.price_source?.source === "web_search",
+    avail: e.availability,
+    product: e.product,
+    why: e.why,
+    tradeoffs: e.tradeoffs ?? [],
+    price100: e.price_per_100_cents,
+    estimated: e.estimated,
+    dominated: e.dominated,
+    vs: e.value_score,
+    better: e.better_than_yours,
+    conf: e.price_source?.confidence as string | undefined,
+    priceDate: e.price_date ?? e.price_source?.date,
+    stale: e.price_stale ?? e.price_source?.stale,
+    size: e.size ?? e.product?.quantity,
+    pack: e.pack_cents,
+    ratio: e.size_ratio,
+  });
+  const sourceRows = (k: string): any[] => (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []) as any[];
   const listOf = (k: string) => sourceRows(k).map(rowOf).filter((e: any) => {
     if (hidden.includes(e.product.id)) return false;
-    if (!(e.product.chains?.length)) return false;                 // only products sold at at least one supermarket chain
-    if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
-    const q = os != null && e.product.score?.total != null ? e.product.score.total - os : null;
-    if (k === 'match') { const os0 = r?.original?.score?.total; return os0 == null || (e.product.score?.total ?? -1) > os0; }   // better quality only: never the same or lower
-    { const ov = r?.rankings?.original_value_score; return e.price100 != null && (ov == null || e.vs == null || e.vs > ov); }   // value: only a better price-quality score than yours
+    return true;
   });
-  // Products with a known supermarket come first (Quality and Price-quality tabs, each group in its own order); on the price tab the cheapest stays first and chains only break ties.
-  const nCh = (e: any) => (e.product.chains?.length ?? 0);
-  const ranked = (() => {
-    const l = listOf(rk);
-    const o = rk === 'value' ? [...l].sort((a: any, b: any) => (b.vs ?? -1) - (a.vs ?? -1)) : l;
-    return [...o.filter((e: any) => nCh(e) > 0), ...o.filter((e: any) => nCh(e) === 0)];
-  })();
-  const shown = ranked.slice(0, 10);   // never more than 10 per tab, after the strict filters
-  const priceCandidates = [...new Set((['value', 'quality', 'closest'] as const)
-    .flatMap((k) => (r?.rankings?.[k] ?? []) as any[])
-    .filter((e: any) => e.price_per_100_cents == null && e.product?.barcode && e.product?.quantity)
-    .map((e: any) => e.product.barcode as string))].slice(0, 32);
-  const webBusy = priceCandidates.some((code) => !webP[code] && priceState[code] !== 'missing');
+  const ranked = listOf(rk);
+  const shown = ranked.slice(0, showMore ? 10 : 3);
+  const os = r?.original?.score?.total;
   const tabs = [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }];
   useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
+  useEffect(() => { setShowMore(false); }, [barcode, rk]);
   const nothingNear = hasHome && !!r && ['budget', 'value', 'quality'].every((k) => !(r.rankings?.[k]?.length));
 
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
@@ -192,7 +142,7 @@ export default function Alternatives() {
       {busy ? <><Loader steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} /><Skeleton h={120} /></> : null}
       {err ? <Card><Text style={{ color: c.ink, fontWeight: '700' }}>{err.title}</Text><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card> : null}
 
-      {r && !busy && !shown.length && !webBusy ? (() => {
+      {r && !busy && !shown.length ? (() => {
         const m = nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : rk === 'closest' ? { title: t('rank.noClosest'), why: t('rank.closestSub'), action: null }
           : rk === 'match' ? { title: t('emptyAlt.qualityTitle'), why: os != null ? t('emptyAlt.qualityWhy', { s: os }) : t('emptyAlt.qualityWhyNoScore'), action: null }
@@ -200,11 +150,9 @@ export default function Alternatives() {
           : { title: t('emptyAlt.valueTitle'), why: t('emptyAlt.valueWhy'), action: null };
         return <Card><Text style={{ color: c.ink, fontWeight: '700' }}>{m.title}</Text><Muted>{m.why}</Muted>{m.action}</Card>;
       })() : null}
-      {r && !busy && !shown.length && webBusy ? <Card><Muted>{t('alt.pricing')}</Muted></Card> : null}
-
 
       {r && !busy ? shown.map((e: any, i: number) => {
-        const u = unitPrice(e.price100, e.product.quantity, isLiquid(e.product));
+        const u = unitPrice(e.price100, e.product?.quantity, isLiquid(e.product));
         const dif = diffOf(e);
         return (
           <Card key={e.product.id}>
@@ -221,17 +169,19 @@ export default function Alternatives() {
               </View> : <View />}
               <View style={{ alignItems: 'flex-end' }}>
                 {u ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>{e.ps_web ? "~ " : ""}{formatCents(u.perUnitCents)}/{u.unit}{e.pack != null ? <Muted small> ({formatCents(e.pack)})</Muted> : null}</Text>
-                  : e.pack != null ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>{formatCents(e.pack)}</Text> : null}
-                {!u && e.pack == null && webP[e.product.barcode] ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>~ {formatCents(Math.round(webP[e.product.barcode].per100_cents * 10))}/{isLiquid(e.product) ? 'L' : 'kg'}<Muted small> {t('score.webPrice')}</Muted></Text> : null}
-                {!u && e.pack == null && webP[e.product.barcode]?.value_score != null ? <Text style={{ color: c.mut, fontWeight: '600', fontSize: 13 }}>{t('score.pq')} ≈ {webP[e.product.barcode].value_score}</Text> : null}
+                  : e.pack != null ? <Text style={{ color: c.ink, fontSize: 18, fontWeight: '700' }}>{formatCents(e.pack)}</Text>
+                  : <Muted small>{t('alt.noPrice')}</Muted>}
                 {dif ? <Text style={{ color: dif.tone, fontWeight: '600', fontSize: 13 }}>{dif.text}</Text> : null}
               </View>
             </Row>
-            {!(e.product.chains?.length) && webP[e.product.barcode]?.chains?.length > 0 ? <Row wrap style={{ marginTop: 8 }}>{webP[e.product.barcode].chains.slice(0, 6).map((id: string) => <ChainBadge key={id} id={id} />)}</Row> : null}
             {e.product.chains?.length > 0 ? <Row wrap style={{ marginTop: 8 }}>{e.product.chains.slice(0, 6).map((id: string) => <ChainBadge key={id} id={id} />)}{e.product.chains.length > 6 ? <Muted small>+{e.product.chains.length - 6}</Muted> : null}</Row> : null}
             <Button small plain onPress={() => { hx.light(); setDetail(e); }}>{t('simple.moreInfo')}</Button>
           </Card>);
       }) : null}
+
+      {r && !busy && !showMore && ranked.length > 3 ? (
+        <Button small plain onPress={() => { hx.light(); setShowMore(true); }}>{t('alt.showMore')}</Button>
+      ) : null}
 
       <Sheet open={!!detail} onClose={() => setDetail(null)} title={detail?.product.name}>{detail ? detailBody(detail) : null}</Sheet>
       <Toast text={note} />

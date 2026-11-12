@@ -492,8 +492,9 @@ def pe_of(r, field):
 
 
 # Largest quality-score drop (out of 100) a 'cheaper' or 'best value' pick may have against the scanned product.
-MAX_SHOWN = 20     # most alternatives returned per tab
-QUALITY_FLOOR = 5
+MAX_SHOWN = 10     # most alternatives returned per tab
+QUALITY_FLOOR = 50 # absolute quality floor: products scoring below 50 are excluded
+QUALITY_DROP_MAX = 5 # max quality drop against original for cheaper picks
 # Smallest quality gain (out of 100) that counts as a genuine improvement: one point is noise, not a better product.
 QUALITY_IMPROVEMENT = 5
 
@@ -639,10 +640,12 @@ def rank_cheapest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict
         if big_penalty:
             continue
         
-        # Quality floor: candidate score >= orig score - 5
+        # Quality floor: candidate score >= orig score - 5, and absolute score >= 50
         c_sc = (c.get("score") or {}).get("total")
-        if c_sc is not None and o_sc0 is not None:
-            min_ok = c_sc >= o_sc0 - QUALITY_FLOOR
+        if c_sc is None or c_sc < QUALITY_FLOOR:
+            continue
+        if o_sc0 is not None:
+            min_ok = c_sc >= o_sc0 - QUALITY_DROP_MAX
         else:
             min_ok = (not _gap(on.get("sugars100g"), n.get("sugars100g"), 3) and not _gap(on.get("salt100g"), n.get("salt100g"), 0.3)
                       and not (on.get("protein100g") and n.get("protein100g") is not None and n["protein100g"] < 0.8 * on["protein100g"])
@@ -699,7 +702,7 @@ def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
             continue
         c = {**c, "substitution": sub}
         c_sc = (c.get("score") or {}).get("total")
-        if c_sc is None:
+        if c_sc is None or c_sc < QUALITY_FLOOR:
             continue
         # Missing nutrition data is never a quality pick, however good the partial score looks
         if not (c.get("dataQuality") or {}).get("nutritionComplete"):
@@ -711,6 +714,9 @@ def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
         risky = sum(1 for x in ((c.get("score") or {}).get("additives") or {}).get("items", []) if x.get("level") in ("C", "D"))
         nova = c.get("novaGroup") or 4
         delta = None if o_sc is None else c_sc - o_sc
+        sub_level = sub.get("level") or 2
+        has_retailer = bool(c.get("chains") or (c.get("popularity") or {}).get("chains") or is_popular(c, prices))
+        retailer_key = 0 if has_retailer else 1
         rows.append({
             "product": c,
             "quality_score": c_sc,
@@ -725,7 +731,7 @@ def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
             "completeness": comp,
             "quality_detail": {"additives_at_risk": risky, "nova": nova, "nutrition_complete": bool(comp)},
             "estimated": False,
-            "_k": (-c_sc, -comp, risky, nova, -sim, 0 if is_popular(c, prices) else 1),
+            "_k": (sub_level, -c_sc, retailer_key, -comp, risky, nova, -sim),
         })
     rows.sort(key=lambda r: r["_k"])
     out, seen = [], set()
@@ -789,15 +795,13 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
             continue
         
         c_sc = (c.get("score") or {}).get("total")
-        if c_sc is None:
+        if c_sc is None or c_sc < QUALITY_FLOOR:
             continue
         # The same requirement rank_quality applies: an incomplete nutrition profile can still produce a score (score.py
         # computes one from whatever nutrients are present), but that score is not reliable enough to decide a ranking.
         if not (c.get("dataQuality") or {}).get("nutritionComplete"):
             continue
 
-        # No floor against the scanned product here: the price-quality score already weighs nutrition (and damps weak products), and a list that
-        # only shows products "better than yours" is empty exactly when the scanned product is already a good choice.
         sim = deep_similarity(orig, c)
         candidates.append((c, c_sc, p, sim, pt))
     
@@ -856,8 +860,15 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
             why = tr(lang, "rk_qp", s=c_sc, p=f"{p*10/100:.2f}", o=f"{orig_price*10/100:.2f}",
                      os=o_sc0 if o_sc0 is not None else "?", v=val_score, ov=orig_val_score)
         
+        sub = c.get("substitution") or {}
+        sub_level = sub.get("level") or 2
+        has_retailer = bool(c.get("chains") or (c.get("popularity") or {}).get("chains"))
+        retailer_key = 0 if has_retailer else 1
+
         rows.append({
             "product": c,
+            "sub_level": sub_level,
+            "retailer_key": retailer_key,
             "price_per_100_cents": round(p, 1),
             "similarity": round(sim, 2),
             "indicators": indicators(c, p),
@@ -875,8 +886,11 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
             "quality_score": c_sc,
         })
     
-    # Sort: non-dominated first, then value index descending, then confidence, then quality
-    rows.sort(key=lambda r: (-r["value_score"], bool(r["dominated"]), -r["conf_rank"], -(r["quality_score"] or 0), 0 if is_popular(r["product"], prices) else 1))   # the index already ranks a dominated product below its dominator; popularity only breaks a tie after it
+    # Sort: Relevance (sub_level), retailer relevance (retailer_key), then value index descending, then non-dominated, confidence, quality
+    rows.sort(key=lambda r: (r["sub_level"], r["retailer_key"], -r["value_score"], bool(r["dominated"]), -r["conf_rank"], -(r["quality_score"] or 0), 0 if is_popular(r["product"], prices) else 1))
+    for r in rows:
+        r.pop("sub_level", None)
+        r.pop("retailer_key", None)
     result = rows[:MAX_SHOWN]  # strict order: brand variety must never move a cheaper or better product down
     return {"items": result, "no_baseline": no_baseline, "original_value_score": orig_val_score}
 

@@ -333,7 +333,7 @@ class AltReq(BaseModel):
     price_constraint: str = "any"
     excluded_allergens: Optional[List[str]] = None
     diet: Optional[str] = None
-    limit: int = Field(20, ge=1, le=20)
+    limit: int = Field(10, ge=1, le=10)  # results shown to the client; 3 displayed initially, expandable to 10
     chains: List[str] = []  # chain ids the user shops at (empty = all)
     nearby_only: bool = False  # with a location: keep only products listed at a chain that has a branch within the radius (and within the user's chains)
     strict_additives: bool = True  # strict mode (40 % nutrition + 25 % additives + 25 % ingredient quality, every additive concern one level higher)
@@ -1896,10 +1896,10 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         peers = pool_src
         priced = _price_shortlist(peers, _PRICE_POOL)
         orig_price, prices, points, shops = _price_map(s, uid, orig, priced, body.location, body.approximate, sel_names)
-        res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, body.limit, prices, orig_price, lang)
+        res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, engine.MAX_SHOWN, prices, orig_price, lang)
         pool = peers
     else:
-        res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, body.limit, None, None, lang)
+        res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, engine.MAX_SHOWN, None, None, lang)
         pool = list({c["barcode"]: c for c in [a["product"] for a in res["alternatives"]] + pool_src}.values())
         orig_price, prices, points, shops = _price_map(s, uid, orig, pool, body.location, body.approximate, sel_names)
         for a in res["alternatives"]:
@@ -2081,6 +2081,11 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     res["original_stores"] = shops.get(orig["barcode"], [])
     res["original"] = {"id": orig["id"], "name": orig["name"], "novaGroup": orig.get("novaGroup"), "nutriScore": orig["nutriScore"], "score": orig.get("score")}
     res["price_note"] = note or tr(lang, "price_note")
+    # Final display cap, applied last so it never cuts into filtering: up to 10 max, never forced.
+    res["alternatives"] = res["alternatives"][:10]
+    for _k in ("value", "quality"):
+        if isinstance(res.get("rankings", {}).get(_k), list):
+            res["rankings"][_k] = res["rankings"][_k][:10]
     if not is_account(s, uid):
         s.add(db.AlternativeResult(user_id=uid, original_product_id=barcode, request=body.model_dump_json(), response=json.dumps(res)[:200000]))
     s.commit()

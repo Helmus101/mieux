@@ -210,7 +210,7 @@ def test_money_and_value_tabs_only_use_level_1_or_2_snack_bars():
     pool = [            _p(
                 "Fruit nut close",
                 ["en:snacks", "en:sweet-snacks", "en:snack-bars", "en:fruit-and-nut-bars"],
-                score={"total": 44}, nutriments={
+                score={"total": 54}, nutriments={
                     "energyKcal100g": 480,
                     "fat100g": 22.0,
                     "saturatedFat100g": 8.0,
@@ -223,7 +223,7 @@ def test_money_and_value_tabs_only_use_level_1_or_2_snack_bars():
             _p(
                 "Cereal bar close",
                 ["en:snacks", "en:sweet-snacks", "en:snack-bars", "en:cereal-bars"],
-                score={"total": 44}, nutriments={
+                score={"total": 54}, nutriments={
                     "energyKcal100g": 480,
                     "fat100g": 22.0,
                     "saturatedFat100g": 8.0,
