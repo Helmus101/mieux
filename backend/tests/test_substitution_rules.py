@@ -1025,6 +1025,16 @@ def test_pizza_dough_is_not_a_substitute_for_a_finished_pizza():
     assert sub(dough, dough2)["level"] == 1
 
 
+def test_bare_grill_never_misclassifies_grilled_food_as_toasted_bread():
+    """A live spot-check from the final pre-freeze test list found 'Pistaches de Californie grillées et salées'
+    (grilled pistachios, no category tag) classifying as toasted_bread, because bare 'grill' alone was in that
+    rule's name regex - the same bug class as the earlier 'nature'/'the'/'coco' fixes."""
+    pistaches = P("Pistaches grillées en coque", [])
+    assert taxonomy.classify(pistaches)["type"] != "toasted_bread"
+    real_toast = P("Pain de mie grillé", [])
+    assert taxonomy.classify(real_toast)["type"] in ("sandwich_bread", "toasted_bread", "brioche_toast")
+
+
 def test_bare_flavour_word_never_misclassifies_a_drink_as_yogurt():
     """'Boisson riz coco' is a plant-based drink, not a yogurt: bare 'coco' (coconut) in the flavoured_yogurt name
     regex, with no category tag and no 'yaourt' word anywhere, used to classify it as a flavoured yogurt."""
