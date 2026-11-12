@@ -184,8 +184,8 @@ export default function Alternatives() {
               </div>
             </div>
             <div className="aprice">
-              {u ? <b>{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
-                : e.pack != null ? <b>{formatCents(e.pack)}</b> : null}
+              {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
+                : e.pack != null ? <b>{e.ps_web ? '~ ' : ''}{formatCents(e.pack)}</b> : null}
               {u == null && e.pack == null && <span className="mut sm">{t('alt.noPrice')}</span>}
               {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
               {rk === 'value' && e.vs != null && r?.rankings?.original_value_score != null && (

@@ -1390,27 +1390,90 @@ _QUICK_ORDER = {"sugars": ("sugar", True), "salt": ("salt", True), "saturated_fa
 
 
 _BRAND_CHAINS: Optional[Dict[str, List[str]]] = None
+_BRAND_CHAIN_BY_FIRST: Dict[str, List[str]] = {}
 
 
-def _brand_chain_ids(brand: Optional[str]) -> List[str]:
+def _brand_key(text: Any) -> str:
+    t = str(text or "").lower().replace("’", "'").replace("‘", "'").replace("ʼ", "'")
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9àâçéèêëîïôûùüÿñ&' ]", " ", t)).strip()
+
+
+def _brand_chain_matches(key: str) -> List[str]:
+    """Exact brand keys plus the same brand written with more or fewer words ('fisherman's' -> 'fisherman's friend')."""
+    if not key:
+        return []
+    first = key.split()[0]
+    return [k for k in _BRAND_CHAIN_BY_FIRST.get(first, []) if k == key or k.startswith(key + " ") or key.startswith(k + " ")]
+
+
+def _brand_chain_ids(brand: Optional[str], name: Optional[str] = None) -> List[str]:
     """Chains known to sell a brand, from scripts/build_brand_chains.py (evidence: its products seen in those chains' price data).
-    A chain counts when it has at least 3 of the brand's products and at least 15 % of the best chain's count, so one stray sighting adds nothing."""
-    global _BRAND_CHAINS
+    A chain counts when it has at least 2 of the brand's products and at least 15 % of the best chain's count, so one stray sighting adds nothing.
+    This evidence is French-market only; other markets use their own price observations and own-brand rules."""
+    global _BRAND_CHAINS, _BRAND_CHAIN_BY_FIRST
+    if market.current() != "FR":
+        return []
     if _BRAND_CHAINS is None:
-        _BRAND_CHAINS = {}
+        _BRAND_CHAINS, _BRAND_CHAIN_BY_FIRST = {}, {}
         for path in (os.environ.get("BRAND_CHAINS"), "/data/brand_chains.json", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "brand_chains.json")):
             if path and os.path.exists(path):
                 try:
                     for r in json.load(open(path, encoding="utf-8")):
+                        key = _brand_key(r.get("brand"))
+                        if not key:
+                            continue
                         top = max([c["products"] for c in r["chains"]] or [0])
-                        ids = [retail.ID_OF[c["chain"]] for c in r["chains"] if c["products"] >= max(3, 0.15 * top) and c["chain"] in retail.ID_OF]
+                        ids = [retail.ID_OF[c["chain"]] for c in r["chains"] if c["products"] >= max(2, 0.15 * top) and c["chain"] in retail.ID_OF]
                         if ids:
-                            _BRAND_CHAINS[r["brand"]] = ids
+                            _BRAND_CHAINS[key] = ids
+                            _BRAND_CHAIN_BY_FIRST.setdefault(key.split()[0], []).append(key)
                     break
                 except (OSError, ValueError, KeyError):
                     continue
-    key = re.sub(r"\s+", " ", re.sub(r"[^a-z0-9àâçéèêëîïôûùüÿñ&' ]", " ", str(brand or "").split(",")[0].lower())).strip()
-    return _BRAND_CHAINS.get(key, [])
+    texts = [brand or ""] + [p for p in str(brand or "").split(",")]
+    keys = []
+    for text in texts:
+        key = _brand_key(text)
+        if key:
+            keys.append(key)
+    ids = []
+    seen_keys = set()
+    for key in keys:
+        for k in _brand_chain_matches(key):
+            if k not in seen_keys:
+                seen_keys.add(k)
+                ids.extend(_BRAND_CHAINS[k])
+    if not ids and name:
+        words = _brand_key(name).split()
+        name_keys = [" ".join(words[:n]) for n in range(1, min(4, len(words)) + 1)]
+        for key in name_keys:
+            for k in _brand_chain_matches(key):
+                if k not in seen_keys:
+                    seen_keys.add(k)
+                    ids.extend(_BRAND_CHAINS[k])
+    out = []
+    for cid in ids:
+        if cid not in out and retail.in_market(cid, market.current()):
+            out.append(cid)
+    return out
+
+
+def _candidate_chain_ids(c: Dict[str, Any], chain_of: Any = None) -> List[str]:
+    """All chain evidence for one candidate: exact Open Prices sightings, its own brand's chain, then brand-level evidence."""
+    ids: List[str] = []
+    q = c.get("quantity")
+    if chain_of:
+        ids += [retail.ID_OF[r["chain"]] for r in chain_of(c["barcode"], (q["amount"], q["unit"]) if q else None) if r["chain"] in retail.ID_OF]
+    own = _chains.own_brand_chain(c.get("brand")) or _chains.own_brand_chain(c.get("name"))
+    cid = retail.ID_OF.get(own or "")
+    if cid:
+        ids.append(cid)
+    ids += _brand_chain_ids(c.get("brand"), c.get("name"))
+    out = []
+    for i in ids:
+        if i not in out and retail.in_market(i, market.current()):
+            out.append(i)
+    return out
 
 
 _EXCLUDED_BRANDS = re.compile(r"marks\s*(&|and|et)\s*spencer|\bm\s*&\s*s\b|\bm&s\b", re.I)
@@ -1842,10 +1905,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     body.chains = [c for c in body.chains if c in retail.NAME_OF]  # ids of chains that no longer exist (saved on the device) are ignored
     sel_names = [retail.NAME_OF[c] for c in body.chains]
     chain_of = getattr(app.state.prices, "chain_summary", None)
-    if chain_of:
-        for c in peers:  # chains known to list each candidate (from Open Prices, France)
-            q_ = c.get("quantity")
-            c["chains"] = [retail.ID_OF[r["chain"]] for r in chain_of(c["barcode"], (q_["amount"], q_["unit"]) if q_ else None) if r["chain"] in retail.ID_OF]
+    for c in peers:  # attach every chain evidence we have; the hard France gate is applied after cached web prices are read
+        c["chains"] = _candidate_chain_ids(c, chain_of)
     # Popularity of each candidate: how often it is scanned (Open Food Facts) and whether chains are known to sell it. The money and quality
     # lists use it to keep obscure products from topping a ranking (see engine.is_popular).
     local_ = getattr(app.state.off, "local", None)
@@ -1858,10 +1919,10 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
                 scans_[code_] = n_ or 0
         peers = [{**c, "popularity": {"scans": scans_.get(c["barcode"], 0), "chains": len(c.get("chains") or [])}} for c in peers]
     if chain_of and body.chains:  # the person picked chains: drop what is known to be sold only elsewhere
-        # Unknown is not a reason to exclude: Open Prices covers a minority of products, and discarding every product it has not
-        # recorded would hide most good substitutes behind a dataset gap. This scopes the search; it is not an availability claim.
         want = set(body.chains)
-        if any(c.get("chains") for c in peers):  # price service unreachable: no chain is known at all, keep the pool
+        if market.current() == "FR":
+            peers = [c for c in peers if set(c.get("chains") or []) & want]
+        elif any(c.get("chains") for c in peers):  # outside France, unknown chain evidence does not exclude a product
             peers = [c for c in peers if not c.get("chains") or (set(c["chains"]) & want)]
     if body.nearby_only and body.location and chain_of:
         # "only what I can buy near me": a product stays if one of its chains (among the user's chains, if any) has a branch within the radius. Exact distances from the full store list.
@@ -1896,12 +1957,16 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         peers = pool_src
         priced = _price_shortlist(peers, _PRICE_POOL)
         orig_price, prices, points, shops = _price_map(s, uid, orig, priced, body.location, body.approximate, sel_names)
+        if market.current() == "FR":
+            peers = [c for c in peers if c.get("chains")]   # France: a displayed alternative needs real supermarket evidence
         res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, engine.MAX_SHOWN, prices, orig_price, lang)
         pool = peers
     else:
         res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, engine.MAX_SHOWN, None, None, lang)
         pool = list({c["barcode"]: c for c in [a["product"] for a in res["alternatives"]] + pool_src}.values())
         orig_price, prices, points, shops = _price_map(s, uid, orig, pool, body.location, body.approximate, sel_names)
+        if market.current() == "FR":
+            pool = [c for c in pool if c.get("chains")]
         for a in res["alternatives"]:
             a["price_per_100_cents"] = prices.get(a["product"]["barcode"])
             a["value"] = engine.value_card(orig, a["product"], orig_price, a["price_per_100_cents"])
@@ -1910,7 +1975,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         a["indicators"] = engine.indicators(a["product"], prices.get(a["product"]["barcode"]))
     est_codes = frozenset(k for k, v in points.items() if (v or {}).get("source") == "estimate" and k != orig["barcode"])
     orig_est = (points.get(orig["barcode"]) or {}).get("source") == "estimate"
-    res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"], est_codes, orig_est, points=points)
+    res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"], est_codes, orig_est, points=points, max_items=engine.RANKING_SHOWN)
     res["rankings"].pop("budget", None)
     res["rankings"].pop("closest", None)   # only Best value and Best quality are shown; cheapest/closest are not surfaced
     for key in ("value", "quality"):
@@ -1935,7 +2000,16 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         if pr_.get("soldInFrance"):
             return {"state": "market_listed"}, None
         return {"state": "unknown"}, None
+    def _fill_chains(pr_: Dict[str, Any]) -> None:
+        if pr_.get("chains"):
+            return
+        own_ = _chains.own_brand_chain(pr_.get("brand")) or _chains.canon(str(pr_.get("brand") or "").split(",")[0]) or _chains.canon(str(pr_.get("name") or ""))
+        cid_ = retail.ID_OF.get(own_) if own_ else None
+        ids = ([cid_] if cid_ else []) + _brand_chain_ids(pr_.get("brand"), pr_.get("name"))
+        pr_["chains"] = list(dict.fromkeys(i for i in ids if retail.in_market(i, market.current())))
+
     for a_ in res.get("alternatives", []):
+        _fill_chains(a_["product"])
         a_["availability"], a_["store_price"] = _availability(a_["product"])
     orig_type_ = taxonomy.classify(orig).get("type")      # the scanned product itself (res["original"] is only filled in later)
     for key_ in ("value", "quality"):
@@ -1959,7 +2033,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             if cid_ and cid_ not in (r_["product"].get("chains") or []):
                 r_["product"]["chains"] = [cid_] + list(r_["product"].get("chains") or [])   # a store brand always shows its chain logo
             if not r_["product"].get("chains"):
-                r_["product"]["chains"] = _brand_chain_ids(r_["product"].get("brand"))     # no sighting of this exact product: the brand's usual chains
+                r_["product"]["chains"] = _brand_chain_ids(r_["product"].get("brand"), r_["product"].get("name"))     # no sighting of this exact product: the brand's usual chains
             r_["availability"], r_["store_price"] = _availability(r_["product"])
         if key_ == "value":
             kept_ = [r_ for _, r_ in sorted(enumerate(kept_), key=lambda ir: (-(ir[1].get("value_score") if ir[1].get("value_score") is not None else -1), ir[0]))]   # ordered by the number shown
@@ -2012,14 +2086,15 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     res["original_taxonomy"] = taxonomy.classify(orig)
     res["original_indicators"] = engine.indicators(orig, orig_price)
     res["original_sold_in_france"] = orig.get("soldInFrance")
-    # Sold in France is the one hard requirement (already enforced by engine.choose/prefilter above; kept here as the final gate
-    # over every tab). A known supermarket chain is NOT required: chain attribution only ever comes from a minority of products
-    # (an Open Prices sighting, a web search that found and named a shop, or a recognised house brand), so requiring it used to
-    # silently drop most real, genuinely available alternatives that are simply missing that one piece of evidence.
+    # Every tab shows only real, identifiable branded products: sold in this market, with a brand, and - in France -
+    # at least one recognised supermarket chain (an exact Open Prices sighting, a cached web-price shop, the chain's
+    # own brand, or brand-level retail evidence).
     # Unconditional, regardless of whether the price service (chain_of) is reachable: rank_quality and rank_best_value only
     # drop a product explicitly marked as sold elsewhere, so one with merely unknown availability could otherwise reach the
     # quality or price-quality tab unfiltered if this gate were ever skipped.
-    _ok = lambda x: (x.get("product") or {}).get("soldInFrance") is True   # noqa: E731
+    _chain_ok = lambda x: market.current() != "FR" or bool((x.get("product") or {}).get("chains"))   # noqa: E731
+    _brand_ok = lambda x: bool(str((x.get("product") or {}).get("brand") or "").strip())   # noqa: E731
+    _ok = lambda x: (x.get("product") or {}).get("soldInFrance") is True and _chain_ok(x) and _brand_ok(x)   # noqa: E731
     # A second unconditional floor, over every tab the same way: an alternative must score at least 50 on quality.
     # Unknown (no score at all) is not proof it is good enough, so it is held to the same bar, not exempted from it.
     _q_ok = lambda x: ((x.get("product") or {}).get("score") or {}).get("total", -1) >= 50   # noqa: E731
@@ -2081,11 +2156,11 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     res["original_stores"] = shops.get(orig["barcode"], [])
     res["original"] = {"id": orig["id"], "name": orig["name"], "novaGroup": orig.get("novaGroup"), "nutriScore": orig["nutriScore"], "score": orig.get("score")}
     res["price_note"] = note or tr(lang, "price_note")
-    # Final display cap, applied last so it never cuts into filtering: up to 10 max, never forced.
+    # Cards show 3 then expand to 10; rankings keep the full sorted pool (up to 100) so a chain filter still has rows.
     res["alternatives"] = res["alternatives"][:10]
     for _k in ("value", "quality"):
         if isinstance(res.get("rankings", {}).get(_k), list):
-            res["rankings"][_k] = res["rankings"][_k][:10]
+            res["rankings"][_k] = res["rankings"][_k][:engine.RANKING_SHOWN]
     if not is_account(s, uid):
         s.add(db.AlternativeResult(user_id=uid, original_product_id=barcode, request=body.model_dump_json(), response=json.dumps(res)[:200000]))
     s.commit()

@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import httpx
 
-FIELDS = ("labels_tags,code,product_name,brands,image_front_small_url,nutriments,ingredients_text,additives_tags,allergens_tags,"
+FIELDS = ("labels_tags,code,product_name,brands,image_front_small_url,image_small_url,image_front_url,image_url,nutriments,ingredients_text,additives_tags,allergens_tags,"
           "traces_tags,categories_tags,quantity,product_quantity,product_quantity_unit,ingredients_analysis_tags,nutriscore_grade,nutriscore_version,last_modified_t,nova_group,serving_quantity,countries_tags")
 HEADERS = {"User-Agent": "Mieux/0.2 (prototype)"}
 SEARCH_GAP = 7.0  # seconds between two searches (the limit is about 10 per minute)

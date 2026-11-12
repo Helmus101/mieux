@@ -50,7 +50,7 @@ def test_endpoint_returns_template_without_key_and_uses_llm_when_valid():
     from fastapi.testclient import TestClient
     from datetime import date
     import test_all as TA                                                      # reuse the fake Open Food Facts app
-    TA.main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": {"1": 50.0, "2": 30.0}.get(b, 90.0), "date": date.today().isoformat(), "where": None}})()
+    TA.main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": {"1": 50.0, "2": 30.0}.get(b, 90.0), "date": date.today().isoformat(), "where": None}, "chain_summary": TA.CHAIN_SUMMARY})()
     for r in TA.main.app.state.off.items.values(): r["quantity"] = "400 g"
     s = TA.main.app.state.sessions(); s.query(TA.db.Product).delete(); s.commit()
     H = {"X-Session-Id": "explain-user-001", "X-Lang": "fr"}

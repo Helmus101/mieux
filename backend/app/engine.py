@@ -493,6 +493,7 @@ def pe_of(r, field):
 
 # Largest quality-score drop (out of 100) a 'cheaper' or 'best value' pick may have against the scanned product.
 MAX_SHOWN = 10     # most alternatives returned per tab
+RANKING_SHOWN = 100 # the API keeps the full sorted candidate list so chain filters still have products to show
 QUALITY_FLOOR = 50 # absolute quality floor: products scoring below 50 are excluded
 QUALITY_DROP_MAX = 5 # max quality drop against original for cheaper picks
 # Smallest quality gain (out of 100) that counts as a genuine improvement: one point is noise, not a better product.
@@ -541,7 +542,7 @@ def brand_variety(items, brand_of, first: int = 5, per: int = 2):
     """Keeps the order but, within the first `first` places, lets one brand take at most `per` while other brands remain; the rest follow in order."""
     head, rest, count = [], [], {}
     for it in items:
-        b = (brand_of(it) or "").split(",")[0].strip().lower()
+        b = re.sub(r"\s+", " ", (brand_of(it) or "").split(",")[0].strip().lower().replace("’", "'").replace("‘", "'").replace("ʼ", "'"))
         if len(head) < first and count.get(b, 0) < per:
             head.append(it)
             count[b] = count.get(b, 0) + 1
@@ -603,7 +604,7 @@ def percentile_value_scores(items: List[Tuple[Any, Optional[float], Optional[flo
 def rank_cheapest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict[str, float],
                   orig_price: Optional[float] = None, points: Optional[Dict[str, Any]] = None,
                   estimated: frozenset = frozenset(), orig_estimated: bool = False,
-                  lang: str = "fr", max_age_days: int = 90) -> Dict[str, Any]:
+                  lang: str = "fr", max_age_days: int = 90, max_items: int = MAX_SHOWN) -> Dict[str, Any]:
     """Lowest verified unit price among genuinely close substitutes (level 1-2) that meet the quality floor.
     No fillers: only products that are genuinely cheaper and qualify are returned.
     """
@@ -680,12 +681,12 @@ def rank_cheapest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict
     
     # Sort: lowest unit price first, higher price confidence, higher quality score
     rows.sort(key=lambda r: (r["price_per_100_cents"], -r["conf_rank"], -(r["quality_score"] or 0)))
-    result = rows[:MAX_SHOWN]  # strict order: brand variety must never move a cheaper or better product down
+    result = rows[:max_items]  # strict order: brand variety must never move a cheaper or better product down
     return {"items": result, "no_baseline": no_baseline}
 
 
 def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optional[Dict[str, float]] = None,
-                 points: Optional[Dict[str, Any]] = None, lang: str = "fr") -> List[Dict[str, Any]]:
+                 points: Optional[Dict[str, Any]] = None, lang: str = "fr", max_items: int = MAX_SHOWN) -> List[Dict[str, Any]]:
     """The best-quality close substitutes (level 1-2), strictly by Mieux nutrition score. Price never affects the order.
 
     Every scored close substitute is listed, each labelled better / not better than the scanned product (so a list is never empty just
@@ -742,15 +743,16 @@ def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
         seen.add(vk)
         r.pop("_k", None)
         out.append(r)
-        if len(out) >= MAX_SHOWN:
+        if len(out) >= max_items:
             break
-    return out
+    # The first page a shopper sees should not be one brand's catalogue when other chains carry real alternatives.
+    return brand_variety(out, lambda r: (r.get("product") or {}).get("brand"), first=10, per=2)
 
 
 def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict[str, float],
                     orig_price: Optional[float] = None, points: Optional[Dict[str, Any]] = None,
                     estimated: frozenset = frozenset(), orig_estimated: bool = False,
-                    lang: str = "fr", max_age_days: int = 90) -> Dict[str, Any]:
+                    lang: str = "fr", max_age_days: int = 90, max_items: int = MAX_SHOWN) -> Dict[str, Any]:
     """Constrained, percentile-based quality-price index across the comparable cohort.
     No floor against the scanned product's own score: a cheaper, slightly-lower-quality product can still be a
     genuinely better value, and a list that only shows "better than yours" is empty exactly when the scanned
@@ -891,12 +893,12 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
     for r in rows:
         r.pop("sub_level", None)
         r.pop("retailer_key", None)
-    result = rows[:MAX_SHOWN]  # strict order: brand variety must never move a cheaper or better product down
+    result = rows[:max_items]  # strict order: brand variety must never move a cheaper or better product down
     return {"items": result, "no_baseline": no_baseline, "original_value_score": orig_val_score}
 
 
 def rank_closest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optional[Dict[str, float]] = None,
-                 points: Optional[Dict[str, Any]] = None, lang: str = "fr") -> List[Dict[str, Any]]:
+                 points: Optional[Dict[str, Any]] = None, lang: str = "fr", max_items: int = MAX_SHOWN) -> List[Dict[str, Any]]:
     """Closest alternatives: genuine substitutes regardless of price or quality score.
     Pack sizes of the same product deduplicated, ordered by closeness (level 1-2) then similarity.
     Level 3-4 products are excluded from the closest tab.
@@ -927,7 +929,7 @@ def rank_closest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
             continue
         per_brand[brand] = per_brand.get(brand, 0) + 1
         close.append(c)
-        if len(close) >= MAX_SHOWN:
+        if len(close) >= max_items:
             break
     out = []
     for c in close:
@@ -950,7 +952,8 @@ def rank_closest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
 def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict[str, float],
                    orig_price: Optional[float], priorities: List[str], mode: str, lang: str,
                    match_list: List[Dict[str, Any]], estimated: frozenset = frozenset(),
-                   orig_estimated: bool = False, points: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                   orig_estimated: bool = False, points: Optional[Dict[str, Any]] = None,
+                   max_items: int = MAX_SHOWN) -> Dict[str, Any]:
     """Build four separate rankings from one complete, shared search with HARD COMPATIBILITY GATE:
     - Budget: Cheapest comparable (lowest verified unit price above quality floor)
     - Quality: Best quality (highest reliable Mieux quality score)
@@ -987,10 +990,10 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
     
     # Step 3: Build rankings
     # Closest: all levels 1-4, no price influence
-    closest_items = rank_closest(orig, strict_pool, prices, points, lang)   # keeps levels 1-2 only
-    cheapest = rank_cheapest(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang)   # default max_age_days=90: one single, consistent ranking-eligibility window
-    quality_items = rank_quality(orig, high_confidence, prices, points, lang)
-    best_val = rank_best_value(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang)
+    closest_items = rank_closest(orig, strict_pool, prices, points, lang, max_items)   # keeps levels 1-2 only
+    cheapest = rank_cheapest(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang, max_items=max_items)   # default max_age_days=90: one single, consistent ranking-eligibility window
+    quality_items = rank_quality(orig, high_confidence, prices, points, lang, max_items)
+    best_val = rank_best_value(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang, max_items=max_items)
     budget_items, value_items = cheapest["items"], best_val["items"]
     
     no_baseline = bool(orig_price is None or orig_estimated)
@@ -1000,7 +1003,7 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
         "value": value_items,
         "quality": quality_items,
         "closest": closest_items,
-        "match": match_list[:MAX_SHOWN],
+        "match": match_list[:max_items],
         "original_value_score": best_val.get("original_value_score"),
         "no_baseline": no_baseline,
     }

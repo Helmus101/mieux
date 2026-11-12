@@ -8,7 +8,7 @@ from .value import parse_quantity
 from .score import quality
 from .taxonomy import classify
 
-SCHEMA_VERSION = 29  # bump when normalize() output changes so cached rows are refreshed
+SCHEMA_VERSION = 30  # bump when normalize() output changes so cached rows are refreshed
 CORE = ["energyKcal100g", "fat100g", "saturatedFat100g", "carbohydrates100g", "sugars100g", "protein100g", "salt100g"]
 NS_RANK = {"a": 5, "b": 4, "c": 3, "d": 2, "e": 1}
 
@@ -142,10 +142,11 @@ def _normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
     updated = datetime.fromtimestamp(ts, tz=timezone.utc).date().isoformat() if ts else None
     ing = raw.get("ingredients_text") or None
     missing = [k for k in CORE if nutriments[k] is None]
+    image = raw.get("image_front_small_url") or raw.get("image_small_url") or raw.get("image_front_url") or raw.get("image_url") or None
     return {
         "_v": SCHEMA_VERSION, "id": str(raw.get("code")), "barcode": str(raw.get("code")), "name": raw.get("product_name") or "Unnamed product",
         "brand": raw.get("brands") or None, "category": cats[-1] if cats else None, "categories": cats,
-        "imageUrl": raw.get("image_front_small_url") or None, "quantityText": raw.get("quantity") or None,
+        "imageUrl": image, "quantityText": raw.get("quantity") or None,
         "quantity": (lambda q: {"amount": q[0], "unit": q[1]} if q else None)(parse_quantity(raw.get("quantity"), raw.get("product_quantity"), raw.get("product_quantity_unit")) or parse_quantity(raw.get("product_name"))),   # no pack size recorded: read it from the name ("... 50g")
         "nutriments": nutriments, "micronutrients": micronutrients(nm), "novaGroup": _nova(raw, ing, cats)[0], "novaEstimated": _nova(raw, ing, cats)[1],
         "servingG": (lambda v: v if v and v > 0 else None)(_serving(raw.get("serving_quantity"))),
@@ -158,6 +159,6 @@ def _normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
         "analysis": list(raw.get("ingredients_analysis_tags") or []),
         "nutriScore": grade if grade in NS_RANK else None, "nutriScoreVersion": raw.get("nutriscore_version") or None,
         "dataQuality": {"nutritionComplete": not missing, "missingNutrients": missing, "ingredientsAvailable": bool(ing),
-                        "allergensAvailable": bool(ing), "productImageAvailable": bool(raw.get("image_front_small_url")),
+                        "allergensAvailable": bool(ing), "productImageAvailable": bool(image),
                         "nutriScoreAvailable": grade in NS_RANK, "source": "Open Food Facts", "lastUpdatedAt": updated},
     }

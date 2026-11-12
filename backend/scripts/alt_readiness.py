@@ -4,9 +4,9 @@
 
 For every barcode in scripts/alt_panel.json it loads the product and its alternatives and checks the rules we promise users:
   - no error, every product answers 200; alternatives never empty by accident (reported, not failed)
-  - each tab at most 20 server-side (the apps show 10), no duplicates, never the scanned product, no category-path names
-  - every alternative is sold in France and is a level 1-2 substitute (a known chain is optional evidence)
-  - Moins cher: strictly cheaper than the scanned product; Qualité-prix: strictly higher score; Meilleure qualité: strictly higher nutrition score
+  - each returned tab at most 100 server-side (the apps show 3 then expand to 10), no duplicates, never the scanned product, no category-path names
+  - every alternative is a real branded product sold in France, has at least one recognised supermarket chain, and is a level 1-2 substitute
+  - Valeur: a verified recent price and a price-quality score above the scanned product's when that baseline exists; Qualité: a higher nutrition score
   - prices from the web search are flagged approximate
   - the same product shows the same price-quality score in every tab
 Prints a per-product table and a summary (fill rate, latency p50/p95); exits 1 on any violation."""
@@ -38,15 +38,14 @@ def call(base, path, body=None):
 def check(code, prod, alts):
     bad = []
     r = alts.get("rankings") or {}
-    o_price = (alts.get("original_price") or {}).get("per100_cents")
     o_score = (prod.get("score") or {}).get("total")
     o_vs = r.get("original_value_score")
     pq_seen = {}      # the same product must show the same price-quality score in every tab
-    for tab in ("value", "budget", "quality"):
+    for tab in ("value", "quality"):
         seen = set()
         items = r.get(tab) or []
-        if len(items) > 20:
-            bad.append(f"{tab}: {len(items)} items (>20)")
+        if len(items) > 100:
+            bad.append(f"{tab}: {len(items)} items (>100)")
         for e in items:
             p = e.get("product") or {}
             bc = p.get("barcode")
@@ -57,19 +56,16 @@ def check(code, prod, alts):
             if e.get("value_score") is not None:
                 if pq_seen.setdefault(bc, e["value_score"]) != e["value_score"]: bad.append(f"{tab}: price-quality {e['value_score']} differs from {pq_seen[bc]} in another tab {bc}")
             if p.get("soldInFrance") is not True: bad.append(f"{tab}: not sold in France {bc}")
+            if not str(p.get("brand") or "").strip(): bad.append(f"{tab}: no identifiable brand {bc}")
+            if not p.get("chains"): bad.append(f"{tab}: no supermarket chain evidence {bc}")
             lv = (e.get("substitution") or p.get("substitution") or {}).get("level")
-            if lv not in (None, 1, 2): bad.append(f"{tab}: level {lv} {bc}")
+            if lv not in (1, 2): bad.append(f"{tab}: level {lv} {bc}")
             ps = e.get("price_source") or {}
             if ps.get("source") == "web_search" and not ps.get("approximate"): bad.append(f"{tab}: web price not flagged approximate {bc}")
-            if tab == "budget" and o_price is not None and not (e.get("price_per_100_cents") is not None and e["price_per_100_cents"] < o_price): bad.append(f"{tab}: not cheaper {bc}")
-            q = (p.get("score") or {}).get("total")
-            better_v = o_vs is not None and e.get("value_score") is not None and e["value_score"] > o_vs
-            better_q = o_score is not None and q is not None and q > o_score
-            if tab == "value" and not (better_v or better_q): bad.append(f"{tab}: worse on value and quality {bc}")
+            if tab == "value":
+                if e.get("value_score") is None: bad.append(f"{tab}: no price-quality score {bc}")
+                elif o_vs is not None and e["value_score"] <= o_vs: bad.append(f"{tab}: not better value {bc}")
             if tab == "quality" and o_score is not None and not ((p.get("score") or {}).get("total") or -1) > o_score: bad.append(f"{tab}: not better quality {bc}")
-    # Ordering the app relies on once all prices are in: cheapest first on the price tab, best price-quality first on the value tab (the app re-sorts by the shown number).
-    pr = [e.get("price_per_100_cents") for e in (r.get("budget") or [])]
-    if any(x is None for x in pr) or pr != sorted(pr): bad.append("budget: not sorted cheapest first")
     vs = [e.get("value_score") for e in (r.get("value") or [])]
     if any(x is None for x in vs): bad.append("value: row without a price-quality score")
     elif vs != sorted(vs, reverse=True): bad.append("value: not sorted best first")
@@ -99,10 +95,10 @@ def main():
         lat.append(dt)
         bad = check(code, prod, ad)
         r = ad.get("rankings") or {}
-        n = {t: len(r.get(t) or []) for t in ("value", "budget", "quality")}
+        n = {t: len(r.get(t) or []) for t in ("value", "quality")}
         if not any(n.values()): empty += 1
         violations += len(bad)
-        rows.append((code, prod.get("name", "")[:24], f"pq {n['value']:>2} | cheap {n['budget']:>2} | quality {n['quality']:>2}", f"{dt:.1f}s" + (f"  VIOLATIONS: {bad[:3]}" if bad else "")))
+        rows.append((code, prod.get("name", "")[:24], f"value {n['value']:>3} | quality {n['quality']:>3}", f"{dt:.1f}s" + (f"  VIOLATIONS: {bad[:3]}" if bad else "")))
         time.sleep(3.2)                          # stay under the 20 requests/minute limit
     for row in rows:
         print("  ".join(str(x) for x in row))

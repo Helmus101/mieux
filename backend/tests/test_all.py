@@ -38,6 +38,7 @@ main.app.state.off = FakeOFF()
 c = TestClient(main.app)
 main.app.state.prices = type("Stocked", (), {"latest": lambda self, *a, **k: None, "chain_summary": lambda self, *a, **k: [{"chain": "Carrefour"}]})()  # every product is sold somewhere
 H = {"X-Session-Id": "test-session-1", "X-Lang": "en"}
+CHAIN_SUMMARY = lambda self, *a, **k: [{"chain": "Carrefour"}]  # noqa: E731
 
 
 def test_missing_stays_none():
@@ -132,6 +133,8 @@ def test_quantity_parsing():
 class FakePrices:
     def latest(self, barcode, qty, max_age_days=None):
         return {"source": "open_prices", "per100_cents": 30.0, "date": __import__("datetime").date.today().isoformat(), "where": "Test shop"} if barcode == "2" else None
+    def chain_summary(self, *a, **k):
+        return [{"chain": "Carrefour"}]
 
 
 def test_insights_saving_needs_size_and_dated_price():
@@ -152,13 +155,13 @@ def test_insights_saving_needs_size_and_dated_price():
     assert o["alternative"]["id"] == "2" and o["alt_price"]["source"] == "open_prices"
     assert o["your_price"]["per100_cents"] == 50.0 and o["saving_per_purchase_cents"] == 80   # (50-30)*400/100
     assert o["protein_g_per_euro"]["alternative"] > o["protein_g_per_euro"]["yours"] and o["caveats"]
-    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None})()
+    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None, "chain_summary": CHAIN_SUMMARY})()
     assert c.get("/v1/insights", headers=H2).json()["opportunities"] == []   # no verified price => no saving claimed
 
 
 def test_budget_priority_ranks_by_verified_price_only():
     from datetime import date
-    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": {"2": 30.0, "3": 45.0}.get(b, 60.0) if b != "1" else 50.0, "date": date.today().isoformat(), "where": "X"}})()
+    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": {"2": 30.0, "3": 45.0}.get(b, 60.0) if b != "1" else 50.0, "date": date.today().isoformat(), "where": "X"}, "chain_summary": CHAIN_SUMMARY})()
     Hb = {"X-Session-Id": "budget-user-1", "X-Lang": "en"}
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
     r = c.post("/v1/products/1/alternatives", headers=Hb, json={"priorities": ["budget"], "excluded_allergens": ["peanuts"]}).json()
@@ -168,7 +171,7 @@ def test_budget_priority_ranks_by_verified_price_only():
     r2 = c.post("/v1/products/1/alternatives", headers=Hb, json={"priorities": ["protein", "budget"], "excluded_allergens": ["peanuts"]}).json()
     assert r2["alternatives"][0]["product_id"] == "5"        # protein first: 12 g beats 10 g; price breaks ties
     assert all("price_per_100_cents" in a for a in r2["alternatives"])
-    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None})()
+    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None, "chain_summary": CHAIN_SUMMARY})()
     r3 = c.post("/v1/products/1/alternatives", headers=Hb, json={"category_mode": "any", "priorities": ["budget"]}).json()
     assert r3["alternatives"] == [] and "price" in (r3["price_note"] or "").lower()
 
@@ -185,7 +188,7 @@ def test_value_ranking_and_price_comparison_always_present():
     from datetime import date
     today = date.today().isoformat()
     per = {"1": 50.0, "2": 30.0, "3": 45.0}
-    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": per.get(b, 90.0), "date": today, "where": "X"}})()
+    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": per.get(b, 90.0), "date": today, "where": "X"}, "chain_summary": CHAIN_SUMMARY})()
     Hv = {"X-Session-Id": "value-user-1", "X-Lang": "en"}
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
     r = c.post("/v1/products/1/alternatives", headers=Hv, json={"priorities": ["value", "protein"], "excluded_allergens": ["peanuts"]}).json()
@@ -197,7 +200,7 @@ def test_value_ranking_and_price_comparison_always_present():
     r2 = c.post("/v1/products/1/alternatives", headers=Hv, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"]}).json()
     assert r2["original_price"]["per100_cents"] == 50.0 and r2["alternatives"][0]["value"] is not None and r2["alternatives"][0]["price_source"]["source"] == "open_prices"
     # no price anywhere -> no price claims
-    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None})()
+    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None, "chain_summary": CHAIN_SUMMARY})()
     r3 = c.post("/v1/products/1/alternatives", headers=Hv, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"], "approximate": False}).json()
     assert r3["original_price"] is None and r3["alternatives"][0]["value"] is None
 
@@ -217,6 +220,7 @@ def test_store_prices_by_location_and_alternatives_use_nearby():
                 if d <= r: out.append({"store": n, "name": n, "city": city, "per100_cents": p * 100 / 4, "pack_cents": round(p * 100), "date": today, "distance_km": round(d, 1), "source": "open_prices"})
             return sorted(out, key=lambda x: x["per100_cents"])
         def latest(self, b, q, *a): return None
+        def chain_summary(self, *a, **k): return [{"chain": "Carrefour"}]
     main.app.state.prices = Geo()
     Hs = {"X-Session-Id": "geo-user-001", "X-Lang": "en"}
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
@@ -242,7 +246,7 @@ def test_indicators_and_three_rankings():
     from datetime import date
     today = date.today().isoformat()
     per = {"1": 50.0, "2": 30.0, "3": 45.0}
-    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": per.get(b, 90.0), "date": today, "where": "X"}})()
+    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": per.get(b, 90.0), "date": today, "where": "X"}, "chain_summary": CHAIN_SUMMARY})()
     for r in main.app.state.off.items.values(): r["quantity"] = "400 g"; r["serving_quantity"] = 125
     Hr = {"X-Session-Id": "rank-user-001", "X-Lang": "en"}
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
@@ -254,7 +258,7 @@ def test_indicators_and_three_rankings():
     assert rk["value"][0]["product"]["barcode"] == "2" and rk["value"][0]["price_per_100_cents"] == 30.0
     assert all(x["product"]["barcode"] != "7" for x in rk["value"])        # different category never ranked
     assert len(rk["match"]) >= 1
-    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None})()
+    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None, "chain_summary": CHAIN_SUMMARY})()
     r2 = c.post("/v1/products/1/alternatives", headers=Hr, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"], "approximate": False}).json()
     assert r2["rankings"]["value"] == [] and r2["original_indicators"] is None
 
@@ -267,7 +271,7 @@ def test_alternatives_never_start_a_fresh_web_search_for_a_candidate(monkeypatch
     real_targets = main._search_targets
     monkeypatch.setattr(main, "_search_targets", lambda orig, orig_unpriced, prods, prices, *a, **k: (calls.append(list(prods)), real_targets(orig, orig_unpriced, prods, prices, *a, **k))[1])
     monkeypatch.setattr(webprice, "enabled", lambda: True)
-    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None})()
+    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None, "chain_summary": CHAIN_SUMMARY})()
     Hr = {"X-Session-Id": "nofresh-user-001", "X-Lang": "en", "X-Forwarded-For": "203.0.113.55"}
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
     c.post("/v1/products/1/alternatives", headers=Hr, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"]})
@@ -279,7 +283,7 @@ def test_a_price_is_never_guessed_from_a_category_average():
     assert not hasattr(E, "estimate_per100") and not hasattr(E, "category_price_per100")      # removed on purpose
     ch = E.chain_prices(100.0, 400)                                                           # chain levels apply only to a price that exists
     assert ch[0]["chain"] in ("Lidl", "Aldi") and ch[-1]["chain"].startswith("Naturalia") and ch[0]["pack_cents"] == 344
-    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None, "stores": lambda self, *a: []})()
+    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None, "stores": lambda self, *a: [], "chain_summary": CHAIN_SUMMARY})()
     for r in main.app.state.off.items.values(): r["quantity"] = "400 g"
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
     Hq = {"X-Session-Id": "estimate-user-1", "X-Lang": "en"}
@@ -295,7 +299,7 @@ def test_a_price_is_never_guessed_from_a_category_average():
 def test_product_price_database_is_per_product_not_per_shop():
     from datetime import date
     today = date.today().isoformat()
-    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": 40.0, "date": today, "where": "Some Shop"}, "stores": lambda self, *a: []})()
+    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": 40.0, "date": today, "where": "Some Shop"}, "stores": lambda self, *a: [], "chain_summary": CHAIN_SUMMARY})()
     for r in main.app.state.off.items.values(): r["quantity"] = "500 g"
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
     Hp = {"X-Session-Id": "pricedb-user-01", "X-Lang": "en"}
@@ -317,7 +321,7 @@ def test_price_constraint_compare_prices_and_receipt_name_search():
     from datetime import date
     today = date.today().isoformat()
     per = {"1": 50.0, "2": 30.0, "3": 55.0}
-    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": per.get(b, 90.0), "date": today, "where": None}})()
+    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": per.get(b, 90.0), "date": today, "where": None}, "chain_summary": CHAIN_SUMMARY})()
     for r in main.app.state.off.items.values(): r["quantity"] = "400 g"
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.query(db.ProductPrice).delete(); _s.commit()
     Hk = {"X-Session-Id": "constraint-user-1", "X-Lang": "en"}
@@ -338,7 +342,7 @@ def test_price_constraint_compare_prices_and_receipt_name_search():
 def test_budget_api_adapts_and_savings_are_realised_only_by_a_receipt():
     from datetime import date
     today = date.today().isoformat()
-    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": {"1": 50.0, "2": 30.0}.get(b, 90.0), "date": today, "where": None}})()
+    main.app.state.prices = type("P", (), {"latest": lambda self, b, q, *a: {"source": "open_prices", "per100_cents": {"1": 50.0, "2": 30.0}.get(b, 90.0), "date": today, "where": None}, "chain_summary": CHAIN_SUMMARY})()
     for r in main.app.state.off.items.values(): r["quantity"] = "400 g"
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
     Hb2 = {"X-Session-Id": "budget-api-user1", "X-Lang": "en"}
@@ -402,15 +406,13 @@ def test_an_already_cached_web_price_shows_up_even_when_this_candidate_is_not_se
     assert row["price_per_100_cents"] == 45.0
 
 
-def test_a_product_sold_in_france_with_no_known_chain_still_appears(monkeypatch):
-    """Chain attribution (Open Prices sightings, a web search, a house brand) only ever covers a minority of products.
-    Requiring it used to silently drop otherwise-good, genuinely sold-in-France alternatives that simply lack that one
-    piece of evidence; only being sold in France is required now."""
+def test_a_product_without_supermarket_evidence_is_not_shown(monkeypatch):
+    """France requires more than an OFF country tag: a displayed alternative needs a recognised chain."""
     monkeypatch.setattr(main.app.state.prices, "chain_summary", lambda *a, **k: [], raising=False)
     r = c.post("/v1/products/1/alternatives", headers=H, json={"category_mode": "any", "priorities": ["protein", "sugars"], "limit": 5, "excluded_allergens": ["peanuts"]}).json()
-    ids = [a["product_id"] for a in r["alternatives"]]
-    assert ids[0] == "2" and "3" in ids                      # still shown, even with zero known chains
-    assert all(not (a["product"].get("chains")) for a in r["alternatives"])   # confirms this run really had no chain evidence at all
+    assert r["alternatives"] == []
+    assert not r["rankings"].get("quality")
+    assert all(not x.get("product", {}).get("chains") for k, v in r["rankings"].items() if isinstance(v, list) for x in v if isinstance(x, dict) and "product" in x)
 
 
 def test_unknown_availability_never_reaches_a_ranking_tab_even_without_a_working_price_service(monkeypatch):
