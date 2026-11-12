@@ -47,7 +47,10 @@ R = [
     # ---- dairy
     ("plant_yogurt", "dairy_alt", "yogurt", "spoonable", "spoon", "breakfast", r"plant-based-(yogurts|desserts)|soy-yogurts|dairy-substitutes-yogurts", r"(soja|amande|coco|avoine).*(yaourt|dessert)|yaourt.*(soja|amande|coco)"),
     ("flavoured_yogurt", "dairy", "yogurt", "spoonable", "spoon", "dessert", r"flavoured-yogurts|fruit-yogurts|sweetened-yogurts|yogurts-with-fruits", r"(vanille|fruit|fraise|abricot|p[êe]che|coco|caramel|citron|cerise|banane|vanilla|aux fruits)(?![^a-z]*barre|[^a-z]*bar|[^a-z]*barres)"),
-    ("plain_yogurt", "dairy", "yogurt", "spoonable", "spoon", "breakfast", r"yogurts|yoghurts|plain-yogurts|greek-yogurts|skyr|fermented-milks", r"yaourt|yogourt|yogurt|skyr|grec|nature"),
+    # Bare "nature" or "grec" alone must never classify a product as yogurt: "nature" means "plain" for almost any French
+    # grocery item (lardons nature, riz nature, jambon nature all have empty category tags in practice), and "grec" appears
+    # in unrelated names too (salade grecque). Only an explicit yogurt word anchors this rule.
+    ("plain_yogurt", "dairy", "yogurt", "spoonable", "spoon", "breakfast", r"yogurts|yoghurts|plain-yogurts|greek-yogurts|skyr|fermented-milks", r"yaourt|yogourt|yogurt|skyr"),
     ("fromage_blanc", "dairy", "fresh_cheese", "spoonable", "spoon", "breakfast", r"fromages-blancs|fresh-cheeses|petits-suisses|faisselle|quark", r"fromage blanc|petit suisse|faisselle|quark"),
     ("cream_cheese", "dairy", "cheese", "spreadable_cheese", "tub", "spread_cook", r"cheese-spreads|cream-cheeses|spreadable-cheeses|fromages-[àa]-tartiner|labneh", r"labn[eé]h?\b|carr[ée] frais|philadelphia|cream cheese|fromage (frais )?[àa] tartiner|[àa] tartiner.*(ail|fines herbes|nature)|formaggio fresco|spalmabile|kiri\b|st[- ]?m[ée]range|boursin|apericube|vache qui rit|tartare"),
     # A cheese's texture and style decide what it is actually used for (grated into a gratin, spread on a cracker, melted,
@@ -77,7 +80,9 @@ R = [
     ("instant_coffee", "drinks", "coffee", "instant", "instant", "hot_drink", r"instant-coffees|soluble-coffees", r"soluble|instantan|instant"),
     ("ground_coffee", "drinks", "coffee", "ground", "ground", "hot_drink", r"ground-coffees|(?:^|\s)en:coffees\b|filter-coffees|roasted-coffees", r"\bmoulu|ground coffee|caf[eé] moulu|\bcaf[eé]\b"),
     ("herbal_tea", "drinks", "infusion", "infusion", "infusion", "hot_drink", r"herbal-teas|infusions|tisanes|herbal-infusions", r"tisane|infusion"),
-    ("tea", "drinks", "tea", "tea", "tea", "hot_drink", r"(?:^|\s)en:(?:teas|black-teas|green-teas|iced-teas)\b|tea-bags", r"\bth[eé]\b|\btea\b"),
+    # Bare "the" (no accent) is the ordinary English word "the", found in all kinds of unrelated brand names
+    # ("Carrefour The Market"); bare "tea" alone is thin too. Require the accented French word or a real tea phrase.
+    ("tea", "drinks", "tea", "tea", "tea", "hot_drink", r"(?:^|\s)en:(?:teas|black-teas|green-teas|iced-teas)\b|tea-bags", r"\bthé\b|green tea|black tea|iced tea|\btea bags?\b"),
     # ---- spreads and sweet
     ("chocolate_spread", "sweet", "spread", "spread", "spread", "breakfast", r"chocolate-spreads|hazelnut-spreads|cocoa-and-hazelnuts-spreads|chocolate-and-hazelnut-spreads|pates-a-tartiner-au-chocolat|pates-a-tartiner-aux-noisettes|pates-a-tartiner-au-cacao|produits-a-tartiner-sucres|pates-a-tartiner(?!-vegetal)", r"p[âa]te [àa] tartiner|nutella|pasta cao|chocolate spread"),
     ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|compotes|fruit-and-vegetable-preserves|fruit-preserves|fruit-purees|apple-compotes", r"confiture|confettura|marmelade|compote|gel[ée]e"),
@@ -250,7 +255,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 _CLASS_CACHE: Dict[Any, Dict[str, Any]] = {}
 
 
-_CHEESE_DISH = re.compile(r"cr[êe]pes?|galettes?|pizza|quiche|sandwich|burger|gratin|lasagn|ravioli|tortellini|croque|tarte|feuillet[ée]|cordon bleu|nuggets|salade|tartiflette|raclette (kit|pour)|jambon|poulet|saumon|pâtes|pates|panini|wrap|bagel|soupe|velout[ée]|b[ée]chamel|sauce", re.I)
+_CHEESE_DISH = re.compile(r"cr[êe]pes?|galettes?|pizza|quiche|sandwich|burger|gratin|lasagn|ravioli|tortellini|croque|tarte|feuillet[ée]|cordon bleu|nuggets|salade|tartiflette|raclette (kit|pour)|jambon|poulet|saumon|pâtes|pates|panini|wrap|bagel|soupe|velout[ée]|b[ée]chamel|sauce|carr[ée]s? de (bl[ée]|pomme)|risotto|quinotto|croquette|beignet|flan sal[ée]", re.I)
 
 
 def classify(p: Dict[str, Any]) -> Dict[str, Any]:

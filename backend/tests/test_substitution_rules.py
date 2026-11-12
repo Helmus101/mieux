@@ -992,6 +992,21 @@ def test_pizza_dough_is_not_a_substitute_for_a_finished_pizza():
     assert sub(dough, dough2)["level"] == 1
 
 
+def test_bare_nature_or_the_never_misclassify_an_unrelated_product():
+    """Two benchmark findings from a 100-product live spot-check, both caused by a single generic word matching
+    everything: 'nature' (French for 'plain', found on lardons/riz/jambon with empty category tags) was wrongly
+    classifying bacon lardons as yogurt; bare 'the' (the English article, as in 'Carrefour The Market') was wrongly
+    classifying a fish ready-meal as tea - both made completely unrelated products pass the compatibility gate."""
+    lardons = P("HERTA Lardons nature conservation sans nitrite", [])
+    yaourt = P("Yaourt nature", ["en:yogurts"])
+    assert taxonomy.classify(lardons)["type"] != "plain_yogurt"
+    assert sub(lardons, yaourt) is None
+    fish = P("Carrefour The Market Traiteur Gourmet Cabillaud à la Florentine", ["en:meals"])
+    the_tea = P("Thé vert nature bio", [])
+    assert taxonomy.classify(fish)["type"] != "tea"
+    assert sub(fish, the_tea) is None
+
+
 def test_cheese_styles_are_distinct_from_each_other():
     """A hard grating cheese, a blue cheese, a soft washed/bloomy-rind cheese, a fresh goat cheese and a fresh
     unripened cheese (mozzarella/burrata) are all 'cheese' but are not realistic substitutes for each other - a
