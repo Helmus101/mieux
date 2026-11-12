@@ -107,7 +107,7 @@ def providers() -> list:
     if os.environ.get("GEMINI_API_KEY"):
         out.append("gemini")
     if time.time() < _gemini["down_until"] or time.time() < _down.get("deepseek", 0):
-        for name, key in (("serper", "SERPER_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY"), ("brave", "BRAVE_API_KEY")):
+        for name, key in (("serper", "SERPER_API_KEY"), ("langsearch", "LANGSEARCH_API_KEY"), ("parallel", "PARALLEL_API_KEY"), ("brave", "BRAVE_API_KEY")):
             if os.environ.get(key) and name not in out:
                 out.append(name)          # the configured search APIs come last, in that order
     return out
