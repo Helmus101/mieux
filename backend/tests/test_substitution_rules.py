@@ -979,3 +979,14 @@ def test_grilled_vegetables_and_vegetable_puree_are_distinct_from_each_other_and
     assert sub(brocoli, carottes) is None
     assert sub(poivrons, P("Aubergines grillées", ["en:vegetables"]))["level"] == 1          # still substitute each other
     assert sub(brocoli, P("Purée de carotte", ["en:vegetables"]))["level"] == 1
+
+
+def test_pizza_dough_is_not_a_substitute_for_a_finished_pizza():
+    """Raw dough to top and bake at home is a cooking ingredient, not a ready-to-eat meal: it must never substitute
+    for a finished pizza, even though both share the word 'pizza' and OFF's 'en:pizza-dough' tag used to collide
+    with the generic pizza rule's own tag regex."""
+    dough = P("Pâte à Pizza Fine et Rectangulaire", ["en:pizza-dough"])
+    dough2 = P("Pâte à pizza bio au levain", ["en:pizza-dough"])
+    pizza = P("Pizza Margherita", ["en:pizzas"])
+    assert sub(dough, pizza) is None
+    assert sub(dough, dough2)["level"] == 1

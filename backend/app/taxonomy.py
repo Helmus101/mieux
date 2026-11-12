@@ -90,7 +90,9 @@ R = [
     ("chips", "snacks", "chips", "chips", "chips", "snacking", r"chips|crisps|potato-crisps|tortilla-chips|puffs", r"chips|tortilla|crisps"),
     ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|dried-fruits|seeds", r"amande|cajou|cacahu|pistache|noix|noisette|fruits secs|graines"),
     ("soup", "meals", "soup", "liquid", "soup", "meal", r"soups|veloutes|broths", r"soupe|velout[ée]|bouillon"),
-    ("pizza", "meals", "pizza", "pizza", "pizza", "meal", r"pizzas|pizza-dough|quiches|tartes", r"pizza|quiche|tarte|flammekueche"),
+    # Raw dough to bake and top at home is not a substitute for a finished, ready-to-eat pizza: different preparation, different use.
+    ("pizza_dough", "cereals_bakery", "dough", "pizza_dough", "raw_dough", "cooking_ingredient", r"pizza-dough|pizza-bases|pizza-shells", r"p[âa]te à pizza|fond(?:s)? de pizza|base(?:s)? (?:à |pour )?pizza|pizza dough"),
+    ("pizza", "meals", "pizza", "pizza", "pizza", "meal", r"pizzas|quiches|tartes", r"pizza|quiche|tarte|flammekueche"),
     ("ready_meal", "meals", "ready_meal", "meal", "meal", "meal", r"meals|prepared-meals|ready-meals|sandwiches|salads", r"plat cuisin|lasagne|hachis|couscous|paella|sandwich|salade"),
     ("ham", "meat_fish", "charcuterie", "slices", "cold_cut", "meal", r"hams|cooked-hams|dry-hams|charcuteries|bacon|cured-meats", r"jambon|lardons|saucisson|charcuterie|bacon"),
     ("sausage", "meat_fish", "charcuterie", "sausage", "cook", "meal", r"sausages|merguez", r"saucisse|merguez|chipolata"),
@@ -150,6 +152,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     },  # Snack bars are their own cluster - chocolate tablets, cakes, biscuits are NOT in this cluster
 
     "soup": {"soup": 1}, "pizza": {"pizza": 1}, "ready": {"ready_meal": 1, "pizza": 3},
+    "pizza_dough": {"pizza_dough": 1},   # raw dough to top at home, never interchangeable with a finished pizza
     "cold_cuts": {"ham": 1, "sausage": 3}, "fish": {"fish_canned": 1},
     "legumes": {"legumes": 1},   # fruit and pulses are different purchases: no shared cluster
     "ketchup": {"ketchup": 1}, "mayonnaise": {"mayonnaise": 1},
@@ -195,7 +198,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
-                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree")
+                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid == "cheese" and _CHEESE_DISH.search(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
