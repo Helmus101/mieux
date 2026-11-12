@@ -37,7 +37,7 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-from . import chains as _chains, webprice, value_index, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
+from . import chains as _chains, taxo1000, webprice, value_index, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
@@ -1593,12 +1593,26 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
         field, low, required, ingredients = _quick_args()
         return fn(otype, field, low, required, ingredients, per_tag=2500, total=5000)
 
+    def _tax_codes() -> List[str]:
+        """Candidates from the Mieux 1000+ taxonomy index (off_tax): the scanned product's substitution groups."""
+        fn = getattr(app.state.off, "tax_group_candidates", None)
+        if not (local and fn):
+            return []
+        groups = (taxo1000.classify(orig.get("name"), None, orig.get("brand")).get("groups") or [])[:2]
+        if not groups:
+            return []
+        field, low, required, ingredients = _quick_args()
+        out: List[str] = []
+        for g in groups:
+            out += fn(g, field, low, required, ingredients, per_tag=2500, total=5000)
+        return list(dict.fromkeys(out))
+
     base = [t for t in orig["categories"] if t not in _TOO_BROAD]
     if not base:
-        # No usable OFF category tags (common on thin records): the Mieux type index is the specific category,
+        # No usable OFF category tags (common on thin records): the Mieux indexes are the specific categories,
         # then the type's names as a supplement.
         found: Dict[str, Dict[str, Any]] = {}
-        for r in app.state.off.quick_products(_type_codes()):
+        for r in app.state.off.quick_products(list(dict.fromkeys(_type_codes() + _tax_codes()))):
             if r.get("product_name") and _raw_candidate(r, prio, alg, orig):
                 p = normalize(r)
                 found.setdefault(p["barcode"], p)
@@ -1629,8 +1643,8 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             more = app.state.off.quick_candidates(tags[:8], field, low, tuple(required), ingredients)
             codes = list(dict.fromkeys(list(codes or []) + list(more or [])))
         if len(codes or []) < 60:
-            # OFF tags are missing or too broad for this product: the Mieux type index is the specific category for the whole DB.
-            codes = list(dict.fromkeys(list(codes or []) + _type_codes()))
+            # OFF tags are missing or too broad for this product: the Mieux type and 1000+ taxonomy indexes are the specific categories for the whole DB.
+            codes = list(dict.fromkeys(list(codes or []) + _type_codes() + _tax_codes()))
         if codes:
             raws = app.state.off.quick_products(codes)
     if not raws:

@@ -179,6 +179,35 @@ class _Local:
                     out.append(code)
         return out[:total]
 
+    def tax_group_candidates(self, group: Optional[str], field: Optional[str] = None, low: bool = True,
+                             required: tuple = (), ingredients: bool = False,
+                             per_tag: Optional[int] = None, total: Optional[int] = None) -> List[str]:
+        """Codes of one Mieux 1000+ substitution group from off_tax (scripts/build_taxonomy_index.py), joined to the
+        compact index exactly like quick_type_candidates. The taxonomy group is the specific category for the whole DB."""
+        if not self.quick_available() or not group:
+            return []
+        field = field if field in self._QUICK_COLS else None
+        cond = "".join(f" and q.{c} is not null" for c in required if c in self._QUICK_COLS)
+        if ingredients:
+            cond += " and q.ing = 1"
+        order = ("q.grade is null, q.grade asc" if field == "grade" else f"q.{field} {'asc' if low else 'desc'}") if field else "t.scans desc"
+        base = "from off_tax t join quick.quick q on q.code=t.code where t.grp=?"
+        if per_tag is None and total is None:
+            rows = self._q(f"select q.code {base}{cond} order by {order}, t.scans desc", (group,))
+            return [r[0] for r in rows or []]
+        per_tag = per_tag or 220
+        total = total or 260
+        rows = self._q(f"select q.code {base}{cond} order by {order}, t.scans desc limit ?", (group, per_tag))
+        out = [r[0] for r in rows or []]
+        if len(out) < total:
+            more = self._q(f"select q.code {base}{cond} order by t.scans desc limit ?", (group, max(20, per_tag // 2)))
+            seen = set(out)
+            for (code,) in more or []:
+                if code not in seen:
+                    seen.add(code)
+                    out.append(code)
+        return out[:total]
+
     def quick_products(self, codes: List[str]) -> List[Dict[str, Any]]:
         """Full records for these codes (only these are parsed): the expensive step happens on the final shortlist."""
         out: List[Dict[str, Any]] = []
@@ -365,6 +394,12 @@ class OFFClient:
                               per_tag: Optional[int] = None, total: Optional[int] = None) -> List[str]:
         """Codes of one Mieux product type from the local type index (scripts/build_type_index.py)."""
         return self.local.quick_type_candidates(type_id, field, low, required, ingredients, per_tag, total)
+
+    def tax_group_candidates(self, group: Optional[str], field: Optional[str] = None, low: bool = True,
+                             required: tuple = (), ingredients: bool = False,
+                             per_tag: Optional[int] = None, total: Optional[int] = None) -> List[str]:
+        """Codes of one Mieux 1000+ substitution group from the local taxonomy index (scripts/build_taxonomy_index.py)."""
+        return self.local.tax_group_candidates(group, field, low, required, ingredients, per_tag, total)
 
     def quick_products(self, codes: List[str]) -> List[Dict[str, Any]]:
         """Full records for the final shortlist only."""
