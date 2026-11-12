@@ -175,7 +175,7 @@ def _fetch_results(name: str, product: Dict[str, Any], http: Http, variant: int 
         pages = ((data.get("data") or data).get("webPages") or {}).get("value", [])
         return [(r.get("url") or "", " ".join([r.get("name") or "", r.get("snippet") or "", r.get("summary") or ""])) for r in pages]
     data = http("POST", PARALLEL, {"Content-Type": "application/json", "x-api-key": os.environ["PARALLEL_API_KEY"]},
-                {"objective": f"Prix actuel en euros en supermarché en France de : {query}. Donne les pages de supermarchés ou comparateurs qui indiquent ce prix.", "search_queries": [query]})
+                {"objective": f"Prix actuel en euros en supermarché en France de : {query}. Donne les pages de supermarchés ou comparateurs qui indiquent ce prix.", "search_queries": [query], "mode": "turbo"})
     return [(r.get("url") or "", " ".join([r.get("title") or ""] + list(r.get("excerpts") or []))) for r in data.get("results", [])]
 
 
@@ -757,6 +757,8 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 continue
             if time.time() < _down.get(name, 0):
                 continue                    # this provider just said "quota used up": skip it for a few minutes
+            if name == "parallel" and variant > 0:
+                continue                    # the priciest fallback: tried once per lookup, never retried across wordings
             try:
                 left = (deadline - time.time()) if deadline else None
                 cap = min(left, 12) if left else 12          # a hard wall-clock cap: a slow provider must never outrun the budget

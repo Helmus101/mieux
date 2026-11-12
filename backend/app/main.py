@@ -1774,7 +1774,10 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
     # observed prices in the pool say nothing about the unpriced bar that scores 76. Found prices carry source='web_search' + approximate=True ("~" in the clients).
     if webprice.enabled():
         try:
-            todo = _search_targets(orig, orig_price is None, prods, prices)
+            # Alternatives never trigger a fresh web search for a candidate - only the scanned product itself gets one
+            # (when it has no price yet). A candidate still shows a price already found by an earlier search (the
+            # cached-only block above), just never a brand-new one started on its behalf.
+            todo = _search_targets(orig, orig_price is None, [], prices)
             if todo:
                 # Stored prices are instant. Start missing searches in parallel, then
                 # return the quality list quickly; clients poll the same futures and
@@ -2017,10 +2020,13 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     # drop a product explicitly marked as sold elsewhere, so one with merely unknown availability could otherwise reach the
     # quality or price-quality tab unfiltered if this gate were ever skipped.
     _ok = lambda x: (x.get("product") or {}).get("soldInFrance") is True   # noqa: E731
+    # A second unconditional floor, over every tab the same way: an alternative must score at least 50 on quality.
+    # Unknown (no score at all) is not proof it is good enough, so it is held to the same bar, not exempted from it.
+    _q_ok = lambda x: ((x.get("product") or {}).get("score") or {}).get("total", -1) >= 50   # noqa: E731
     for _k, _v in list((res.get("rankings") or {}).items()):
         if isinstance(_v, list):
-            res["rankings"][_k] = [x for x in _v if not isinstance(x, dict) or "product" not in x or _ok(x)]
-    res["alternatives"] = [x for x in res.get("alternatives", []) if not isinstance(x, dict) or "product" not in x or _ok(x)]
+            res["rankings"][_k] = [x for x in _v if not isinstance(x, dict) or "product" not in x or (_ok(x) and _q_ok(x))]
+    res["alternatives"] = [x for x in res.get("alternatives", []) if not isinstance(x, dict) or "product" not in x or (_ok(x) and _q_ok(x))]
     # The three tabs only hold what beats the scanned product (the apps apply the same rules; the API is the single source of truth):
     # cheaper per 100 g/ml, a higher price-quality score, a higher nutrition score. Nothing is compared when the scanned product has no price / score.
     rk_ = res.get("rankings") or {}

@@ -259,6 +259,21 @@ def test_indicators_and_three_rankings():
     assert r2["rankings"]["value"] == [] and r2["original_indicators"] is None
 
 
+def test_alternatives_never_start_a_fresh_web_search_for_a_candidate(monkeypatch):
+    """A web price search is only ever started for the scanned product itself (when it has no price yet) - never for
+    an alternative candidate. A candidate still shows a price an earlier search already found and cached."""
+    from app import webprice
+    calls = []
+    real_targets = main._search_targets
+    monkeypatch.setattr(main, "_search_targets", lambda orig, orig_unpriced, prods, prices, *a, **k: (calls.append(list(prods)), real_targets(orig, orig_unpriced, prods, prices, *a, **k))[1])
+    monkeypatch.setattr(webprice, "enabled", lambda: True)
+    main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None})()
+    Hr = {"X-Session-Id": "nofresh-user-001", "X-Lang": "en", "X-Forwarded-For": "203.0.113.55"}
+    _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
+    c.post("/v1/products/1/alternatives", headers=Hr, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"]})
+    assert calls and all(prods == [] for prods in calls)   # _search_targets was always called with no candidates to search
+
+
 def test_a_price_is_never_guessed_from_a_category_average():
     from app import estimate as E
     assert not hasattr(E, "estimate_per100") and not hasattr(E, "category_price_per100")      # removed on purpose
