@@ -1905,7 +1905,9 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     est_codes = frozenset(k for k, v in points.items() if (v or {}).get("source") == "estimate" and k != orig["barcode"])
     orig_est = (points.get(orig["barcode"]) or {}).get("source") == "estimate"
     res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"], est_codes, orig_est, points=points)
-    for key in ("budget", "value", "quality", "closest"):
+    res["rankings"].pop("budget", None)
+    res["rankings"].pop("closest", None)   # only Best value and Best quality are shown; cheapest/closest are not surfaced
+    for key in ("value", "quality"):
         for r in res["rankings"].get(key, []):
             if not r.get("price_source"):
                 r["price_source"] = _with_confidence(points.get(r["product"]["barcode"]))
@@ -1930,7 +1932,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     for a_ in res.get("alternatives", []):
         a_["availability"], a_["store_price"] = _availability(a_["product"])
     orig_type_ = taxonomy.classify(orig).get("type")      # the scanned product itself (res["original"] is only filled in later)
-    for key_ in ("budget", "value", "quality", "closest"):
+    for key_ in ("value", "quality"):
         seen_, kept_ = set(), []
         for r_ in res["rankings"].get(key_, []):
             vk_ = engine.variant_key(r_["product"])
@@ -1961,13 +1963,12 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     if _vo:
         res["rankings"]["original_value_score"] = _vo["value_score"]      # the scanned product's score from the same index
     if "diagnostics" in res:
-        res["diagnostics"]["eligible_cheapest"] = len(res["rankings"].get("budget", []))
         res["diagnostics"]["eligible_quality"] = len(res["rankings"].get("quality", []))
         res["diagnostics"]["eligible_best_value"] = len(res["rankings"].get("value", []))
     if body.location:
         # A product counts for a chain if it was seen at that chain anywhere in France; what matters here is the closest branch of that chain to the user's reference point.
         loc_, sel = body.location, set(body.chains)
-        lists = [res["alternatives"]] + [res["rankings"].get(k_, []) for k_ in ("budget", "value", "quality", "closest")]
+        lists = [res["alternatives"]] + [res["rankings"].get(k_, []) for k_ in ("value", "quality")]
         prods = {x["product"]["barcode"]: x["product"] for lst in lists for x in lst}
         from collections import Counter
         cnt = Counter(c for pr_ in prods.values() for c in (pr_.get("chains") or []) if not sel or c in sel)
@@ -1990,15 +1991,12 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         for lst in lists:
             for x in lst:
                 x["nearby"] = nmap.get(x["product"]["barcode"])
-        # Only the substitute list may be reordered by local evidence. Cheapest, Best value and Best quality keep their strict
-        # ordering: moving a pricier product above a cheaper one would make the label untrue.
-        res["rankings"]["closest"].sort(key=lambda x: (x.get("availability", {}).get("state") != "observed_at_store", x["nearby"] is None))
         res["location_used"] = True
     oq2 = orig.get("quantity")
     res["original_size"] = oq2
     res["nearby_filter"] = res_filter
     res["same_size_applied"] = bool(body.same_size and (oq2 or {}).get("amount"))
-    for lst in [res["alternatives"]] + [res["rankings"].get(k_, []) for k_ in ("budget", "value", "quality", "closest")]:
+    for lst in [res["alternatives"]] + [res["rankings"].get(k_, []) for k_ in ("value", "quality")]:
         for x in lst:  # every price is shown with its pack size, so unit prices of different formats are never mistaken for the same thing
             q3 = x["product"].get("quantity")
             p100 = x.get("price_per_100_cents") if x.get("price_per_100_cents") is not None else prices.get(x["product"]["barcode"])
@@ -2023,8 +2021,6 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     # The three tabs only hold what beats the scanned product (the apps apply the same rules; the API is the single source of truth):
     # cheaper per 100 g/ml, a higher price-quality score, a higher nutrition score. Nothing is compared when the scanned product has no price / score.
     rk_ = res.get("rankings") or {}
-    if isinstance(rk_.get("budget"), list) and orig_price is not None:
-        rk_["budget"] = [x for x in rk_["budget"] if x.get("price_per_100_cents") is not None and x["price_per_100_cents"] < orig_price]
     if isinstance(rk_.get("value"), list):
         # Only what beats the scanned product on value OR quality. Worse on both is never shown, at the API or in the app.
         o_v = rk_.get("original_value_score")
@@ -2042,7 +2038,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         for a_ in res["alternatives"]:
             a_["improvements"] = [liq(x) for x in a_["improvements"]]
             a_["tradeoffs"] = [liq(x) for x in a_["tradeoffs"]]
-        for k_ in ("budget", "value"):
+        for k_ in ("value",):
             for r_ in res["rankings"][k_]:
                 r_["why"] = liq(r_["why"]); r_["tradeoffs"] = [liq(x) for x in r_["tradeoffs"]]
     bs = _budget_state(s, uid)
@@ -2051,7 +2047,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         pack = round(orig_price * oq_["amount"] / 100) if (orig_price is not None and oq_) else None
         res["budget"] = {"pressure": bs["pressure"], "recommended_ranking": bs["recommended_ranking"], "remaining_cents": bs["status"]["remaining_cents"],
                          "label": bs["status"]["label"], "pack_share_of_remaining_pct": round(pack / bs["status"]["remaining_cents"] * 100) if (pack and bs["status"]["remaining_cents"] > 0) else None}
-    for r_ in res["rankings"]["budget"] + res["rankings"]["value"]:
+    for r_ in res["rankings"]["value"]:
         r_["estimated"] = (points.get(r_["product"]["barcode"]) or {}).get("source") == "estimate"
     for a_ in res["alternatives"]:
         a_["estimated"] = (points.get(a_["product"]["barcode"]) or {}).get("source") == "estimate"

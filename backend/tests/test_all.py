@@ -250,13 +250,13 @@ def test_indicators_and_three_rankings():
     ind = r["original_indicators"]
     assert ind["price_per_kg_eur"] == 5.0 and ind["price_per_serving_eur"] == 0.62 and ind["cost_per_10g_protein_eur"] == 1.25   # 0.5 EUR/100 g -> 10 g protein costs 1.25
     rk = r["rankings"]
-    assert rk["budget"][0]["product"]["barcode"] == "2" and rk["budget"][0]["price_per_100_cents"] == 30.0 and rk["budget"][0]["why"]
-    assert rk["value"][0]["product"]["barcode"] == "2"
-    assert all(x["product"]["barcode"] != "7" for x in rk["budget"] + rk["value"])        # different category never ranked
+    assert "budget" not in rk and "closest" not in rk      # only Best value and Best quality are surfaced
+    assert rk["value"][0]["product"]["barcode"] == "2" and rk["value"][0]["price_per_100_cents"] == 30.0
+    assert all(x["product"]["barcode"] != "7" for x in rk["value"])        # different category never ranked
     assert len(rk["match"]) >= 1
     main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None})()
     r2 = c.post("/v1/products/1/alternatives", headers=Hr, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"], "approximate": False}).json()
-    assert r2["rankings"]["budget"] == [] and r2["rankings"]["value"] == [] and r2["original_indicators"] is None
+    assert r2["rankings"]["value"] == [] and r2["original_indicators"] is None
 
 
 def test_a_price_is_never_guessed_from_a_category_average():

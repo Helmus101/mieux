@@ -95,7 +95,6 @@ export default function Alternatives() {
     const have = new Set(base.map((x: any) => x.product?.barcode));
     const extra = [
       ...(r?.rankings?.quality ?? []),
-      ...(r?.rankings?.closest ?? []),
       ...(r?.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
     ].filter((x: any) => {
       const bc = x.product?.barcode;
@@ -140,9 +139,7 @@ export default function Alternatives() {
     if (busy || !r) return;
     const allCands = [
       ...(r?.rankings?.quality ?? []),
-      ...(r?.rankings?.closest ?? []),
       ...(r?.rankings?.value ?? []),
-      ...(r?.rankings?.budget ?? []),
       ...(r?.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
     ];
     const visible = ranked.map((e: any) => e.product?.barcode).filter(Boolean);
