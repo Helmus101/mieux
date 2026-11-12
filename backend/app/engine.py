@@ -521,20 +521,12 @@ def _verified_price(price100: Optional[float], point: Optional[Dict[str, Any]], 
 
 
 POPULAR_SCANS = 5          # scanned at least this often on Open Food Facts counts as known to shoppers
-MIN_POPULAR = 5            # popularity only filters when at least this many popular candidates remain
 
 
 def is_popular(c: Dict[str, Any], prices: Optional[Dict[str, float]] = None) -> bool:
     """Known to shoppers: scanned often, sold in at least one known chain, or seen with an observed price (so it is on a shelf somewhere)."""
     pop = c.get("popularity") or {}
     return (pop.get("scans") or 0) >= POPULAR_SCANS or (pop.get("chains") or 0) >= 1 or bool(c.get("chains")) or ((prices or {}).get(c.get("barcode")) is not None)
-
-
-def prefer_popular(pool: List[Dict[str, Any]], prices: Optional[Dict[str, float]] = None) -> List[Dict[str, Any]]:
-    """The popular candidates when there are enough of them, else the whole pool: an obscure product must not top Cheapest, Quality or
-    Value just because nobody has scanned or priced it, but a thin category still gets its list."""
-    known = [c for c in pool if is_popular(c, prices)]
-    return known if len(known) >= MIN_POPULAR else pool
 
 
 def close_only(items, level_of, min_close: int = 3):
@@ -733,7 +725,7 @@ def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
             "completeness": comp,
             "quality_detail": {"additives_at_risk": risky, "nova": nova, "nutrition_complete": bool(comp)},
             "estimated": False,
-            "_k": (-c_sc, -comp, risky, nova, -sim),
+            "_k": (-c_sc, -comp, risky, nova, -sim, 0 if is_popular(c, prices) else 1),
         })
     rows.sort(key=lambda r: r["_k"])
     out, seen = [], set()
@@ -874,7 +866,7 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
         })
     
     # Sort: non-dominated first, then value index descending, then confidence, then quality
-    rows.sort(key=lambda r: (-r["value_score"], bool(r["dominated"]), -r["conf_rank"], -(r["quality_score"] or 0)))   # the index already ranks a dominated product below its dominator
+    rows.sort(key=lambda r: (-r["value_score"], bool(r["dominated"]), -r["conf_rank"], -(r["quality_score"] or 0), 0 if is_popular(r["product"], prices) else 1))   # the index already ranks a dominated product below its dominator; popularity only breaks a tie after it
     result = rows[:MAX_SHOWN]  # strict order: brand variety must never move a cheaper or better product down
     return {"items": result, "no_baseline": no_baseline, "original_value_score": orig_val_score}
 
@@ -964,7 +956,10 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
     # Step 2: Filter for each ranking
     level_1_2 = [c for c in strict_pool if (c.get("substitution") or {}).get("level", 4) <= 2]
     high_confidence = [c for c in level_1_2 if (c.get("substitution") or {}).get("confidence") not in ("none", "low")]
-    high_confidence = prefer_popular(high_confidence, prices)      # the closest list keeps everything; the money and quality lists use known products
+    # Popularity used to be a hard eligibility filter here (dropping every candidate Open Food Facts has few scans of,
+    # whenever 5+ better-known ones existed): a genuinely excellent niche product could be excluded from Quality and
+    # Value for no reason but being new or poorly represented in OFF. It is now only a tiebreaker inside rank_quality
+    # and rank_best_value themselves, after nutrition/value score, additive risk and similarity - never ahead of them.
     
     # Step 3: Build rankings
     # Closest: all levels 1-4, no price influence

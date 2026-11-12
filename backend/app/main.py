@@ -1519,7 +1519,10 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
     # Whole categories, chosen in SQL: the best products on the chosen priority anywhere in the category, then the most
     # scanned ones, so a good product is not missed just because few people scan it. Falls back to the scanned-first
     # slices below when the compact index has not been built.
-    # REMOVED ARBITRARY LIMITS: No per_tag=500, total=1500 limits. Search exhaustively.
+    # The old per-request caps (per_tag=500, total=1500) are gone, but this is not literally unbounded: quick_candidates
+    # below still applies its own default caps (ALT_PER_TAG=1200, ALT_TOTAL=2000 per env var), generous enough that no
+    # product tested so far has actually hit them (raw_candidates_retrieved has run 1000-1900 for real products), but
+    # a genuinely thin category still could. Raise ALT_PER_TAG/ALT_TOTAL if that is ever observed, rather than assuming it.
     if local and getattr(app.state.off, "quick_available", lambda: False)():
         spec = _QUICK_ORDER.get(prio[0]) if prio else None
         required = []
@@ -1532,7 +1535,7 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
                     required.append("grade")
             elif orig["nutriments"].get(engine.PRIORITIES[p][0]) is not None:
                 required.append(s[0])
-        # REMOVED LIMITS: No per_tag/total caps - retrieve full type cohort
+        # Uses quick_candidates' own default caps (ALT_PER_TAG/ALT_TOTAL env vars, 1200/2000) - see note above.
         codes = app.state.off.quick_candidates(tags[:3], spec[0] if spec else None, spec[1] if spec else True,
                                                tuple(required), bool(alg))
         if len(codes or []) < 30 and len(tags) > 3:
@@ -1543,11 +1546,11 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             raws = app.state.off.quick_products(codes)
     if not raws:
         try:
-            # REMOVED LIMITS: No per_tag/total caps - retrieve full type cohort
+            # Uses categories()'s own default caps (per_tag=400, total=1200) - see note above; every result is kept
+            # and sorted below, with no further slice imposed here.
             raw = app.state.off.categories(tags[:4])
         except Exception:  # a missing or unreadable local copy must never break a scan
             raw = []
-        # REMOVED LIMIT: No [:1500] slice - process all candidates
         raws = sorted([r for r in raw if _raw_candidate(r, prio, alg, orig)], key=_raw_relevance(orig, engine._tok(orig["name"], orig["brand"])))
     pool: Dict[str, Dict[str, Any]] = {}
     orig_name_words = engine._tok(orig["name"], orig["brand"])

@@ -508,7 +508,10 @@ def test_price_per_kilo_is_not_mistaken_for_the_pack_price():
     assert webprice._pack_price("Nutella 400 g à 3,20 € (8,00 €/kg)", 0.4) == 3.20
 
 
-def test_money_and_quality_lists_prefer_products_shoppers_know():
+def test_popularity_only_breaks_ties_never_excludes_a_genuinely_better_product():
+    """Popularity used to be a hard eligibility filter: an obscure product was dropped outright from Quality/Value
+    whenever 5+ better-known candidates existed, however much better its own score was. A niche product that is
+    genuinely the best choice must still win; popularity may only decide between otherwise-equal candidates."""
     base = {"categories": ["en:dairies", "en:yogurts", "en:plain-yogurts"], "nutriments": {"energyKcal100g": 60, "sugars100g": 4, "carbohydrates100g": 5}}
 
     def prod(code, name, brand, score, scans=0, chains=0):
@@ -517,9 +520,12 @@ def test_money_and_quality_lists_prefer_products_shoppers_know():
     known = [prod(f"k{i}", f"Yaourt nature connu {i}", f"B{i}", 70 + i, scans=200) for i in range(5)]
     obscure = prod("x", "Yaourt nature rare", "Rare", 99, scans=0)
     r = engine.build_rankings(orig, known + [obscure], {f"k{i}": 100.0 + i for i in range(5)}, 150.0, ["value"], "similar", "fr", [])
-    assert "x" not in [e["product"]["barcode"] for e in r["quality"]]                       # a 99 nobody has scanned is not the best-quality pick
-    thin = engine.build_rankings(orig, known[:2] + [obscure], {"k0": 100.0}, 150.0, ["value"], "similar", "fr", [])
-    assert "x" in [e["product"]["barcode"] for e in thin["quality"]]                        # too few known products: the list is not emptied
+    bcs = [e["product"]["barcode"] for e in r["quality"]]
+    assert bcs[0] == "x"                        # a genuinely much better product (99 vs 70-74) still wins, obscure or not
+    # Equal quality score: the known one breaks the tie and comes first.
+    tie = [prod("t1", "Yaourt nature A", "A", 80, scans=0), prod("t2", "Yaourt nature B", "B", 80, scans=200)]
+    r2 = engine.build_rankings(orig, tie, {}, None, ["value"], "similar", "fr", [])
+    assert [e["product"]["barcode"] for e in r2["quality"]] == ["t2", "t1"]
 
 
 def test_web_price_endpoints_return_price_and_supermarket(monkeypatch, tmp_path):
