@@ -2031,16 +2031,14 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     # cheaper per 100 g/ml, a higher price-quality score, a higher nutrition score. Nothing is compared when the scanned product has no price / score.
     rk_ = res.get("rankings") or {}
     if isinstance(rk_.get("value"), list):
-        # Only what beats the scanned product on value OR quality. Worse on both is never shown, at the API or in the app.
-        # But when the scanned product has neither a quality score nor a value baseline, there is nothing to beat: showing
-        # zero candidates would hide every real alternative just because the original is a data gap, not because none beat it.
+        # Only what beats the scanned product on value, when there is a value baseline to beat. Nutritional quality alone
+        # was tried as a fallback requirement, but it traps an entire category: bottled water scores 89-99 (nutritionally
+        # near-empty, so near the ceiling of what the score can even measure) with no price of its own, so "beat the
+        # original on quality" demanded beating 89 - a bar almost nothing in that category can clear - while hiding 17
+        # genuinely priced, eligible candidates. Without a price for the scanned product, there is no fair basis to
+        # judge "better value" at all, so nothing here is hidden for failing to beat an unknowable baseline.
         o_v = rk_.get("original_value_score")
-        o_q = (orig.get("score") or {}).get("total")
-        def _beats(x):
-            v = x.get("value_score")
-            q = ((x.get("product") or {}).get("score") or {}).get("total")
-            return (o_v is not None and v is not None and v > o_v) or (o_q is not None and q is not None and q > o_q)
-        rk_["value"] = [x for x in rk_["value"] if x.get("value_score") is not None and (_beats(x) if (o_v is not None or o_q is not None) else True)]
+        rk_["value"] = [x for x in rk_["value"] if x.get("value_score") is not None and (o_v is None or x["value_score"] > o_v)]
     o_sc_ = (orig.get("score") or {}).get("total")
     if isinstance(rk_.get("quality"), list) and o_sc_ is not None:
         rk_["quality"] = [x for x in rk_["quality"] if ((x.get("product") or {}).get("score") or {}).get("total") is not None and x["product"]["score"]["total"] > o_sc_]
