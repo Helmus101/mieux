@@ -1,0 +1,1496 @@
+[
+ {
+  "category": "yogurts_dairy",
+  "code": "6111242100206",
+  "name": "Yaourt nature",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Yaourt nature",
+   "Yaourt nature bio",
+   "Yaourt nature",
+   "Yaourt nature",
+   "Yaourt de brebis nature"
+  ]
+ },
+ {
+  "category": "yogurts_dairy",
+  "code": "6111242100305",
+  "name": "jaouda Cremy",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Yaourt Bio Local",
+   "Yaourt nature bio 0% FERME DURR",
+   "K. Philus bio 0%",
+   "4X125G Yaourt Nature",
+   "Bio Fettarmer Joghurt 1.8%"
+  ]
+ },
+ {
+  "category": "yogurts_dairy",
+  "code": "6111266963207",
+  "name": "كيفير",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 5,
+  "sample_alts": [
+   "Dessert de kefir",
+   "Fettarmer Bio-Kefir mild",
+   "Kéfir",
+   "Bio-Kefir mild",
+   "Kefir di latte bio"
+  ]
+ },
+ {
+  "category": "yogurts_dairy",
+  "code": "6111032006619",
+  "name": "Jamila رايبي",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 18,
+  "sample_alts": [
+   "Yaourt aux fruits",
+   "Le p'tit yaourt fraise",
+   "Le gourmand mangue fruit de la passion",
+   "Gogo Squeez",
+   "Yoplait skyr fraise"
+  ]
+ },
+ {
+  "category": "yogurts_dairy",
+  "code": "6111242100930",
+  "name": "رايبي جودة",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "K. Philus bio 0%",
+   "Yaourt nature bio 0% FERME DURR",
+   "Yaourt Bio Local",
+   "4X125G Yaourt Nature",
+   "Yoghurt maigre"
+  ]
+ },
+ {
+  "category": "yogurts_dairy",
+  "code": "6111032008453",
+  "name": "danino",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 2,
+  "sample_alts": [
+   "Yaourt aux fruits",
+   "Le p'tit yaourt fraise",
+   "Le gourmand mangue fruit de la passion",
+   "Yoplait skyr fraise",
+   "Brassé riche en protéines vanille"
+  ]
+ },
+ {
+  "category": "yogurts_dairy",
+  "code": "6111032002925",
+  "name": "Danone nature",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Yaourt nature",
+   "Yaourt nature bio",
+   "Yaourt nature",
+   "Yaourt nature",
+   "Yaourt de brebis nature"
+  ]
+ },
+ {
+  "category": "yogurts_dairy",
+  "code": "6111032002208",
+  "name": "Activia Céréales",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Yaourt Bio Local",
+   "Yaourt nature bio 0% FERME DURR",
+   "K. Philus bio 0%",
+   "4X125G Yaourt Nature",
+   "Bio Fettarmer Joghurt 1.8%"
+  ]
+ },
+ {
+  "category": "yogurts_dairy",
+  "code": "6111242102187",
+  "name": "Ghani",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "4X125G Yaourt Nature",
+   "Yaourt Bio Local",
+   "Yaourt nature bio 0% FERME DURR",
+   "Bio Fettarmer Joghurt 1.8%",
+   "Yoghurt maigre"
+  ]
+ },
+ {
+  "category": "yogurts_dairy",
+  "code": "3273220541012",
+  "name": "Fromage blanc au lait de brebis",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Brousse (7% MG)",
+   "Fromage blanc au lait de Brebis",
+   "Brousse",
+   "Brousse de Brebis Bio",
+   "Brousse au lait frais de brebis"
+  ]
+ },
+ {
+  "category": "breakfast_cereals",
+  "code": "3168930010265",
+  "name": "cruesly mélange de noix",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 10,
+  "sample_alts": [
+   "muesli",
+   "Muesli croquant aux noisettes et amandes",
+   "Muesli bio noix & graines",
+   "Naturellement équilibré Noix Muesli",
+   "Granola amande noisette"
+  ]
+ },
+ {
+  "category": "breakfast_cereals",
+  "code": "3229820160672",
+  "name": "Croustillant Chocolat",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 15,
+  "sample_alts": [
+   "Flakes céréales & légumineuses - nature",
+   "Flocon d'avoines",
+   "Crousti pétales nature",
+   "bitesize wheat shreds",
+   "Shredded wheat"
+  ]
+ },
+ {
+  "category": "breakfast_cereals",
+  "code": "3229820019307",
+  "name": "Flocons d'avoine",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 11,
+  "sample_alts": [
+   "Flocons D'avoine",
+   "Flocons d'avoine complets",
+   "Flocons d’avoine complète petits",
+   "Flocons d'avoine complet",
+   "Flocons d'avoine épais bio sans gluten 1kg"
+  ]
+ },
+ {
+  "category": "breakfast_cereals",
+  "code": "3229820129488",
+  "name": "Muesli Raisin, Figue, Abricot",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 7,
+  "sample_alts": [
+   "Muesli frutas",
+   "muesli",
+   "Ecocesta Muesli Frutas Ecológico",
+   "Muesli noisettes, raisins, seigle complet, blé sans sucres ajoutés",
+   "Muesli sans sucres ajoutés aux graines gourmandes"
+  ]
+ },
+ {
+  "category": "breakfast_cereals",
+  "code": "3387390123210",
+  "name": "NESTLE CHOCAPIC Céréales 375g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Flakes céréales & légumineuses - nature",
+   "Flocon d'avoines",
+   "Crousti pétales nature",
+   "Funky Veggie - Les PAF",
+   "Les Doodingues - Pétales choco"
+  ]
+ },
+ {
+  "category": "breakfast_cereals",
+  "code": "5010477348678",
+  "name": "Special Muesli 30% fruits & noix",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 17,
+  "sample_alts": [
+   "Muesli frutas",
+   "muesli",
+   "Muesli noisettes, raisins, seigle complet, blé sans sucres ajoutés",
+   "Ecocesta Muesli Frutas Ecológico",
+   "Muesli Vitalité"
+  ]
+ },
+ {
+  "category": "breakfast_cereals",
+  "code": "3229820782560",
+  "name": "Muesli Superfruits Raisins, cassis, cranberry, myrtille",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Muesli frutas",
+   "muesli",
+   "Ecocesta Muesli Frutas Ecológico",
+   "Muesli noisettes, raisins, seigle complet, blé sans sucres ajoutés",
+   "Muesli sans sucres ajoutés aux graines gourmandes"
+  ]
+ },
+ {
+  "category": "breakfast_cereals",
+  "code": "7613036669146",
+  "name": "NESTLE CHOCAPIC BIO Céréales - Boite de 375g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Flakes céréales & légumineuses - nature",
+   "Clair fibres",
+   "Flakes épeautre",
+   "Bio Petits Coussins au Raisin",
+   "Flake d\\'épeautre"
+  ]
+ },
+ {
+  "category": "breakfast_cereals",
+  "code": "5010029000023",
+  "name": "Weetabix",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 18,
+  "sample_alts": [
+   "BLEDINA LES RECOLTES BIO Muesli Nature 180g Dès 6 Mois",
+   "Super flakes céréales et légumineuses",
+   "Wholegrain wheats pure",
+   "Copos de 5 cereales",
+   "Flocons 5 céréales"
+  ]
+ },
+ {
+  "category": "breakfast_cereals",
+  "code": "5010477348357",
+  "name": "Country Crisp 4 noix",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 18,
+  "sample_alts": [
+   "Flakes céréales & légumineuses",
+   "MÜESLI MULTI GRAINES BIO",
+   "L’original",
+   "Urkorn müsli",
+   "Muesli bio céréales toastées 5 noix"
+  ]
+ },
+ {
+  "category": "spreads",
+  "code": "6111242106949",
+  "name": "Jben",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Cottagecheese",
+   "iti nayurr sucre",
+   "Sérac Ciboulette",
+   "Cream cheese",
+   "Queso Cottage 0%"
+  ]
+ },
+ {
+  "category": "spreads",
+  "code": "3760020507350",
+  "name": "Pur beurre de cacahuète",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 8,
+  "sample_alts": [
+   "Purée de cacahuète",
+   "Beurre bio cacahuète Équateur-Chine",
+   "Purée de cacahuètes",
+   "PURÉE CACAHUETE",
+   "Organic No Sugar Added Peanut Butter Powder"
+  ]
+ },
+ {
+  "category": "spreads",
+  "code": "8052575090254",
+  "name": "Rigoni di Asiago - Nocciolata bio",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Pâte à tartiner praliné noisette",
+   "Nocciola",
+   "Pate a tartiner aux noisettes",
+   "Nutchoc Max Cream",
+   "Pâte à tartiner 20% de noisettes et cacao"
+  ]
+ },
+ {
+  "category": "spreads",
+  "code": "6111259092495",
+  "name": "Goldium crémeux",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 8,
+  "sample_alts": [
+   "La tourette, Faisselle nature bio, le pot de 1",
+   "Skyr bio nature",
+   "Skyr nature",
+   "Cottagecheese",
+   "4 Faisselles 0%"
+  ]
+ },
+ {
+  "category": "spreads",
+  "code": "8052575090230",
+  "name": "Nocciolata",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Pâte à tartiner praliné noisette",
+   "Nocciola",
+   "Pate a tartiner aux noisettes",
+   "Nutchoc Max Cream",
+   "Pâte à tartiner 20% de noisettes et cacao"
+  ]
+ },
+ {
+  "category": "spreads",
+  "code": "3327272107969",
+  "name": "Menguy's Peanut 100%",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 16,
+  "sample_alts": [
+   "Beurre bio cacahuète Équateur-Chine",
+   "Purée de cacahuète",
+   "PURÉE CACAHUETE",
+   "Purée de cacahuètes",
+   "Organic No Sugar Added Peanut Butter Powder"
+  ]
+ },
+ {
+  "category": "spreads",
+  "code": "3155250358788",
+  "name": "Margarine bio doux tartine & cuisson",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Beurre d'arachide Tout Naturel",
+   "Beurre Vegan",
+   "Desi Ghee",
+   "St Hubert bio et végétal",
+   "Kochbutter"
+  ]
+ },
+ {
+  "category": "spreads",
+  "code": "3155251205296",
+  "name": "Tartine Doux",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Pâté d'olives Kalamata",
+   "SunButter Organic",
+   "Bio Peanut organic butter creamy",
+   "Pure Sesame Oil",
+   "Haselnüsse gemahlen"
+  ]
+ },
+ {
+  "category": "spreads",
+  "code": "6111206000733",
+  "name": "Jebli",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 6,
+  "sample_alts": [
+   "Faisselle au lait entier",
+   "La tourette, Faisselle nature bio, le pot de 1",
+   "Skyr bio nature",
+   "Requesón",
+   "Cottagecheese"
+  ]
+ },
+ {
+  "category": "spreads",
+  "code": "3608580065340",
+  "name": "Pâte à tartiner noisettes et cacao",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Pâte à tartiner praliné noisette",
+   "Nocciola",
+   "Pate a tartiner aux noisettes",
+   "Nutchoc Max Cream",
+   "Pâte à tartiner 20% de noisettes et cacao"
+  ]
+ },
+ {
+  "category": "pasta_rice",
+  "code": "3240931548111",
+  "name": "Gnocchi à poêler",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 16,
+  "sample_alts": [
+   "Gnocchi integrali Bio",
+   "Gnocchi traditionnel à poêler BIO 300g",
+   "Gnocchi epinards & ail des ours bio 300g",
+   "Gnocchi Aux pommes de terre",
+   "Pâte fraîche gnocchi à la truffe"
+  ]
+ },
+ {
+  "category": "pasta_rice",
+  "code": "8076800195057",
+  "name": "Spaghetti N°5",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Spaghetti au blé complet",
+   "Fusilli super n°85",
+   "Spaghetti integrale biologica",
+   "Spaghetti khorasan KAMUT complet",
+   "Spaghetti integrale"
+  ]
+ },
+ {
+  "category": "pasta_rice",
+  "code": "3240931548128",
+  "name": "Lustucru gnocchi a poêler 520g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 10,
+  "sample_alts": [
+   "Gnocchi integrali Bio",
+   "Gnocchi traditionnel à poêler BIO 300g",
+   "Gnocchi epinards & ail des ours bio 300g",
+   "Mini Gnocchi Piccolini",
+   "Gnocchi Aux pommes de terre"
+  ]
+ },
+ {
+  "category": "pasta_rice",
+  "code": "8076809529433",
+  "name": "Whole Wheat Penne Rigate",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Penne Rigate au blé complet",
+   "Garofalo Penne Ziti Rigate Integrale Bio",
+   "Spaghetti au blé complet",
+   "Spaghetti khorasan KAMUT complet",
+   "Spaghetti au blé entier issus de l'agriculture biologique."
+  ]
+ },
+ {
+  "category": "pasta_rice",
+  "code": "8852018101024",
+  "name": "Nouille instantanées goût poulet",
+  "n_alternatives": 9,
+  "n_quality_tab": 9,
+  "n_value_tab": 0,
+  "sample_alts": [
+   "Newgate Instant Instant noodles Spicy Prawn flavour",
+   "Instant Nudeln Käse-Schinken Geschmack",
+   "Oriental Instant Noodles: Vegetable Flavour",
+   "Reeva Instant Nudeln",
+   "Oriental Style Instant Noodles Chicken Flavour, Multipack 5 x 55g"
+  ]
+ },
+ {
+  "category": "pasta_rice",
+  "code": "8076802085738",
+  "name": "Penne Rigate No. 73 Durum Wheat Semolina Pasta",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Penne Rigate au blé complet",
+   "Garofalo Penne Ziti Rigate Integrale Bio",
+   "Fusilli super n°85",
+   "Penne Complètes Alce Nero [pâtes Biologiques] [sachet De 500G].",
+   "Intégral Macaroni"
+  ]
+ },
+ {
+  "category": "pasta_rice",
+  "code": "8076800376999",
+  "name": "Lasagne all'uovo",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Nouilles aux oeufs",
+   "Tagliatelles au blé complet , 250g",
+   "Nids 4 mm Bio intégrales",
+   "Torsades Bio intégrales",
+   "Lasagnes d'Épeautre T150"
+  ]
+ },
+ {
+  "category": "pasta_rice",
+  "code": "3175681170841",
+  "name": "Ravioli au tofu, tomates, basilic",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 7,
+  "sample_alts": [
+   "Tagliatelle ail basilic biologique",
+   "Ravioli emmental à la sauce patate douce et fromage de chèvre",
+   "Ravioli au tofu et légumes",
+   "Gyoza skin",
+   "Raviolis à la forestière"
+  ]
+ },
+ {
+  "category": "pasta_rice",
+  "code": "8076802085981",
+  "name": "Barilla Fusilli N°98",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Farfalle au blé complet",
+   "Fusilli au blé complet",
+   "Fusilli integrali",
+   "Feuilles de lasagne_petit pois",
+   "Lasagnes aux lentilles jaunes"
+  ]
+ },
+ {
+  "category": "pasta_rice",
+  "code": "8001665726580",
+  "name": "Ricotta & Épinards",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 9,
+  "sample_alts": [
+   "Tofu cuisiné tomate, Mozzarella et basilic",
+   "Triangoli Pomodoro e Mozzarella",
+   "Tortellacci Ricotta e Basilica",
+   "Tortelloni bio ricotta épinard",
+   "Cannelloni ricotta épinards"
+  ]
+ },
+ {
+  "category": "snacks_biscuits",
+  "code": "7622210449283",
+  "name": "Prince Goût Chocolat au blé complet",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Hint Of Salt",
+   "Crousti crackers",
+   "Corn Thins Organic Sesame",
+   "Galettes Fines 100% Epeautre",
+   "Back Oblaten (70mm)"
+  ]
+ },
+ {
+  "category": "snacks_biscuits",
+  "code": "3175680011480",
+  "name": "Sésame",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 12,
+  "sample_alts": [
+   "Alnatura Linsenwaffeln 4104420231658 Bio Linsenwaffeln mit Salz, glutenfrei",
+   "Cracker Epeautre",
+   "Petits crackers sans cuisson Bananes & Myrtilles",
+   "Crackers Tomate - Herbes de Provence",
+   "Crackers Olive - Graines de courge"
+  ]
+ },
+ {
+  "category": "snacks_biscuits",
+  "code": "6111031005064",
+  "name": "Tonik",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 17,
+  "sample_alts": [
+   "Carrefour The Market Traiteur Gourmet Cabillaud à la Florentine",
+   "Pick Up! chocolat noir",
+   "Chocolate et Soja",
+   "Xcrispy minis",
+   "korelea cacao"
+  ]
+ },
+ {
+  "category": "snacks_biscuits",
+  "code": "3229820100234",
+  "name": "Fourrés Chocolat Noir",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Belgian dark chocolate ginger thins",
+   "Gerblé sans sucres génoise chocolat saveur framboise",
+   "Sandwich wasa",
+   "Wamar",
+   "Galletas Oreo 126 GR"
+  ]
+ },
+ {
+  "category": "snacks_biscuits",
+  "code": "3175681851849",
+  "name": "Pomme Noisette",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 4,
+  "sample_alts": [
+   "Hint Of Salt",
+   "Crousti crackers",
+   "Corn Thins Organic Sesame",
+   "Galettes Fines 100% Epeautre",
+   "Back Oblaten (70mm)"
+  ]
+ },
+ {
+  "category": "snacks_biscuits",
+  "code": "3251490332080",
+  "name": "Figue & son",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 2,
+  "sample_alts": [
+   "Alnatura Linsenwaffeln 4104420231658 Bio Linsenwaffeln mit Salz, glutenfrei",
+   "Cracker Epeautre",
+   "Petits crackers sans cuisson Bananes & Myrtilles",
+   "Crackers Tomate - Herbes de Provence",
+   "Crackers Olive - Graines de courge"
+  ]
+ },
+ {
+  "category": "snacks_biscuits",
+  "code": "8410376009392",
+  "name": "Galletas",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Alnatura Linsenwaffeln 4104420231658 Bio Linsenwaffeln mit Salz, glutenfrei",
+   "Cracker Epeautre",
+   "Petits crackers sans cuisson Bananes & Myrtilles",
+   "Crackers Tomate - Herbes de Provence",
+   "Crackers Olive - Graines de courge"
+  ]
+ },
+ {
+  "category": "snacks_biscuits",
+  "code": "3175681851856",
+  "name": "Biscuit raisins",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 7,
+  "sample_alts": [
+   "Sablés Oignons",
+   "Sablés Moutarde à l'Ancienne",
+   "Grands Sablés a la fleur de sel",
+   "2 palets soja, oignons et blé",
+   "Biscuits normands aux pommes à la crème d'Isigny"
+  ]
+ },
+ {
+  "category": "snacks_biscuits",
+  "code": "3362600011044",
+  "name": "Henry’s",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Alnatura Linsenwaffeln 4104420231658 Bio Linsenwaffeln mit Salz, glutenfrei",
+   "Cracker Epeautre",
+   "Petits crackers sans cuisson Bananes & Myrtilles",
+   "Crackers à la drêche de brasserie et aux tomates séchées",
+   "Crackers Tomate - Herbes de Provence"
+  ]
+ },
+ {
+  "category": "snacks_biscuits",
+  "code": "3229820794525",
+  "name": "Avoine chocolat",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Hint Of Salt",
+   "Crousti crackers",
+   "Corn Thins Organic Sesame",
+   "Back Oblaten (70mm)",
+   "Galettes Fines 100% Epeautre"
+  ]
+ },
+ {
+  "category": "drinks",
+  "code": "6111035000430",
+  "name": "Sidi Ali",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 11,
+  "sample_alts": [
+   "Ventadour",
+   "Perrier",
+   "Volvic essence Gurke-Minze-Basilikum 0,75L",
+   "Badoit rouge",
+   "Spa Reine"
+  ]
+ },
+ {
+  "category": "drinks",
+  "code": "6111035000058",
+  "name": "Eau minérale naturelle",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 0,
+  "sample_alts": [
+   "Eau minerale",
+   "Eau de source cristaline",
+   "Eau Minérale Naturelle",
+   "St Amand Eau Minérale Naturelle 1L5",
+   "COURMAYEUR Eau Minérale Naturelle 1L"
+  ]
+ },
+ {
+  "category": "drinks",
+  "code": "6111035002175",
+  "name": "Sidi Ali",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 14,
+  "sample_alts": [
+   "Eau minerale",
+   "Eau de source cristaline",
+   "Eau de Montagne",
+   "St Amand Eau Minérale Naturelle 2L",
+   "Acqua naturale naturale"
+  ]
+ },
+ {
+  "category": "drinks",
+  "code": "3274080005003",
+  "name": "isabelle",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 0,
+  "sample_alts": [
+   "Ventadour",
+   "Perrier",
+   "Badoit rouge",
+   "Volvic essence Gurke-Minze-Basilikum 0,75L",
+   "Sparkling artesian water 2yrs prod"
+  ]
+ },
+ {
+  "category": "drinks",
+  "code": "6111128000071",
+  "name": "Ain Saïss",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 0,
+  "sample_alts": [
+   "Ventadour",
+   "Perrier",
+   "Badoit rouge",
+   "Jana",
+   "Wittmannsthaler Quelle MEDIUM"
+  ]
+ },
+ {
+  "category": "drinks",
+  "code": "6111252421568",
+  "name": "اكوافينا",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 0,
+  "sample_alts": [
+   "Eau minerale",
+   "Eau de source cristaline",
+   "Eau de Montagne",
+   "Eau mineral 33cl aman",
+   "CRISTALINE Eau De Source 0.33L (bouchon sport)"
+  ]
+ },
+ {
+  "category": "drinks",
+  "code": "6111035000027",
+  "name": "6111035000027",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 0,
+  "sample_alts": [
+   "Eau minerale",
+   "Eau de source cristaline",
+   "Eau de Montagne",
+   "Fiji",
+   "THONON Eau Minérale Naturelle 0.50 L"
+  ]
+ },
+ {
+  "category": "drinks",
+  "code": "6111035502828",
+  "name": "Eau minéral naturelle",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 0,
+  "sample_alts": [
+   "Eau minerale",
+   "Eau de source cristaline",
+   "Eau de Montagne",
+   "eau minerale naturelle",
+   "THONON Eau Minérale Naturelle 0.33 L"
+  ]
+ },
+ {
+  "category": "drinks",
+  "code": "5449000054227",
+  "name": "Cocacola original  500",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 18,
+  "sample_alts": [
+   "Volvic essence Gurke-Minze-Basilikum 0,75L",
+   "Perrier & Juice",
+   "Novelle plus C+E",
+   "Boisson au soja chocolat",
+   "Everyday Bruisend Mineraalwater"
+  ]
+ },
+ {
+  "category": "drinks",
+  "code": "6111035003035",
+  "name": "Oulmes natural carbonated water",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 0,
+  "sample_alts": [
+   "Perrier",
+   "Ventadour",
+   "Badoit rouge",
+   "Volvic essence Gurke-Minze-Basilikum 0,75L",
+   "Carbonated Natural Mineral Water"
+  ]
+ },
+ {
+  "category": "sauces",
+  "code": "8076809513753",
+  "name": "PESTO alla GENOVESE",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 18,
+  "sample_alts": [
+   "Pesto",
+   "Pesto de courgettes",
+   "Pesto di Mandorla",
+   "Pesto blanc",
+   "Pesto con pomodori essiccati al sole"
+  ]
+ },
+ {
+  "category": "sauces",
+  "code": "8076809523547",
+  "name": "Pesto Rosso",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 18,
+  "sample_alts": [
+   "Pesto",
+   "Pesto de courgettes",
+   "Pesto di Mandorla",
+   "Pesto blanc",
+   "Pesto con pomodori essiccati al sole"
+  ]
+ },
+ {
+  "category": "sauces",
+  "code": "6111184004129",
+  "name": "Mayonnaise recette originale",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 3,
+  "sample_alts": [
+   "Salsa Fina - Sabor tradicional",
+   "Mayonnaise",
+   "Hot Mayonnaise",
+   "Limon exprimido",
+   "Vinaigre de table coloré"
+  ]
+ },
+ {
+  "category": "sauces",
+  "code": "8720182556738",
+  "name": "Maille Moutarde Fine de Dijon L'Originale Bocal 360g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 17,
+  "sample_alts": [
+   "Moutarde à l’ancienne",
+   "Moutarde à l’ancienne pauvre en sel",
+   "Moutarde de Dijon Bio",
+   "Moutarde sans sel",
+   "Moutarde Sans Gluten"
+  ]
+ },
+ {
+  "category": "sauces",
+  "code": "8715700407760",
+  "name": "Tomato Ketchup BIO",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Passata",
+   "Passata di Pomodoro",
+   "Coulis de tomate bio à l’ancienne",
+   "Passata di pomodoro biologica",
+   "Passata di pomodoro contadina"
+  ]
+ },
+ {
+  "category": "sauces",
+  "code": "3033710084913",
+  "name": "MAGGI Arôme - Bouteille de 250g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 2,
+  "sample_alts": [
+   "Arôme de rose",
+   "Arôme Fleur D'oranger",
+   "Arôme Fleur d'oranger",
+   "Arôme Fleur d'Oranger",
+   "Arôme fleur d'oranger"
+  ]
+ },
+ {
+  "category": "sauces",
+  "code": "3292070005161",
+  "name": "Houmous extra - Pois chiches français & graines de sésame",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Houmous",
+   "Pascalou Houmous",
+   "Houmous amande",
+   "Bio Houmous",
+   "Houmous au citron confis"
+  ]
+ },
+ {
+  "category": "sauces",
+  "code": "8715035110106",
+  "name": "Soy Sauce",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Soy Sauce",
+   "Bio-sojasauce",
+   "Sauce soja supérieure (claire)",
+   "Sauce Soja épaise Maggi 700ML Vietnam",
+   "Poêlée à l’asiatique"
+  ]
+ },
+ {
+  "category": "sauces",
+  "code": "87157215",
+  "name": "Tomato Ketchup",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Coulis de tomate bio à l’ancienne",
+   "Passata di pomodoro biologica",
+   "Passata di pomodoro contadina",
+   "Passata",
+   "Passata di Pomodoro"
+  ]
+ },
+ {
+  "category": "sauces",
+  "code": "8720182460721",
+  "name": "Amora Moutarde Forte Bocal 430g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 15,
+  "sample_alts": [
+   "Moutarde à l’ancienne",
+   "Moutarde à l’ancienne pauvre en sel",
+   "Moutarde de Dijon Bio",
+   "Moutarde sans sel",
+   "Moutarde sans sel"
+  ]
+ },
+ {
+  "category": "meat_plant_based",
+  "code": "3302740047404",
+  "name": "Le Supérieur -25% de Sel - Conservation sans Nitrite",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 4,
+  "sample_alts": [
+   "Le bon paris",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches",
+   "Mon Jambon +, -25% de sel*",
+   "Le Bon Paris -25% de Sel conservation Sans Nitrite",
+   "Blanc de Dinde  - 25% de sel*"
+  ]
+ },
+ {
+  "category": "meat_plant_based",
+  "code": "3302740047367",
+  "name": "Le Supérieur - à l'Etouffée - Conservation sans Nitrite",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 7,
+  "sample_alts": [
+   "Jambon cuit en purée",
+   "Le bon paris",
+   "Jambon cuit supérieur 3 noix",
+   "Jambon cuit supérieur",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches"
+  ]
+ },
+ {
+  "category": "meat_plant_based",
+  "code": "3154230802280",
+  "name": "HERTA Lardons fumés conservation sans nitrite - 2x75g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Jambon de porc Torchon Sans Nitrite",
+   "Le Fumé",
+   "Bacon fumé",
+   "Bacon fumé au bois de hêtre",
+   "HERTA LE BON PARIS Jambon sel réduit sans nitrite x6-210g"
+  ]
+ },
+ {
+  "category": "meat_plant_based",
+  "code": "3302740059193",
+  "name": "Blanc de Poulet",
+  "n_alternatives": 0,
+  "n_quality_tab": 0,
+  "n_value_tab": 0,
+  "sample_alts": []
+ },
+ {
+  "category": "meat_plant_based",
+  "code": "3302740039362",
+  "name": "Rôti de Poulet - 100% filet",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 15,
+  "sample_alts": [
+   "Fajita Kit",
+   "Blanc de poulet doré au four",
+   "blanc de poulet",
+   "Blanc de poulet",
+   "Blanc de poulet à l'huile de tournesol"
+  ]
+ },
+ {
+  "category": "meat_plant_based",
+  "code": "3302740050268",
+  "name": "Jambon Simplement Bio - Conservation sans nitrite",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Mon Jambon +, -25% de sel*",
+   "Jambon cuit supérieur",
+   "Le Bon Paris -25% de sel",
+   "Jambon sup dd tsr 8tr 300g",
+   "Jambon cuit superieur sans couenne au torchon"
+  ]
+ },
+ {
+  "category": "meat_plant_based",
+  "code": "3154230809890",
+  "name": "jambon",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 12,
+  "sample_alts": [
+   "Jambon cuit en purée",
+   "Le bon paris",
+   "Jambon cuit bio",
+   "Jambon cuit supérieur",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches"
+  ]
+ },
+ {
+  "category": "meat_plant_based",
+  "code": "3154230800965",
+  "name": "HERTA Blanc Poulet Nature conservation sans nitrite x4 -140g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 12,
+  "sample_alts": [
+   "Blanc de dinde au four",
+   "Fajita Kit",
+   "Blanc de poulet doré au four",
+   "blanc de poulet",
+   "Blanc de poulet"
+  ]
+ },
+ {
+  "category": "meat_plant_based",
+  "code": "3154230802259",
+  "name": "HERTA Lardons nature conservation sans nitrite - 2x75g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Skyr soja nature",
+   "Skyr bio nature",
+   "Skyr bio",
+   "Skyr Nature",
+   "Yaourt nature"
+  ]
+ },
+ {
+  "category": "meat_plant_based",
+  "code": "3095758049019",
+  "name": "Le Torchon - Cuit à l'Etouffée  - 25% de sel*",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Le bon paris",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches",
+   "Mon Jambon +, -25% de sel*",
+   "Le Bon Paris -25% de Sel conservation Sans Nitrite",
+   "Blanc de Dinde  - 25% de sel*"
+  ]
+ },
+ {
+  "category": "cheeses",
+  "code": "6111246721261",
+  "name": "Fromage Blanc Nature",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Fromage blanc nature 0%MG - 500g",
+   "Fromage blanc nature 0%",
+   "Fromage frais nature",
+   "Fromage frais nature",
+   "Notre Fromage Blanc Nature"
+  ]
+ },
+ {
+  "category": "cheeses",
+  "code": "6111242106949",
+  "name": "Jben",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 18,
+  "sample_alts": [
+   "Cottagecheese",
+   "iti nayurr sucre",
+   "Sérac Ciboulette",
+   "Cream cheese",
+   "Queso Cottage 0%"
+  ]
+ },
+ {
+  "category": "cheeses",
+  "code": "6111246721278",
+  "name": "Cream cheese",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 0,
+  "sample_alts": [
+   "Skyr bio nature",
+   "La tourette, Faisselle nature bio, le pot de 1",
+   "Faisselle au lait entier",
+   "Requesón",
+   "Carré Frais 0% recette nature"
+  ]
+ },
+ {
+  "category": "cheeses",
+  "code": "6111203006653",
+  "name": "Cheddar",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 20,
+  "sample_alts": [
+   "Larvets Cheddar Cheese",
+   "Mature cheddar slices",
+   "Tendres carrés de blé - oignons, pomme de terre, emmental",
+   "Quinotto Tomate parmesan",
+   "Mature Cheddar & Chive"
+  ]
+ },
+ {
+  "category": "cheeses",
+  "code": "6111259092495",
+  "name": "Goldium crémeux",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 8,
+  "sample_alts": [
+   "La tourette, Faisselle nature bio, le pot de 1",
+   "Skyr bio nature",
+   "Skyr nature",
+   "Cottagecheese",
+   "4 Faisselles 0%"
+  ]
+ },
+ {
+  "category": "cheeses",
+  "code": "6111246722107",
+  "name": "Frommage fondu",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 18,
+  "sample_alts": [
+   "Fromage frais nature",
+   "Petits fromage frais 3,6% MG",
+   "Fromage frais",
+   "Fromage frais",
+   "Le lissé"
+  ]
+ },
+ {
+  "category": "cheeses",
+  "code": "6111206000733",
+  "name": "Jebli",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 6,
+  "sample_alts": [
+   "Faisselle au lait entier",
+   "La tourette, Faisselle nature bio, le pot de 1",
+   "Skyr bio nature",
+   "Requesón",
+   "Cottagecheese"
+  ]
+ },
+ {
+  "category": "cheeses",
+  "code": "3480341000674",
+  "name": "Carré Frais 0% - Nature",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 0,
+  "sample_alts": [
+   "Cream cheese",
+   "Philadelphia Light",
+   "Philadelphia yogurt alla greca",
+   "Isère skyr",
+   "Carré Frais 0% Ail & Fines Herbes"
+  ]
+ },
+ {
+  "category": "cheeses",
+  "code": "3412290070101",
+  "name": "Paysan Breton - Le Fromage Fouetté Madame Loïk - Nature au Sel de Guérande",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Cottage cheese",
+   "Mozzarella light",
+   "Crème de fromage",
+   "Carrés de fromage crémeux",
+   "Fromage frais tomate basilic"
+  ]
+ },
+ {
+  "category": "cheeses",
+  "code": "6111246721940",
+  "name": "le blanc nature 900g araai",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 10,
+  "sample_alts": [
+   "Fromage blanc nature 0%MG - 500g",
+   "Fromage blanc nature 0%",
+   "Fromage frais nature",
+   "Fromage frais nature 3,6% biologique 500g",
+   "Fromage frais nature"
+  ]
+ },
+ {
+  "category": "charcuterie",
+  "code": "3154230809869",
+  "name": "Jambon à l'étouffée sans nitrite",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 9,
+  "sample_alts": [
+   "Jambon cuit en purée",
+   "Le bon paris",
+   "Jambon cuit supérieur",
+   "Jambon cuit bio",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches"
+  ]
+ },
+ {
+  "category": "charcuterie",
+  "code": "3154230810131",
+  "name": "HERTA LE BON PARIS Jambon sel réduit sans nitrite x4-140g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 4,
+  "sample_alts": [
+   "Le bon paris",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches",
+   "Mon Jambon +, -25% de sel*",
+   "Le Bon Paris -25% de Sel conservation Sans Nitrite",
+   "Blanc de Dinde  - 25% de sel*"
+  ]
+ },
+ {
+  "category": "charcuterie",
+  "code": "3302740047404",
+  "name": "Le Supérieur -25% de Sel - Conservation sans Nitrite",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 4,
+  "sample_alts": [
+   "Le bon paris",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches",
+   "Mon Jambon +, -25% de sel*",
+   "Le Bon Paris -25% de Sel conservation Sans Nitrite",
+   "Blanc de Dinde  - 25% de sel*"
+  ]
+ },
+ {
+  "category": "charcuterie",
+  "code": "3302740047367",
+  "name": "Le Supérieur - à l'Etouffée - Conservation sans Nitrite",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 7,
+  "sample_alts": [
+   "Jambon cuit en purée",
+   "Le bon paris",
+   "Jambon cuit supérieur 3 noix",
+   "Jambon cuit supérieur",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches"
+  ]
+ },
+ {
+  "category": "charcuterie",
+  "code": "3302740050268",
+  "name": "Jambon Simplement Bio - Conservation sans nitrite",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Mon Jambon +, -25% de sel*",
+   "Jambon cuit supérieur",
+   "Le Bon Paris -25% de sel",
+   "Jambon sup dd tsr 8tr 300g",
+   "Jambon cuit superieur sans couenne au torchon"
+  ]
+ },
+ {
+  "category": "charcuterie",
+  "code": "3154230809890",
+  "name": "jambon",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 12,
+  "sample_alts": [
+   "Jambon cuit en purée",
+   "Le bon paris",
+   "Jambon cuit bio",
+   "Jambon cuit supérieur",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches"
+  ]
+ },
+ {
+  "category": "charcuterie",
+  "code": "3095758049019",
+  "name": "Le Torchon - Cuit à l'Etouffée  - 25% de sel*",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 19,
+  "sample_alts": [
+   "Le bon paris",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches",
+   "Mon Jambon +, -25% de sel*",
+   "Le Bon Paris -25% de Sel conservation Sans Nitrite",
+   "Blanc de Dinde  - 25% de sel*"
+  ]
+ },
+ {
+  "category": "charcuterie",
+  "code": "3302740025136",
+  "name": "ZERO NITRITE - LE SUPERIEUR",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 10,
+  "sample_alts": [
+   "Jambon cuit en purée",
+   "Blanc de dinde au four",
+   "Le bon paris",
+   "Fajita Kit",
+   "Jambon cuit superieur aux 3 noix bio"
+  ]
+ },
+ {
+  "category": "charcuterie",
+  "code": "3095754220016",
+  "name": "Le Tranché Fin - Dégustation - 25% de sel*",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 6,
+  "sample_alts": [
+   "Le bon paris",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches",
+   "Mon Jambon +, -25% de sel*",
+   "Le Bon Paris -25% de Sel conservation Sans Nitrite",
+   "Blanc de Dinde  - 25% de sel*"
+  ]
+ },
+ {
+  "category": "charcuterie",
+  "code": "3154230810162",
+  "name": "HERTA LE BON PARIS Jambon sel réduit sans nitrite x6-210g",
+  "n_alternatives": 20,
+  "n_quality_tab": 20,
+  "n_value_tab": 3,
+  "sample_alts": [
+   "Le bon paris",
+   "Jambon Bien Élevé taux de sel réduit 4 tranches",
+   "Mon Jambon +, -25% de sel*",
+   "Le Bon Paris -25% de Sel conservation Sans Nitrite",
+   "Blanc de Dinde  - 25% de sel*"
+  ]
+ }
+]
