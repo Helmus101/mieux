@@ -16,7 +16,7 @@ export function altRequest(barcode: string) {
   const chains = (p.chains ?? []).filter((id: string) => chainsFor(p.country).some((c) => c.id === id));
   const home = p.place, hasHome = home?.lat != null;
   const key = `alt:${barcode}:${prios.join()}:${chains.join()}`;
-  const body = { priorities: prios, category_mode: 'similar', limit: 20, substitution_max: 2, same_size: false, chains, price_constraint: 'any', approximate: p.estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) };
+  const body = { priorities: prios, category_mode: 'similar', limit: 10, substitution_max: 2, same_size: false, chains, price_constraint: 'any', approximate: p.estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) };
   return { key, body, prios, chains };
 }
 
