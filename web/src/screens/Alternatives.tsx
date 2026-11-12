@@ -174,7 +174,13 @@ export default function Alternatives() {
   // either ranking. An online grocer outside that list (Greenweez) never becomes a filter or an availability line.
   const chainOptions = (() => {
     if (myChains.length) return myChains;
-    const pool = [...listOf('value', true), ...listOf('match', true)];
+    // The raw candidate pool, not the "beats the scanned product" + "price known" filtered list: which chains exist
+    // should not depend on how few rows happen to clear that bar right now.
+    const pool = [
+      ...(r?.rankings?.value ?? []),
+      ...(r?.rankings?.quality ?? []),
+      ...(r?.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
+    ];
     return chainsFor(country).map((c) => c.id).filter((id) => pool.some((e: any) => (e.product.chains ?? []).includes(id)));
   })();
   const none = !!r && !busy && !webBusy && !err && ['value', 'match'].every((k) => listOf(k, true).length === 0);   // only the two visible rankings count, before any chain filter
