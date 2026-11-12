@@ -56,9 +56,11 @@ whole categories through the compact side index `backend/off_quick.db`; rebuild 
 cd backend
 . .venv/bin/activate
 python scripts/build_quick_index.py     # ~20 s for 1.1 M products
+python scripts/build_type_index.py      # indexes every product by Mieux type (off_type); run after the OFF import
 ```
 
-Without that file the API still works: it falls back to reading the most scanned products of each category.
+Without those files the API still works: it falls back to OFF category tags and name search. `build_type_index.py`
+matters most for the large share of OFF records that have no `categories_tags`; use `--min-scans 1` for a faster partial pass.
 
 ## Database Migrations
 

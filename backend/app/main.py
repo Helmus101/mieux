@@ -1562,31 +1562,11 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
     Every meaningful category level of the product is read, its own leaf category first then its parents. Products are
     retrieved via pagination to ensure all candidates are considered, not just the most popular ones.
     """
-    base = [t for t in orig["categories"] if t not in _TOO_BROAD]
-    if not base:
-        # No usable category tags (common on thin Open Food Facts records): find candidates by what the product is called, through its type's names.
-        found: Dict[str, Dict[str, Any]] = {}
-        for r in _search_any(orig):
-            if r.get("product_name") and _raw_candidate(r, priorities or [], allergens or [], orig):
-                p = normalize(r)
-                found.setdefault(p["barcode"], p)
-        for p in _untyped_search(orig, priorities, allergens):
-            found.setdefault(p["barcode"], p)
-        return list(found.values())
-    tags = list(reversed(base))  # most specific first
-    if mode != "similar":
-        tags = tags[2:] or tags  # "any category": the leaf level is too narrow, start from the parent
     prio, alg = priorities or [], allergens or []
     local = getattr(getattr(app.state.off, "local", None), "available", lambda: False)()
-    raws: List[Dict[str, Any]] = []
-    # Whole categories, chosen in SQL: the best products on the chosen priority anywhere in the category, then the most
-    # scanned ones, so a good product is not missed just because few people scan it. Falls back to the scanned-first
-    # slices below when the compact index has not been built.
-    # The old per-request caps (per_tag=500, total=1500) are gone, but this is not literally unbounded: quick_candidates
-    # below still applies its own default caps (ALT_PER_TAG=1200, ALT_TOTAL=2000 per env var), generous enough that no
-    # product tested so far has actually hit them (raw_candidates_retrieved has run 1000-1900 for real products), but
-    # a genuinely thin category still could. Raise ALT_PER_TAG/ALT_TOTAL if that is ever observed, rather than assuming it.
-    if local and getattr(app.state.off, "quick_available", lambda: False)():
+    otype = taxonomy.classify(orig).get("type")
+
+    def _quick_args() -> tuple:
         spec = _QUICK_ORDER.get(prio[0]) if prio else None
         required = []
         for p in prio:
@@ -1598,13 +1578,53 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
                     required.append("grade")
             elif orig["nutriments"].get(engine.PRIORITIES[p][0]) is not None:
                 required.append(s[0])
+        return (spec[0] if spec else None, spec[1] if spec else True, tuple(required), bool(alg))
+
+    def _type_codes() -> List[str]:
+        fn = getattr(app.state.off, "quick_type_candidates", None)
+        if not (local and otype and fn):
+            return []
+        field, low, required, ingredients = _quick_args()
+        return fn(otype, field, low, required, ingredients, per_tag=2500, total=5000)
+
+    base = [t for t in orig["categories"] if t not in _TOO_BROAD]
+    if not base:
+        # No usable OFF category tags (common on thin records): the Mieux type index is the specific category,
+        # then the type's names as a supplement.
+        found: Dict[str, Dict[str, Any]] = {}
+        for r in app.state.off.quick_products(_type_codes()):
+            if r.get("product_name") and _raw_candidate(r, prio, alg, orig):
+                p = normalize(r)
+                found.setdefault(p["barcode"], p)
+        for r in _search_any(orig):
+            if r.get("product_name") and _raw_candidate(r, prio, alg, orig):
+                p = normalize(r)
+                found.setdefault(p["barcode"], p)
+        for p in _untyped_search(orig, prio, alg):
+            found.setdefault(p["barcode"], p)
+        return list(found.values())
+    tags = list(reversed(base))  # most specific first
+    if mode != "similar":
+        tags = tags[2:] or tags  # "any category": the leaf level is too narrow, start from the parent
+    raws: List[Dict[str, Any]] = []
+    # Whole categories, chosen in SQL: the best products on the chosen priority anywhere in the category, then the most
+    # scanned ones, so a good product is not missed just because few people scan it. Falls back to the scanned-first
+    # slices below when the compact index has not been built.
+    # The old per-request caps (per_tag=500, total=1500) are gone, but this is not literally unbounded: quick_candidates
+    # below still applies its own default caps (ALT_PER_TAG=1200, ALT_TOTAL=2000 per env var), generous enough that no
+    # product tested so far has actually hit them (raw_candidates_retrieved has run 1000-1900 for real products), but
+    # a genuinely thin category still could. Raise ALT_PER_TAG/ALT_TOTAL if that is ever observed, rather than assuming it.
+    if local and getattr(app.state.off, "quick_available", lambda: False)():
+        field, low, required, ingredients = _quick_args()
         # Uses quick_candidates' own default caps (ALT_PER_TAG/ALT_TOTAL env vars, 1200/2000) - see note above.
-        codes = app.state.off.quick_candidates(tags[:3], spec[0] if spec else None, spec[1] if spec else True,
-                                               tuple(required), bool(alg))
+        codes = app.state.off.quick_candidates(tags[:3], field, low, tuple(required), ingredients)
         if len(codes or []) < 30 and len(tags) > 3:
             # A thin leaf (a rare or foreign-language tag such as 'snacks-dulces') finds almost nothing: also read the next category levels. The compatibility gate still decides what is comparable.
-            more = app.state.off.quick_candidates(tags[:8], spec[0] if spec else None, spec[1] if spec else True, tuple(required), bool(alg))
+            more = app.state.off.quick_candidates(tags[:8], field, low, tuple(required), ingredients)
             codes = list(dict.fromkeys(list(codes or []) + list(more or [])))
+        if len(codes or []) < 60:
+            # OFF tags are missing or too broad for this product: the Mieux type index is the specific category for the whole DB.
+            codes = list(dict.fromkeys(list(codes or []) + _type_codes()))
         if codes:
             raws = app.state.off.quick_products(codes)
     if not raws:

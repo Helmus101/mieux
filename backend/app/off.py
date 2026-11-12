@@ -150,6 +150,35 @@ class _Local:
 
         return out
 
+    def quick_type_candidates(self, type_id: Optional[str], field: Optional[str] = None, low: bool = True,
+                              required: tuple = (), ingredients: bool = False,
+                              per_tag: Optional[int] = None, total: Optional[int] = None) -> List[str]:
+        """Codes of one Mieux product type from scripts/build_type_index.py, chosen in SQL over the compact side table.
+        Same retrieval contract as quick_candidates, but the category is our stable taxonomy type instead of an OFF tag."""
+        if not self.quick_available() or not type_id:
+            return []
+        field = field if field in self._QUICK_COLS else None
+        cond = "".join(f" and q.{c} is not null" for c in required if c in self._QUICK_COLS)
+        if ingredients:
+            cond += " and q.ing = 1"
+        order = ("q.grade is null, q.grade asc" if field == "grade" else f"q.{field} {'asc' if low else 'desc'}") if field else "t.scans desc"
+        base = "from off_type t join quick.quick q on q.code=t.code where t.type=?"
+        if per_tag is None and total is None:
+            rows = self._q(f"select q.code {base}{cond} order by {order}, t.scans desc", (type_id,))
+            return [r[0] for r in rows or []]
+        per_tag = per_tag or 220
+        total = total or 260
+        rows = self._q(f"select q.code {base}{cond} order by {order}, t.scans desc limit ?", (type_id, per_tag))
+        out = [r[0] for r in rows or []]
+        if len(out) < total:
+            more = self._q(f"select q.code {base}{cond} order by t.scans desc limit ?", (type_id, max(20, per_tag // 2)))
+            seen = set(out)
+            for (code,) in more or []:
+                if code not in seen:
+                    seen.add(code)
+                    out.append(code)
+        return out[:total]
+
     def quick_products(self, codes: List[str]) -> List[Dict[str, Any]]:
         """Full records for these codes (only these are parsed): the expensive step happens on the final shortlist."""
         out: List[Dict[str, Any]] = []
@@ -330,6 +359,12 @@ class OFFClient:
         per_tag = per_tag if per_tag is not None else int(os.environ.get("ALT_PER_TAG", "1200"))
         total = total if total is not None else int(os.environ.get("ALT_TOTAL", "2000"))
         return self.local.quick_candidates(tags, field, low, required, ingredients, per_tag, total)
+
+    def quick_type_candidates(self, type_id: Optional[str], field: Optional[str] = None, low: bool = True,
+                              required: tuple = (), ingredients: bool = False,
+                              per_tag: Optional[int] = None, total: Optional[int] = None) -> List[str]:
+        """Codes of one Mieux product type from the local type index (scripts/build_type_index.py)."""
+        return self.local.quick_type_candidates(type_id, field, low, required, ingredients, per_tag, total)
 
     def quick_products(self, codes: List[str]) -> List[Dict[str, Any]]:
         """Full records for the final shortlist only."""
