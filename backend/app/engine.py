@@ -746,7 +746,10 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
                     estimated: frozenset = frozenset(), orig_estimated: bool = False,
                     lang: str = "fr", max_age_days: int = 90) -> Dict[str, Any]:
     """Constrained, percentile-based quality-price index across the comparable cohort.
-    Quality floor (Candidate quality >= Original quality - 5).
+    No floor against the scanned product's own score: a cheaper, slightly-lower-quality product can still be a
+    genuinely better value, and a list that only shows "better than yours" is empty exactly when the scanned
+    product is already decent. The value_score itself already weighs nutrition and damps weak products (see
+    value_index.py) - that is the safeguard, not a floor here.
     Dominated items on Pareto frontier (quality vs price) are deprioritized.
     No fillers: only genuinely eligible candidates are returned.
     """
@@ -764,10 +767,12 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
         if p is None or p < 3:
             continue
         pt = (points or {}).get(bc) or {}
-        # Any observed price up to a year old counts here (the score below discounts older ones); estimates and derived prices never do.
+        # Any observed price up to a year old counts here (the score below discounts older ones); estimates, prices
+        # copied from another pack size, and a web search's own approximate finding never do - it was never seen on
+        # a receipt or an Open Prices observation, so using it to decide a ranking would make "verified" meaningless.
         if points is not None:
-            if pt.get("source") == "estimate" or pt.get("stale") or pt.get("derived"):
-                continue      # estimates and prices copied from another pack size never rank
+            if pt.get("source") == "estimate" or pt.get("stale") or pt.get("derived") or pt.get("approximate"):
+                continue      # estimates, derived prices and web-search approximates never rank
             from .value import age_days
             ag = age_days(pt.get("date")) if pt.get("date") else None
             if ag is None or ag > 365:
@@ -785,7 +790,11 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
         c_sc = (c.get("score") or {}).get("total")
         if c_sc is None:
             continue
-        
+        # The same requirement rank_quality applies: an incomplete nutrition profile can still produce a score (score.py
+        # computes one from whatever nutrients are present), but that score is not reliable enough to decide a ranking.
+        if not (c.get("dataQuality") or {}).get("nutritionComplete"):
+            continue
+
         # No floor against the scanned product here: the price-quality score already weighs nutrition (and damps weak products), and a list that
         # only shows products "better than yours" is empty exactly when the scanned product is already a good choice.
         sim = deep_similarity(orig, c)

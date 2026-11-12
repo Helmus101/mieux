@@ -100,6 +100,7 @@ def test_best_value_is_not_excluded_by_the_sugar_rule_that_limits_cheapest():
     orig = P("Original", ["en:breakfast-cereals"], sugars100g=10)
     sweeter = P("Plus sucré mais bien noté", ["en:breakfast-cereals"], sugars100g=22)   # +12 g: over the cereal limit
     sweeter["score"] = {"total": 66}
+    sweeter["dataQuality"] = {"nutritionComplete": True}
     r = engine.build_rankings(orig, [sweeter], {"Plus sucré mais bien noté": 25.0}, 60.0, ["value"], "similar", "fr", [])
     assert not r["budget"]                                  # Cheapest keeps the safeguard
     assert r["value"] and r["value"][0]["product"]["name"] == "Plus sucré mais bien noté"
@@ -375,11 +376,37 @@ def test_nutrition_given_only_per_serving_or_as_plain_energy_still_scores():
 def test_value_list_does_not_require_beating_the_scanned_product():
     base = {"categories": ["en:dairies", "en:yogurts", "en:plain-yogurts"], "nutriments": {"energyKcal100g": 60, "sugars100g": 4, "carbohydrates100g": 5}}
     o = {**base, "barcode": "o", "name": "Yaourt nature top", "brand": "A", "score": {"total": 92}}
-    c = {**base, "barcode": "c", "name": "Yaourt nature simple", "brand": "B", "score": {"total": 70}}
+    c = {**base, "barcode": "c", "name": "Yaourt nature simple", "brand": "B", "score": {"total": 70}, "dataQuality": {"nutritionComplete": True}}
     pts = {"c": {"source": "open_prices", "date": "2026-11-01"}}
     r = engine.rank_best_value(o, [c], {"c": 100.0}, 80.0, pts)
     assert [x["product"]["barcode"] for x in r["items"]] == ["c"]       # a worse-scoring but priced alternative still appears, labelled by the flag below
     assert r["items"][0]["better_than_yours"] in (True, False, None) and "value_detail" in r["items"][0]
+
+
+def test_an_approximate_web_search_price_never_wins_cheapest_or_value():
+    """A web-researched price (source: web_search, approximate: True) was never seen on a receipt or an Open Prices
+    observation - using it to decide Cheapest or Best Value would make 'verified price' mean nothing. It is still
+    fine for display (the quality tab, the product page), just not eligible to win a price-based ranking."""
+    base = {"categories": ["en:dairies", "en:yogurts", "en:plain-yogurts"], "nutriments": {"energyKcal100g": 60, "sugars100g": 4, "carbohydrates100g": 5}}
+    o = {**base, "barcode": "o", "name": "Yaourt nature top", "brand": "A", "score": {"total": 60}}
+    c = {**base, "barcode": "c", "name": "Yaourt nature simple", "brand": "B", "score": {"total": 70}, "dataQuality": {"nutritionComplete": True}}
+    pts = {"c": {"source": "web_search", "approximate": True, "date": "2026-11-01"}}
+    cheap = engine.rank_cheapest(o, [c], {"c": 100.0}, 150.0, pts)
+    assert cheap["items"] == []
+    val = engine.rank_best_value(o, [c], {"c": 100.0}, 150.0, pts)
+    assert val["items"] == []
+    pts_ok = {"c": {"source": "open_prices", "date": "2026-11-01"}}         # a genuine observation at the same price does rank
+    assert engine.rank_best_value(o, [c], {"c": 100.0}, 150.0, pts_ok)["items"]
+
+
+def test_value_requires_complete_nutrition_data_same_as_quality():
+    """rank_quality already refuses an incomplete nutrition profile; rank_best_value used to accept any candidate
+    with some score, however partial the data behind it - the same safeguard now applies to both."""
+    base = {"categories": ["en:dairies", "en:yogurts", "en:plain-yogurts"], "nutriments": {"energyKcal100g": 60, "sugars100g": 4, "carbohydrates100g": 5}}
+    o = {**base, "barcode": "o", "name": "Yaourt nature top", "brand": "A", "score": {"total": 60}}
+    incomplete = {**base, "barcode": "c", "name": "Yaourt nature simple", "brand": "B", "score": {"total": 90}, "dataQuality": {"nutritionComplete": False}}
+    pts = {"c": {"source": "open_prices", "date": "2026-11-01"}}
+    assert engine.rank_best_value(o, [incomplete], {"c": 100.0}, 150.0, pts)["items"] == []
 
 
 def test_search_price_needs_two_sites_that_mention_the_pack_size(monkeypatch, tmp_path):

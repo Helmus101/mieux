@@ -359,12 +359,15 @@ def price_confidence(point: Optional[Dict[str, Any]], today: Optional[date] = No
 
 
 def is_ranking_eligible_price(point: Optional[Dict[str, Any]], price100: Optional[float], max_age_days: int = 90, today: Optional[date] = None) -> bool:
-    """Only observed, sufficiently recent prices (age <= 90 days, not estimated, not stale) qualify to win Cheapest or Best Value."""
+    """Only observed, sufficiently recent prices (age <= 90 days, not estimated, not stale, not a web search's own
+    approximate finding) qualify to win Cheapest or Best Value. A web-researched price is valuable for display and
+    for finding a product at all, but it was never seen on a receipt or an Open Prices observation - using it to
+    decide a ranking would make "verified price" mean nothing."""
     if not point or price100 is None or price100 <= 0:
         return False
     if point.get("source") == "estimate":
         return False
-    if point.get("stale"):
+    if point.get("stale") or point.get("approximate"):
         return False
     d = point.get("date")
     if not d:
