@@ -383,6 +383,23 @@ def test_value_list_does_not_require_beating_the_scanned_product():
     assert r["items"][0]["better_than_yours"] in (True, False, None) and "value_detail" in r["items"][0]
 
 
+def test_a_120_day_old_price_is_rejected_by_age_alone_even_when_not_flagged_stale():
+    """A real test-coverage gap found by review: the existing stale-price test always pre-set stale=True on its
+    fixture, so it only proved the code respects that flag - never that it independently rejects an old price from
+    its date. Cheapest used max_age_days=365 and Best Value hard-coded 365 inline, both ignoring the 90-day policy
+    everywhere else (price_confidence, is_ranking_eligible_price's own default). Both now use one 90-day window."""
+    from datetime import date, timedelta
+    orig = P("Yaourt nature", ["en:yogurts"])
+    old = P("Yaourt nature ancien", ["en:yogurts"])
+    old["dataQuality"] = {"nutritionComplete": True}
+    pts = {old["barcode"]: {"source": "open_prices", "date": (date.today() - timedelta(days=120)).isoformat()}}   # no "stale" key at all
+    assert engine.rank_cheapest(orig, [old], {old["barcode"]: 30.0}, 50.0, pts)["items"] == []
+    assert engine.rank_best_value(orig, [old], {old["barcode"]: 30.0}, 50.0, pts)["items"] == []
+    fresh_pts = {old["barcode"]: {"source": "open_prices", "date": (date.today() - timedelta(days=30)).isoformat()}}
+    assert engine.rank_cheapest(orig, [old], {old["barcode"]: 30.0}, 50.0, fresh_pts)["items"]
+    assert engine.rank_best_value(orig, [old], {old["barcode"]: 30.0}, 50.0, fresh_pts)["items"]
+
+
 def test_an_approximate_web_search_price_never_wins_cheapest_or_value():
     """A web-researched price (source: web_search, approximate: True) was never seen on a receipt or an Open Prices
     observation - using it to decide Cheapest or Best Value would make 'verified price' mean nothing. It is still

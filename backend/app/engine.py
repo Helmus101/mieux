@@ -767,15 +767,16 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
         if p is None or p < 3:
             continue
         pt = (points or {}).get(bc) or {}
-        # Any observed price up to a year old counts here (the score below discounts older ones); estimates, prices
-        # copied from another pack size, and a web search's own approximate finding never do - it was never seen on
-        # a receipt or an Open Prices observation, so using it to decide a ranking would make "verified" meaningless.
+        # Estimates, prices copied from another pack size, and a web search's own approximate finding never count -
+        # it was never seen on a receipt or an Open Prices observation, so using it to decide a ranking would make
+        # "verified" meaningless. The age window matches rank_cheapest's (max_age_days, default 90): the two money
+        # rankings must agree on what counts as a current price, not disagree by years as they used to.
         if points is not None:
             if pt.get("source") == "estimate" or pt.get("stale") or pt.get("derived") or pt.get("approximate"):
                 continue      # estimates, derived prices and web-search approximates never rank
             from .value import age_days
             ag = age_days(pt.get("date")) if pt.get("date") else None
-            if ag is None or ag > 365:
+            if ag is None or ag > max_age_days:
                 continue
         
         # Substitution level 1 or 2 only
@@ -973,7 +974,7 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
     # Step 3: Build rankings
     # Closest: all levels 1-4, no price influence
     closest_items = rank_closest(orig, strict_pool, prices, points, lang)   # keeps levels 1-2 only
-    cheapest = rank_cheapest(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang, max_age_days=365)   # an observed price up to a year old counts; older than 90 days it is flagged price_stale
+    cheapest = rank_cheapest(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang)   # default max_age_days=90: one single, consistent ranking-eligibility window
     quality_items = rank_quality(orig, high_confidence, prices, points, lang)
     best_val = rank_best_value(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang)
     budget_items, value_items = cheapest["items"], best_val["items"]
