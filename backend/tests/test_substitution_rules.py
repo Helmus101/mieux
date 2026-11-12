@@ -992,6 +992,25 @@ def test_pizza_dough_is_not_a_substitute_for_a_finished_pizza():
     assert sub(dough, dough2)["level"] == 1
 
 
+def test_cheese_styles_are_distinct_from_each_other():
+    """A hard grating cheese, a blue cheese, a soft washed/bloomy-rind cheese, a fresh goat cheese and a fresh
+    unripened cheese (mozzarella/burrata) are all 'cheese' but are not realistic substitutes for each other - a
+    live check found Emmental being recommended alongside Fourme d'Ambert (blue) and Pont-l'Évêque (soft)."""
+    emmental = P("Emmental", [])
+    comte = P("Comté AOP", [])
+    fourme = P("Fourme d'Ambert", [])
+    pont_leveque = P("Pont-l'Évêque", [])
+    chevre = P("Bûche de chèvre", [])
+    mozza = P("Mozzarella di Bufala", [])
+    quiche = P("Quiche au fromage", [])
+    assert sub(emmental, comte)["level"] == 1
+    assert sub(emmental, fourme) is None
+    assert sub(emmental, pont_leveque) is None
+    assert sub(fourme, pont_leveque) is None
+    assert sub(chevre, mozza) is None
+    assert taxonomy.classify(quiche)["type"] != "hard_cheese" and taxonomy.classify(quiche)["type"] != "cheese"
+
+
 def test_mushrooms_have_their_own_type_and_find_each_other_without_a_category_tag():
     """Many mushroom products (dried cèpes, canned champignons) carry no Open Food Facts category tag at all.
     Before this type existed, two such products were both 'unclassified' and could only match by generic name-word

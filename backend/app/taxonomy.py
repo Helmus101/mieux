@@ -50,6 +50,14 @@ R = [
     ("plain_yogurt", "dairy", "yogurt", "spoonable", "spoon", "breakfast", r"yogurts|yoghurts|plain-yogurts|greek-yogurts|skyr|fermented-milks", r"yaourt|yogourt|yogurt|skyr|grec|nature"),
     ("fromage_blanc", "dairy", "fresh_cheese", "spoonable", "spoon", "breakfast", r"fromages-blancs|fresh-cheeses|petits-suisses|faisselle|quark", r"fromage blanc|petit suisse|faisselle|quark"),
     ("cream_cheese", "dairy", "cheese", "spreadable_cheese", "tub", "spread_cook", r"cheese-spreads|cream-cheeses|spreadable-cheeses|fromages-[àa]-tartiner|labneh", r"labn[eé]h?\b|carr[ée] frais|philadelphia|cream cheese|fromage (frais )?[àa] tartiner|[àa] tartiner.*(ail|fines herbes|nature)|formaggio fresco|spalmabile|kiri\b|st[- ]?m[ée]range|boursin|apericube|vache qui rit|tartare"),
+    # A cheese's texture and style decide what it is actually used for (grated into a gratin, spread on a cracker, melted,
+    # eaten cold in slices): an Emmental and a Roquefort are both "cheese" but are not realistic substitutes for each other.
+    # Each style gets its own type; the generic 'cheese' row below stays only as a catch-all for what matches none of them.
+    ("blue_cheese", "dairy", "cheese", "blue", "soft_strong", "meal", r"blue-cheeses", r"roquefort|bleu d.?auvergne|fourme d.?ambert|gorgonzola|bleu de bresse|st[- ]?agur|cabrales|bleu des? causses"),
+    ("soft_ripened_cheese", "dairy", "cheese", "soft_ripened", "soft", "meal", r"soft-cheeses|washed[- ]rind-cheeses|camembert|brie-cheeses", r"camembert|\bbrie\b|coulommiers|pont[- ]l.[ée]v[êe]que|munster|reblochon|[ée]poisses|maroilles|chaource|livarot|vacherin|st[- ]?marcellin|langres"),
+    ("fresh_goat_cheese", "dairy", "cheese", "goat", "soft", "meal", r"goat-cheeses|goats-cheeses", r"(?:fromage de |bûche |crottin de )?ch[èe]vre(?! chaud)|crottin(?: de chavignol)?|picodon|rocamadour|valen[çc]ay"),
+    ("mozzarella_fresh", "dairy", "cheese", "fresh_pasta", "soft", "meal", r"mozzarellas|fresh-cheeses|burratas", r"mozzarella|burrata|ricotta|feta\b|buffala|stracciatella"),
+    ("hard_cheese", "dairy", "cheese", "hard", "hard", "meal", r"hard-cheeses|semi-hard-cheeses", r"emmental|comt[ée]|gruy[èe]re|parmesan|parmigiano|cheddar|gouda|beaufort|appenzell|raclette\b|\btomme?\b|abondance|cantal|mimolette|edam|manchego|pecorino"),
     ("cheese", "dairy", "cheese", "cheese", "cheese", "meal", r"cheeses|fromages", r"fromage|camembert|emmental|comt[ée]|brie|gouda|mozzarella|chèvre|chevre"),
     ("eggs", "dairy", "eggs", "eggs", "eggs", "cooking", r"eggs|oeufs", r"\bu?[oœ]e?ufs?\b(?!.*(chocolat|p[âa]ques|plat|mayonnaise|brouill))"),
     ("milk", "dairy", "milk", "liquid", "drink", "breakfast", r"^en:milks$|whole-milks|semi-skimmed-milks|skimmed-milks|uht-milks|cow-milks", r"^lait\b|lait (demi|entier|écrém|ecrem|uht)"),
@@ -144,6 +152,8 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "chips": {"chips": 1, "crackers": 3},   # nuts are not a substitute for crackers or chips (they were level 2 via the rank distance)
     "nuts": {"nuts": 1},
     "cheese": {"cheese": 1}, "cream_cheese": {"cream_cheese": 1},   # spreadable fresh cheeses (labneh, cream cheese, Carré Frais) only substitute each other; never mozzarella or emmental
+    "blue_cheese": {"blue_cheese": 1}, "soft_ripened_cheese": {"soft_ripened_cheese": 1}, "fresh_goat_cheese": {"fresh_goat_cheese": 1},
+    "mozzarella_fresh": {"mozzarella_fresh": 1}, "hard_cheese": {"hard_cheese": 1},   # each cheese style only substitutes its own style, never another
     "eggs": {"eggs": 1}, "cream": {"cream": 1}, "butter": {"butter": 1}, "oil": {"oil": 1},
     "snack_bars": {
         "fruit_nut_bar": 1,
@@ -172,6 +182,8 @@ _BROAD_LEAFS = {
 # A preserve/jam tag on a product whose name names no fruit at all is a tagging error, not a jam.
 _JAM_WORDS = re.compile(r"confiture|confettura|marmellata|jam\b|conserve|preserve|marmelade|compote|gel[ée]e|pur[ée]e|fruit|fraise|framboise|myrtille|m[ûu]re|cassis|abricot|pruneau|pomme|poire|figue|orange|citron|agrume|melon|p[êe]che|cerise|banane|coing|rhubarbe", re.I)
 
+_CHEESE_TYPES = {"cheese", "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese"}
+
 
 def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     """Structured classification with improved priority: specific category tags first, then explicit name signals, then broad tags, then fallback name matches.
@@ -183,14 +195,14 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Machine systems and forms named in the product name win over a generic tag: a Nespresso capsule does not fit a Dolce Gusto machine, sliced brioche is not a pastry.
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid == "cheese" and _CHEESE_DISH.search(name):
+        if tid in _CHEESE_TYPES and _CHEESE_DISH.search(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast") and nr.search(name):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
 
     # Priority 1: High-specificity product type tags + name agreement (highest confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid == "cheese" and _CHEESE_DISH.search(name):
+        if tid in _CHEESE_TYPES and _CHEESE_DISH.search(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if tr.search(tags) and nr.search(name):
             if tid == "jam" and not _JAM_WORDS.search(name):
@@ -199,16 +211,17 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
-                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms")
+                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms",
+                "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid == "cheese" and _CHEESE_DISH.search(name):
+        if tid in _CHEESE_TYPES and _CHEESE_DISH.search(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if nr.search(name) and tid in specific:
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"name matches specific form: {nr.pattern[:40]}"}
 
     # Priority 3: Broad category tags with supporting name evidence (medium confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid == "cheese" and _CHEESE_DISH.search(name):
+        if tid in _CHEESE_TYPES and _CHEESE_DISH.search(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if tr.search(tags):
             if tid == "jam" and not _JAM_WORDS.search(name):
@@ -219,7 +232,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Priority 4: Name-only matches for general types (low confidence - may be ambiguous)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid == "cheese" and _CHEESE_DISH.search(name):
+        if tid in _CHEESE_TYPES and _CHEESE_DISH.search(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if nr.search(name) or nr.search(generic_name):
             # Reject generic "bar" matches without context
@@ -418,6 +431,11 @@ TYPE_TERMS: Dict[str, List[str]] = {
     "plain_yogurt": ["yaourt nature", "yaourt grec", "skyr"], "milk": ["lait demi-écrémé", "lait entier", "lait écrémé", "lait uht"],
     "cream_cheese": ["labneh", "carré frais", "fromage à tartiner", "cream cheese", "philadelphia", "boursin"],
     "cheese": ["emmental", "gruyère", "comté", "camembert", "mozzarella", "fromage râpé"],
+    "hard_cheese": ["emmental", "comté", "gruyère", "parmesan", "cheddar", "gouda", "fromage râpé"],
+    "blue_cheese": ["roquefort", "bleu d'auvergne", "fourme d'ambert", "gorgonzola"],
+    "soft_ripened_cheese": ["camembert", "brie", "coulommiers", "reblochon", "munster"],
+    "fresh_goat_cheese": ["chèvre", "crottin"],
+    "mozzarella_fresh": ["mozzarella", "burrata", "ricotta", "feta"],
     "ham": ["jambon", "lardons"], "soup": ["soupe", "velouté"], "pizza": ["pizza"], "chips": ["chips"], "tea": ["thé", "infusion"],
     "mushrooms": ["champignons", "cèpes", "girolles", "morilles", "pleurotes", "chanterelles"],
     "pizza_dough": ["pâte à pizza"],
