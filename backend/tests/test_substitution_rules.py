@@ -406,6 +406,62 @@ def test_search_price_needs_two_sites_that_mention_the_pack_size(monkeypatch, tm
     monkeypatch.delenv("PARALLEL_API_KEY"); assert webprice.lookup(prod, use_cache=False, http=good) is None                                                          # off without a key
 
 
+def test_deepseek_built_in_web_search_prices_are_still_verified(monkeypatch, tmp_path):
+    from app import webprice
+    for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY", "SERPER_API_KEY", "WEBPRICE_PROVIDERS"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "d"); monkeypatch.setenv("GEMINI_API_KEY", "g")
+    webprice._down.clear(); webprice._gemini.update(down_until=0.0, error=None)
+    assert webprice.providers() == ["deepseek", "gemini"]          # DeepSeek's own search is asked first
+    monkeypatch.setenv("WEBPRICE_PROVIDERS", "deepseek"); monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp_ds.db"))
+    monkeypatch.setattr(webprice, "_page_prices", lambda *a, **k: [])          # no live page fetch from a unit test
+    prod = {"barcode": "3017620422003", "name": "Nutella pâte à tartiner", "brand": "Ferrero", "quantity": {"amount": 400.0, "unit": "g"}}
+    calls = []
+
+    def http(method, url, headers, body):
+        calls.append((method, url, headers, body))
+        assert url == "https://api.deepseek.com/v1/tools/search" and headers["Authorization"] == "Bearer d"
+        assert 0 < len(body["query"]) <= 128 and body["count"] == 20 and body["need_content"] is False
+        return {"results": [
+            {"title": "Nutella 400 g", "snippet": "Nutella Ferrero 400 g à 3,20 €", "summary": "Pâte à tartiner", "url": "https://www.auchan.fr/a"},
+            {"title": "Nutella Ferrero 400g", "snippet": "3,35 € le pot de 400 g", "summary": "", "url": "https://www.carrefour.fr/b"},
+        ]}
+    r = webprice.lookup(prod, use_cache=False, http=http)
+    assert r and r["provider"] == "deepseek" and r["pack_cents"] in (320, 335) and r["approximate"] and len(calls) >= 1
+    single = {"results": [{"title": "Nutella 400 g", "snippet": "Nutella Ferrero 400 g à 3,20 €", "summary": "", "url": "https://www.auchan.fr/a"}]}
+    assert webprice.lookup(prod, use_cache=False, http=lambda *a: single)["pack_cents"] == 320     # a supermarket's own page is enough
+    unrelated = {"results": [{"title": "Nutella 400 g", "snippet": "Nutella Ferrero 400 g à 3,20 €", "summary": "", "url": "https://blog-quelconque.fr/a"}]}
+    assert webprice.lookup(prod, use_cache=False, http=lambda *a: unrelated) is None               # a random single page is not
+
+
+def test_deepseek_ai_is_the_last_resort_when_the_search_has_no_price(monkeypatch, tmp_path):
+    from app import webprice
+    for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY", "SERPER_API_KEY", "GEMINI_API_KEY", "WEBPRICE_PROVIDERS"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "d"); monkeypatch.setenv("WEBPRICE_PROVIDERS", "deepseek")
+    monkeypatch.setattr(webprice, "CACHE_PATH", str(tmp_path / "wp_ds_ai.db"))
+    monkeypatch.setattr(webprice, "_page_prices", lambda *a, **k: [])
+    webprice._down.clear(); webprice._gemini.update(down_until=0.0, error=None)
+    prod = {"barcode": "3350033109384", "name": "Poivrons grillés", "brand": "Monoprix", "quantity": {"amount": 280.0, "unit": "g"}}
+
+    def http(method, url, headers, body):
+        return {"results": [{"title": "Poivrons grillés 280 g", "snippet": "Poivrons grillés Monoprix 280 g", "summary": "", "url": "https://example.com/p/poivrons"}]}
+
+    def tr(url, body):
+        assert url == "https://api.deepseek.com/responses" and body["model"] == "deepseek-v4-pro" and body["tools"] == [{"type": "web_search"}]
+        return {"output": [
+            {"type": "message", "content": [{"type": "output_text", "text": '{"price_eur": 3.99, "pack_size": "280 g", "store": "Carrefour", "found": true}'}]},
+            {"type": "web_search_call", "action": {"type": "open_page", "url": "https://www.carrefour.fr/p/poivrons-grilles#ws_call_id=1"}},
+        ]}
+    r = webprice.lookup(prod, transport=tr, use_cache=False, http=http)
+    assert r and r["provider"] == "deepseek_ai" and r["pack_cents"] == 399 and r["approximate"]
+    assert r["source_urls"] == ["https://www.carrefour.fr/p/poivrons-grilles"]          # the page the model opened, without its search marker
+
+    def no_citation(url, body):
+        return {"output": [{"type": "message", "content": [{"type": "output_text", "text": '{"price_eur": 3.99, "pack_size": "280 g", "store": "Carrefour", "found": true}'}]}]}
+    assert webprice.lookup(prod, transport=no_citation, use_cache=False, http=http) is None   # no opened page: not a sourced price
+
+
 def test_gemini_is_asked_first_then_the_others(monkeypatch, tmp_path):
     from app import webprice
     for k in ("PARALLEL_API_KEY", "LANGSEARCH_API_KEY", "BRAVE_API_KEY"):
@@ -909,3 +965,17 @@ def test_social_media_and_comparator_sites_never_contribute_a_price():
     assert webprice._price_from(prod, [fb, idealo]) is None                                  # neither is a shop: no price at all
     got = webprice._price_from(prod, [fb, idealo, carrefour, monoprix])
     assert got and got["pack_cents"] in (749, 869) and got["stores"] == ["Carrefour", "Monoprix"]   # only the two real shops count
+
+
+def test_grilled_vegetables_and_vegetable_puree_are_distinct_from_each_other_and_from_raw_produce():
+    """A jarred grilled/marinated vegetable, a smooth cooked purée, and fresh or frozen produce are different preparations
+    with different uses: Poivrons grillés and Purée de brocoli must never substitute each other just because both carry
+    only the broad 'en:vegetables' tag."""
+    poivrons = P("Poivrons grillés", ["en:vegetables"])
+    brocoli = P("Purée de brocoli", ["en:vegetables"])
+    carottes = P("Carottes vapeur", ["en:vegetables"])
+    assert sub(poivrons, brocoli) is None
+    assert sub(poivrons, carottes) is None
+    assert sub(brocoli, carottes) is None
+    assert sub(poivrons, P("Aubergines grillées", ["en:vegetables"]))["level"] == 1          # still substitute each other
+    assert sub(brocoli, P("Purée de carotte", ["en:vegetables"]))["level"] == 1

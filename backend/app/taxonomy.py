@@ -95,6 +95,10 @@ R = [
     ("ham", "meat_fish", "charcuterie", "slices", "cold_cut", "meal", r"hams|cooked-hams|dry-hams|charcuteries|bacon|cured-meats", r"jambon|lardons|saucisson|charcuterie|bacon"),
     ("sausage", "meat_fish", "charcuterie", "sausage", "cook", "meal", r"sausages|merguez", r"saucisse|merguez|chipolata"),
     ("fish_canned", "meat_fish", "fish", "can", "cold_fish", "meal", r"canned-fish|tunas|sardines|mackerels|canned-tunas", r"thon|sardine|maquereau|saumon fum"),
+    # Specific vegetable forms before the generic bucket below: a jarred grilled/marinated vegetable, a smooth cooked purée and
+    # raw/frozen produce are not interchangeable (different preparation, different use), so each gets its own type.
+    ("grilled_vegetables", "produce", "fruit_veg", "grilled", "jar", "antipasti", r"grilled-vegetables|antipasti|marinated-vegetables|roasted-peppers|roasted-vegetables|fruits|vegetables|fresh-plant", r"poivrons? grill[ée]s?|l[ée]gumes? grill[ée]s?|aubergines? grill[ée]es?|courgettes? grill[ée]es?|antipasti|l[ée]gumes? marin[ée]s?|poivrons? r[ôo]tis?"),
+    ("vegetable_puree", "produce", "fruit_veg", "puree", "puree", "meal", r"vegetable-purees|pur[ée]es-de-legumes|fruits|vegetables|fresh-plant", r"pur[ée]e de (?:brocoli|carotte|courgette|potiron|panais|c[ée]leri|patates? douces?|petits? pois|choux?[ -]fleur|l[ée]gumes?)"),
     ("fruits_veg", "produce", "fruit_veg", "produce", "produce", "meal", r"fruits|vegetables|fresh-plant|plant-based-foods-and-beverages-fruits|canned-vegetables", r"l[ée]gumes|haricots verts|petits pois|tomates? (pel|concass)|carotte|pomme de terre"),
     ("legumes", "produce", "legumes", "legumes", "legumes", "meal", r"legumes|pulses|lentils|chickpeas|beans|pois-chiches", r"lentille|pois chiche|haricots (rouges|blancs)|f[èe]ves"),
     # ---- sauces, oils
@@ -191,7 +195,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
-                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar")
+                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid == "cheese" and _CHEESE_DISH.search(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
