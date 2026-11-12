@@ -113,6 +113,8 @@ export default function Alternatives() {
     if (hidden.includes(e.product.id)) return false;
     if (!ignoreChain && chain && !(e.product.chains ?? []).includes(chain)) return false;   // an availability filter only: the ranking order is unchanged
     if (myChains.length && !e.product.chains?.some((c: string) => myChains.includes(c))) return false;   // the person picked their shops: a shop found later by the price search counts too
+    // Only verified-enseigne rows: a row with no recognised chain would show "Enseigne non vérifiée" - drop it instead.
+    if (!(e.product.chains ?? []).some((id: string) => chainsFor(country).some((c) => c.id === id))) return false;
     if (k === 'closest') return true;                              // genuine substitutes, price or availability not required
     const oq = r?.original?.score?.total;                    // a missing baseline is not proof of being better
     const betterQ = oq != null && (e.product.score?.total ?? -1) > oq;
