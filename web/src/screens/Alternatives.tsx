@@ -119,9 +119,12 @@ export default function Alternatives() {
     const oq = r?.original?.score?.total;                    // a missing baseline is not proof of being better
     const betterQ = oq != null && (e.product.score?.total ?? -1) > oq;
     if (k === 'match') return betterQ;                       // better quality only: never a product scoring the same or lower
+    // Value: beat the scanned product's own value score, only when it has one. Falling back to "beat it on quality"
+    // used to trap near-ceiling categories (bottled water scores 89-99 with no price of its own, so almost nothing
+    // could ever clear that bar) - without a price for the scanned product there is no fair basis to judge "better
+    // value" at all, so nothing is hidden for failing to beat an unknowable baseline. Matches the backend's own rule.
     const ov = r?.rankings?.original_value_score;
-    const betterV = ov != null && e.vs != null && e.vs > ov;
-    return e.price100 != null && e.vs != null && (betterV || betterQ);   // at least one dimension must beat the scanned product
+    return e.vs != null && (ov == null || e.vs > ov);
     }).filter((e: any) => {
       // The same product under another barcode or pack size is one row: keep the best-ranked one.
       const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean).map((w) => w.replace(/s$/, '')).join(' ');
