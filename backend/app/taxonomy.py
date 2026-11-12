@@ -46,7 +46,10 @@ R = [
     ("sports_energy_bar", "snacks", "snack_bars", "sports_energy_bar", "individual_bar", "sports_energy", r"sports-energy-bars|energy-bars|sports-bars", r"energy bar(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|barre sport(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|sport bar(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|energy bar(?!.*(chocolat|tablet|gateau|biscuit|cake|dessert|glace))|iso star|isostar|barre d[ée]tente|barre energ[ée]tique"),
     # ---- dairy
     ("plant_yogurt", "dairy_alt", "yogurt", "spoonable", "spoon", "breakfast", r"plant-based-(yogurts|desserts)|soy-yogurts|dairy-substitutes-yogurts", r"(soja|amande|coco|avoine).*(yaourt|dessert)|yaourt.*(soja|amande|coco)"),
-    ("flavoured_yogurt", "dairy", "yogurt", "spoonable", "spoon", "dessert", r"flavoured-yogurts|fruit-yogurts|sweetened-yogurts|yogurts-with-fruits", r"(vanille|fruit|fraise|abricot|p[êe]che|coco|caramel|citron|cerise|banane|vanilla|aux fruits)(?![^a-z]*barre|[^a-z]*bar|[^a-z]*barres)"),
+    # A flavour word alone (vanille, coco, fruit...) must never classify a product as yogurt without a category tag:
+    # "Boisson riz coco" is a plant drink, not a yogurt, and has no tag to rule this out when only the name is checked.
+    ("flavoured_yogurt", "dairy", "yogurt", "spoonable", "spoon", "dessert", r"flavoured-yogurts|fruit-yogurts|sweetened-yogurts|yogurts-with-fruits",
+     r"(?:yaourt|yogourt|yogurt).{0,25}(?:vanille|fruit|fraise|abricot|p[êe]che|coco|caramel|citron|cerise|banane|vanilla)|(?:vanille|fruit|fraise|abricot|p[êe]che|coco|caramel|citron|cerise|banane|vanilla).{0,25}(?:yaourt|yogourt|yogurt)"),
     # Bare "nature" or "grec" alone must never classify a product as yogurt: "nature" means "plain" for almost any French
     # grocery item (lardons nature, riz nature, jambon nature all have empty category tags in practice), and "grec" appears
     # in unrelated names too (salade grecque). Only an explicit yogurt word anchors this rule.
@@ -363,6 +366,10 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
             lv = min(4, lv + 1)     # raw vs roasted, plain vs salted: still nuts, but no longer the same product
             diff = diff or [po[odd[0]], pc[odd[0]]]
 
+    if diff and co["type"] == cc["type"] == "plant_drink":
+        lv = min(4, lv + 2)   # a different base (rice vs oat vs soy vs almond) is a real difference in taste, texture and
+        # cooking behaviour - a genuine but broader alternative, not "almost identical", and not excluded outright either
+
     # Build structured explanation
     explanation = {
         "level": lv,
@@ -393,6 +400,10 @@ _VARIANTS = {
     "dip": [("hummus", r"houm[ou]{1,2}s|hummus"), ("tarama", r"tarama"), ("tzatziki", r"tzatziki"), ("guacamole", r"guacamole"), ("pepper", r"ktipiti|poivron|mouhamara"), ("aubergine", r"aubergine|baba")],   # a houmous leads to houmous, a tarama to tarama
     "peanut_butter": [("almond", r"amande|almond"), ("hazelnut", r"noisette|hazelnut"), ("peanut", r"cacahu|peanut|arachide"), ("cashew", r"cajou|cashew"), ("sesame", r"s[ée]same|tahin|tahini"), ("pistachio", r"pistache|pistachio"), ("pecan", r"p[ée]can|pecan")],   # an almond purée is not a peanut butter
     "milk": [("skimmed", r"[ée]cr[ée]m|skimmed"), ("whole", r"entier|whole")],
+    # Rice, almond, soy, oat and coconut drinks share nothing but being "a plant-based drink": different base, taste,
+    # texture and cooking behaviour. A shopper choosing rice-coconut milk is not well served by a barley drink.
+    "plant_drink": [("rice", r"\briz\b|\brice\b"), ("almond", r"amande|almond"), ("soy", r"soja|soy"), ("oat", r"avoine|\boat\b"),
+                     ("coconut", r"coco(?!a)|coconut"), ("hazelnut", r"noisette|hazelnut"), ("spelt", r"[ée]peautre|spelt"), ("barley", r"orge|barley")],
 }
 
 

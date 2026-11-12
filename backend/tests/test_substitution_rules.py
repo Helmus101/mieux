@@ -992,6 +992,28 @@ def test_pizza_dough_is_not_a_substitute_for_a_finished_pizza():
     assert sub(dough, dough2)["level"] == 1
 
 
+def test_bare_flavour_word_never_misclassifies_a_drink_as_yogurt():
+    """'Boisson riz coco' is a plant-based drink, not a yogurt: bare 'coco' (coconut) in the flavoured_yogurt name
+    regex, with no category tag and no 'yaourt' word anywhere, used to classify it as a flavoured yogurt."""
+    rice_coco = P("Boisson riz coco", [])
+    assert taxonomy.classify(rice_coco)["type"] != "flavoured_yogurt"
+    real_flavoured = P("Yaourt vanille", [])
+    assert taxonomy.classify(real_flavoured)["type"] == "flavoured_yogurt"
+
+
+def test_plant_drinks_of_a_different_base_are_a_broader_alternative_not_almost_identical():
+    """Rice, almond, soy and oat drinks share only "a plant-based drink": different base, taste, texture and cooking
+    behaviour. They should still be found (level 3, a genuine but broader alternative), never hard-excluded, but
+    never ranked as level 1 "almost identical" just because both carry a generic plant-milk category tag."""
+    riz = P("Boisson au riz", ["en:rice-based-drinks"])
+    riz2 = P("Boisson au riz bio", ["en:rice-based-drinks"])
+    amande = P("Boisson à l'amande", ["en:almond-milks"])
+    soja = P("Boisson au soja", ["en:soy-milks"])
+    assert sub(riz, riz2)["level"] == 1
+    assert sub(riz, amande)["level"] == 3
+    assert sub(riz, soja)["level"] == 3
+
+
 def test_bare_nature_or_the_never_misclassify_an_unrelated_product():
     """Two benchmark findings from a 100-product live spot-check, both caused by a single generic word matching
     everything: 'nature' (French for 'plain', found on lardons/riz/jambon with empty category tags) was wrongly

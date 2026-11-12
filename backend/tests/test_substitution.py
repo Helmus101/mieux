@@ -28,7 +28,9 @@ CASES = [
      [(P("Yaourt grec nature", ["en:dairies", "en:yogurts", "en:greek-yogurts"]), 1), (P("Fromage blanc 3%", ["en:dairies", "en:fromages-blancs"]), 2), (P("Yaourt à la fraise", ["en:dairies", "en:flavoured-yogurts"]), 3)],
      [P("Camembert", ["en:cheeses"]), P("Lait demi-écrémé", ["en:milks"]), P("Glace vanille", ["en:ice-creams"]), P("Crème fraîche épaisse", ["en:creams"])]),
     (P("Boisson au riz coco", ["en:beverages", "en:plant-based-beverages", "en:rice-based-drinks"]),
-     [(P("Boisson avoine", ["en:beverages", "en:plant-based-milk-alternatives", "en:oat-based-drinks"]), 1), (P("Boisson soja nature", ["en:soy-milks", "en:beverages"]), 1)],
+     # A different plant-drink base (oat, soy) is a real difference in taste and texture: a broader alternative
+     # (level 3), not "almost identical" (level 1) just because both are generically "a plant-based drink".
+     [(P("Boisson avoine", ["en:beverages", "en:plant-based-milk-alternatives", "en:oat-based-drinks"]), 3), (P("Boisson soja nature", ["en:soy-milks", "en:beverages"]), 3)],
      [P("Coca-Cola", ["en:beverages", "en:sodas"]), P("Jus de pomme", ["en:beverages", "en:fruit-juices"]), P("Eau minérale", ["en:waters"]), P("Yaourt au soja", ["en:plant-based-yogurts"])]),
     (P("Coca-Cola Zero", ["en:beverages", "en:sodas", "en:colas"]),
      [(P("Pepsi Max", ["en:beverages", "en:sodas", "en:colas"]), 1), (P("Limonade", ["en:beverages", "en:sodas"]), 1)],

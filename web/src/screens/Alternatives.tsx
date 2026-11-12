@@ -195,6 +195,9 @@ export default function Alternatives() {
   const diffOf = (e: any): { text: string; tone: string; sub?: string } | null => {
     const o = r?.original_price;
     if (!o || !showPrice) return null;
+    // A per-100-unit difference is only valid when both sides share the same unit (g or ml): a candidate with a
+    // bad or missing pack size on one side would otherwise silently compare cents-per-100ml against cents-per-100g.
+    if (e.size?.unit && r?.original_size?.unit && e.size.unit !== r.original_size.unit) return null;
     const liquid = isLiquid(e.product) || r?.original_size?.unit === 'ml';
     const fmt = (c: number) => `${c < 0 ? '−' : '+'}${formatCents(Math.abs(Math.round(c)))}`;
     const tone = (c: number) => (Math.abs(c) < 1 ? 'var(--mut)' : c < 0 ? 'var(--accent)' : 'var(--bad)');
