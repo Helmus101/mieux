@@ -16,3 +16,10 @@ def _no_live_web_search(monkeypatch):
     from app import webprice
     webprice._day.update(d="", n=0)
     webprice._ai_day.update(d="", n=0)
+
+
+@pytest.fixture(autouse=True)
+def _no_local_alt_index(monkeypatch):
+    """A developer's locally built alt_index.db must not change what a test sees: tests that exercise it install their own."""
+    from app import main
+    monkeypatch.setattr(main.app.state, "alt", None, raising=False)

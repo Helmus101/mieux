@@ -12,6 +12,11 @@ Prices come from two sources that are always used together: Open Prices (daily e
 ## Refresh Open Prices
 `python -m scripts.import_prices_dump` rebuilds the table but keeps the retailer rows (ids starting `sc-`).
 
+## Alternatives database (`alt_index.db`)
+Alternatives are read from `/data/alt_index.db`: only products with a brand, at least one supermarket chain and an observed price. Rebuild it **after every Open Food Facts import, price refresh or retailer import** (about 3 minutes; the API keeps serving the old file and reopens the new one when it is swapped in):
+`fly ssh console -a mieux-api -C "sh -c 'cd /app && python -m scripts.build_alt_index'"`
+Without the file the API falls back to searching Open Food Facts category by category (slower, same rules). Another market: `MARKET=US` (reads `off_local_us.db` / `op_local_us.db`, writes `alt_index_us.db`).
+
 ## Notes
 - Supported shapes: Monoprix/Intermarché/Leclerc/Carrefour/Lidl/Naturalia exports and the `{source, postal_code, products:[...]}` shape (Auchan, Lidl food, Biocoop). See `normalise()` in `scripts/import_store_prices.py`.
 - Local/dev: `cd backend && .venv/bin/python -m scripts.import_store_prices ~/Downloads/*.json`.

@@ -37,7 +37,7 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-from . import chains as _chains, taxo1000, webprice, value_index, valuescore, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
+from . import altindex, chains as _chains, taxo1000, webprice, value_index, valuescore, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
@@ -234,6 +234,11 @@ app.state.off = market.PerMarket({
 app.state.prices = market.PerMarket({
     "FR": value.OpenPricesClient(),
     "US": value.OpenPricesClient(local_path=os.environ.get("OP_LOCAL_US", os.path.join(_HERE, "op_local_us.db")), country="US", base="USD"),
+})
+# The alternatives database per market (scripts/build_alt_index.py): only products with a brand, a chain and a price. Absent file = the API falls back to searching Open Food Facts.
+app.state.alt = market.PerMarket({
+    "FR": altindex.AltIndex(os.environ.get("ALT_INDEX", os.path.join(_HERE, "alt_index.db"))),
+    "US": altindex.AltIndex(os.environ.get("ALT_INDEX_US", os.path.join(_HERE, "alt_index_us.db"))),
 })
 app.state.llm = None  # comparison explanations stay deterministic
 app.state.score_llm = exp.GeminiLLM() if os.environ.get("GEMINI_API_KEY") else None  # rephrases the quality score; the template is the fallback
@@ -1890,6 +1895,61 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
     return orig_price, prices, points, shops
 
 
+def _legacy_candidates(s: Session, orig: Dict[str, Any], body: "AltReq", allergens: List[str], chain_of: Any) -> List[Dict[str, Any]]:
+    """Fallback when the alternatives database is not built: read the product's categories in Open Food Facts, then attach chain evidence and popularity."""
+    peers = [rescore(c, body.strict_additives) for c in _peers(s, orig, body.category_mode, body.priorities, allergens) if " / " not in (c.get("name") or "")]   # a name that is a category path ("Epicerie / Epicerie Sucrée / ...") is a data error
+    getattr(app.state.prices, "prefetch", lambda *_: None)([orig["barcode"]] + [c["barcode"] for c in peers])
+    seen_fr = getattr(app.state.prices, "seen_in_france", lambda _b: False)
+    peers = [({**c, "soldInFrance": True, "frEvidence": "open_prices"} if seen_fr(c["barcode"]) else c) for c in peers]
+    for c in peers:  # attach every chain evidence we have
+        c["chains"] = _candidate_chain_ids(c, chain_of)
+    # Popularity of each candidate: how often it is scanned (Open Food Facts) and whether chains are known to sell it (see engine.is_popular).
+    local_ = getattr(app.state.off, "local", None)
+    if local_ is not None and hasattr(local_, "_q"):
+        codes_ = [c["barcode"] for c in peers]
+        scans_: Dict[str, int] = {}
+        for i_ in range(0, len(codes_), 500):
+            chunk_ = codes_[i_:i_ + 500]
+            for code_, n_ in (local_._q(f"select code, scans from off_products where code in ({','.join('?' * len(chunk_))})", tuple(chunk_)) or []):
+                scans_[code_] = n_ or 0
+        peers = [{**c, "popularity": {"scans": scans_.get(c["barcode"], 0), "chains": len(c.get("chains") or [])}} for c in peers]
+    return peers
+
+
+def _index_pool(s: Session, uid: str, orig: Dict[str, Any], body: "AltReq", allergens: List[str], sel_names: List[str]):
+    """Candidates from the alternatives database: brand, supermarket and an observed price are guaranteed by construction
+    (scripts/build_alt_index.py), so there is nothing to look up per candidate. Returns (peers, orig_price, prices, points, shops)."""
+    oq = orig.get("quantity")
+    base = [t for t in orig["categories"] if t not in _TOO_BROAD]
+    tags = list(reversed(base))     # most specific first
+    if body.category_mode != "similar":
+        tags = tags[2:] or tags
+    otype = taxonomy.classify(orig).get("type")
+    groups = (taxo1000.classify(orig.get("name"), None, orig.get("brand")).get("groups") or [])[:2]
+    rows = app.state.alt.candidates(tags[:3], otype, groups)
+    if len(rows) < 30 and len(tags) > 3:
+        rows = app.state.alt.candidates(tags[:8], otype, groups)   # a thin leaf category: also read the next levels
+    by_code = {r["code"]: r for r in rows if r["code"] != orig["barcode"] and (not oq or r["quantity"]["unit"] == oq["unit"])}   # a price per kg is never compared with one per litre
+    peers: List[Dict[str, Any]] = []
+    prices: Dict[str, float] = {}
+    points: Dict[str, Any] = {}
+    for raw in app.state.off.quick_products(list(by_code)):
+        p = normalize(raw)
+        row = by_code.get(p["barcode"])
+        if row is None:
+            continue
+        p = {**p, "chains": row["chains"], "soldInFrance": True, "frEvidence": "open_prices", "popularity": {"scans": row["scans"], "chains": len(row["chains"])}}
+        peers.append(rescore(p, body.strict_additives))
+        prices[p["barcode"]] = row["per100_cents"]
+        points[p["barcode"]] = {"source": "open_prices", "date": row["price_date"], "where": None, "scope": "market", "stale": row["price_stale"],
+                                "pack_cents": row["pack_cents"], "currency": market.currency()}
+    # Only the scanned product is priced here (its own receipt first, else an observation, else a web search): candidates already carry theirs.
+    orig_price, opoints, shops = None, {}, {}
+    orig_price, _, opoints, shops = _price_map(s, uid, orig, [], body.location, body.approximate, sel_names)
+    points.update(opoints)
+    return peers, orig_price, prices, points, shops
+
+
 @app.post("/v1/products/{barcode}/alternatives")
 @limiter.limit("20/minute")
 def alternatives(request: Request, background: BackgroundTasks, barcode: str, body: AltReq, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
@@ -1903,32 +1963,20 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     pr = prefs_of(s, uid)
     allergens = body.excluded_allergens if body.excluded_allergens is not None else pr.allergens
     diet = body.diet if body.diet is not None else (None if pr.diet == "omnivore" else pr.diet)
-    peers = [rescore(c, body.strict_additives) for c in _peers(s, orig, body.category_mode, body.priorities, allergens) if " / " not in (c.get("name") or "")]   # a name that is a category path ("Epicerie / Epicerie Sucrée / ...") is a data error
-    # EXHAUSTIVE PRICE ENRICHMENT: Batch ALL candidates for price enrichment, not just first 160
-    # Since retrieval is now exhaustive, we must enrich all candidates to avoid bias
-    getattr(app.state.prices, "prefetch", lambda *_: None)([orig["barcode"]] + [c["barcode"] for c in peers])
-    seen_fr = getattr(app.state.prices, "seen_in_france", lambda _b: False)
-    peers = [({**c, "soldInFrance": True, "frEvidence": "open_prices"} if seen_fr(c["barcode"]) else c) for c in peers]
     body.chains = [c for c in body.chains if c in retail.NAME_OF]  # ids of chains that no longer exist (saved on the device) are ignored
     sel_names = [retail.NAME_OF[c] for c in body.chains]
     chain_of = getattr(app.state.prices, "chain_summary", None)
-    for c in peers:  # attach every chain evidence we have
-        c["chains"] = _candidate_chain_ids(c, chain_of)
-    # Popularity of each candidate: how often it is scanned (Open Food Facts) and whether chains are known to sell it. The money and quality
-    # lists use it to keep obscure products from topping a ranking (see engine.is_popular).
-    local_ = getattr(app.state.off, "local", None)
-    if local_ is not None and hasattr(local_, "_q"):
-        codes_ = [c["barcode"] for c in peers]
-        scans_: Dict[str, int] = {}
-        for i_ in range(0, len(codes_), 500):
-            chunk_ = codes_[i_:i_ + 500]
-            for code_, n_ in (local_._q(f"select code, scans from off_products where code in ({','.join('?' * len(chunk_))})", tuple(chunk_)) or []):
-                scans_[code_] = n_ or 0
-        peers = [{**c, "popularity": {"scans": scans_.get(c["barcode"], 0), "chains": len(c.get("chains") or [])}} for c in peers]
+    # The alternatives database (brand + supermarket + price guaranteed) when it has been built; else the category-by-category search of Open Food Facts.
+    alt_ = getattr(app.state, "alt", None)
+    indexed = alt_ is not None and alt_.available()
+    if indexed:
+        peers, orig_price, prices, points, shops = _index_pool(s, uid, orig, body, allergens, sel_names)
+    else:
+        peers = _legacy_candidates(s, orig, body, allergens, chain_of)
     # -----------------------------------------------------------------------------------------------------------------
     # THE ALTERNATIVES FUNNEL: four hard filters, then ranking. Nothing is scored, weighted or traded off before it has
     # passed all four - a product that fails one filter is out, however good its nutrition or price.
-    #   0. Category  _peers() has already read the whole database, restricted to the product's category.
+    #   0. Category  the pool is already restricted to the product's category.
     #   1. Market    sold in the shopper's market. Unknown availability is not "sold here".
     #   2. Shop      a real supermarket carries it - and one of the shopper's own stores when they picked some.
     #   3. Price     a real, observed price. No price for this exact product, no alternative.
@@ -1966,7 +2014,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
 
     # 3. PRICE: observed prices only - your own receipt/entry, an Open Prices sighting, or a web price found earlier and
     # cached. An estimate is not a price, and no fresh web search is run for a candidate, so an unpriced product is out.
-    orig_price, prices, points, shops = _price_map(s, uid, orig, peers, body.location, body.approximate, sel_names)
+    if not indexed:     # the alternatives database already carries every candidate's price
+        orig_price, prices, points, shops = _price_map(s, uid, orig, peers, body.location, body.approximate, sel_names)
 
     def _has_price(bc: str) -> bool:
         return prices.get(bc) is not None and (points.get(bc) or {}).get("source") != "estimate"

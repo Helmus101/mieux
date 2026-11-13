@@ -17,6 +17,7 @@ import { prefetchAlternatives } from '../alternatives';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+const PRICE_WAIT_MS = 12000;   // longest the quality and value scores stay hidden while the price is looked up
 const TONE_V: Record<string, string> = { g: 'var(--accent)', g2: 'var(--olive)', y: 'var(--clay)', w: 'var(--warn)', b: 'var(--bad)' };
 const toneVar = (tn?: string) => ({ g: 'var(--accent)', g2: 'var(--olive)', w: 'var(--warn)', b: 'var(--bad)' } as Record<string, string>)[tn ?? ''] ?? 'var(--ink)';
 
@@ -44,14 +45,20 @@ export default function Product() {
   }, [barcode]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
   const [webP, setWebP] = useState<any>(null), [webPriceLoading, setWebPriceLoading] = useState(false);       // hooks stay above every early return
+  // The scores wait for the price: they appear together once it is found, once the search ends without one, or after PRICE_WAIT_MS at most.
+  // Both markers hold the barcode they belong to, so opening another product starts waiting again in the same render (no flash of the scores).
+  const [priceSettledFor, setPriceSettledFor] = useState<string | null>(null), [priceGaveUpFor, setPriceGaveUpFor] = useState<string | null>(null);
   const headKind = d ? priceHeadline(d.price_context).kind : null;
   useEffect(() => {          // no observed price: one search for an approximate price and where it is sold
-    let live = true;
+    let live = true, giveUp: ReturnType<typeof setTimeout> | undefined;
     setWebP(null);
     const shouldLookUp = !!barcode && !!d && headKind === 'none';
     setWebPriceLoading(shouldLookUp);
-    if (shouldLookUp) api.getWebPriceQuick(barcode!).then((w: any) => { if (live && w) setWebP(w); }).finally(() => { if (live) setWebPriceLoading(false); });
-    return () => { live = false; };
+    if (shouldLookUp) {
+      giveUp = setTimeout(() => { if (live) setPriceGaveUpFor(barcode!); }, PRICE_WAIT_MS);
+      api.getWebPriceQuick(barcode!).then((w: any) => { if (live && w) setWebP(w); }).finally(() => { if (live) { setWebPriceLoading(false); setPriceSettledFor(barcode!); } });
+    }
+    return () => { live = false; if (giveUp) clearTimeout(giveUp); };
   }, [barcode, d?.product?.id, headKind]);
   const [aiNote, setAiNote] = useState<{ text: string; source?: string } | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
@@ -97,6 +104,7 @@ export default function Product() {
   const factor = (bases.find((b) => b.key === basis) ?? bases[0]).f;
   const amt = (v: number | null | undefined) => (v == null ? '—' : String(Math.round(v * factor * 10) / 10).replace('.', ','));
   const head = priceHeadline(pc);
+  const pricePending = head.kind === 'none' && priceSettledFor !== barcode && priceGaveUpFor !== barcode;
   const packOf = (perKgCents?: number | null, explicit?: number | null) => (explicit != null && explicit > 0 ? explicit : (perKgCents != null && perKgCents > 0 && p.quantity?.amount ? Math.round(perKgCents * p.quantity.amount / 1000) : null));
   const packTxt = (c: number | null) => (c != null && c > 0 ? <span className="mut"> · {t('score.packPrice', { p: formatCents(c) })}</span> : null);
   const webPerKg = webP?.per100_cents > 0 ? Math.round(webP.per100_cents * 10) : null;
@@ -133,7 +141,9 @@ export default function Product() {
           </div>
         </div>
         {head.kind !== 'none' ? <p className="pprice"><b>{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(head.perKgCents!) })}</b>{packTxt(packOf(head.perKgCents))}{head.kind === 'estimate' && <> <Pill tone="w">{t('est.pill')}</Pill></>}</p> : webPerKg != null ? <p className="pprice"><b>{t(isLiquid(p) ? 'simple.perL' : 'simple.perKg', { p: formatCents(webPerKg) })}</b>{packTxt(packOf(webPerKg, webPack))}{webP.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</p> : <p className="pprice mut">{webPriceLoading ? <><span className="mini-ring" />{t('alt.pricing')}</> : <>{t('simple.noPrice')}{webP?.chains?.length > 0 && <span className="logos" style={{ marginLeft: 8 }}>{webP.chains.slice(0, 5).map((c: string) => <ChainLogo key={c} id={c} size={20} />)}</span>}</>}</p>}
-        {p.score ? (<>
+        {p.score && pricePending ? (
+          <div className="twoscores" aria-busy="true" aria-label={t('alt.pricing')}><div><Skeleton h={64} w={90} /></div><div><Skeleton h={64} w={90} /></div></div>
+        ) : p.score ? (<>
           <div className="twoscores">
             <div><span className="scorecap">{t('score.quality')}</span><div className={'stile ' + (p.score.tone === 'b' ? 'b' : p.score.tone === 'w' ? 'w' : 'g')}>{p.score.total}<small>{t('score.outOf')}</small></div><b>{t('score.' + p.score.band)}</b><span className="mut sm scoredef">{t('score.defQuality')}</span></div>
             <div title={t('score.pqHint')}><span className="scorecap">{t('score.value')} <PqExplain /></span>{pc?.value ? <><div className={'stile ' + (pc.value.value_score >= 65 ? 'g' : pc.value.value_score >= 40 ? 'w' : 'b')}>{pc.value.value_score}<small>{t('score.outOf')}</small></div><b>{pc.value.value_score >= 65 ? t('score.pqGood') : pc.value.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{pc.value.approximate && (pc.value.basis_pack_cents != null ? <div className="mut sm">{t('score.pqApprox', { p: formatCents(pc.value.basis_pack_cents) })}</div> : pc.value.basis_per100_cents != null ? <div className="mut sm">{formatCents(Math.round(pc.value.basis_per100_cents * 10))}/kg</div> : null)}</> : webP?.value_score != null ? <><div className={'stile ' + (webP.value_score >= 65 ? 'g' : webP.value_score >= 40 ? 'w' : 'b')}>{webP.value_score}<small>{t('score.outOf')}</small></div><b>{webP.value_score >= 65 ? t('score.pqGood') : webP.value_score >= 40 ? t('score.pqOk') : t('score.pqLow')}</b>{webPack != null ? <div className="mut sm">{t('score.pqApprox', { p: formatCents(webPack) })}</div> : webPerKg != null ? <div className="mut sm">{formatCents(webPerKg)}/kg</div> : null}</> : webPriceLoading ? <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut"><span className="mini-ring" /> {t('alt.pricing')}</b></> : <><div className="scorebig" style={{ color: 'var(--mut)' }}>–</div><b className="mut">{t('score.pqNone')}</b></>}<span className="mut sm scoredef">{t('score.defValue')}</span></div>
@@ -146,7 +156,7 @@ export default function Product() {
         </>) : <Muted>{t('score.na')}</Muted>}
       </section>
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
-      {p.score && <Collapsible open={false} title={t('sdim.title')} onOpen={explainScore}>
+      {p.score && !pricePending && <Collapsible open={false} title={t('sdim.title')} onOpen={explainScore}>
           {aiBusy && <p className="mut sm"><span className="mini-ring" />{t('ex.loading')}</p>}
           {aiNote && <p className="ai-note">{aiNote.text}{aiNote.source !== 'llm' && <span className="mut sm"> · {t('ex.template')}</span>}</p>}
           {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
