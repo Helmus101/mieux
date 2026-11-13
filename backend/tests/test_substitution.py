@@ -88,8 +88,8 @@ def test_levels_describe_closeness_and_never_cross_clusters():
     assert substitution(P("Grissini", ["en:breadsticks"]), BRIOCHE_TOAST) is None                   # symmetric rejection
 
 
-def test_unclassified_products_only_match_their_own_leaf_category():
+def test_products_without_a_rule_are_typed_by_their_own_small_category():
     a, b = P("Truc rare", ["en:foo", "en:bar"]), P("Machin autre", ["en:foo", "en:bar"])
-    assert substitution(a, b) is None          # a shared category leaf alone is not proof of substitutability
+    assert substitution(a, b)["level"] == 2   # the same specific category is the small category: comparable
     assert substitution(a, P("Truc différent", ["en:foo", "en:baz"])) is None
     assert substitution(a, P("Truc rare bio", ["en:foo", "en:bar"]))["level"] == 2   # same leaf and a shared name word: comparable

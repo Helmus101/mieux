@@ -76,6 +76,10 @@ R = [
     ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"jus (de|d.)|nectar|pur jus|tropico|capri.?sun|oasis\b|boisson aux fruits"),
     ("soda", "drinks", "soda", "liquid", "drink", "any", r"sodas|carbonated-drinks|colas|sweetened-beverages|lemonades|energy-drinks", r"cola|limonade|soda|boisson gazeuse|orangina|fanta|sprite|energy"),
     ("water", "drinks", "water", "liquid", "drink", "any", r"waters|spring-waters|mineral-waters", r"^eau\b|eau (min[ée]rale|de source|gazeuse|plate)"),
+    # Alcohol: a beer, a wine and a spirit are three different purchases and never substitute each other.
+    ("beer", "drinks", "beer", "beer", "liquid", "drink", r"beers|craft-beers|non-alcoholic-beers|ales|lagers|radlers", r"bi[èe]re|\bbeer\b|pale ale|\bipa\b|stout|lager|panach[ée]|grimbergen|heineken|leffe"),
+    ("wine", "drinks", "wine", "wine", "liquid", "drink", r"wines|red-wines|white-wines|rose-wines|sparkling-wines|champagnes", r"\bvin\b|\bwine\b|ros[ée]|champagne|prosecco|cr[ée]mant|bordeaux|bourguignon|sauvignon|merlot"),
+    ("spirits", "drinks", "spirits", "spirits", "liquid", "drink", r"spirits|vodkas|whiskies|whisky|rums|gins|liqueurs|brandies|pastis|tequilas", r"vodka|whisk(?:y|ies)|rhum|\brum\b|\bgin\b|liqueur|pastis|calvados|cognac|armagnac|tequila"),
     ("capsule_nespresso", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"nespresso", r"nespresso"),
     ("capsule_dolce_gusto", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"dolce-gusto", r"dolce ?gusto"),
     ("capsule_tassimo", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"tassimo", r"tassimo"),
@@ -93,6 +97,7 @@ R = [
     ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|compotes|fruit-and-vegetable-preserves|fruit-preserves|fruit-purees|apple-compotes", r"confiture|confettura|marmelade|compote|gel[ée]e"),
     ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre (de |d.)(cacahu|amande|noisette|cajou)|peanut butter|(almond|cashew|hazelnut) butter|pur[ée]e (d.|de )?(amandes?|noisettes?|cajou|noix de cajou|cacahu[eè]tes?|pistaches?|noix de p[ée]can|s[ée]same)|cr[èe]me d.amandes?\b(?!.*(dessert|glac))|tahin"),
     ("honey", "sweet", "spread", "spread", "spread", "breakfast", r"honeys", r"\bmiel\b"),
+    ("ice_cream", "sweet", "dessert", "ice_cream", "frozen", "dessert", r"ice-creams|frozen-desserts|sorbets|ice-cream-tubs|ice-cream-cones", r"\bglaces?\b|sorbet|ice cream|cr[èe]me glac[ée]e|esquimau"),
     # ---- chocolate confectionery (tablets, bars for confectionery use - NOT snack bars)
     # IMPORTANT: Chocolate tablets are confectionery, not snack bars, even if they contain nuts or fruit
     ("chocolate_bar", "sweet", "chocolate", "bar", "bar", "snacking", r"chocolates|chocolate-bars|dark-chocolates|milk-chocolates", r"chocolat (noir|au lait|blanc)(?!.*(barre|energy|sport|protein|c[ée]r[ée]ale|granola))|tablette"),
@@ -114,6 +119,16 @@ R = [
     ("ready_meal", "meals", "ready_meal", "meal", "meal", "meal", r"meals|prepared-meals|ready-meals|sandwiches|salads", r"plat cuisin|lasagne|hachis|couscous|paella|sandwich|salade"),
     ("ham", "meat_fish", "charcuterie", "slices", "cold_cut", "meal", r"hams|cooked-hams|dry-hams|charcuteries|bacon|cured-meats", r"jambon|lardons|saucisson|charcuterie|bacon"),
     ("sausage", "meat_fish", "charcuterie", "sausage", "cook", "meal", r"sausages|merguez", r"saucisse|merguez|chipolata"),
+    # Meat and poultry: each animal is its own small category (a chicken breast is not a beef steak); pâtés and terrines are
+    # their own charcuterie purchase. Only the same animal ever substitutes another cut of it.
+    ("chicken", "meat_fish", "poultry", "poultry_cut", "cut", "meal", r"chickens|chicken-breasts|chicken-thighs|chicken-drumsticks|chicken-wings|chicken-legs|poultry|fr:aiguillettes-de-poulet", r"\bpoulet\b|\bchicken\b|volaille|aiguillette"),
+    ("turkey", "meat_fish", "poultry", "poultry_cut", "cut", "meal", r"turkeys|turkey-cutlets|turkey-breasts|turkey-thighs|turkey-drumsticks", r"\bdinde\b|\bturkey\b|escalope de dinde"),
+    ("duck", "meat_fish", "poultry", "poultry_cut", "cut", "meal", r"ducks|duck-breasts|duck-legs|duck-fillets|magret", r"\bcanard\b|\bduck\b|magret"),
+    ("beef", "meat_fish", "red_meat", "meat_cut", "cut", "meal", r"(?:^|\s)en:(?:beef|beef-cuts|beef-steaks|ground-beef|minced-beef|beef-roasts)(?:\s|$)", r"\bb(?:oe|œ)uf\b|\bbeef\b|steak hach|viande hach"),
+    ("pork", "meat_fish", "red_meat", "meat_cut", "cut", "meal", r"(?:^|\s)en:(?:pork|pork-cuts|pork-roasts|pork-chops|pork-tenderloin|pork-loin)(?:\s|$)", r"\bporc\b|\bpork\b|\bcochon\b"),
+    ("veal", "meat_fish", "red_meat", "meat_cut", "cut", "meal", r"(?:^|\s)en:(?:veal|veal-cuts|veal-escalopes)(?:\s|$)", r"\bveau\b|\bveal\b"),
+    ("lamb", "meat_fish", "red_meat", "meat_cut", "cut", "meal", r"(?:^|\s)en:(?:lamb|lamb-cuts|mutton|gigots)(?:\s|$)", r"\bagneau\b|\blamb\b|\bmouton\b|gigot"),
+    ("pate_terrine", "meat_fish", "charcuterie", "pate", "spread", "meal", r"country-terrines|terrines|rillettes|duck-rillettes|pates-de-campagne|pates-en-croute|foie-gras|pate-de-campagne", r"rillettes?|terrines?|p[âa]t[ée] de campagne|p[âa]t[ée] de foie|p[âa]t[ée] en cro[ûu]te|foie gras"),
     ("fish_canned", "meat_fish", "fish", "can", "cold_fish", "meal", r"canned-fish|tunas|sardines|mackerels|canned-tunas", r"thon|sardine|maquereau|saumon fum"),
     # Specific vegetable forms before the generic bucket below: a jarred grilled/marinated vegetable, a smooth cooked purée and
     # raw/frozen produce are not interchangeable (different preparation, different use), so each gets its own type.
@@ -130,6 +145,8 @@ R = [
     ("mayonnaise", "condiments", "sauce", "sauce", "sauce", "any", r"mayonnaises|dressings|vinaigrettes", r"mayonnaise|vinaigrette|mayo"),
     ("tomato_sauce", "condiments", "sauce", "sauce", "cooking_sauce", "meal", r"tomato-sauces|pasta-sauces|bolognese", r"sauce (tomate|bolognaise|pesto)|coulis"),
     ("mustard", "condiments", "sauce", "sauce", "sauce", "any", r"mustards", r"moutarde"),
+    ("vinegar", "condiments", "condiment", "vinegar", "liquid", "seasoning", r"vinegars|balsamic-vinegars|balsamic-vinegars-of-modena|wine-vinegars|apple-cider-vinegars", r"vinaigre|vinegar|balsamique"),
+    ("protein_powder", "supplements", "supplement", "powder", "powder", "sports_energy", r"protein-powders|whey-proteins|protein-supplements", r"whey|isolat|casein|cas[ée]ine|prot[ée]ine.{0,12}(?:poudre|powder)|protein powder"),
     ("oil", "fats_oils", "oil", "oil", "oil", "cooking", r"vegetable-oils|olive-oils|sunflower-oils|rapeseed-oils|oils", r"huile"),
 ]
 RULES = [(tid, fam, cat, sub, form, use, re.compile(tr, re.I), re.compile(nr, re.I)) for tid, fam, cat, sub, form, use, tr, nr in R]
@@ -178,6 +195,11 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "soup": {"soup": 1}, "pizza": {"pizza": 1}, "ready": {"ready_meal": 1, "pizza": 3},
     "pizza_dough": {"pizza_dough": 1},   # raw dough to top at home, never interchangeable with a finished pizza
     "cold_cuts": {"ham": 1, "sausage": 3}, "fish": {"fish_canned": 1},
+    "poultry": {"chicken": 1, "turkey": 2, "duck": 4},   # another bird is related, not the same purchase
+    "red_meat": {"beef": 1, "veal": 2, "pork": 4, "lamb": 4},
+    "pate": {"pate_terrine": 1},
+    "beer": {"beer": 1}, "wine": {"wine": 1}, "spirits": {"spirits": 1}, "vinegar": {"vinegar": 1},
+    "protein_powder": {"protein_powder": 1}, "ice_cream": {"ice_cream": 1},
     "legumes": {"legumes": 1},   # fruit and pulses are different purchases: no shared cluster
     "olives": {"olives": 1},   # green, black or stuffed: all olives, one small category
     "ketchup": {"ketchup": 1}, "mayonnaise": {"mayonnaise": 1},
@@ -256,9 +278,15 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
                     continue
             return {"type": tid, **_META[tid], "source": "name_only", "confidence": "low", "reason": f"name only, no category tag agrees: {nr.pattern[:40]}"}
 
-    # Priority 5: Unclassified - rely only on exact leaf category match
-    leaf = (p.get("categories") or [None])[-1]
-    return {"type": None, "family": None, "category": None, "subcategory": None, "form": None, "use": None, "leaf": leaf, "source": "none", "confidence": "none", "reason": "unclassified: only the exact same leaf category is accepted as a substitute"}
+    # Priority 5: no rule describes this product, but it still belongs to a category. The most specific Open Food Facts tag
+    # that is not a generic shelf becomes its small category ("cat:en:..."): a product nothing else describes still finds
+    # its own kind, and never a whole aisle.
+    leaf = next((t for t in reversed(p.get("categories") or []) if t not in _GENERIC_LEAF and t not in _BROAD_LEAFS), None)
+    if leaf:
+        return {"type": _CATEGORY_TYPE + leaf, "family": None, "category": leaf, "subcategory": None, "form": None,
+                "use": None, "leaf": leaf, "source": "category_only", "confidence": "medium",
+                "reason": f"no type rule matched: the category '{leaf}' is the small category"}
+    return {"type": None, "family": None, "category": None, "subcategory": None, "form": None, "use": None, "leaf": None, "source": "none", "confidence": "none", "reason": "no category tag and no rule: only a shared distinctive name word can match"}
 
 
 _CLASS_CACHE: Dict[Any, Dict[str, Any]] = {}
@@ -310,7 +338,9 @@ def level_between(a: str, b: str) -> Optional[int]:
     return best
 
 
-_GENERIC_LEAF = {"en:groceries", "en:foods", "en:beverages", "en:plant-based-foods", "en:plant-based-foods-and-beverages", "fr:autres-produits", "en:dietary-supplements", "en:meals", "en:snacks", "en:sauces", "en:condiments", "en:frozen-foods", "en:meats"}
+# A product no rule describes is typed by its category: "cat:" + the most specific non-generic Open Food Facts tag.
+_CATEGORY_TYPE = "cat:"
+_GENERIC_LEAF = {"en:groceries", "en:foods", "en:beverages", "en:plant-based-foods", "en:plant-based-foods-and-beverages", "fr:autres-produits", "en:dietary-supplements", "en:meals", "en:snacks", "en:sauces", "en:condiments", "en:frozen-foods", "en:meats", "en:plant-based-foods-and-beverages-fruits"}
 _UNTYPED_STOP = set("avec sans pour dans plus bio extra fins fine fines france francais française français origine nature naturel naturelle format maxi mini grand grande petit petite recette original originale traditionnel traditionnelle selection sélection qualité saveur gout goût premium light".split())
 
 
@@ -345,6 +375,19 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
     - Level 3/4 products can enter closest tab but not price/quality/value rankings
     """
     co, cc = classify(orig), classify(cand)  # always computed fresh: a rule change must reach products that are already cached
+    # A product typed only by its category ("cat:..."): the category itself is the small category. Two products of the same
+    # specific category are alternatives; such a product never substitutes one that a real type rule describes, nor the
+    # reverse. Different categories still need a shared distinctive name word, exactly like two untyped products.
+    cat_o = str(co.get("type") or "").startswith(_CATEGORY_TYPE)
+    cat_c = str(cc.get("type") or "").startswith(_CATEGORY_TYPE)
+    if cat_o or cat_c:
+        if not (cat_o and cat_c):
+            return None
+        if co["type"] == cc["type"]:
+            return {"level": 2, "label": LABELS[2], "type": cc["type"], "same_type": True, "variant_diff": None,
+                    "confidence": "medium", "orig_confidence": co["confidence"], "cand_confidence": cc["confidence"],
+                    "form_match": True, "use_match": True}
+        return _untyped_substitute(orig, cand)
     if not co["type"] and not cc["type"]:
         return _untyped_substitute(orig, cand)
 
@@ -462,6 +505,10 @@ _HARD_VARIANT_TYPES = {"nuts", "peanut_butter", "dip"}
 # Used only to widen the candidate pool; compatibility is still decided by substitution().
 TYPE_TERMS: Dict[str, List[str]] = {
     "olives": ["olives", "olive verte", "olive noire", "aceitunas"],
+    "chicken": ["poulet", "filet de poulet", "aiguillette de poulet"],
+    "turkey": ["dinde", "escalope de dinde"], "duck": ["canard", "magret"],
+    "beef": ["boeuf", "bœuf", "steak haché"], "pork": ["porc", "rôti de porc"],
+    "beer": ["bière"], "wine": ["vin rouge", "vin blanc", "vin rosé"], "ice_cream": ["glace", "crème glacée"],
     "speculoos": ["speculoos", "spéculoos", "speculaas", "biscoff"],
     "herbal_lozenge": ["pastilles gorge", "ricola", "valda", "bonbons plantes menthol"],
     "chocolate_spread": ["pâte à tartiner"],

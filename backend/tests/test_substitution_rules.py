@@ -44,14 +44,15 @@ def test_classification_says_why_and_how_sure():
     c = taxonomy.classify(P("Yaourt nature", ["en:yogurts", "en:plain-yogurts"]))
     assert c["type"] == "plain_yogurt" and c["confidence"] in ("high", "medium") and c["reason"]
     u = taxonomy.classify(P("Produit mystère", ["en:something-odd"]))
-    assert u["type"] is None and u["confidence"] == "none" and "unclassified" in u["reason"]
+    # Every product fits a category: no rule matched, so the most specific tag is the small category.
+    assert u["type"] == "cat:en:something-odd" and u["confidence"] == "medium" and "small category" in u["reason"]
 
 
-def test_unclassified_products_only_match_the_exact_same_leaf():
+def test_products_without_a_rule_are_typed_by_their_own_small_category():
     a, b = P("Mystère alpha", ["en:odd", "en:odd-leaf"]), P("Énigme beta", ["en:odd", "en:odd-leaf"])
-    assert sub(a, b) is None       # a shared category leaf alone is not proof of substitutability
-    assert sub(a, P("Mystère gamma", ["en:odd", "en:other-leaf"])) is None
-    assert sub(a, P("Mystère gamma", ["en:odd", "en:odd-leaf"])) is not None   # same leaf and a shared name word
+    assert sub(a, b)["level"] == 2                                                # same specific category: its own kind
+    assert sub(a, P("Mystère gamma", ["en:odd", "en:other-leaf"])) is None      # a different category is not an alternative
+    assert sub(a, P("Mystère gamma", ["en:odd", "en:odd-leaf"])) is not None    # same leaf and a shared name word
 
 
 def test_implausible_data_is_caught():
