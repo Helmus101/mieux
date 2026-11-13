@@ -145,13 +145,17 @@ def test_ricola_value_works_with_real_price():
     assert result["items"], "Better-priced lozenge should appear in Value ranking"
 
 
-def test_ricola_value_excludes_score_below_50():
-    """Value ranking must also respect the quality floor."""
-    cand = _lozenge("008", "Pastilles gorge cheap", score=45, chains=["carrefour"])
-    prices = {"008": 100.0}
-    points = {"008": {"source": "open_prices", "date": date.today().isoformat()}}
-    result = engine.rank_best_value(RICOLA, [cand], prices, orig_price=250.0, points=points)
-    assert result["items"] == [], "Score<50 product must be excluded from Value even with a price"
+def test_ricola_value_damps_score_below_50_instead_of_excluding():
+    """Low nutrition is a penalty, not an exclusion: at the same price, the product under the floor is listed but ranks below
+    the one above it, and its value score is damped."""
+    low = _lozenge("008", "Pastilles gorge cheap", score=45, chains=["carrefour"])
+    ok = _lozenge("009", "Pastilles gorge correct", score=60, chains=["carrefour"])
+    prices = {"008": 100.0, "009": 100.0}
+    points = {k: {"source": "open_prices", "date": date.today().isoformat()} for k in prices}
+    result = engine.rank_best_value(RICOLA, [low, ok], prices, orig_price=250.0, points=points)
+    assert [r["product"]["barcode"] for r in result["items"]] == ["009", "008"]
+    low_row = result["items"][1]
+    assert low_row["value_detail"]["below_floor"] is True and low_row["value_score"] < result["items"][0]["value_score"]
 
 
 # ---------------------------------------------------------------------------
@@ -221,11 +225,12 @@ def test_ricola_endpoint_keeps_only_comparable_french_supermarket_products(monke
     assert r.status_code == 200, r.text
     d = r.json()
 
-    quality = {x["product"]["barcode"]: x["product"] for x in d["rankings"].get("quality", [])}
-    assert {"003", "004"} <= set(quality)
-    assert {"005", "006", "009", "010"} & set(quality) == set()
-    assert all(p.get("chains") and p.get("imageUrl") for p in quality.values())
-
-    value = {x["product"]["barcode"] for x in d["rankings"].get("value", [])}
-    assert "003" in value
-    assert "009" not in value and "006" not in value and "010" not in value
+    assert "quality" not in d["rankings"], "one ranked list: the value score, nutrition shown inside each row"
+    rows = {x["product"]["barcode"]: x for x in d["rankings"]["value"]}
+    # In: priced, branded, at a supermarket, same kind of product. The cheap score-40 lozenge (005) stays: low nutrition
+    # damps its score, it does not hide the only affordable option.
+    assert {"003", "004", "005"} <= set(rows)
+    assert rows["005"]["value_detail"]["below_floor"] is True
+    # Out: another kind of product (006), no supermarket evidence (009), no brand (010).
+    assert {"006", "009", "010"} & set(rows) == set()
+    assert all(x["product"].get("chains") and x["product"].get("imageUrl") for x in rows.values())

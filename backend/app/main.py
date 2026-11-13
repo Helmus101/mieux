@@ -37,7 +37,7 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-from . import chains as _chains, taxo1000, webprice, value_index, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
+from . import chains as _chains, taxo1000, webprice, value_index, valuescore, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
@@ -302,6 +302,8 @@ class AltReq(BaseModel):
     strict_additives: bool = True  # strict mode (40 % nutrition + 25 % additives + 25 % ingredient quality, every additive concern one level higher)
     same_size: bool = False  # only products whose pack size is within half to double of the scanned one
     substitution_max: int = Field(2, ge=1, le=4)  # 1 = almost identical, 2 = very similar (same small product category). 3-4 are broader products, never shown unless explicitly asked for.
+    profile: str = "budget"  # how the value score weighs affordability vs nutrition: budget | balanced | nutrition
+    budget_cents: Optional[int] = Field(None, ge=0)  # the shopper's own limit for one pack; a dearer pack is marked as not fitting
 
 
 class CmpReq(BaseModel):
@@ -1895,6 +1897,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     bad = [p for p in body.priorities if p not in engine.PRIORITIES]
     if bad:
         raise HTTPException(422, f"Unknown priorities: {bad}")
+    if body.profile not in valuescore.PROFILES:
+        raise HTTPException(422, f"Unknown profile: {body.profile}")
     orig = with_user_data(s, uid, load_product(s, barcode), body.strict_additives)
     pr = prefs_of(s, uid)
     allergens = body.excluded_allergens if body.excluded_allergens is not None else pr.allergens
@@ -1995,12 +1999,14 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         a["indicators"] = engine.indicators(a["product"], prices.get(a["product"]["barcode"]))
     est_codes = frozenset(k for k, v in points.items() if (v or {}).get("source") == "estimate" and k != orig["barcode"])
     orig_est = (points.get(orig["barcode"]) or {}).get("source") == "estimate"
-    res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"], est_codes, orig_est, points=points, max_items=engine.RANKING_SHOWN * 3)
+    res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"], est_codes, orig_est, points=points, max_items=engine.RANKING_SHOWN * 3,
+                                            profile=body.profile, budget_cents=body.budget_cents)
     if "diagnostics" in res:
         res["diagnostics"].update(stages)   # how many candidates each hard filter removed
     res["rankings"].pop("budget", None)
-    res["rankings"].pop("closest", None)   # only Best value and Best quality are shown; cheapest/closest are not surfaced
-    for key in ("value", "quality"):
+    res["rankings"].pop("closest", None)
+    res["rankings"].pop("quality", None)   # one recommendation score (value, weighted by the shopper's profile); nutrition is shown inside each row, not as a competing list
+    for key in ("value",):
         for r in res["rankings"].get(key, []):
             if not r.get("price_source"):
                 r["price_source"] = _with_confidence(points.get(r["product"]["barcode"]))
@@ -2034,38 +2040,22 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         _fill_chains(a_["product"])
         a_["availability"], a_["store_price"] = _availability(a_["product"])
     orig_type_ = taxonomy.classify(orig).get("type")      # the scanned product itself (res["original"] is only filled in later)
-    for key_ in ("value", "quality"):
+    for key_ in ("value",):
         seen_, kept_ = set(), []
         for r_ in res["rankings"].get(key_, []):
             vk_ = engine.variant_key(r_["product"])
             if vk_ in seen_:
                 continue    # the same product under another barcode or pack size is listed once
             seen_.add(vk_); kept_.append(r_)
-            # The price-quality score of a product comes from one place, the reference index, so the same product shows the same number in every tab
-            # (the value tab used to carry the ranking engine's own cohort score, which differed from the other tabs).
-            vi_ = value_index.value_index(orig_type_, (r_["product"].get("score") or {}).get("total"), r_.get("price_per_100_cents"))
-            if vi_:
-                # One number per product, from the same index, in every tab. Freshness still affects which rows rank,
-                # but never makes the same product show two different price-quality scores.
-                r_["value_score"] = vi_["value_score"]
-            elif r_.get("value_score") is None:
-                r_["value_score"] = None
-            own_ = _chains.own_brand_chain(r_["product"].get("brand")) or _chains.canon_match(str(r_["product"].get("brand") or "")) or _chains.canon_match(str(r_["product"].get("name") or ""))
+            own_ =_chains.own_brand_chain(r_["product"].get("brand")) or _chains.canon_match(str(r_["product"].get("brand") or "")) or _chains.canon_match(str(r_["product"].get("name") or ""))
             cid_ = retail.ID_OF.get(own_) if own_ else None
             if cid_ and cid_ not in (r_["product"].get("chains") or []):
                 r_["product"]["chains"] = [cid_] + list(r_["product"].get("chains") or [])   # a store brand always shows its chain logo
             if not r_["product"].get("chains"):
                 r_["product"]["chains"] = _brand_chain_ids(r_["product"].get("brand"), r_["product"].get("name"))     # no sighting of this exact product: the brand's usual chains
             r_["availability"], r_["store_price"] = _availability(r_["product"])
-        if key_ == "value":
-            kept_ = [r_ for _, r_ in sorted(enumerate(kept_), key=lambda ir: (-(ir[1].get("value_score") if ir[1].get("value_score") is not None else -1), ir[0]))]   # ordered by the number shown
         res["rankings"][key_] = kept_
-    _o = orig
-    _vo = value_index.value_index(orig_type_, (_o.get("score") or {}).get("total"), orig_price) if orig_price is not None else None      # same call as every row (pooled reference when the type is unknown)
-    if _vo:
-        res["rankings"]["original_value_score"] = _vo["value_score"]      # the scanned product's score from the same index
     if "diagnostics" in res:
-        res["diagnostics"]["eligible_quality"] = len(res["rankings"].get("quality", []))
         res["diagnostics"]["eligible_best_value"] = len(res["rankings"].get("value", []))
     if body.location:
         # A product counts for a chain if it was seen at that chain anywhere in France; what matters here is the closest branch of that chain to the user's reference point.
@@ -2117,28 +2107,13 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     _chain_ok = lambda x: market.current() != "FR" or bool((x.get("product") or {}).get("chains"))   # noqa: E731
     _brand_ok = lambda x: bool(str((x.get("product") or {}).get("brand") or "").strip())   # noqa: E731
     _ok = lambda x: (x.get("product") or {}).get("soldInFrance") is True and _chain_ok(x) and _brand_ok(x) and _has_price((x.get("product") or {}).get("barcode"))   # noqa: E731
-    # A second unconditional floor, over every tab the same way: an alternative must score at least 50 on quality.
-    # Unknown (no score at all) is not proof it is good enough, so it is held to the same bar, not exempted from it.
-    _q_ok = lambda x: ((x.get("product") or {}).get("score") or {}).get("total", -1) >= 50   # noqa: E731
+    # Nutrition is not a gate here: a low score damps the value score and is shown as such (valuescore.SOFT_FLOOR). Hiding every
+    # affordable option because none is excellent would leave the shopper with nothing they can actually buy.
     for _k, _v in list((res.get("rankings") or {}).items()):
         if isinstance(_v, list):
-            res["rankings"][_k] = [x for x in _v if not isinstance(x, dict) or "product" not in x or (_ok(x) and _q_ok(x))]
-    res["alternatives"] = [x for x in res.get("alternatives", []) if not isinstance(x, dict) or "product" not in x or (_ok(x) and _q_ok(x))]
-    # The three tabs only hold what beats the scanned product (the apps apply the same rules; the API is the single source of truth):
-    # cheaper per 100 g/ml, a higher price-quality score, a higher nutrition score. Nothing is compared when the scanned product has no price / score.
-    rk_ = res.get("rankings") or {}
-    if isinstance(rk_.get("value"), list):
-        # Only what beats the scanned product on value, when there is a value baseline to beat. Nutritional quality alone
-        # was tried as a fallback requirement, but it traps an entire category: bottled water scores 89-99 (nutritionally
-        # near-empty, so near the ceiling of what the score can even measure) with no price of its own, so "beat the
-        # original on quality" demanded beating 89 - a bar almost nothing in that category can clear - while hiding 17
-        # genuinely priced, eligible candidates. Without a price for the scanned product, there is no fair basis to
-        # judge "better value" at all, so nothing here is hidden for failing to beat an unknowable baseline.
-        o_v = rk_.get("original_value_score")
-        rk_["value"] = [x for x in rk_["value"] if x.get("value_score") is not None and (o_v is None or x["value_score"] > o_v)]
-    o_sc_ = (orig.get("score") or {}).get("total")
-    if isinstance(rk_.get("quality"), list) and o_sc_ is not None:
-        rk_["quality"] = [x for x in rk_["quality"] if ((x.get("product") or {}).get("score") or {}).get("total") is not None and x["product"]["score"]["total"] > o_sc_]
+            res["rankings"][_k] = [x for x in _v if not isinstance(x, dict) or "product" not in x or _ok(x)]
+    res["alternatives"] = [x for x in res.get("alternatives", []) if not isinstance(x, dict) or "product" not in x or _ok(x)]
+    # Nothing has to beat the scanned product to be listed: better_than_yours labels each row, the list shows the best that can be bought.
     if engine.is_liquid(orig):  # liquids: say 100 ml and litre, not 100 g and kilo
         liq = lambda t_: t_.replace("pour 100 g", "pour 100 ml").replace("per 100 g", "per 100 ml").replace("le kilo", "le litre").replace("EUR/kg", "EUR/L").replace("/kg", "/L")
         for a_ in res["alternatives"]:
@@ -2180,7 +2155,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     res["price_note"] = note or tr(lang, "price_note")
     # Cards show 3 then expand to 10; rankings keep the full sorted pool (up to 100) so a chain filter still has rows.
     res["alternatives"] = res["alternatives"][:10]
-    for _k in ("value", "quality"):
+    for _k in ("value",):
         if isinstance(res.get("rankings", {}).get(_k), list):
             res["rankings"][_k] = res["rankings"][_k][:engine.RANKING_SHOWN]
     if not is_account(s, uid):

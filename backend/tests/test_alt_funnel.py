@@ -5,6 +5,7 @@ These tests drive the real endpoint with a controlled candidate pool and check t
   2. the ranking is computed over the whole eligible pool (100 rows of depth), not the first few rows.
 """
 import copy
+from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
@@ -61,7 +62,7 @@ def _run(monkeypatch, peers, prices, orig_price=300.0, **body):
     monkeypatch.setattr(main, "load_product", lambda s, b: copy.deepcopy(ORIG))
     monkeypatch.setattr(main, "_peers", lambda *a, **k: copy.deepcopy(peers))
     monkeypatch.setattr(main, "_price_map", lambda *a, **k: (
-        orig_price, dict(prices), {bc: {"source": "open_prices", "date": "2026-01-01"} for bc in prices}, {}))
+        orig_price, dict(prices), {bc: {"source": "open_prices", "date": date.today().isoformat()} for bc in prices}, {}))
     monkeypatch.setattr(main.app.state, "prices", _Prices())
     client = TestClient(main.app)
     payload = {"priorities": ["overall"], "category_mode": "similar", "limit": 10, "substitution_max": 2,
@@ -118,12 +119,14 @@ def test_ranking_is_deep_but_display_is_short(monkeypatch):
     prices = {p["barcode"]: 100.0 + i for i, p in enumerate(peers)}
     res = _run(monkeypatch, peers, prices=prices)
 
-    quality = res["rankings"]["quality"]
-    assert len(quality) == 100, "the API keeps a full ranked list (100 rows) so filters still have rows"
-    assert all(x["product"]["score"]["total"] > 20 for x in quality), "only products better than the scanned one"
+    value = res["rankings"]["value"]
+    assert "quality" not in res["rankings"], "one recommendation score: no competing quality list"
+    assert len(value) == 100, "the API keeps a full ranked list (100 rows) so filters still have rows"
     assert len(res["alternatives"]) <= 10, "cards stay short: 3 shown, expandable to 10"
+    assert res["rankings"]["profile"] == "budget"
 
-    o_v = res["rankings"].get("original_value_score")
-    for row in res["rankings"]["value"]:
-        assert row.get("value_score") is not None
-        assert o_v is None or row["value_score"] > o_v, "best value only lists products with a better value score"
+    scores = [row["value_score"] for row in value]
+    assert all(s is not None for s in scores)
+    assert scores == sorted(scores, reverse=True), "the value score alone decides the order"
+    for row in value:   # the three measurements travel with the score, so the shopper can see the trade-off
+        assert row["quality_score"] is not None and row["affordability_score"] is not None and row["confidence"] in ("high", "medium", "low")

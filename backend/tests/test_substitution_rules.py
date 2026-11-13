@@ -418,14 +418,18 @@ def test_an_approximate_web_search_price_never_wins_cheapest_or_value():
     assert engine.rank_best_value(o, [c], {"c": 100.0}, 150.0, pts_ok)["items"]
 
 
-def test_value_requires_complete_nutrition_data_same_as_quality():
-    """rank_quality already refuses an incomplete nutrition profile; rank_best_value used to accept any candidate
-    with some score, however partial the data behind it - the same safeguard now applies to both."""
+def test_incomplete_nutrition_lowers_confidence_not_eligibility():
+    """Missing nutrition detail is a confidence problem, not a reason to hide the product: the row is listed with confidence
+    'low', and the score itself is not touched by the data gap."""
     base = {"categories": ["en:dairies", "en:yogurts", "en:plain-yogurts"], "nutriments": {"energyKcal100g": 60, "sugars100g": 4, "carbohydrates100g": 5}}
     o = {**base, "barcode": "o", "name": "Yaourt nature top", "brand": "A", "score": {"total": 60}}
     incomplete = {**base, "barcode": "c", "name": "Yaourt nature simple", "brand": "B", "score": {"total": 90}, "dataQuality": {"nutritionComplete": False}}
-    pts = {"c": {"source": "open_prices", "date": "2026-11-01"}}
-    assert engine.rank_best_value(o, [incomplete], {"c": 100.0}, 150.0, pts)["items"] == []
+    complete = {**incomplete, "barcode": "d", "name": "Yaourt nature complet", "dataQuality": {"nutritionComplete": True}}
+    pts = {k: {"source": "open_prices", "date": "2026-11-01"} for k in ("c", "d")}
+    rows = {r["product"]["barcode"]: r for r in engine.rank_best_value(o, [incomplete, complete], {"c": 100.0, "d": 100.0}, 150.0, pts)["items"]}
+    assert set(rows) == {"c", "d"}
+    assert rows["c"]["confidence"] == "low" and rows["d"]["confidence"] == "medium"
+    assert rows["c"]["value_score"] == rows["d"]["value_score"]
 
 
 def test_search_price_needs_two_sites_that_mention_the_pack_size(monkeypatch, tmp_path):

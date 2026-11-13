@@ -230,17 +230,17 @@ def test_best_value_percentile_and_pareto_frontier():
     assert item_map["002"]["dominated"] is False
     assert item_map["003"]["dominated"] is False
     
-    # Non-dominated items (002, 003) must come before dominated item (001)
+    # A product that is cheaper at equal quality scores higher on every measurement, so the dominator ranks above the dominated.
     barcodes_order = [r["product"]["barcode"] for r in items]
     assert barcodes_order.index("002") < barcodes_order.index("001")
-    assert barcodes_order.index("003") < barcodes_order.index("001")
-    
-    # Exposes percentile metrics
+
+    # Exposes the three measurements behind the one score
     for item in items:
-        assert "quality_percentile" in item
-        assert "affordability_percentile" in item
-        assert "value_score" in item
+        assert item["quality_score"] is not None
+        assert 0 <= item["affordability_score"] <= 100
+        assert item["relative_price"] > 0
         assert 1 <= item["value_score"] <= 100
+        assert item["value_detail"]["profile"] == "budget"
 
 
 def test_missing_original_price_sets_no_baseline_honestly():

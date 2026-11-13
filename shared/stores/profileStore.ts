@@ -9,6 +9,9 @@ import { setLocale } from '../i18n';
 
 export type Diet = 'omnivore' | 'vegetarian' | 'vegan';
 export type Language = 'fr' | 'en';
+/** How the value score weighs affordability against nutrition. Budget first by default; the shopper chooses, nobody asks about income. */
+export type ValueProfile = 'budget' | 'balanced' | 'nutrition';
+export const VALUE_PROFILES: ValueProfile[] = ['budget', 'balanced', 'nutrition'];
 export const PRIORITY_KEYS = ['value', 'budget', 'overall', 'sugars', 'protein', 'fibre', 'additives'] as const;
 export const ALLERGEN_KEYS = ['gluten', 'milk'] as const; // the two restrictions offered at onboarding; the API accepts all 14 EU allergens
 
@@ -17,6 +20,7 @@ interface Profile { onboarded: boolean; priorities: string[]; diet: Diet; allerg
 export interface Zone { lat: number; lon: number; label: string; radius_km: number }
 interface State extends Profile {
   estimates: boolean; setEstimates: (v: boolean) => void;
+  valueProfile: ValueProfile; setValueProfile: (v: ValueProfile) => void;
   zone: Zone | null; setZone: (z: Zone | null) => void;
   setName: (n: string) => void; setPlace: (p: Place | null) => void; setStrictAdditives: (v: boolean) => void; setAutoCamera: (v: boolean) => void; setLanguage: (l: Language) => void; setCountry: (c: Country) => void; toggleChain: (id: string) => void; removeChain: (id: string) => void; setChains: (ids: string[]) => void; clearChains: () => void; hydrate: () => void; togglePriority: (k: string) => void; setPriorities: (ks: string[]) => void; setDiet: (d: Diet) => void; toggleAllergen: (k: string) => void; finish: () => void; reset: () => void;
   compare: string[]; addCompare: (id: string) => void; removeCompare: (id: string) => void; clearCompare: () => void;
@@ -66,6 +70,8 @@ export const useProfile = create<State>((set, get) => {
     ...loaded,
     estimates: load<boolean>('fiq_estimates', false), // real data only unless the user opts in
     setEstimates: (v) => { set({ estimates: v }); save('fiq_estimates', v); },
+    valueProfile: load<ValueProfile>('fiq_value_profile', 'budget'),
+    setValueProfile: (v) => { set({ valueProfile: v }); save('fiq_value_profile', v); },
     zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT), // Paris by default
     setZone: (z) => { set({ zone: z }); save('fiq_zone', z); },
     compare: load<string[]>('fiq_compare', []),

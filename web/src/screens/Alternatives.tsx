@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
@@ -25,7 +25,9 @@ export default function Alternatives() {
   // "Today" filters start from the saved profile and never write back to it.
   // Quality is judged on nutrition only; the price tabs come from the price rankings, so no price priority is sent.
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
-  const [tries, setTry] = useState(0); const picked = useRef(false); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const [rk, setRk] = useState('value'); const [showMore, setShowMore] = useState(false); const [chain, setChain] = useState<string | null>(null);
+  const [tries, setTry] = useState(0); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const rk = 'value'; const [showMore, setShowMore] = useState(false); const [chain, setChain] = useState<string | null>(null);
+  // One recommendation score, weighted by what the shopper says matters (budget first by default). Changing it re-asks the API.
+  const vp = useProfile((s) => s.valueProfile) ?? 'budget', setVp = useProfile((s) => s.setValueProfile);
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function Alternatives() {
       .then((x: any) => { if (!gone) setR(x); })
       .catch((e: unknown) => { if (!gone) setErr(friendlyError(e)); }).finally(() => { if (!gone) setBusy(false); });
     return () => { gone = true; };
-  }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
+  }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries, vp]);
   const rowOf = (e: any) => ({
     ps_web: e.price_source?.source === "web_search",
     avail: e.availability,
@@ -52,6 +54,9 @@ export default function Alternatives() {
     estimated: e.estimated,
     dominated: e.dominated,
     vs: e.value_score,
+    q: e.quality_score ?? e.product?.score?.total,
+    rel: e.relative_price as number | undefined,
+    confidence: e.confidence as string | undefined,
     better: e.better_than_yours,
     detail: e.value_detail,
     ps: e.price_score,
@@ -63,8 +68,8 @@ export default function Alternatives() {
     pack: e.pack_cents,
     ratio: e.size_ratio,
   });
-  // Rankings are calculated by the backend: Quality by nutritional quality, Value by quality relative to price.
-  const sourceRows = (k: string): any[] => (r?.rankings?.[k === 'match' ? 'quality' : k] ?? []) as any[];
+  // The backend ranks by one value score (affordability, nutrition and efficiency, weighted by the chosen profile).
+  const sourceRows = (k: string): any[] => (r?.rankings?.[k] ?? []) as any[];
   const listOf = (k: string, ignoreChain = false) => {
     const seen = new Set<string>();
     return sourceRows(k).map(rowOf).filter((e: any) => {
@@ -88,18 +93,16 @@ export default function Alternatives() {
     if (myChains.length) return myChains;
     const pool = [
       ...(r?.rankings?.value ?? []),
-      ...(r?.rankings?.quality ?? []),
       ...(r?.alternatives ?? []).map((a: any) => (a.product ? a : { product: a })),
     ];
     return chainsFor(country).map((c) => c.id).filter((id) => pool.some((e: any) => (e.product.chains ?? []).includes(id)));
   })();
-  const none = !!r && !busy && !err && ['value', 'match'].every((k) => listOf(k, true).length === 0);
-  const tabs = r ? [{ key: 'value', label: t('rank.value') }, { key: 'match', label: t('rank.match') }].filter((x) => x.key !== 'match' || listOf('match', true).length > 0) : [];
-  useEffect(() => { if (r && !tabs.some((x) => x.key === rk)) setRk(tabs[0]?.key ?? 'value'); }, [r, tabs.map((x) => x.key).join()]);
-  useEffect(() => { setShowMore(false); }, [barcode, rk]);
-  useEffect(() => { setChain(null); }, [barcode]);   // switching Valeur/Qualité keeps the chosen store
+  const none = !!r && !busy && !err && listOf('value', true).length === 0;
+  const profileOptions = (['budget', 'balanced', 'nutrition'] as const).map((k) => ({ key: k, label: t(`alt.profile_${k}`) }));
+  useEffect(() => { setShowMore(false); }, [barcode, vp]);
+  useEffect(() => { setChain(null); }, [barcode]);
   useEffect(() => { if (chain && !chainOptions.includes(chain)) setChain(null); }, [chain, chainOptions.join()]);
-  const nothingNear = hasHome && !!r && ['value', 'quality'].every((k) => !(r.rankings?.[k]?.length));  // nothing sold within the radius at all, whatever the tab
+  const nothingNear = hasHome && !!r && !(r.rankings?.value?.length);  // nothing sold within the radius at all
   // Only the difference against the scanned product is shown in the list (per kilo/litre, or per pack); real prices are in the details.
   const showPrice = rk === 'value';   // price differences belong to the price-quality tab only
   const diffOf = (e: any): { text: string; tone: string; sub?: string } | null => {
@@ -130,9 +133,8 @@ export default function Alternatives() {
       <NavBar onBack={back} />
       <h1 className="atitle">{t('alt.title')}</h1>
       {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
-      {!none && tabs.length > 1 && <Segmented value={rk} onChange={(k) => { picked.current = true; setRk(k); }} options={tabs} />}
-      {!none && rk === 'match' && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('rank.matchSub')}</p>}
-      {!none && rk === 'value' && <p className="mut sm" style={{ margin: '8px 0 0' }}><PqExplain label /></p>}
+      {!err && <Segmented value={vp} onChange={(k) => { haptic('tap'); setVp(k as typeof vp); }} options={profileOptions} />}
+      {!err && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t(`alt.profileSub_${vp}`)} <PqExplain label /></p>}
       {!none && chainOptions.length > 1 && (
         <div className="chainfilter" role="group" aria-label={t('alt.filterChain')}>
           <button type="button" className={'chainchip all' + (chain == null ? ' on' : '')} aria-pressed={chain == null} onClick={() => setChain(null)}>{t('alt.allChains')}</button>
@@ -154,12 +156,8 @@ export default function Alternatives() {
         const os = r?.original?.score?.total;
         const m = chain ? { title: t('alt.noChainTitle', { c: chainName(chain) }), why: t('alt.noChainWhy'), action: <Button small onPress={() => setChain(null)}>{t('alt.allChains')}</Button> }
           : nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
-          : rk === 'closest' ? { title: t('rank.noClosest'), why: t('rank.closestSub') }
-          : rk === 'match' ? { title: t('emptyAlt.qualityTitle'), why: os != null ? t('emptyAlt.qualityWhy', { s: os }) : t('emptyAlt.qualityWhyNoScore') }
-          : rk === 'value' ? { title: t('emptyAlt.valueNoneTitle'), why: t('emptyAlt.valueNoneWhy') }
-          : r?.rankings?.no_baseline ? { title: t('emptyAlt.noPriceTitle'), why: t('emptyAlt.noPriceWhy') }
-          : r?.rankings?.original_value_score != null ? { title: t('emptyAlt.betterValueTitle'), why: t('emptyAlt.betterValueWhy', { s: r.rankings.original_value_score }) }
-          : { title: t('emptyAlt.valueTitle'), why: t('emptyAlt.valueWhy') };
+          : { title: t('emptyAlt.valueNoneTitle'), why: t('emptyAlt.valueNoneWhy') };
+        void os;
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
       })()}
       {r && !busy && <div className="alist">{shown.map((e: any) => {
@@ -177,11 +175,12 @@ export default function Alternatives() {
                 return <div className="achains" title={cs.map(chainName).join(', ')}>{cs.length ? <>{t('alt.seenAt')} {cs.slice(0, 3).map(chainName).join(' · ')}{cs.length > 3 ? ` +${cs.length - 3}` : ''}</> : t('alt.chainUnknown')}</div>;
               })()}
               <div className="ameta">
-                {rk === 'match' && e.product.score && <span className="tile main"><span className="tile-row"><span className={'stile sm ' + (e.product.score.tone === 'b' ? 'b' : e.product.score.tone === 'w' ? 'w' : 'g')}><b>{e.product.score.total}</b></span>
-                  {r?.original?.score && (() => { const dd = e.product.score.total - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>
-                  <small className="cap">{t('alt.sumQ')}</small></span>}
-                {rk !== 'match' && e.vs != null && <span className="tile main" title={t('score.pqHint')}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span><small className="cap">{t('score.pq')}</small></span>}
+                {e.vs != null && <span className="tile main" title={e.why}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span><small className="cap">{t('alt.valueScore')}</small></span>}
+                {e.q != null && <span className="tile"><span className="tile-row"><span className={'stile sm ' + (e.product.score?.tone === 'b' ? 'b' : e.product.score?.tone === 'w' ? 'w' : 'g')}><b>{e.q}</b></span>
+                  {r?.original?.score?.total != null && (() => { const dd = e.q - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>
+                  <small className="cap">{t('alt.quality')}</small></span>}
               </div>
+              {e.rel != null && (() => { const pct = Math.round(Math.abs(1 - e.rel) * 100); return <div className="mut sm">{pct < 3 ? t('alt.relMedian') : t(e.rel < 1 ? 'alt.relCheaper' : 'alt.relDearer', { p: pct })} {t('alt.relVs')}{e.confidence === 'low' ? ` · ${t('alt.confidence_low')}` : ''}</div>; })()}
             </div>
             <div className="aprice">
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>

@@ -2,7 +2,7 @@
 import math
 from typing import Any, Dict, List, Optional, Tuple
 
-from . import value_index, taxonomy
+from . import value_index, taxonomy, valuescore
 from .i18n import tr
 from .products import NS_RANK
 
@@ -752,20 +752,19 @@ def rank_quality(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optio
 def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dict[str, float],
                     orig_price: Optional[float] = None, points: Optional[Dict[str, Any]] = None,
                     estimated: frozenset = frozenset(), orig_estimated: bool = False,
-                    lang: str = "fr", max_age_days: int = 90, max_items: int = MAX_SHOWN) -> Dict[str, Any]:
-    """Constrained, percentile-based quality-price index across the comparable cohort.
-    No floor against the scanned product's own score: a cheaper, slightly-lower-quality product can still be a
-    genuinely better value, and a list that only shows "better than yours" is empty exactly when the scanned
-    product is already decent. The value_score itself already weighs nutrition and damps weak products (see
-    value_index.py) - that is the safeguard, not a floor here.
-    Dominated items on Pareto frontier (quality vs price) are deprioritized.
-    No fillers: only genuinely eligible candidates are returned.
+                    lang: str = "fr", max_age_days: int = 90, max_items: int = MAX_SHOWN,
+                    profile: str = valuescore.DEFAULT_PROFILE, budget_cents: Optional[int] = None) -> Dict[str, Any]:
+    """The primary ranking: one value score per product (valuescore.py), weighted by the shopper's profile.
+
+    Eligibility is only what makes a comparison meaningless: no verified price, not a close substitute (level 1-2),
+    sold elsewhere, or no nutrition score at all. Low nutrition and incomplete data are penalties (score damping,
+    lower confidence), never exclusions, so the shopper sees the best option that can actually be bought, not only
+    the options that pass an arbitrary bar. Nothing has to beat the scanned product to be listed; the comparison is
+    a label (better_than_yours), not a filter.
     """
-    on = orig.get("nutriments") or {}
-    sug_lim, salt_lim = nutrient_limits(orig)
     o_sc0 = (orig.get("score") or {}).get("total")
     no_baseline = bool(orig_price is None or orig_estimated)
-    
+
     candidates = []
     for c in pool:
         bc = c.get("barcode")
@@ -777,124 +776,110 @@ def rank_best_value(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Di
         pt = (points or {}).get(bc) or {}
         # Estimates, prices copied from another pack size, and a web search's own approximate finding never count -
         # it was never seen on a receipt or an Open Prices observation, so using it to decide a ranking would make
-        # "verified" meaningless. The age window matches rank_cheapest's (max_age_days, default 90): the two money
-        # rankings must agree on what counts as a current price, not disagree by years as they used to.
+        # "verified" meaningless. The age window matches rank_cheapest's (max_age_days, default 90).
         if points is not None:
             if pt.get("source") == "estimate" or pt.get("stale") or pt.get("derived") or pt.get("approximate"):
-                continue      # estimates, derived prices and web-search approximates never rank
+                continue
             from .value import age_days
             ag = age_days(pt.get("date")) if pt.get("date") else None
             if ag is None or ag > max_age_days:
                 continue
-        
-        # Substitution level 1 or 2 only
         sub = c.get("substitution") or taxonomy.substitution(orig, c)
         if sub is None or sub.get("level") not in (1, 2):
             continue
         c = {**c, "substitution": sub}
-        
         if c.get("soldInFrance") is False:
             continue
-        
         c_sc = (c.get("score") or {}).get("total")
-        if c_sc is None or c_sc < QUALITY_FLOOR:
+        if c_sc is None:          # no nutrition data at all: there is nothing to rank on
             continue
-        # The same requirement rank_quality applies: an incomplete nutrition profile can still produce a score (score.py
-        # computes one from whatever nutrients are present), but that score is not reliable enough to decide a ranking.
-        if not (c.get("dataQuality") or {}).get("nutritionComplete"):
-            continue
+        candidates.append((c, c_sc, p, deep_similarity(orig, c), pt))
 
-        sim = deep_similarity(orig, c)
-        candidates.append((c, c_sc, p, sim, pt))
-    
     if not candidates:
-        return {"items": [], "no_baseline": no_baseline}
-    
-    # Cohort for percentile calculation: include original if known and usable
-    cohort_items = [(c.get("barcode"), sc, p) for c, sc, p, _, _ in candidates]
+        return {"items": [], "no_baseline": no_baseline, "original_value_score": None, "profile": profile}
+
+    # The category reference is the cohort itself: the median unit price of the comparable, priced products (and the scanned one).
     include_orig = not no_baseline and o_sc0 is not None and orig_price is not None and orig_price >= 3
+    cohort = [(c.get("barcode"), float(sc), float(p)) for c, sc, p, _, _ in candidates]
     if include_orig:
-        cohort_items.append(("__orig", float(o_sc0), float(orig_price)))
-    
-    # Fixed per-type reference first (stable whatever the search returned); the old cohort percentile only where a type has no reference.
-    type_id = taxonomy.classify(orig).get("type")
-    pct_map = percentile_value_scores(cohort_items)
-    for key, sc_, pr_ in cohort_items:
-        fixed = value_index.value_index(type_id, sc_, pr_)
-        if fixed:
-            pct_map[key] = fixed
-    orig_pct = pct_map.get("__orig")
-    orig_val_score = orig_pct["value_score"] if orig_pct else None
-    
-    # Calculate Pareto dominance (quality vs price)
+        cohort.append(("__orig", float(o_sc0), float(orig_price)))
+    med = valuescore.median(p for _, _, p in cohort)
+    eff = valuescore.efficiency_percentiles(cohort)
+
+    def _pack(c, p):
+        q = c.get("quantity") or {}
+        return round(p * q["amount"] / 100) if q.get("amount") else None
+
+    orig_val_score = None
+    orig_afford = valuescore.affordability(orig_price, med, _pack(orig, orig_price), budget_cents) if include_orig else None
+    if orig_afford:
+        orig_val_score = valuescore.value(o_sc0, orig_afford["score"], eff.get("__orig"), profile)
+
     temp_rows = [{"product": c, "price_per_100_cents": p} for c, _, p, _, _ in candidates]
-    pareto_keys = [lambda r: -r["price_per_100_cents"], lambda r: (r["product"].get("score") or {}).get("total")]
-    dom_flags = dominated(temp_rows, pareto_keys, min_common=2)
-    
+    dom_flags = dominated(temp_rows, [lambda r: -r["price_per_100_cents"], lambda r: (r["product"].get("score") or {}).get("total")], min_common=2)
+
+    wa, wn, we = valuescore.PROFILES.get(profile, valuescore.PROFILES[valuescore.DEFAULT_PROFILE])
     rows = []
     for (c, c_sc, p, sim, pt), is_dom in zip(candidates, dom_flags):
-        pinfo = pct_map.get(c.get("barcode"))
-        if not pinfo:
+        bc = c.get("barcode")
+        aff = valuescore.affordability(p, med, _pack(c, p), budget_cents)
+        if not aff:
             continue
-        val_score = pinfo["value_score"]
-        
-        # Detail: a price older than 90 days is worth a little less.
-        factor = 1.0
-        ag2 = None
-        try:
-            from .value import age_days as _ad
-            ag2 = _ad(pt.get("date")) if pt.get("date") else None
-        except Exception:
-            ag2 = None
-        if ag2 is not None and ag2 > 90:
-            factor *= 0.95
-        if pt.get("derived"):
-            factor *= 0.92
+        e_pct = eff.get(bc)
+        val_score = valuescore.value(c_sc, aff["score"], e_pct, profile)
+        if val_score is None:
+            continue
+        # A price older than 90 days is worth a little less (a label of confidence, applied lightly to the order).
+        from .value import age_days as _ad
+        ag2 = _ad(pt.get("date")) if pt.get("date") else None
+        factor = 0.95 if (ag2 is not None and ag2 > 90) else 1.0
         base_score = val_score
         val_score = max(1, round(val_score * factor))
-        
-        conf = pt.get("confidence") or "medium"
-        conf_rank = 2 if conf == "high" else 1 if conf == "medium" else 0
-        
-        if no_baseline:
-            why = tr(lang, "rk_qp_known", s=c_sc, p=f"{p*10/100:.2f}", v=val_score)
-        else:
-            why = tr(lang, "rk_qp", s=c_sc, p=f"{p*10/100:.2f}", o=f"{orig_price*10/100:.2f}",
-                     os=o_sc0 if o_sc0 is not None else "?", v=val_score, ov=orig_val_score)
-        
-        sub = c.get("substitution") or {}
-        sub_level = sub.get("level") or 2
+
+        complete = bool((c.get("dataQuality") or {}).get("nutritionComplete", True))
         has_retailer = bool(c.get("chains") or (c.get("popularity") or {}).get("chains"))
-        retailer_key = 0 if has_retailer else 1
+        conf = valuescore.confidence(pt if pt else None, complete, has_retailer) if points is not None else ("medium" if complete else "low")
+        conf_rank = 2 if conf == "high" else 1 if conf == "medium" else 0
+
+        rp = aff["relative_price"]
+        pct = round(abs(1.0 - rp) * 100)
+        rel = tr(lang, "rp_median") if pct < 3 else tr(lang, "rp_cheaper" if rp < 1 else "rp_dearer", p=pct)
+        why = tr(lang, "rk_v", v=val_score, s=c_sc, r=rel)
 
         rows.append({
             "product": c,
-            "sub_level": sub_level,
-            "retailer_key": retailer_key,
+            "sub_level": (c.get("substitution") or {}).get("level") or 2,
+            "retailer_key": 0 if has_retailer else 1,
             "price_per_100_cents": round(p, 1),
             "similarity": round(sim, 2),
             "indicators": indicators(c, p),
             "tradeoffs": _tradeoffs(orig, c, sim, lang),
             "why": why,
             "value_score": val_score,
-            "quality_percentile": pinfo["quality_percentile"],
-            "affordability_percentile": pinfo["affordability_percentile"],
+            "quality_score": c_sc,
+            "affordability_score": aff["score"],
+            "efficiency_score": e_pct,
+            "relative_price": rp,
+            "budget_fit": aff["budget_fit"],
+            "confidence": conf,
             "dominated": is_dom,
-            "better_than_yours": (orig_val_score is not None and val_score > orig_val_score) if orig_val_score is not None else None,
-            "value_detail": {"nutrition": c_sc, "price_per_100_cents": round(p, 1), "pack_cents": pt.get("pack_cents"), "size": c.get("quantity"),
-                             "price_date": pt.get("date"), "price_derived": bool(pt.get("derived")), "freshness_factor": factor, "before_adjustment": base_score},
+            "better_than_yours": (val_score > orig_val_score) if orig_val_score is not None else None,
+            "value_detail": {"profile": profile, "weights": {"affordability": wa, "nutrition": wn, "efficiency": we},
+                             "nutrition": c_sc, "affordability": aff["score"], "efficiency": e_pct, "relative_price": rp,
+                             "category_median_per_100_cents": round(med, 1) if med else None,
+                             "price_per_100_cents": round(p, 1), "pack_cents": pt.get("pack_cents") or _pack(c, p), "size": c.get("quantity"),
+                             "price_date": pt.get("date"), "freshness_factor": factor, "before_adjustment": base_score,
+                             "nutrition_complete": complete, "below_floor": c_sc < valuescore.SOFT_FLOOR},
             "conf_rank": conf_rank,
             "price_source": pt if pt else None,
-            "quality_score": c_sc,
         })
-    
-    # Sort: Relevance (sub_level), retailer relevance (retailer_key), then value index descending, then non-dominated, confidence, quality
-    rows.sort(key=lambda r: (r["sub_level"], r["retailer_key"], -r["value_score"], bool(r["dominated"]), -r["conf_rank"], -(r["quality_score"] or 0), 0 if is_popular(r["product"], prices) else 1))
+
+    # One score decides the order; ties go to the closer substitute, a known retailer, the non-dominated, the better-documented, the better-scored.
+    rows.sort(key=lambda r: (-r["value_score"], r["sub_level"], r["retailer_key"], bool(r["dominated"]), -r["conf_rank"], -(r["quality_score"] or 0), 0 if is_popular(r["product"], prices) else 1))
     for r in rows:
         r.pop("sub_level", None)
         r.pop("retailer_key", None)
-    result = rows[:max_items]  # strict order: brand variety must never move a cheaper or better product down
-    return {"items": result, "no_baseline": no_baseline, "original_value_score": orig_val_score}
+    return {"items": rows[:max_items], "no_baseline": no_baseline, "original_value_score": orig_val_score, "profile": profile}
 
 
 def rank_closest(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Optional[Dict[str, float]] = None,
@@ -953,7 +938,8 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
                    orig_price: Optional[float], priorities: List[str], mode: str, lang: str,
                    match_list: List[Dict[str, Any]], estimated: frozenset = frozenset(),
                    orig_estimated: bool = False, points: Optional[Dict[str, Any]] = None,
-                   max_items: int = MAX_SHOWN) -> Dict[str, Any]:
+                   max_items: int = MAX_SHOWN, profile: str = valuescore.DEFAULT_PROFILE,
+                   budget_cents: Optional[int] = None) -> Dict[str, Any]:
     """Build four separate rankings from one complete, shared search with HARD COMPATIBILITY GATE:
     - Budget: Cheapest comparable (lowest verified unit price above quality floor)
     - Quality: Best quality (highest reliable Mieux quality score)
@@ -994,7 +980,8 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
     closest_items = rank_closest(orig, strict_pool, prices, points, lang, max_items)   # keeps levels 1-2 only
     cheapest = rank_cheapest(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang, max_items=max_items)   # default max_age_days=90: one single, consistent ranking-eligibility window
     quality_items = rank_quality(orig, high_confidence, prices, points, lang, max_items)
-    best_val = rank_best_value(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang, max_items=max_items)
+    best_val = rank_best_value(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang, max_items=max_items,
+                               profile=profile, budget_cents=budget_cents)
     budget_items, value_items = cheapest["items"], best_val["items"]
     
     no_baseline = bool(orig_price is None or orig_estimated)
@@ -1006,5 +993,6 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
         "closest": closest_items,
         "match": match_list[:max_items],
         "original_value_score": best_val.get("original_value_score"),
+        "profile": profile,
         "no_baseline": no_baseline,
     }
