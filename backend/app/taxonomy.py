@@ -122,6 +122,9 @@ R = [
     ("mushrooms", "produce", "fruit_veg", "mushroom", "mushroom", "cooking_ingredient", r"mushrooms|canned-mushrooms|dried-mushrooms|fresh-mushrooms|fungi|fruits|vegetables|fresh-plant", r"champignons?|c[eè]pes?|girolles?|morilles?|pleurotes?|shiitak[ei]|portobello|chanterelles?"),
     ("fruits_veg", "produce", "fruit_veg", "produce", "produce", "meal", r"fruits|vegetables|fresh-plant|plant-based-foods-and-beverages-fruits|canned-vegetables", r"l[ée]gumes|haricots verts|petits pois|tomates? (pel|concass)|carotte|pomme de terre"),
     ("legumes", "produce", "legumes", "legumes", "legumes", "meal", r"legumes|pulses|lentils|chickpeas|beans|pois-chiches", r"lentille|pois chiche|haricots (rouges|blancs)|f[èe]ves"),
+    # Olives are their own small category: a jar of green olives substitutes another jar of olives, never olive oil (the name
+    # starts with "huile") and never a pizza that merely lists olives among its ingredients.
+    ("olives", "produce", "olives", "olives", "jar", "snacking", r"(?:^|\s)en:(?:olives?|marinated-olives|green-olives|black-olives|pitted-olives|stuffed-olives|kalamata-olives|whole-olives)(?:\s|$)", r"^(?!.*\b(?:huile|oil|olio)\b)(?:les?\s+)?(?:olives?|aceitunas?)\b"),
     # ---- sauces, oils
     ("ketchup", "condiments", "sauce", "sauce", "sauce", "any", r"ketchups|tomato-ketchups", r"ketchup"),
     ("mayonnaise", "condiments", "sauce", "sauce", "sauce", "any", r"mayonnaises|dressings|vinaigrettes", r"mayonnaise|vinaigrette|mayo"),
@@ -176,6 +179,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "pizza_dough": {"pizza_dough": 1},   # raw dough to top at home, never interchangeable with a finished pizza
     "cold_cuts": {"ham": 1, "sausage": 3}, "fish": {"fish_canned": 1},
     "legumes": {"legumes": 1},   # fruit and pulses are different purchases: no shared cluster
+    "olives": {"olives": 1},   # green, black or stuffed: all olives, one small category
     "ketchup": {"ketchup": 1}, "mayonnaise": {"mayonnaise": 1},
     "mustard": {"mustard": 1}, "tomato_sauce": {"tomato_sauce": 1},
 }
@@ -222,7 +226,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
                 "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms",
-                "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese")
+                "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
@@ -425,6 +429,7 @@ _VARIANTS = {
     # texture and cooking behaviour. A shopper choosing rice-coconut milk is not well served by a barley drink.
     "plant_drink": [("rice", r"\briz\b|\brice\b"), ("almond", r"amande|almond"), ("soy", r"soja|soy"), ("oat", r"avoine|\boat\b"),
                      ("coconut", r"coco(?!a)|coconut"), ("hazelnut", r"noisette|hazelnut"), ("spelt", r"[ée]peautre|spelt"), ("barley", r"orge|barley")],
+    "olives": [("green", r"verte?s?\b|green"), ("black", r"noire?s?\b|black|kalamata"), ("stuffed", r"farci|stuffed"), ("pitted", r"d[ée]noyaut|pitted")],
 }
 
 
@@ -456,6 +461,7 @@ _HARD_VARIANT_TYPES = {"nuts", "peanut_butter", "dip"}
 # Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.
 # Used only to widen the candidate pool; compatibility is still decided by substitution().
 TYPE_TERMS: Dict[str, List[str]] = {
+    "olives": ["olives", "olive verte", "olive noire", "aceitunas"],
     "speculoos": ["speculoos", "spéculoos", "speculaas", "biscoff"],
     "herbal_lozenge": ["pastilles gorge", "ricola", "valda", "bonbons plantes menthol"],
     "chocolate_spread": ["pâte à tartiner"],
