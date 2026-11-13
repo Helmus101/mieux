@@ -12,9 +12,9 @@ affordable options because none is excellent. Confidence is tracked separately a
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 PROFILES: Dict[str, Tuple[float, float, float]] = {       # (affordability, nutrition, efficiency)
-    "budget": (0.55, 0.35, 0.10),
-    "balanced": (0.35, 0.50, 0.15),
-    "nutrition": (0.15, 0.70, 0.15),
+    "budget": (0.70, 0.25, 0.05),       # the cheapest decent product: price leads, nutrition keeps junk from the top
+    "balanced": (0.35, 0.50, 0.15),     # the best value: quality for the money
+    "nutrition": (0.05, 0.90, 0.05),    # the best quality: price only breaks ties
 }
 DEFAULT_PROFILE = "budget"
 SOFT_FLOOR = 50          # below this nutrition score the value score is damped (down to 60 % at a score of 0)

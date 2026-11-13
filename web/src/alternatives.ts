@@ -15,9 +15,8 @@ export function altRequest(barcode: string) {
   const prios = q.length ? q : ['overall'];
   const chains = (p.chains ?? []).filter((id: string) => chainsFor(p.country).some((c) => c.id === id));
   const home = p.place, hasHome = home?.lat != null;
-  const profile = p.valueProfile ?? 'budget';
-  const key = `alt:${barcode}:${prios.join()}:${chains.join()}:${profile}`;
-  const body = { priorities: prios, category_mode: 'similar', limit: 10, substitution_max: 2, same_size: false, chains, price_constraint: 'any', approximate: p.estimates, profile, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) };
+  const key = `alt:${barcode}:${prios.join()}:${chains.join()}`;   // the answer carries every profile's ranking: switching profile never asks again
+  const body = { priorities: prios, category_mode: 'similar', limit: 10, substitution_max: 2, same_size: false, chains, price_constraint: 'any', approximate: p.estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) };
   return { key, body, prios, chains };
 }
 

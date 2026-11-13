@@ -493,6 +493,7 @@ def pe_of(r, field):
 
 # Largest quality-score drop (out of 100) a 'cheaper' or 'best value' pick may have against the scanned product.
 MAX_SHOWN = 10     # alternatives returned per request: the clients show 3 and expand to 10
+MIN_SAME_TYPE = 5  # with at least this many products of the very same type and category, nothing broader is offered
 RANKING_SHOWN = 100 # rows per ranked tab. The API ranks deeper (3x) and cuts to this after the "only if better" rules and the store filter, so a filtered tab still has rows
 QUALITY_FLOOR = 50 # absolute quality floor: products scoring below 50 are excluded
 QUALITY_DROP_MAX = 5 # max quality drop against original for cheaper picks
@@ -983,6 +984,13 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
     best_val = rank_best_value(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang, max_items=max_items,
                                profile=profile, budget_cents=budget_cents)
     budget_items, value_items = cheapest["items"], best_val["items"]
+    # Every profile is ranked now, so the client switches between them without another request: the rows are the same
+    # products, only the order and the score differ, and that is all each profile's list carries.
+    profiles = {}
+    for pf in valuescore.PROFILES:
+        rk = best_val if pf == profile else rank_best_value(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang,
+                                                            max_items=max_items, profile=pf, budget_cents=budget_cents)
+        profiles[pf] = [{"code": r["product"]["barcode"], "value_score": r["value_score"], "why": r["why"]} for r in rk["items"]]
     
     no_baseline = bool(orig_price is None or orig_estimated)
     
@@ -994,5 +1002,6 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
         "match": match_list[:max_items],
         "original_value_score": best_val.get("original_value_score"),
         "profile": profile,
+        "profiles": profiles,
         "no_baseline": no_baseline,
     }

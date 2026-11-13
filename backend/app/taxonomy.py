@@ -508,6 +508,7 @@ _VARIANTS = {
     "plant_drink": [("rice", r"\briz\b|\brice\b"), ("almond", r"amande|almond"), ("soy", r"soja|soy"), ("oat", r"avoine|\boat\b"),
                      ("coconut", r"coco(?!a)|coconut"), ("hazelnut", r"noisette|hazelnut"), ("spelt", r"[ée]peautre|spelt"), ("barley", r"orge|barley")],
     "olives": [("green", r"verte?s?\b|green"), ("black", r"noire?s?\b|black|kalamata"), ("stuffed", r"farci|stuffed"), ("pitted", r"d[ée]noyaut|pitted")],
+    "syrup": [("maple", r"[ée]rable|maple"), ("agave", r"agave")],     # maple syrup is not agave syrup: different taste, different product
 }
 
 
@@ -533,7 +534,7 @@ def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
-_HARD_VARIANT_TYPES = {"nuts", "peanut_butter", "dip"}
+_HARD_VARIANT_TYPES = {"nuts", "peanut_butter", "dip", "syrup"}
 
 
 # Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.

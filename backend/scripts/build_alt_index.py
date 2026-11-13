@@ -28,6 +28,17 @@ DST = os.environ.get("ALT_INDEX", os.path.join(HERE, "alt_index.db" if MARKET ==
 MIN_PER100 = 3.0          # cents per 100 g/ml: below this the price or the pack size is a data error
 
 
+def exact_chains(p, prices, qty) -> list:
+    """Chains where THIS product was seen: a price observation for its barcode, or the chain is its own brand / named in the product.
+    Brand-level inference ("this brand is sold at Franprix") is deliberately left out: the store filter must only show what is really there."""
+    from app import chains as ch, market, retail
+    ids = [retail.ID_OF[r["chain"]] for r in prices.chain_summary(p["barcode"], qty) if r["chain"] in retail.ID_OF]
+    own = ch.own_brand_chain(p.get("brand")) or ch.own_brand_chain(p.get("name")) or ch.canon_match(p.get("name")) or ch.canon_match(str(p.get("brand") or ""))
+    if own and own in retail.ID_OF:
+        ids.append(retail.ID_OF[own])
+    return [i for i in dict.fromkeys(ids) if retail.in_market(i, market.current())]
+
+
 def main() -> None:
     for path in (SRC, OPS):
         if not os.path.exists(path):
@@ -82,7 +93,7 @@ def main() -> None:
             if not pt or pt.get("per100_cents") is None or pt["per100_cents"] < MIN_PER100:
                 skip("no_price")
                 continue
-            chains = api._candidate_chain_ids(p, prices.chain_summary)
+            chains = exact_chains(p, prices, (q["amount"], q["unit"]))
             if not chains:
                 skip("no_chain")
                 continue

@@ -17,8 +17,8 @@ TODAY = date.today().isoformat()
 YOGURT = ["en:dairies", "en:yogurts", "en:plain-yogurts"]
 
 
-def raw(code, name, brand="Marque", qty="500 g", cats=YOGURT):
-    nm = {"energy-kcal_100g": 60, "fat_100g": 3, "saturated-fat_100g": 1.5, "carbohydrates_100g": 5, "sugars_100g": 4.5, "proteins_100g": 5, "salt_100g": .1, "fiber_100g": 0}
+def raw(code, name, brand="Marque", qty="500 g", cats=YOGURT, sugars=4.5, protein=5, fibre=0):
+    nm = {"energy-kcal_100g": 60, "fat_100g": 3, "saturated-fat_100g": 1.5, "carbohydrates_100g": max(5, sugars + 1), "sugars_100g": sugars, "proteins_100g": protein, "salt_100g": .1, "fiber_100g": fibre}
     r = {"code": code, "product_name": name, "brands": brand, "categories_tags": list(cats), "nutriments": nm, "ingredients_text": "lait",
          "nutriscore_grade": "b", "countries_tags": ["en:france"], "last_modified_t": 1700000000}
     if qty:
@@ -47,6 +47,7 @@ def test_builder_keeps_only_branded_chained_priced_products(tmp_path, monkeypatc
                                        ("103", "1.250", "Delhaize", "BE"), ("104", "1.250", "Epicerie du coin", "FR")):
         o.execute("insert into op_items values (?,?,?)", (code, TODAY, observation(code, price, shop, country)))
     o.commit()
+    monkeypatch.setattr(main, "_brand_chain_ids", lambda *a, **k: ["franprix"])   # brand-level "usually sold at" evidence must not put a product in a store it was never seen in
     monkeypatch.setenv("OFF_LOCAL", str(off)); monkeypatch.setenv("OP_LOCAL", str(ops)); monkeypatch.setenv("ALT_INDEX", str(out)); monkeypatch.setenv("MARKET", "FR")
     from scripts import build_alt_index
     importlib.reload(build_alt_index)
@@ -54,7 +55,8 @@ def test_builder_keeps_only_branded_chained_priced_products(tmp_path, monkeypatc
 
     rows = sqlite3.connect(out).execute("select code, brand, per100, unit, chains from alt").fetchall()
     assert [r[0] for r in rows] == ["100"], "no brand, no pack size, no French price and no supermarket are each out"
-    assert rows[0][1] == "Marque" and round(rows[0][2]) == 25 and rows[0][3] == "g" and "carrefour" in json.loads(rows[0][4])
+    assert rows[0][1] == "Marque" and round(rows[0][2]) == 25 and rows[0][3] == "g"
+    assert json.loads(rows[0][4]) == ["carrefour"], "only where this exact product was seen: never the brand's guessed stores"
     got = altindex.AltIndex(str(out)).candidates(["en:yogurts"])
     assert [g["code"] for g in got] == ["100"] and got[0]["quantity"] == {"amount": 500.0, "unit": "g"} and got[0]["price_date"] == TODAY
 
@@ -88,7 +90,9 @@ def api(tmp_path, monkeypatch):
         c.execute("insert into alt values (?,?,?,?,?,?,?,?,?,?,?,?)", (code, brand, name, "yogurt", p100, round(p100 * 5), 500, unit, TODAY, 0, json.dumps(chains), 3))
         c.executemany("insert into alt_cat values (?,?)", [(t, code) for t in YOGURT])
     c.commit()
-    off = FakeOFF([raw(code, name, brand, qty="500 ml" if unit == "ml" else "500 g") for code, brand, name, _, unit, _ in rows] + [raw("006", "Yaourt nature hors base", "Marque E")])
+    sweet = dict(sugars=25, protein=2)              # every other yogurt is sweet and low in protein: 003, the dearest, is by far the best nutritionally
+    off = FakeOFF([raw(code, name, brand, qty="500 ml" if unit == "ml" else "500 g", **({} if code == "003" else sweet)) for code, brand, name, _, unit, _ in rows]
+                  + [raw("006", "Yaourt nature hors base", "Marque E")])
     priced = []
     monkeypatch.setattr(main, "load_product", lambda s, b: dict(ORIG))
     monkeypatch.setattr(main, "_price_map", lambda s, uid, orig, prods, *a, **k: (priced.append(list(prods)) or (60.0, {}, {orig["barcode"]: {"source": "open_prices", "date": TODAY}}, {})))
@@ -123,7 +127,24 @@ def test_chain_filter_applies_on_top_of_the_database(api):
     assert all("leclerc" in r["product"]["chains"] for r in rows)
 
 
-def test_cheaper_equal_quality_ranks_first(api):
-    rows = api()["rankings"]["value"]
-    price = {r["product"]["barcode"]: r["price_per_100_cents"] for r in rows}
-    assert price["002"] < price["001"] < price["003"] and [r["product"]["barcode"] for r in rows][0] == "002"
+def test_every_profile_is_ranked_in_one_answer(api):
+    """Budget leads with the cheapest decent product, nutrition with the best quality, balanced with the best of both:
+    all three come in the same response, so switching needs no new request."""
+    res = api()
+    rows = {r["product"]["barcode"]: r for r in res["rankings"]["value"]}
+    quality = {c: r["quality_score"] for c, r in rows.items()}
+    assert quality["003"] > max(q for c, q in quality.items() if c != "003") + 8, "the fixture's best product must really be the best"
+    first = {pf: res["rankings"]["profiles"][pf][0]["code"] for pf in ("budget", "balanced", "nutrition")}
+    assert first["budget"] == "002", "the cheapest leads the budget profile"
+    assert first["nutrition"] == "003", "the best quality leads the nutrition profile, whatever it costs"
+    for pf in ("budget", "balanced", "nutrition"):
+        assert {x["code"] for x in res["rankings"]["profiles"][pf]} == set(rows), "same products in every profile, only the order differs"
+    assert api(profile="nutrition")["rankings"]["value"][0]["product"]["barcode"] == "003"
+
+
+def test_maple_syrup_never_leads_to_agave():
+    from app import taxonomy
+    syrup = lambda name, cat: {"name": name, "brand": "Marque", "categories": ["en:syrups", "en:simple-syrups", cat], "quantity": {"amount": 250, "unit": "ml"}, "nutriments": {}}  # noqa: E731
+    maple, agave, maple2 = syrup("Sirop d'érable", "en:maple-syrups"), syrup("Sirop d'agave bio", "en:agave-syrups"), syrup("Sirop d'érable bio", "en:maple-syrups")
+    assert taxonomy.substitution(maple, agave) is None
+    assert taxonomy.substitution(maple, maple2) is not None

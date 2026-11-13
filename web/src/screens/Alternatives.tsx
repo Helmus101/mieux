@@ -5,7 +5,6 @@ import { t } from '@shared/i18n';
 import { useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
 import { cachedAlternatives, fetchAlternatives, NEAR_KM } from '../alternatives';
-import PqExplain from '../PqExplain';
 import { Button, Card, ChainLogo, Muted, NavBar, Screen, Segmented, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
@@ -41,7 +40,7 @@ export default function Alternatives() {
       .then((x: any) => { if (!gone) setR(x); })
       .catch((e: unknown) => { if (!gone) setErr(friendlyError(e)); }).finally(() => { if (!gone) setBusy(false); });
     return () => { gone = true; };
-  }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries, vp]);
+  }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
   const rowOf = (e: any) => ({
     ps_web: e.price_source?.source === "web_search",
     avail: e.availability,
@@ -69,7 +68,14 @@ export default function Alternatives() {
     ratio: e.size_ratio,
   });
   // The backend ranks by one value score (affordability, nutrition and efficiency, weighted by the chosen profile).
-  const sourceRows = (k: string): any[] => (r?.rankings?.[k] ?? []) as any[];
+  // Every profile is ranked by the server in the same answer: pick the chosen profile's score and order, no new request.
+  const sourceRows = (k: string): any[] => {
+    const rows = (r?.rankings?.[k] ?? []) as any[];
+    const per = new Map<string, any>(((r?.rankings?.profiles?.[vp] ?? []) as any[]).map((x) => [x.code, x]));
+    if (!per.size) return rows;
+    return rows.filter((e) => per.has(e.product?.barcode)).map((e) => ({ ...e, value_score: per.get(e.product.barcode).value_score, why: per.get(e.product.barcode).why }))
+      .sort((a, b) => b.value_score - a.value_score);
+  };
   const listOf = (k: string, ignoreChain = false) => {
     const seen = new Set<string>();
     return sourceRows(k).map(rowOf).filter((e: any) => {
@@ -134,15 +140,12 @@ export default function Alternatives() {
       <h1 className="atitle">{t('alt.title')}</h1>
       {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
       {!err && <Segmented value={vp} onChange={(k) => { haptic('tap'); setVp(k as typeof vp); }} options={profileOptions} />}
-      {!err && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t(`alt.profileSub_${vp}`)} <PqExplain label /></p>}
       {!none && chainOptions.length > 1 && (
         <div className="chainfilter" role="group" aria-label={t('alt.filterChain')}>
           <button type="button" className={'chainchip all' + (chain == null ? ' on' : '')} aria-pressed={chain == null} onClick={() => setChain(null)}>{t('alt.allChains')}</button>
           {chainOptions.map((id) => <button type="button" key={id} className={'chainchip' + (chain === id ? ' on' : '')} aria-pressed={chain === id} onClick={() => setChain(chain === id ? null : id)}><ChainLogo id={id} name={chainName(id)} size={19} />{chainName(id)}</button>)}
         </div>
       )}
-      {!none && r?.original_price?.per100_cents != null && <p className="yours"><span>{t('diff.yours')} : <b>{formatCents(Math.round(r.original_price.per100_cents * 10))}{isLiquid(r.original) || r?.original_size?.unit === 'ml' ? '/L' : '/kg'}</b></span></p>}
-      {rk === 'value' && r?.rankings?.original_value_score != null && ranked.length > 0 && (ranked[0].vs ?? 0) <= r.rankings.original_value_score && <p className="mut sm" style={{ margin: '8px 0 0' }}>{t('alt.alreadyBestValue')}</p>}
       {busy && <>
         <div className="skel-seg" aria-hidden><Skeleton h={44} /></div>
         <div className="alist" aria-hidden>{[0, 1, 2, 3].map((n) => (
@@ -175,21 +178,14 @@ export default function Alternatives() {
                 return <div className="achains" title={cs.map(chainName).join(', ')}>{cs.length ? <>{t('alt.seenAt')} {cs.slice(0, 3).map(chainName).join(' · ')}{cs.length > 3 ? ` +${cs.length - 3}` : ''}</> : t('alt.chainUnknown')}</div>;
               })()}
               <div className="ameta">
-                {e.vs != null && <span className="tile main" title={e.why}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span><small className="cap">{t('alt.valueScore')}</small></span>}
-                {e.q != null && <span className="tile"><span className="tile-row"><span className={'stile sm ' + (e.product.score?.tone === 'b' ? 'b' : e.product.score?.tone === 'w' ? 'w' : 'g')}><b>{e.q}</b></span>
-                  {r?.original?.score?.total != null && (() => { const dd = e.q - r.original.score.total; return dd !== 0 ? <em className={dd > 0 ? 'up' : 'down'}>{dd > 0 ? '+' : '−'}{Math.abs(dd)}</em> : null; })()}</span>
-                  <small className="cap">{t('alt.quality')}</small></span>}
+                {e.vs != null && <span className="tile main" title={e.why}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span></span>}
               </div>
-              {e.rel != null && (() => { const pct = Math.round(Math.abs(1 - e.rel) * 100); return <div className="mut sm">{pct < 3 ? t('alt.relMedian') : t(e.rel < 1 ? 'alt.relCheaper' : 'alt.relDearer', { p: pct })} {t('alt.relVs')}{e.confidence === 'low' ? ` · ${t('alt.confidence_low')}` : ''}</div>; })()}
             </div>
             <div className="aprice">
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
                 : e.pack != null ? <b>{e.ps_web ? '~ ' : ''}{formatCents(e.pack)}</b> : null}
               {u == null && e.pack == null && <span className="mut sm">{t('alt.noPrice')}</span>}
               {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
-              {rk === 'value' && e.vs != null && r?.rankings?.original_value_score != null && (
-                <span className={'valuecmp ' + (e.vs > r.rankings.original_value_score ? 'up' : 'down')}>{e.vs > r.rankings.original_value_score ? t('alt.betterValue') : t('alt.worseValue')}</span>
-              )}
               <button className="flagbtn" aria-label={t('sub.notComparable')} title={t('sub.notComparable')} onClick={async (ev) => { ev.stopPropagation(); try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}>⚑</button>
             </div>
           </article>);

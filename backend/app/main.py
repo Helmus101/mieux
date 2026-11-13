@@ -2036,7 +2036,10 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             if sub is None or sub["level"] > body.substitution_max or c["id"] in rejected:
                 continue
             kept.append({**c, "substitution": sub})
-        peers = kept
+        # The same thing first: when enough products are the very same type (level 1), neighbouring types are not offered at all.
+        # Maple syrup leads to maple syrups, not to fruit syrups; a neighbour only appears when the type itself is thin.
+        same_type = [c for c in kept if c["substitution"]["level"] == 1]
+        peers = same_type if len(same_type) >= engine.MIN_SAME_TYPE else kept
     stages["comparable"] = len(peers)
 
     # 5. RANK the whole eligible pool. The tabs are cut to their display size at the very end, after the "only if it is
@@ -2082,8 +2085,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             return
         own_ = _chains.own_brand_chain(pr_.get("brand")) or _chains.canon_match(str(pr_.get("brand") or "")) or _chains.canon_match(str(pr_.get("name") or ""))
         cid_ = retail.ID_OF.get(own_) if own_ else None
-        ids = ([cid_] if cid_ else []) + _brand_chain_ids(pr_.get("brand"), pr_.get("name"))
-        pr_["chains"] = list(dict.fromkeys(i for i in ids if retail.in_market(i, market.current())))
+        pr_["chains"] = [cid_] if cid_ and retail.in_market(cid_, market.current()) else []
 
     for a_ in res.get("alternatives", []):
         _fill_chains(a_["product"])
@@ -2100,8 +2102,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             cid_ = retail.ID_OF.get(own_) if own_ else None
             if cid_ and cid_ not in (r_["product"].get("chains") or []):
                 r_["product"]["chains"] = [cid_] + list(r_["product"].get("chains") or [])   # a store brand always shows its chain logo
-            if not r_["product"].get("chains"):
-                r_["product"]["chains"] = _brand_chain_ids(r_["product"].get("brand"), r_["product"].get("name"))     # no sighting of this exact product: the brand's usual chains
+            # No brand-level guess here ("this brand is usually at Franprix"): a chain is shown only where this exact product was seen.
             r_["availability"], r_["store_price"] = _availability(r_["product"])
         res["rankings"][key_] = kept_
     if "diagnostics" in res:
