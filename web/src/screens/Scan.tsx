@@ -32,7 +32,7 @@ export default function Scan() {
       stream.current = await openCamera(video.current!, () => id === run.current); setOn(true); setStarting(false); setCanTorch(torchSupported(stream.current));
       const stopper = await scanBarcodes(video.current!, (c) => {
         scanClick(); haptic('success');
-        if (forCompare) { api.getProduct(c).catch(() => undefined); stop(); open(c); } else setPeek(c);     // keep the camera running; the card shows the product
+        if (forCompare) { api.getProduct(c).catch(() => undefined); api.getWebPriceQuick(c); stop(); open(c); } else setPeek(c);     // keep the camera running; the card shows the product
       }, frame.current, !forCompare);
       if (id !== run.current) { stopper(); return; }
       stopScan.current = stopper;
@@ -43,7 +43,7 @@ export default function Scan() {
   const fromPhoto = async (f?: File) => {
     if (!f) return; setErr('');
     const c = await decodeImage(f).catch(() => null);
-    if (c) { scanClick(); haptic('success'); stop(); open(c); } else { haptic('error'); setErr(t('scan.noCode')); }
+    if (c) { scanClick(); haptic('success'); api.getWebPriceQuick(c); stop(); open(c); } else { haptic('error'); setErr(t('scan.noCode')); }
   };
   const close = () => { haptic('tap'); stop(); go(forCompare ? routes.compare : routes.list); };
   return (

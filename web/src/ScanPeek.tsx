@@ -12,7 +12,7 @@ export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOp
   const addScan = useHistory((s) => s.addScan);
   useEffect(() => {
     let live = true; setD(null); setFailed(false); setDy(0);
-    api.getProduct(code).then((x: any) => { if (!live) return; setD(x); addScan(x.product); api.addScan(code).catch(() => undefined); countScan(code); })
+    api.getProduct(code).then((x: any) => { if (!live) return; setD(x); addScan(x.product); api.addScan(code).catch(() => undefined); countScan(code); void api.getWebPriceQuick(code); })  // start the web price search now so it is cached before the product page opens
       .catch(() => { if (live) setFailed(true); });
     return () => { live = false; };
   }, [code]);
