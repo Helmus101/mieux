@@ -20,7 +20,7 @@ R = [
     # countless other grilled foods have nothing to do with toasted bread when there is no category tag to rule it out.
     ("toasted_bread", "cereals_bakery", "bread", "toast", "slice_crisp", "breakfast", r"toasts|toasted-bread|toasted-bread-rolls|pains-grill", r"pain grill|tartines?|\btoast(?:s|ed)?\b"),
     ("sandwich_bread", "cereals_bakery", "bread", "sliced_loaf", "slice_soft", "sandwich_making", r"sliced-breads|sandwich-breads|packaged-breads|pains-de-mie", r"pain de mie|pain.*tranch|tranch.*pain|sandwich"),
-    ("baguette", "cereals_bakery", "bread", "loaf", "loaf", "meal", r"baguettes|pains-de-campagne|rye-breads|breads|sourdough", r"baguette|pain de campagne|pain (au|aux|de|complet|nature)|\bpain\b"),
+    ("baguette", "cereals_bakery", "bread", "loaf", "loaf", "meal", r"baguettes|pains-de-campagne|rye-breads|(?<![a-z])breads\b|sourdough", r"baguette|pain de campagne|pain (au|aux|de|complet|nature)|\bpain\b(?!\s+d[ée]pices?)"),
     ("crackers", "cereals_bakery", "snack_cracker", "cracker", "cracker", "snacking", r"crispbreads|pretzels|rice-cakes|(?<!-)crackers?\b|galettes", r"cracker|bretzel|pretzel|galette de riz|knäcke"),
     ("breakfast_cereal", "cereals_bakery", "cereal", "cereal", "cereal", "breakfast", r"breakfast-cereals|cereal-flakes|cornflakes|extruded-cereals", r"corn ?flakes|c[ée]r[ée]ales|pétales|petales|chocapic|special k"),
     ("muesli", "cereals_bakery", "cereal", "muesli", "cereal", "breakfast", r"mueslis|granola|oat-flakes|porridge|cereal-clusters", r"muesli|granola|porridge|flocons d.avoine|cruesly|crunchy|clusters?"),
@@ -118,7 +118,7 @@ R = [
     ("soup", "meals", "soup", "liquid", "soup", "meal", r"soups|veloutes|broths", r"soupe|velout[ée]|bouillon"),
     # Raw dough to bake and top at home is not a substitute for a finished, ready-to-eat pizza: different preparation, different use.
     ("pizza_dough", "cereals_bakery", "dough", "pizza_dough", "raw_dough", "cooking_ingredient", r"pizza-dough|pizza-bases|pizza-shells", r"p[âa]te à pizza|fond(?:s)? de pizza|base(?:s)? (?:à |pour )?pizza|pizza dough"),
-    ("pizza", "meals", "pizza", "pizza", "pizza", "meal", r"pizzas|quiches|tartes", r"pizza|quiche|tarte|flammekueche"),
+    ("pizza", "meals", "pizza", "pizza", "pizza", "meal", r"pizzas|quiches|tarte-flambes?", r"pizza|quiche|flammekueche|tarte flamb"),
     ("ready_meal", "meals", "ready_meal", "meal", "meal", "meal", r"meals|prepared-meals|ready-meals|sandwiches|salads", r"plat cuisin|lasagne|hachis|couscous|paella|sandwich|salade"),
     ("ham", "meat_fish", "charcuterie", "slices", "cold_cut", "meal", r"hams|cooked-hams|dry-hams|charcuteries|bacon|cured-meats", r"jambon|lardons|saucisson|charcuterie|bacon|\bham\b|gammon"),
     ("sausage", "meat_fish", "charcuterie", "sausage", "cook", "meal", r"sausages|merguez", r"saucisse|merguez|chipolata"),
