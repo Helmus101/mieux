@@ -117,7 +117,7 @@ R = [
     ("pizza_dough", "cereals_bakery", "dough", "pizza_dough", "raw_dough", "cooking_ingredient", r"pizza-dough|pizza-bases|pizza-shells", r"p[âa]te à pizza|fond(?:s)? de pizza|base(?:s)? (?:à |pour )?pizza|pizza dough"),
     ("pizza", "meals", "pizza", "pizza", "pizza", "meal", r"pizzas|quiches|tartes", r"pizza|quiche|tarte|flammekueche"),
     ("ready_meal", "meals", "ready_meal", "meal", "meal", "meal", r"meals|prepared-meals|ready-meals|sandwiches|salads", r"plat cuisin|lasagne|hachis|couscous|paella|sandwich|salade"),
-    ("ham", "meat_fish", "charcuterie", "slices", "cold_cut", "meal", r"hams|cooked-hams|dry-hams|charcuteries|bacon|cured-meats", r"jambon|lardons|saucisson|charcuterie|bacon"),
+    ("ham", "meat_fish", "charcuterie", "slices", "cold_cut", "meal", r"hams|cooked-hams|dry-hams|charcuteries|bacon|cured-meats", r"jambon|lardons|saucisson|charcuterie|bacon|\bham\b|gammon"),
     ("sausage", "meat_fish", "charcuterie", "sausage", "cook", "meal", r"sausages|merguez", r"saucisse|merguez|chipolata"),
     # Meat and poultry: each animal is its own small category (a chicken breast is not a beef steak); pâtés and terrines are
     # their own charcuterie purchase. Only the same animal ever substitutes another cut of it.
@@ -286,7 +286,9 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
         return {"type": _CATEGORY_TYPE + leaf, "family": None, "category": leaf, "subcategory": None, "form": None,
                 "use": None, "leaf": leaf, "source": "category_only", "confidence": "medium",
                 "reason": f"no type rule matched: the category '{leaf}' is the small category"}
-    return {"type": None, "family": None, "category": None, "subcategory": None, "form": None, "use": None, "leaf": None, "source": "none", "confidence": "none", "reason": "no category tag and no rule: only a shared distinctive name word can match"}
+    return {"type": UNCATEGORISED, "family": None, "category": "en:uncategorised", "subcategory": None, "form": None,
+            "use": None, "leaf": None, "source": "none", "confidence": "none",
+            "reason": "no rule and no usable category tag: uncategorised, so only a shared distinctive name word can match"}
 
 
 _CLASS_CACHE: Dict[Any, Dict[str, Any]] = {}
@@ -325,6 +327,35 @@ def classify(p: Dict[str, Any]) -> Dict[str, Any]:
     return dict(hit)
 
 
+_HEAD_SKIP = {"les", "des", "une", "the", "and", "with", "pour", "dans", "aux", "nos", "notre", "mon", "mes", "ses", "son", "sa"}
+
+
+def _head_word(p: Dict[str, Any]) -> Optional[str]:
+    """The product's head noun: the FIRST word of its name that is not an article or a filler.
+    It must be the first word on both sides, so a brand ("SOJASUN myrtilles") or a flavour never stands in for the product."""
+    for w in re.split(r"[^a-zà-ÿ0-9]+", (p.get("name") or "").lower()):
+        if len(w) > 2 and w not in _HEAD_SKIP and w not in _UNTYPED_STOP:
+            return w
+    return None
+
+
+def _category_alternative(type_id: Optional[str], same_type: bool, co: Dict[str, Any], cc: Dict[str, Any]) -> Dict[str, Any]:
+    """Two products the taxonomy relates only by category or by the same head noun: a real but broader alternative (level 2)."""
+    return {"level": 2, "label": LABELS[2], "type": type_id, "same_type": same_type, "variant_diff": None,
+            "confidence": "medium", "orig_confidence": co["confidence"], "cand_confidence": cc["confidence"],
+            "form_match": True, "use_match": True}
+
+
+def is_category_only(p: Dict[str, Any]) -> bool:
+    """True when the product is typed by its category tag rather than by a type rule (every product has one or the other)."""
+    return str(classify(p).get("type") or "").startswith(_CATEGORY_TYPE)
+
+
+def is_uncategorised(p: Dict[str, Any]) -> bool:
+    """True when no rule and no usable category tag describes the product (its category is the explicit 'uncategorised')."""
+    return classify(p).get("type") == UNCATEGORISED
+
+
 def level_between(a: str, b: str) -> Optional[int]:
     """1 same type; 2-4 by distance in the closest cluster that holds both; None if no cluster holds both."""
     if a == b:
@@ -339,7 +370,10 @@ def level_between(a: str, b: str) -> Optional[int]:
 
 
 # A product no rule describes is typed by its category: "cat:" + the most specific non-generic Open Food Facts tag.
+# Every product therefore has a category; one with no usable tag at all gets the explicit "uncategorised" one and can then
+# only match another uncategorised product by a shared distinctive name word (never by category alone).
 _CATEGORY_TYPE = "cat:"
+UNCATEGORISED = _CATEGORY_TYPE + "en:uncategorised"
 _GENERIC_LEAF = {"en:groceries", "en:foods", "en:beverages", "en:plant-based-foods", "en:plant-based-foods-and-beverages", "fr:autres-produits", "en:dietary-supplements", "en:meals", "en:snacks", "en:sauces", "en:condiments", "en:frozen-foods", "en:meats", "en:plant-based-foods-and-beverages-fruits"}
 _UNTYPED_STOP = set("avec sans pour dans plus bio extra fins fine fines france francais française français origine nature naturel naturelle format maxi mini grand grande petit petite recette original originale traditionnel traditionnelle selection sélection qualité saveur gout goût premium light".split())
 
@@ -381,12 +415,13 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
     cat_o = str(co.get("type") or "").startswith(_CATEGORY_TYPE)
     cat_c = str(cc.get("type") or "").startswith(_CATEGORY_TYPE)
     if cat_o or cat_c:
-        if not (cat_o and cat_c):
-            return None
-        if co["type"] == cc["type"]:
-            return {"level": 2, "label": LABELS[2], "type": cc["type"], "same_type": True, "variant_diff": None,
-                    "confidence": "medium", "orig_confidence": co["confidence"], "cand_confidence": cc["confidence"],
-                    "form_match": True, "use_match": True}
+        if cat_o and cat_c and co["type"] == cc["type"] and co["type"] != UNCATEGORISED:   # "uncategorised" is not a category
+            return _category_alternative(cc["type"], True, co, cc)
+        # Otherwise the two sides are described differently (a rule on one side, a tag or nothing on the other). The
+        # product's head noun - the first distinctive word of its name, which is how grocery names are built - is then
+        # the smallest category they provably share: "Myrtilles sauvages au sirop" and "Myrtilles sauvages".
+        if _head_word(orig) and _head_word(orig) == _head_word(cand):
+            return _category_alternative(cc["type"], False, co, cc)
         return _untyped_substitute(orig, cand)
     if not co["type"] and not cc["type"]:
         return _untyped_substitute(orig, cand)

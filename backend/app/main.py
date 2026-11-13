@@ -1466,7 +1466,7 @@ def _raw_candidate(r: Dict[str, Any], priorities: List[str], allergens: List[str
         # when its name and other available attributes support classification.
         name = r.get("product_name") or ""
         cls = taxonomy.classify({"name": name, "categories": []})
-        if not cls.get("type"):
+        if not cls.get("type") or cls.get("type") == taxonomy.UNCATEGORISED:   # the name must say what it is
             return False
     return True
 
@@ -1505,8 +1505,8 @@ def _search_any(orig: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def _untyped_search(orig: Dict[str, Any], prio, allergens) -> List[Dict[str, Any]]:
-    """For a product the taxonomy cannot type: candidates found by its most distinctive name words (all of them, then each of the two longest)."""
-    if taxonomy.classify(orig).get("type"):
+    """For a product no rule and no category tag describes: candidates found by its most distinctive name words (all of them, then each of the two longest)."""
+    if not taxonomy.is_uncategorised(orig):
         return []
     words = sorted(taxonomy._untyped_tokens(orig), key=len, reverse=True)[:3]
     out: Dict[str, Dict[str, Any]] = {}

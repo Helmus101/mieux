@@ -28,6 +28,39 @@ def test_a_dish_never_substitutes_a_cheese():
     assert taxonomy.substitution(grated, dish) is None
 
 
+def test_every_product_gets_a_category():
+    # A rule first, then the most specific category tag, then the explicit "uncategorised": never nothing.
+    assert _type("Rillettes de canard", ["en:duck-rillettes"]) == "pate_terrine"
+    assert _type("Filets de poulet", ["en:chicken-breasts"]) == "chicken"
+    assert _type("Bière blonde", ["en:beers"]) == "beer"
+    assert _type("Produit mystère", ["en:something-odd"]) == "cat:en:something-odd"
+    for name, tags in (("Produit mystère", []), ("Truc sans nom", ["en:groceries"]), ("Machin", ["en:foods"])):
+        assert _type(name, tags) == taxonomy.UNCATEGORISED, (name, tags)
+
+
+def test_uncategorised_products_never_match_on_category_alone():
+    a = {"name": "Truc rare", "categories": []}
+    b = {"name": "Machin autre", "categories": []}
+    assert taxonomy.substitution(a, b) is None
+    assert taxonomy.substitution(a, {"name": "Truc rare bio", "categories": []})["level"] == 2   # a shared name word is evidence
+
+
+def test_a_brand_or_flavour_word_is_never_the_head_noun():
+    blueberries = {"name": "Myrtilles sauvages au sirop", "categories": []}
+    same = {"name": "Myrtilles sauvages", "categories": ["en:blueberries"]}
+    flavoured = {"name": "SOJASUN MYRTILLES 4X100G", "categories": ["en:soy-yogurts"]}
+    assert taxonomy.substitution(blueberries, same)["level"] == 2
+    assert taxonomy.substitution(blueberries, flavoured) is None
+
+
+def test_a_category_only_product_never_substitutes_a_typed_one():
+    olives = {"name": "Olives vertes dénoyautées", "categories": ["en:olives"]}
+    other = {"name": "Machin rare", "categories": ["en:something-odd"]}
+    assert taxonomy.is_category_only(other) and not taxonomy.is_category_only(olives)
+    assert taxonomy.substitution(olives, other) is None
+    assert taxonomy.substitution(other, olives) is None
+
+
 OLIVE_TAGS = ["en:pickles", "en:olive-tree-products", "en:plant-based-pickles", "en:olives", "en:marinated-olives", "en:pitted-olives"]
 
 

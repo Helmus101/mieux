@@ -51,8 +51,8 @@ def test_classification_says_why_and_how_sure():
 def test_products_without_a_rule_are_typed_by_their_own_small_category():
     a, b = P("Mystère alpha", ["en:odd", "en:odd-leaf"]), P("Énigme beta", ["en:odd", "en:odd-leaf"])
     assert sub(a, b)["level"] == 2                                                # same specific category: its own kind
-    assert sub(a, P("Mystère gamma", ["en:odd", "en:other-leaf"])) is None      # a different category is not an alternative
-    assert sub(a, P("Mystère gamma", ["en:odd", "en:odd-leaf"])) is not None    # same leaf and a shared name word
+    assert sub(a, P("Gamma mystère", ["en:odd", "en:other-leaf"])) is None      # another category, another head noun
+    assert sub(a, P("Mystère gamma", ["en:odd", "en:other-leaf"]))["level"] == 2  # same head noun: one small category
 
 
 def test_implausible_data_is_caught():

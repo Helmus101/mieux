@@ -91,5 +91,5 @@ def test_levels_describe_closeness_and_never_cross_clusters():
 def test_products_without_a_rule_are_typed_by_their_own_small_category():
     a, b = P("Truc rare", ["en:foo", "en:bar"]), P("Machin autre", ["en:foo", "en:bar"])
     assert substitution(a, b)["level"] == 2   # the same specific category is the small category: comparable
-    assert substitution(a, P("Truc différent", ["en:foo", "en:baz"])) is None
-    assert substitution(a, P("Truc rare bio", ["en:foo", "en:bar"]))["level"] == 2   # same leaf and a shared name word: comparable
+    assert substitution(a, P("Autre truc", ["en:foo", "en:baz"])) is None
+    assert substitution(a, P("Truc rare bio", ["en:foo", "en:bar"]))["level"] == 2   # same head noun: comparable
