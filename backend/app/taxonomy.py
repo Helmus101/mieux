@@ -205,14 +205,14 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Machine systems and forms named in the product name win over a generic tag: a Nespresso capsule does not fit a Dolce Gusto machine, sliced brioche is not a pastry.
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid in _CHEESE_TYPES and _CHEESE_DISH.search(name):
+        if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast") and nr.search(name):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
 
     # Priority 1: High-specificity product type tags + name agreement (highest confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid in _CHEESE_TYPES and _CHEESE_DISH.search(name):
+        if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if tr.search(tags) and nr.search(name):
             if tid == "jam" and not _JAM_WORDS.search(name):
@@ -224,14 +224,14 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
                 "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms",
                 "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid in _CHEESE_TYPES and _CHEESE_DISH.search(name):
+        if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if nr.search(name) and tid in specific:
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"name matches specific form: {nr.pattern[:40]}"}
 
     # Priority 3: Broad category tags with supporting name evidence (medium confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid in _CHEESE_TYPES and _CHEESE_DISH.search(name):
+        if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if tr.search(tags):
             if tid == "jam" and not _JAM_WORDS.search(name):
@@ -242,7 +242,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Priority 4: Name-only matches for general types (low confidence - may be ambiguous)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid in _CHEESE_TYPES and _CHEESE_DISH.search(name):
+        if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
         if nr.search(name) or nr.search(generic_name):
             # Reject generic "bar" matches without context
@@ -260,7 +260,26 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 _CLASS_CACHE: Dict[Any, Dict[str, Any]] = {}
 
 
-_CHEESE_DISH = re.compile(r"cr[êe]pes?|galettes?|pizza|quiche|sandwich|burger|gratin|lasagn|ravioli|tortellini|croque|tarte|feuillet[ée]|cordon bleu|nuggets|salade|tartiflette|raclette (kit|pour)|jambon|poulet|saumon|pâtes|pates|panini|wrap|bagel|soupe|velout[ée]|b[ée]chamel|sauce|carr[ée]s? de (bl[ée]|pomme)|risotto|quinotto|croquette|beignet|flan sal[ée]", re.I)
+# A prepared dish that merely *contains* a cheese is not a cheese: it is a meal, and never a substitute for a block, a slice
+# or a grated bag. Plural forms matter too - "Cordons bleus au Comté" and "Röstis de légumes et cheddar" are dishes.
+_CHEESE_DISH = re.compile(
+    r"cr[êe]pes?|galettes?|pizzas?|quiches?|sandwichs?|burgers?|gratins?|lasagn\w*|ravioli|tortellini|croques?|tartes?|"
+    r"feuillet[ée]s?|cordons?[ -]bleus?|nuggets?|salades?|tartiflette|raclette (kit|pour)|jambon|poulet|saumon|p[âa]tes|paninis?|"
+    r"wraps?|bagels?|soupes?|velout[ée]s?|b[ée]chamel|sauces?|carr[ée]s? de (bl[ée]|pomme)|risotto|quinotto|croquettes?|"
+    r"beignets?|flan sal[ée]|r[ôöo]stis?|pav[ée]s? (au|aux|de|à)|boulettes?|bouch[ée]es?|po[êe]l[ée]es?|samoussas?|\bnems?\b|"
+    r"accras?|aligot|tacos?|cakes? sal[ée]s?|muffins?|omelettes?|tortillas?|frittatas?|goug[èe]res?|cannellonis?|parmentiers?|hachis|"
+    r"rigatonis?|pennes?|spaghettis?|tagliatelles?|fusillis?|macaronis?|gnocchis?|farfalles?|linguines?|pesto|pur[ée]es?|chips?|crisps?",
+    re.I)
+# A product only FLAVOURED with a cheese ("Lay's saveur emmental") is not that cheese.
+_CHEESE_FLAVOUR = re.compile(
+    r"(saveur|go[ûu]t|ar[ôo]me|parfum)[^,.;]{0,20}"
+    r"(emmental|comt[ée]|gruy[èe]re|parmesan|cheddar|gouda|roquefort|camembert|brie|mozzarella|ch[èe]vre|feta|ricotta)",
+    re.I)
+
+
+def _not_a_cheese(name: str) -> bool:
+    """A prepared dish, or a product merely flavoured with a cheese, must never be classified as a cheese."""
+    return bool(_CHEESE_DISH.search(name) or _CHEESE_FLAVOUR.search(name))
 
 
 def classify(p: Dict[str, Any]) -> Dict[str, Any]:

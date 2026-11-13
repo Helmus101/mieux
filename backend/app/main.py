@@ -301,7 +301,7 @@ class AltReq(BaseModel):
     nearby_only: bool = False  # with a location: keep only products listed at a chain that has a branch within the radius (and within the user's chains)
     strict_additives: bool = True  # strict mode (40 % nutrition + 25 % additives + 25 % ingredient quality, every additive concern one level higher)
     same_size: bool = False  # only products whose pack size is within half to double of the scanned one
-    substitution_max: int = Field(4, ge=1, le=4)  # 1 almost identical ... 4 broader alternative
+    substitution_max: int = Field(2, ge=1, le=4)  # 1 = almost identical, 2 = very similar (same small product category). 3-4 are broader products, never shown unless explicitly asked for.
 
 
 class CmpReq(BaseModel):
@@ -1762,25 +1762,24 @@ def _search_targets(orig: Dict[str, Any], orig_unpriced: bool, prods: List[Dict[
     return ([orig] if orig_unpriced else []) + (best + rest)[:cap]
 
 
-# Retrieval can be wide without paying for a per-barcode price query on every compatible product.
-# Qualité ranks the whole pool; Valeur ranks a bounded, diverse shortlist.
-_PRICE_POOL = int(os.environ.get("ALT_PRICE_POOL", "600"))
-
-
-def _price_shortlist(peers: List[Dict[str, Any]], cap: int) -> List[Dict[str, Any]]:
-    """Half the best nutrition scores, half the closest substitutes, then the retrieval order: a cheap product with
-    a good score must not be missed just because its name is dissimilar, and the price queries stay bounded."""
-    if len(peers) <= cap:
-        return peers
-    by_q = sorted(peers, key=lambda c: -((c.get("score") or {}).get("total") or -1))
-    picked: Dict[str, Dict[str, Any]] = {}
-    for c in by_q[: cap // 2] + peers[: cap // 2]:
-        picked.setdefault(c["barcode"], c)
-    for c in peers:
-        if len(picked) >= cap:
-            break
-        picked.setdefault(c["barcode"], c)
-    return list(picked.values())[:cap]
+def _own_prices(s: Session, uid: str, product_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+    """The user's own latest price for many products at once: a receipt entry first, else a manual one (same rule as _own_price).
+    Chunked so a whole category's candidates cost a handful of queries instead of two per product."""
+    out: Dict[str, Dict[str, Any]] = {}
+    ids = list(dict.fromkeys(product_ids))
+    for i in range(0, len(ids), 500):
+        chunk = ids[i:i + 500]
+        rows = (s.query(db.ProductPrice)
+                .filter(db.ProductPrice.user_id == uid, db.ProductPrice.product_id.in_(chunk),
+                        db.ProductPrice.source.in_(["receipt", "manual"]), db.ProductPrice.pack_cents.isnot(None))
+                .order_by(db.ProductPrice.observed_on.desc(), db.ProductPrice.id.desc()).all())
+        for pp in rows:
+            out.setdefault(pp.product_id, {"unit_price_cents": pp.pack_cents, "date": pp.observed_on, "retailer": None})
+        rows = (s.query(db.PriceObservation).filter(db.PriceObservation.user_id == uid, db.PriceObservation.product_id.in_(chunk))
+                .order_by(db.PriceObservation.observed_on.desc(), db.PriceObservation.id.desc()).all())
+        for row in rows:
+            out.setdefault(row.product_id, {"unit_price_cents": row.unit_price_cents, "date": row.observed_on, "retailer": row.retailer})
+    return out
 
 
 def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str, Any]], loc: Optional[Loc] = None, approximate: bool = False, only: Optional[List[str]] = None):
@@ -1791,8 +1790,9 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
     shops: Dict[str, List[Dict[str, Any]]] = {}
     prices: Dict[str, float] = {}
     orig_price = None
+    own_all = _own_prices(s, uid, [orig["id"]] + [c["id"] for c in prods])
     if oq:
-        own = _own_price(s, uid, orig["id"])
+        own = own_all.get(orig["id"])
         comm = None if (own and value.fresh(own["date"])) else (_community(orig, loc, 730, only) or (_community(orig, loc, 730, None) if only else None))   # the scanned product's own price must not vanish just because it was not seen at the chosen chains: the product page shows the same unrestricted price
         pt = value.price_point(orig, own, comm)
         if pt:
@@ -1801,7 +1801,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
     for c in prods:
         cq = c.get("quantity")
         ok = cq is not None and (not oq or cq["unit"] == oq["unit"])
-        ownc = _own_price(s, uid, c["id"]) if ok else None
+        ownc = own_all.get(c["id"]) if ok else None
         prep.append((c, cq, ownc, ok and not (ownc and value.fresh(ownc["date"]))))
     with ThreadPoolExecutor(max_workers=6) as ex:
         comms = _ctx_map(ex, lambda t: _community(t[0], loc, 730, only) if t[3] else None, prep)
@@ -1910,11 +1910,6 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     chain_of = getattr(app.state.prices, "chain_summary", None)
     for c in peers:  # attach every chain evidence we have
         c["chains"] = _candidate_chain_ids(c, chain_of)
-    if market.current() == "FR":
-        # First elimination, before any ranking work: in France a candidate must be sold in France AND have real
-        # supermarket evidence (an Open Prices sighting, a web-price shop, the chain's own brand, brand-level retail
-        # data, or the supermarket's name in the product itself).
-        peers = [c for c in peers if c.get("soldInFrance") is True and c.get("chains")]
     # Popularity of each candidate: how often it is scanned (Open Food Facts) and whether chains are known to sell it. The money and quality
     # lists use it to keep obscure products from topping a ranking (see engine.is_popular).
     local_ = getattr(app.state.off, "local", None)
@@ -1926,14 +1921,33 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
             for code_, n_ in (local_._q(f"select code, scans from off_products where code in ({','.join('?' * len(chunk_))})", tuple(chunk_)) or []):
                 scans_[code_] = n_ or 0
         peers = [{**c, "popularity": {"scans": scans_.get(c["barcode"], 0), "chains": len(c.get("chains") or [])}} for c in peers]
-    if chain_of and body.chains:  # the person picked chains: drop what is known to be sold only elsewhere
+    # -----------------------------------------------------------------------------------------------------------------
+    # THE ALTERNATIVES FUNNEL: four hard filters, then ranking. Nothing is scored, weighted or traded off before it has
+    # passed all four - a product that fails one filter is out, however good its nutrition or price.
+    #   0. Category  _peers() has already read the whole database, restricted to the product's category.
+    #   1. Market    sold in the shopper's market. Unknown availability is not "sold here".
+    #   2. Shop      a real supermarket carries it - and one of the shopper's own stores when they picked some.
+    #   3. Price     a real, observed price. No price for this exact product, no alternative.
+    #   4. Type      the same small product category (taxonomy.substitution): same type, form and use.
+    # -----------------------------------------------------------------------------------------------------------------
+    stages = {"retrieved": len(peers)}
+
+    # 1. MARKET
+    peers = [c for c in peers if c.get("soldInFrance") is True]
+    stages["sold_in_market"] = len(peers)
+
+    # 2. SUPERMARKET: an Open Prices sighting, a cached web-price shop, the chain's own brand, brand-level retail data,
+    # or the supermarket's name in the product. Outside France chain data is too thin to exclude a product.
+    if market.current() == "FR":
+        peers = [c for c in peers if c.get("chains")]
+    if body.chains:  # the shopper picked stores: keep only what one of them carries
         want = set(body.chains)
         if market.current() == "FR":
-            peers = [c for c in peers if set(c.get("chains") or []) & want]
+            peers = [c for c in peers if want & set(c.get("chains") or [])]
         elif any(c.get("chains") for c in peers):  # outside France, unknown chain evidence does not exclude a product
-            peers = [c for c in peers if not c.get("chains") or (set(c["chains"]) & want)]
+            peers = [c for c in peers if not c.get("chains") or (want & set(c["chains"]))]
     if body.nearby_only and body.location and chain_of:
-        # "only what I can buy near me": a product stays if one of its chains (among the user's chains, if any) has a branch within the radius. Exact distances from the full store list.
+        # "only what I can buy near me": a product stays if one of its chains (among the shopper's, if any) has a branch within the radius.
         loc0 = body.location
         close = {cid for cid in retail.NAME_OF if retail.in_market(cid, market.current()) and retail._near(s, cid, loc0.lat, loc0.lon, loc0.radius_km)}
         allowed = close & set(body.chains) if body.chains else close
@@ -1944,8 +1958,22 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     if body.same_size and (orig.get("quantity") or {}).get("amount"):
         oq_ = orig["quantity"]
         peers = [c for c in peers if (c.get("quantity") or {}).get("unit") == oq_["unit"] and 0.5 <= c["quantity"]["amount"] / oq_["amount"] <= 2.0]
+    stages["at_supermarket"] = len(peers)
+
+    # 3. PRICE: observed prices only - your own receipt/entry, an Open Prices sighting, or a web price found earlier and
+    # cached. An estimate is not a price, and no fresh web search is run for a candidate, so an unpriced product is out.
+    orig_price, prices, points, shops = _price_map(s, uid, orig, peers, body.location, body.approximate, sel_names)
+
+    def _has_price(bc: str) -> bool:
+        return prices.get(bc) is not None and (points.get(bc) or {}).get("source") != "estimate"
+
+    peers = [c for c in peers if _has_price(c["barcode"])]
+    stages["with_price"] = len(peers)
+
+    # 4. SAME SMALL CATEGORY: the hard substitution gate (type / form / use), the shopper's level ceiling and their own
+    # "not comparable" verdicts. A true alternative is level 1 (same type) or 2 (closest type in the same cluster);
+    # a broader product is never offered by default. Similarity and quality only ever rank what survives this gate.
     if body.category_mode == "similar":
-        # hard substitution filter first (type / form / use), then the user's own "not comparable" verdicts; similarity and quality only rank what survives
         rejected = {r.alt_id for r in s.query(db.ProductSubstitution).filter_by(user_id=uid, original_id=orig["id"], verdict="not_comparable").all()}
         # learning from everyone: a pair that two different people flagged "not comparable" is hidden for all
         rejected |= {a for (a,) in s.query(db.ProductSubstitution.alt_id).filter_by(original_id=orig["id"], verdict="not_comparable").group_by(db.ProductSubstitution.alt_id).having(func.count(func.distinct(db.ProductSubstitution.user_id)) >= 2).all()}
@@ -1956,43 +1984,20 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
                 continue
             kept.append({**c, "substitution": sub})
         peers = kept
-    need_prices = bool({"budget", "value"} & set(body.priorities))
+    stages["comparable"] = len(peers)
+
+    # 5. RANK the whole eligible pool. The tabs are cut to their display size at the very end, after the "only if it is
+    # really better" rules, so a tab - or a store filter - still has its rows.
     note = None
-
-    def _has_price(bc: str) -> bool:
-        # Second elimination: a displayed alternative must have a real price - an observed receipt/community price or a
-        # cached web find. A category estimate is not a price.
-        pt = points.get(bc) or {}
-        return prices.get(bc) is not None and pt.get("source") != "estimate"
-
-    # The price comparison is always part of the answer. Pool = the engine's picks + the best-matching comparable products,
-    # priced together (cached, threaded). Prices are never invented.
-    pool_src = engine.prefilter(orig, peers, allergens, diet, body.category_mode, priorities=body.priorities)
-    if need_prices:
-        peers = pool_src
-        priced = _price_shortlist(peers, _PRICE_POOL)
-        orig_price, prices, points, shops = _price_map(s, uid, orig, priced, body.location, body.approximate, sel_names)
-        if market.current() == "FR":
-            peers = [c for c in peers if c.get("chains")]   # France: a displayed alternative needs real supermarket evidence
-        peers = [c for c in peers if _has_price(c["barcode"])]   # no price, no alternative
-        res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, engine.MAX_SHOWN, prices, orig_price, lang)
-        pool = peers
-    else:
-        res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, engine.MAX_SHOWN, None, None, lang)
-        pool = list({c["barcode"]: c for c in [a["product"] for a in res["alternatives"]] + pool_src}.values())
-        orig_price, prices, points, shops = _price_map(s, uid, orig, pool, body.location, body.approximate, sel_names)
-        if market.current() == "FR":
-            pool = [c for c in pool if c.get("chains")]
-        pool = [c for c in pool if _has_price(c["barcode"])]
-        for a in res["alternatives"]:
-            a["price_per_100_cents"] = prices.get(a["product"]["barcode"])
-            a["value"] = engine.value_card(orig, a["product"], orig_price, a["price_per_100_cents"])
-    _fill_pack_prices(pool, prices, points)
+    pool = engine.prefilter(orig, peers, allergens, diet, body.category_mode)
+    res = engine.choose(orig, peers, body.priorities, allergens, diet, body.category_mode, engine.MAX_SHOWN, prices, orig_price, lang)
     for a in res["alternatives"]:
         a["indicators"] = engine.indicators(a["product"], prices.get(a["product"]["barcode"]))
     est_codes = frozenset(k for k, v in points.items() if (v or {}).get("source") == "estimate" and k != orig["barcode"])
     orig_est = (points.get(orig["barcode"]) or {}).get("source") == "estimate"
-    res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"], est_codes, orig_est, points=points, max_items=engine.RANKING_SHOWN)
+    res["rankings"] = engine.build_rankings(orig, pool, prices, orig_price, body.priorities, body.category_mode, lang, res["alternatives"], est_codes, orig_est, points=points, max_items=engine.RANKING_SHOWN * 3)
+    if "diagnostics" in res:
+        res["diagnostics"].update(stages)   # how many candidates each hard filter removed
     res["rankings"].pop("budget", None)
     res["rankings"].pop("closest", None)   # only Best value and Best quality are shown; cheapest/closest are not surfaced
     for key in ("value", "quality"):

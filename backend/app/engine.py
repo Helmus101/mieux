@@ -492,8 +492,8 @@ def pe_of(r, field):
 
 
 # Largest quality-score drop (out of 100) a 'cheaper' or 'best value' pick may have against the scanned product.
-MAX_SHOWN = 10     # most alternatives returned per tab
-RANKING_SHOWN = 100 # the API keeps the full sorted candidate list so chain filters still have products to show
+MAX_SHOWN = 10     # alternatives returned per request: the clients show 3 and expand to 10
+RANKING_SHOWN = 100 # rows per ranked tab. The API ranks deeper (3x) and cuts to this after the "only if better" rules and the store filter, so a filtered tab still has rows
 QUALITY_FLOOR = 50 # absolute quality floor: products scoring below 50 are excluded
 QUALITY_DROP_MAX = 5 # max quality drop against original for cheaper picks
 # Smallest quality gain (out of 100) that counts as a genuine improvement: one point is noise, not a better product.
@@ -965,10 +965,11 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
     - Level 3/4 products only enter closest, not budget/quality/value
     - Low-confidence classifications rejected from strict rankings
     """
-    # Step 1: Apply hard compatibility gate to create strict close-substitute pool
+    # Step 1: Apply hard compatibility gate to create strict close-substitute pool (the funnel in main.py has already
+    # computed the substitution; recompute it only when a caller hands in a raw pool).
     strict_pool = []
     for c in pool:
-        sub = taxonomy.substitution(orig, c)
+        sub = c.get("substitution") or taxonomy.substitution(orig, c)
         if sub is None:
             continue
         confidence = sub.get("confidence", "none")
