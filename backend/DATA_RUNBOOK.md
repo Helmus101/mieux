@@ -3,7 +3,7 @@
 Prices come from two sources that are always used together: Open Prices (daily export) and retailer exports (JSON files from the scrapers).
 
 ## Add retailer files
-1. Upload to the server volume as `/data/up_<name>.json` (`fly ssh sftp shell -a mieux-api`, `put file.json /data/up_file.json`). The Fly machine stops after deploys: `fly machine start 867543ae707348 -a mieux-api`.
+1. Upload to the server volume as `/data/up_<name>.json` (`fly ssh sftp shell -a mieux-api`, `put file.json /data/up_file.json`). The Fly machine can stop after deploys: find it with `fly machine list -a mieux-api`, then `fly machine start <id> -a mieux-api`.
 2. Back up: `fly ssh console -a mieux-api -C "cp /data/op_local.db /data/op_local.db.bak"`.
 3. Import (replaces each chain's old rows, drops barcodes that are not French products, dates undated files by file date):
    `fly ssh console -a mieux-api -C "sh -c 'cd /app && OP_LOCAL=/data/op_local.db python -m scripts.import_store_prices /data/up_*.json'"`
