@@ -21,10 +21,10 @@ R = [
     ("toasted_bread", "cereals_bakery", "bread", "toast", "slice_crisp", "breakfast", r"toasts|toasted-bread|toasted-bread-rolls|pains-grill", r"pain grill|tartines?\b|\btoast(?:s|ed)?\b"),
     ("sandwich_bread", "cereals_bakery", "bread", "sliced_loaf", "slice_soft", "sandwich_making", r"sliced-breads|sandwich-breads|packaged-breads|pains-de-mie", r"pain de mie|pain.*tranch|tranch.*pain|sandwich"),
     ("baguette", "cereals_bakery", "bread", "loaf", "loaf", "meal", r"baguettes|pains-de-campagne|rye-breads|(?<![a-z])breads\b|sourdough", r"baguette|pain de campagne|pain (au|aux|de|complet|nature)|\bpain\b(?!\s+d[ée]pices?)"),
-    ("crackers", "cereals_bakery", "snack_cracker", "cracker", "cracker", "snacking", r"crispbreads|pretzels|rice-cakes|(?<!-)crackers?\b|galettes", r"cracker|bretzel|pretzel|galette de riz|knäcke"),
+    ("crackers", "cereals_bakery", "snack_cracker", "cracker", "cracker", "snacking", r"crispbreads|pretzels|rice-cakes|(?<!-)crackers?\b|galettes", r"cracker|bretzel|pretzel|galette de riz|knäcke|\bcrisp(?:bread)?s?\b"),
     ("breakfast_cereal", "cereals_bakery", "cereal", "cereal", "cereal", "breakfast", r"breakfast-cereals|cereal-flakes|cornflakes|extruded-cereals", r"corn ?flakes|c[ée]r[ée]ales|pétales|petales|chocapic|special k"),
     ("muesli", "cereals_bakery", "cereal", "muesli", "cereal", "breakfast", r"mueslis|granola|oat-flakes|porridge|cereal-clusters", r"muesli|granola|porridge|flocons d.avoine|cruesly|crunchy|clusters?"),
-    ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles|vermicel|gnocchi"),
+    ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes?|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles?|vermicel|gnocchi"),
     ("rice_pudding", "dairy", "dessert", "milk_dessert", "spoon", "dessert", r"rice-puddings?|milk-desserts?", r"\briz au lait\b|rice pudding|cr[èe]me de riz|cr[èe]me riz"),
     ("rice", "cereals_bakery", "grain", "grain", "grain", "meal", r"\brices?\b(?!-based|-pudding)|basmati", r"^riz\b(?!\s+au\s+lait)|\briz (basmati|long|complet|thai)"),
     # ---- pantry and condiments (granular types so staples like pesto or soy sauce get their own alternatives)
@@ -54,7 +54,7 @@ R = [
     ("plant_yogurt", "dairy_alt", "yogurt", "spoonable", "spoon", "breakfast", r"plant-based-(yogurts|desserts)|soy-yogurts|dairy-substitutes-yogurts", r"(soja|amande|coco|avoine).*(yaourt|dessert)|yaourt.*(soja|amande|coco)"),
     # A flavour word alone (vanille, coco, fruit...) must never classify a product as yogurt without a category tag:
     # "Boisson riz coco" is a plant drink, not a yogurt, and has no tag to rule this out when only the name is checked.
-    ("flavoured_yogurt", "dairy", "yogurt", "spoonable", "spoon", "dessert", r"flavoured-yogurts|fruit-yogurts|sweetened-yogurts|yogurts-with-fruits",
+    ("flavoured_yogurt", "dairy", "yogurt", "spoonable", "spoon", "dessert", r"flavoured-yogurts|fruit-yogurts|sweetened-yogurts|yogurts-with-fruits|drinkable-yogurts",
      r"(?:yaourt|yogourt|yogurt).{0,25}(?:vanille|fruit|fraise|abricot|p[êe]che|coco|caramel|citron|cerise|banane|vanilla)|(?:vanille|fruit|fraise|abricot|p[êe]che|coco|caramel|citron|cerise|banane|vanilla).{0,25}(?:yaourt|yogourt|yogurt)"),
     # Bare "nature" or "grec" alone must never classify a product as yogurt: "nature" means "plain" for almost any French
     # grocery item (lardons nature, riz nature, jambon nature all have empty category tags in practice), and "grec" appears
@@ -73,10 +73,10 @@ R = [
     ("cheese", "dairy", "cheese", "cheese", "cheese", "meal", r"cheeses|fromages", r"fromage|camembert|emmental|comt[ée]|brie|gouda|mozzarella|chèvre|chevre"),
     ("eggs", "dairy", "eggs", "eggs", "eggs", "cooking", r"eggs|oeufs", r"\bu?[oœ]e?ufs?\b(?!.*(chocolat|p[âa]ques|plat|mayonnaise|brouill))"),
     ("milk", "dairy", "milk", "liquid", "drink", "breakfast", r"^en:milks$|whole-milks|semi-skimmed-milks|skimmed-milks|uht-milks|cow-milks", r"^lait\b|lait (demi|entier|écrém|ecrem|uht)"),
-    ("cream", "dairy", "cream", "liquid", "cooking", "cooking", r"creams|cr[èe]mes-fra[iî]ches", r"cr[èe]me (fra[iî]che|liquide|enti[èe]re)|cr[èe]me fra"),
+    ("cream", "dairy", "cream", "liquid", "cooking", "cooking", r"(?:^|\s)en:(?:creams|fresh-creams|whipping-creams|double-creams|cr[èe]mes-fra[iî]ches)(?:\s|$)", r"cr[èe]me (fra[iî]che|liquide|enti[èe]re)|cr[èe]me fra"),
     ("butter", "dairy", "fat", "fat", "spread", "spread_cook", r"(?:^|\s)en:(?:butters|margarines)\b|matieres-grasses-vegetales", r"^beurre\b|margarine|\bflora\b|\bbecel\b|\bproactiv\b|v[ée]g[ée]tal doux|plant.?based butter"),
     # ---- drinks
-    ("plant_drink", "drinks", "plant_drink", "liquid", "drink", "breakfast", r"plant-based-milks|milk-substitutes|rice-based-drinks|oat-based-drinks|soy-milks|almond-milks|hazelnut-based-drinks|plant-milks", r"boisson (v[ée]g[ée]tale|au riz|[àa] l.avoine|soja|amande|coco|avoine)|lait (d.|de )?(amande|avoine|soja|coco|riz)|bevande"),
+    ("plant_drink", "drinks", "plant_drink", "liquid", "drink", "breakfast", r"plant-based-milks|milk-substitutes|rice-based-drinks|oat-based-drinks|soy-milks|almond-milks|hazelnut-based-drinks|plant-milks|coconut-milks", r"boisson (v[ée]g[ée]tale|au riz|[àa] l.avoine|soja|amande|coco|avoine)|lait (d.|de )?(amande|avoine|soja|coco|riz)|bevande"),
     ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"\bjus\b|nectar|pur jus|tropico|capri.?sun|oasis\b|boisson aux fruits|fruit shoot|smoothie|cocktail (?:de )?fruits?|cocktail multifruits?"),
     ("soda", "drinks", "soda", "liquid", "drink", "any", r"sodas|carbonated-drinks|colas|lemonades|energy-drinks", r"\bcola\b|\bcoca.?cola\b|limonade|\bsoda\b|boissons? gazeuses?|orangina|fanta|sprite|energy drink|boissons? [ée]nerg[ée]tisantes?"),
     ("water", "drinks", "water", "liquid", "drink", "any", r"waters|spring-waters|mineral-waters", r"^eau\b|eau (min[ée]rale|de source|gazeuse|plate)"),
@@ -92,7 +92,7 @@ R = [
     ("pods_senseo", "drinks", "coffee", "pod", "pod", "hot_drink", r"senseo|coffee-pods", r"senseo|dosettes? souples?|\bpods?\b"),
     ("capsule_other", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"coffee-capsules|(?:^|\s)en:capsules", r"capsules?|dosettes?"),
     ("coffee_beans", "drinks", "coffee", "beans", "beans", "hot_drink", r"coffee-beans|whole-bean|roasted-coffee-beans", r"(?:caf[ée]|coffee|espresso|caff[èe])\b.{0,25}\b(?:en grains?|grains?|in grani|beans?)\b|\b(?:en grains?|grains?|in grani|beans?)\b.{0,25}\b(?:caf[ée]|coffee|espresso|caff[èe])\b"),
-    ("instant_coffee", "drinks", "coffee", "instant", "instant", "hot_drink", r"instant-coffees|soluble-coffees", r"soluble|instantan|instant"),
+    ("instant_coffee", "drinks", "coffee", "instant", "instant", "hot_drink", r"instant-coffees|soluble-coffees", r"soluble|caf[eé]\s+instant\w*|instant\w*\s+(?:de\s+|d.)?caf[eé]|\binstant coffee\b"),
     ("ground_coffee", "drinks", "coffee", "ground", "ground", "hot_drink", r"ground-coffees|(?:^|\s)en:coffees\b|filter-coffees|roasted-coffees", r"\bmoulu|ground coffee|caf[eé] moulu|\bcaf[eé]\b|\bespressos?\b"),
     ("herbal_tea", "drinks", "infusion", "infusion", "infusion", "hot_drink", r"herbal-teas|infusions|tisanes|herbal-infusions", r"tisane|infusion"),
     # Bare "the" (no accent) is the ordinary English word "the", found in all kinds of unrelated brand names
@@ -120,7 +120,7 @@ R = [
     ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops|caramels", r"bonbon|gomme|r[ée]glisse|sucette|mentos|dragées?|chewy|caramels? mous|\bcaramel\b|p[âa]tes? de fruits"),
     # ---- savoury snacks, meals
     ("chips", "snacks", "chips", "chips", "chips", "snacking", r"chips|crisps|potato-crisps|tortilla-chips|puffs", r"\bchips\b|\bcrisps\b|chips? (?:de|au|aux|à la)|tortilla chips|nachos"),
-    ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|seeds", r"(?!.*\bhuiles?\b)(?:amande|cajou|cacahu|pistache|noix|noisette|fruits secs|graines)"),
+    ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|seeds", r"(?!.*\bhuiles?\b)(?:amande|cajou|cacahu|pistache|noix|noisette|pignons?|fruits secs|graines)"),
     ("soup", "meals", "soup", "liquid", "soup", "meal", r"soups|veloutes|broths", r"soupe|velout[ée]|bouillon"),
     # Raw dough to bake and top at home is not a substitute for a finished, ready-to-eat pizza: different preparation, different use.
     ("pizza_dough", "cereals_bakery", "dough", "pizza_dough", "raw_dough", "cooking_ingredient", r"pizza-dough|pizza-bases|pizza-shells", r"p[âa]te à pizza|fond(?:s)? de pizza|base(?:s)? (?:à |pour )?pizza|pizza dough"),
@@ -388,7 +388,10 @@ _CHEESE_FLAVOUR = re.compile(
 
 
 # A drink is not the ingredient its name mentions ("limonade artisanale pomme aux épices", "boisson chocolatée").
-_DRINK_NAME = re.compile(r"\b(?:boissons?|limonades?|jus|sodas?|cocktails?|smoothies?|nectars?|p[ée]tillants?|eaux?|bi[èe]res?|vins?|infusions?|th[ée]s?|caf[ée]s?)\b", re.I)
+# Coffee, tea, wine and beer are deliberately absent: they are flavors and ingredients as often as drinks
+# ("glace au café", "coq au vin", "poulet à la bière" are foods, not beverages), and no ingredient type would
+# claim them anyway - the drink guard only misfires on them.
+_DRINK_NAME = re.compile(r"\b(?:boissons?|limonades?|jus|sodas?|cocktails?|smoothies?|nectars?|p[ée]tillants?|eaux?)\b", re.I)
 # Raw ingredients and produce: when the name reads as a prepared dish that merely contains them, the dish wins.
 _DISH_FAMILIES = {"meat_fish", "produce", "pantry", "dairy"}
 _EXTRA_COMPONENT_TYPES = {"honey", "salt", "sugar", "flour", "spices", "oil", "butter", "milk", "nuts"}
@@ -409,6 +412,12 @@ _TYPE_REJECTS = {
     "chips": re.compile(r"chips? cookies?|chocolate chips?|chips? au chocolat|p[ée]pites? de chocolat", re.I),
     "fruits_veg": re.compile(r"pur[ée]es?|grill|marin|r[ôo]ti", re.I),   # a purée or a grilled vegetable is another preparation
     "corn": re.compile(r"flakes?|chips?|popcorn|flocons?|cereals?|muesli|granola|salad|soupe?|soup|glace|ice cream|g[âa]teaux?|biscuits?|galettes?|cr[êe]pes?|gaufres?", re.I),   # corn flakes, popcorn, corn cakes and corn snacks are not corn
+    # A coffee is not a dessert or a dairy product: "glace au café" and "yaourt café" are those products, not coffee.
+    "coffee_beans": re.compile(r"glaces?|ice cream|sorbet|yaourts?|yogurts?|mousse|g[âa]teaux?|cakes?|desserts?", re.I),
+    "ground_coffee": re.compile(r"glaces?|ice cream|sorbet|yaourts?|yogurts?|mousse|g[âa]teaux?|cakes?|desserts?", re.I),
+    "instant_coffee": re.compile(r"glaces?|ice cream|sorbet|yaourts?|yogurts?|mousse|g[âa]teaux?|cakes?|desserts?", re.I),
+    # A dairy dessert is not automatically a spoon dessert: a vanilla yogurt is a yogurt.
+    "dessert": re.compile(r"yaourts?|yogurts?|glaces?|sorbet", re.I),
 }
 # A flavoured yogurt is not a plain one, whatever generic "yogurts" tag it carries.
 _FLAVOURED_YOGURT = re.compile(
@@ -435,10 +444,13 @@ def _ingredient_not_standalone(tid: str, family: str, name: str) -> bool:
     ingredient for substitution purposes (a lemonade aux épices is not a spice, a galette jambon is not a ham)."""
     if family == "drinks":
         return False
+    if tid == "fish_canned":
+        # Canned fish is preserved IN a sauce, oil or wine: "maquereaux au vin blanc" is still fish, not a drink.
+        # Only a real beverage word (boisson, jus, ...) disqualifies it - "vin blanc" as a preserving liquid does not.
+        stripped = re.sub(r"\bvin\s+(?:blanc|rouge|ros[ée])\b", " ", name, flags=re.I)
+        return bool(_DRINK_NAME.search(stripped))
     if _DRINK_NAME.search(name):
         return True
-    if tid == "fish_canned":
-        return False   # canned fish is preserved IN a sauce or oil: "sardines à la sauce tomate" is still sardines, not a sauce dish
     if (family in _DISH_FAMILIES or tid in _EXTRA_COMPONENT_TYPES) and _DISH_CONTEXT.search(name):
         return True
     return False
