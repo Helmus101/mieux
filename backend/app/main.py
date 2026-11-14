@@ -1511,8 +1511,21 @@ def _search_any(orig: Dict[str, Any]) -> List[Dict[str, Any]]:
         return []
 
 
+def _name_any(terms: List[str]) -> List[Dict[str, Any]]:
+    """Products whose name carries any of these terms (OR search over the local copy); never decides comparability."""
+    fn = getattr(app.state.off, "search_any", None)
+    if not terms or fn is None:
+        return []
+    try:
+        return fn(terms)
+    except Exception:
+        return []
+
+
 def _untyped_search(orig: Dict[str, Any], prio, allergens) -> List[Dict[str, Any]]:
-    """For a product no rule and no category tag describes: candidates found by its most distinctive name words (all of them, then each of the two longest)."""
+    """For a product no rule and no category tag describes: candidates found by its most distinctive name words (all of them,
+    then each of the two longest), plus everything whose name carries its head noun - the word that names the food, which
+    is how "Myrtilles sauvages au sirop" still finds "Myrtilles". The compatibility gate, not retrieval, decides what fits."""
     if not taxonomy.is_uncategorised(orig):
         return []
     words = sorted(taxonomy._untyped_tokens(orig), key=len, reverse=True)[:3]
@@ -1525,6 +1538,12 @@ def _untyped_search(orig: Dict[str, Any], prio, allergens) -> List[Dict[str, Any
                     out.setdefault(p["barcode"], p)
         except (OFFError, AttributeError):
             continue
+    head_word = taxonomy._head_word(orig)
+    if head_word:
+        for r in _name_any([head_word]):
+            if r.get("product_name") and _raw_candidate(r, prio or [], allergens or [], orig):
+                p = normalize(r)
+                out.setdefault(p["barcode"], p)
     return list(out.values())
 
 
