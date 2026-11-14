@@ -34,7 +34,10 @@ R = [
     ("dip", "condiments", "dip", "dip", "tub", "snacking", r"(?:^|\s)en:(?:dips|hummus|houmous|taramas?|tzatziki|guacamoles?)(?:\s|$)|fr:(?:houmous|taramas?|tzatziki)", r"houm[ou]{1,2}s|hummus|tarama|tzatziki|guacamole|ktipiti|baba ghan|mouhamara|dip\b"),
     ("tapenade", "condiments", "sauce", "tapenade", "jar", "meal", r"(?:^|\s)en:(?:tapenades?|antipasti|olive-spreads?)(?:\s|$)", r"tapenade|caviar d.aubergine|cr[èe]me d.olive|cr[èe]me de poivron|antipasti|sp[ée]cialit[ée] (?:[àa]|aux?) (?:la |l.)?(?:tomate|olive|poivron|aubergine)"),
     ("sugar", "pantry", "sugar", "sugar", "granulated", "baking", r"(?:^|\s)en:(?:white-|cane-|brown-|powdered-|icing-)?sugars?(?:\s|$)", r"^sucre|\bsucre (blanc|roux|semoule|en poudre|glace|de canne)|\bsugar\b"),
+    ("salt", "pantry", "salt", "salt", "granulated", "seasoning", r"(?:^|\s)en:(?:salts?|sea-salts?|table-salts?|fleur-de-sel)(?:\s|$)", r"^sel\b|\bsel (fin|gros|marin|de mer|gris|fleur)|\bsea salt\b|\btable salt\b"),
+    ("spices", "pantry", "spice", "spice", "powder", "seasoning", r"(?:^|\s)en:(?:spices?|seasonings?|herbs-and-spices|dried-herbs|peppers|paprikas?|cinnamons?|cumin|curry-powders?|spice-mixes?)(?:\s|$)", r"\b[ée]pices?\b|\bspices?\b|paprika|cumin|curry (en poudre|powder)|\bpoivre\b|\bpepper\b|cannelle|\bcinnamon\b|muscade|nutmeg|safran|saffron|origan|oregano|\bthym\b|\bthyme\b|basilic|basil|herbes de provence|\bpiment\b|chili powder|garam masala|\bcurcuma\b|turmeric"),
     ("syrup", "pantry", "sweetener", "syrup", "liquid", "sweetener", r"agave-syrups|maple-syrups", r"sirop d.agave|sirop d.[ée]rable|agave syrup|maple syrup"),
+    ("flour", "pantry", "flour", "flour", "powder", "baking", r"flours|wheat-flours|cereal-flours|rice-flours|maize-flours|chestnut-flours", r"\bfarine\b|\bflour\b|\bsemoule\b|\bsemolina\b"),
     ("smoked_fish", "fish", "fish", "smoked_fish", "slice", "meal", r"smoked-fishes|smoked-trouts|smoked-salmons", r"saumon fum|truite fum|smoked (salmon|trout)|poisson fum"),
     ("surimi", "fish", "fish", "surimi", "stick", "meal", r"surimi", r"surimi"),
     ("veggie_patty", "meat_alt", "meat_alternative", "patty", "patty", "meal", r"vegetarian-patties|vegan-patties|patties-from-soy|meat-analogues", r"steak (v[ée]g|de soja|de bl[ée])|burger v[ée]g|galette v[ée]g|v[ée]g[ée]tal.*(steak|burger)|vegetarian (burger|patty)"),
@@ -74,13 +77,15 @@ R = [
     ("butter", "dairy", "fat", "fat", "spread", "spread_cook", r"(?:^|\s)en:(?:butters|margarines)\b|matieres-grasses-vegetales", r"^beurre\b|margarine|\bflora\b|\bbecel\b|\bproactiv\b|v[ée]g[ée]tal doux|plant.?based butter"),
     # ---- drinks
     ("plant_drink", "drinks", "plant_drink", "liquid", "drink", "breakfast", r"plant-based-milks|milk-substitutes|rice-based-drinks|oat-based-drinks|soy-milks|almond-milks|hazelnut-based-drinks|plant-milks", r"boisson (v[ée]g[ée]tale|au riz|[àa] l.avoine|soja|amande|coco|avoine)|lait (d.|de )?(amande|avoine|soja|coco|riz)|bevande"),
-    ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"jus (de|d.)|nectar|pur jus|tropico|capri.?sun|oasis\b|boisson aux fruits"),
+    ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"\bjus\b|nectar|pur jus|tropico|capri.?sun|oasis\b|boisson aux fruits|fruit shoot|smoothie|cocktail (?:de )?fruits?|cocktail multifruits?"),
     ("soda", "drinks", "soda", "liquid", "drink", "any", r"sodas|carbonated-drinks|colas|lemonades|energy-drinks", r"cola|limonade|soda|boisson gazeuse|orangina|fanta|sprite|energy"),
     ("water", "drinks", "water", "liquid", "drink", "any", r"waters|spring-waters|mineral-waters", r"^eau\b|eau (min[ée]rale|de source|gazeuse|plate)"),
     # Alcohol: a beer, a wine and a spirit are three different purchases and never substitute each other.
     ("beer", "drinks", "beer", "beer", "liquid", "drink", r"beers|craft-beers|non-alcoholic-beers|ales|lagers|radlers", r"bi[èe]re|\bbeer\b|pale ale|\bipa\b|stout|lager|panach[ée]|grimbergen|heineken|leffe"),
     ("wine", "drinks", "wine", "wine", "liquid", "drink", r"wines|red-wines|white-wines|rose-wines|sparkling-wines|champagnes", r"\bvin\b|\bwine\b|ros[ée]|champagne|prosecco|cr[ée]mant|bordeaux|bourguignon|sauvignon|merlot"),
     ("spirits", "drinks", "spirits", "spirits", "liquid", "drink", r"spirits|vodkas|whiskies|whisky|rums|gins|liqueurs|brandies|pastis|tequilas", r"vodka|whisk(?:y|ies)|rhum|\brum\b|\bgin\b|liqueur|pastis|calvados|cognac|armagnac|tequila"),
+    # A cordial to dilute ("sirop de citron") is a drink, not a cough syrup.
+    ("drink_syrup", "drinks", "syrup", "cordial", "liquid", "drink", r"syrups|drink-syrups|cordials|fruit-syrups", r"^(?!.*\btoux\b).*\bsirops?\b|\bcordial\b|\bdiluant\b"),
     ("capsule_nespresso", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"nespresso", r"nespresso"),
     ("capsule_dolce_gusto", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"dolce-gusto", r"dolce ?gusto"),
     ("capsule_tassimo", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"tassimo", r"tassimo"),
@@ -101,6 +106,7 @@ R = [
     ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre (de |d.)(cacahu|amande|noisette|cajou)|peanut butter|(almond|cashew|hazelnut) butter|pur[ée]e (d.|de )?(amandes?|noisettes?|cajou|noix de cajou|cacahu[eè]tes?|pistaches?|noix de p[ée]can|s[ée]same)|cr[èe]me d.amandes?\b(?!.*(dessert|glac))|tahin"),
     ("honey", "sweet", "spread", "spread", "spread", "breakfast", r"honeys", r"\bmiel\b"),
     ("ice_cream", "sweet", "dessert", "ice_cream", "frozen", "dessert", r"ice-creams|frozen-desserts|sorbets|ice-cream-tubs|ice-cream-cones", r"\bglaces?\b|sorbet|ice cream|cr[èe]me glac[ée]e|esquimau"),
+    ("dessert", "sweet", "dessert", "dessert", "spoon", "dessert", r"(?:^|\s)en:(?:desserts|dairy-desserts|egg-desserts)(?:\s|$)", r"\bdesserts?\b|\bmousse\b|panna cotta|\btyramisu\b|\btiramisu\b|riz au lait|\bpudding\b"),
     # ---- chocolate confectionery (tablets, bars for confectionery use - NOT snack bars)
     # IMPORTANT: Chocolate tablets are confectionery, not snack bars, even if they contain nuts or fruit
     ("chocolate_bar", "sweet", "chocolate", "bar", "bar", "snacking", r"chocolates|chocolate-bars|dark-chocolates|milk-chocolates", r"chocolat (noir|au lait|blanc)(?!.*(barre|energy|sport|protein|c[ée]r[ée]ale|granola))|tablette"),
@@ -111,13 +117,17 @@ R = [
     ("chewing_gum", "sweet", "candy", "gum", "gum", "snacking", r"chewing-gums?|chewing gums?", r"chewing[- ]?gum|\btrident\b|hollywood|freedent"),
     ("licorice", "sweet", "candy", "licorice", "licorice", "snacking", r"liquorice|licorice|r[ée]glisse", r"r[ée]glisse|liquorice|licorice|amarelli"),
     ("gummies", "sweet", "candy", "gummy", "gummy", "snacking", r"gummies|jelly-candies|fruit-gums|marshmallows", r"gomm(e|es) (fruit|ours)|gummi|gummies|ourson|haribo|jelly|marshmallow|guimauve|fruits? gums?"),
-    ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops", r"bonbon|gomme|r[ée]glisse|sucette|mentos|dragées?|chewy|caramels? mous"),
+    ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops|caramels", r"bonbon|gomme|r[ée]glisse|sucette|mentos|dragées?|chewy|caramels? mous|\bcaramel\b"),
     # ---- savoury snacks, meals
     ("chips", "snacks", "chips", "chips", "chips", "snacking", r"chips|crisps|potato-crisps|tortilla-chips|puffs", r"chips|tortilla|crisps"),
     ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|dried-fruits|seeds", r"(?!.*\bhuiles?\b)(?:amande|cajou|cacahu|pistache|noix|noisette|fruits secs|graines)"),
     ("soup", "meals", "soup", "liquid", "soup", "meal", r"soups|veloutes|broths", r"soupe|velout[ée]|bouillon"),
     # Raw dough to bake and top at home is not a substitute for a finished, ready-to-eat pizza: different preparation, different use.
     ("pizza_dough", "cereals_bakery", "dough", "pizza_dough", "raw_dough", "cooking_ingredient", r"pizza-dough|pizza-bases|pizza-shells", r"p[âa]te à pizza|fond(?:s)? de pizza|base(?:s)? (?:à |pour )?pizza|pizza dough"),
+    # Raw pastry to roll at home is its own purchase (not a finished cake, tart or pizza).
+    ("dough", "cereals_bakery", "dough", "pastry_dough", "raw_dough", "cooking_ingredient", r"pie-dough|pastry-dough|shortcrust-pastry|puff-pastry|brick-pastry|filo-pastry", r"p[âa]tes? (feuillet|bris|sabl|lev|à tarte|à croissant|à choux|phyllo|filo|brick)|puff pastry|shortcrust|p[âa]te [àa] (?:tout )?faire"),
+    # A tart is its own bakery purchase: a fruit tart is not a cake, and a tarte fine is not a pizza.
+    ("tart", "sweet", "cake", "tart", "tart", "snacking", r"(?:^|\s)en:(?:tarts|fruit-tarts|pies|tartlets)(?:\s|$)", r"tartes?\b|tartelettes?|\bpie\b"),
     ("pizza", "meals", "pizza", "pizza", "pizza", "meal", r"pizzas|quiches|tarte-flambes?", r"pizza|quiche|flammekueche|tarte flamb"),
     ("ready_meal", "meals", "ready_meal", "meal", "meal", "meal", r"meals|prepared-meals|ready-meals|sandwiches|salads", r"plat cuisin|lasagne|hachis|couscous|paella|sandwich|salade"),
     ("ham", "meat_fish", "charcuterie", "slices", "cold_cut", "meal", r"hams|cooked-hams|dry-hams|charcuteries|bacon|cured-meats", r"jambon|lardons|saucisson|charcuterie|bacon|\bham\b|gammon"),
@@ -131,7 +141,7 @@ R = [
     ("pork", "meat_fish", "red_meat", "meat_cut", "cut", "meal", r"(?:^|\s)en:(?:pork|pork-cuts|pork-roasts|pork-chops|pork-tenderloin|pork-loin)(?:\s|$)", r"\bporc\b|\bpork\b|\bcochon\b"),
     ("veal", "meat_fish", "red_meat", "meat_cut", "cut", "meal", r"(?:^|\s)en:(?:veal|veal-cuts|veal-escalopes)(?:\s|$)", r"\bveau\b|\bveal\b"),
     ("lamb", "meat_fish", "red_meat", "meat_cut", "cut", "meal", r"(?:^|\s)en:(?:lamb|lamb-cuts|mutton|gigots)(?:\s|$)", r"\bagneau\b|\blamb\b|\bmouton\b|gigot"),
-    ("pate_terrine", "meat_fish", "charcuterie", "pate", "spread", "meal", r"country-terrines|terrines|rillettes|duck-rillettes|pates-de-campagne|pates-en-croute|foie-gras|pate-de-campagne", r"rillettes?|terrines?|p[âa]t[ée] de campagne|p[âa]t[ée] de foie|p[âa]t[ée] en cro[ûu]te|foie gras"),
+    ("pate_terrine", "meat_fish", "charcuterie", "pate", "spread", "meal", r"country-terrines|terrines|rillettes|duck-rillettes|pates-de-campagne|pates-en-croute|foie-gras|pate-de-campagne", r"rillettes?|terrines?|p[âa]t[ée] (?:de campagne|de foie|de t[êe]te|de canard|de lapin|de gibier|du chef|breton|en cro[ûu]te|de volaille)|p[âa]t[ée] [àa] la|foie gras"),
     ("fish_canned", "meat_fish", "fish", "can", "cold_fish", "meal", r"canned-fish|tunas|sardines|mackerels|canned-tunas", r"thon|sardine|maquereau|saumon fum"),
     # Specific vegetable forms before the generic bucket below: a jarred grilled/marinated vegetable, a smooth cooked purée and
     # raw/frozen produce are not interchangeable (different preparation, different use), so each gets its own type.
@@ -140,6 +150,7 @@ R = [
     ("mushrooms", "produce", "fruit_veg", "mushroom", "mushroom", "cooking_ingredient", r"mushrooms|canned-mushrooms|dried-mushrooms|fresh-mushrooms|fungi|fruits|vegetables|fresh-plant", r"champignons?|c[eè]pes?|girolles?|morilles?|pleurotes?|shiitak[ei]|portobello|chanterelles?"),
     ("fruits_veg", "produce", "fruit_veg", "produce", "produce", "meal", r"fruits|vegetables|fresh-plant|plant-based-foods-and-beverages-fruits|canned-vegetables", r"l[ée]gumes|haricots verts|petits pois|tomates? (pel|concass)|carotte|pomme de terre"),
     ("legumes", "produce", "legumes", "legumes", "legumes", "meal", r"legumes|pulses|lentils|chickpeas|beans|pois-chiches", r"lentille|pois chiche|haricots (rouges|blancs)|f[èe]ves"),
+    ("potatoes", "produce", "vegetable", "potato", "fresh", "meal", r"(?:^|\s)en:(?:potatoes?|potato-products|fresh-potatoes)(?:\s|$)", r"pommes? de terre|patates?\b|\bpotato(?:es)?\b"),
     # Olives are their own small category: a jar of green olives substitutes another jar of olives, never olive oil (the name
     # starts with "huile") and never a pizza that merely lists olives among its ingredients.
     ("olives", "produce", "olives", "olives", "jar", "snacking", r"(?:^|\s)en:(?:olives?|marinated-olives|green-olives|black-olives|pitted-olives|stuffed-olives|kalamata-olives|whole-olives)(?:\s|$)", r"^(?!.*\b(?:huile|oil|olio)\b)(?:les?\s+)?(?:olives?|aceitunas?)\b"),
@@ -150,6 +161,9 @@ R = [
     ("mustard", "condiments", "sauce", "sauce", "sauce", "any", r"mustards", r"moutarde"),
     ("vinegar", "condiments", "condiment", "vinegar", "liquid", "seasoning", r"vinegars|balsamic-vinegars|balsamic-vinegars-of-modena|wine-vinegars|apple-cider-vinegars", r"vinaigre|vinegar|balsamique"),
     ("protein_powder", "supplements", "supplement", "powder", "powder", "sports_energy", r"protein-powders|whey-proteins|protein-supplements", r"whey|isolat|casein|cas[ée]ine|prot[ée]ine.{0,12}(?:poudre|powder)|protein powder"),
+    ("supplement", "supplements", "supplement", "supplement", "capsule", "health", r"dietary-supplements|food-supplements|vitamins|minerals|spirulina|herbal-supplements", r"compl[ée]ment alimentaire|\bsuppl[ée]ment\b|vitamines?\b|magn[ée]sium|collag[èe]ne|spiruline|om[ée]ga.?3|\bgelules?\b|\bcapsules?\b"),
+    # Generic sauces last among the sauces: a marinade, a curry sauce or a nems sauce is still a sauce, never a "meal".
+    ("sauce", "condiments", "sauce", "sauce", "sauce", "seasoning", r"(?:^|\s)en:(?:sauces|meal-sauces|cooking-sauces|vegetable-sauces|olive-sauces|sauce)(?:\s|$)", r"\bsauces?\b|\bsalsa\b|\bchutney\b|\brelish\b|\bmarinade\b|\bcondiment\b"),
     ("oil", "fats_oils", "oil", "oil", "oil", "cooking", r"vegetable-oils|olive-oils|sunflower-oils|rapeseed-oils|oils", r"huile"),
 ]
 RULES = [(tid, fam, cat, sub, form, use, re.compile(tr, re.I), re.compile(nr, re.I)) for tid, fam, cat, sub, form, use, tr, nr in R]
@@ -203,6 +217,10 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "pate": {"pate_terrine": 1},
     "beer": {"beer": 1}, "wine": {"wine": 1}, "spirits": {"spirits": 1}, "vinegar": {"vinegar": 1},
     "protein_powder": {"protein_powder": 1}, "ice_cream": {"ice_cream": 1},
+    "salt": {"salt": 1}, "spices": {"spices": 1}, "potatoes": {"potatoes": 1}, "flour": {"flour": 1},
+    "dough": {"dough": 1, "pizza_dough": 2}, "tart": {"tart": 1, "cakes": 3},
+    "drink_syrup": {"drink_syrup": 1}, "supplement": {"supplement": 1}, "dessert": {"dessert": 1, "ice_cream": 2},
+    "sauces": {"sauce": 1},   # a generic sauce is another generic sauce; ketchup, mayonnaise and tomato sauce keep their own clusters
     "rice_pudding": {"rice_pudding": 1},   # riz au lait is a milk dessert, never a rice grain and never a flan
     "compote": {"compote": 1},             # a fruit dessert, never a spread
     "legumes": {"legumes": 1},   # fruit and pulses are different purchases: no shared cluster
@@ -550,6 +568,10 @@ TYPE_TERMS: Dict[str, List[str]] = {
     "turkey": ["dinde", "escalope de dinde"], "duck": ["canard", "magret"],
     "beef": ["boeuf", "bœuf", "steak haché"], "pork": ["porc", "rôti de porc"],
     "beer": ["bière"], "wine": ["vin rouge", "vin blanc", "vin rosé"], "ice_cream": ["glace", "crème glacée"],
+    "salt": ["sel fin", "gros sel", "sel marin"], "spices": ["épices", "paprika", "poivre", "cumin"], "flour": ["farine", "semoule"],
+    "potatoes": ["pommes de terre", "patates"], "dough": ["pâte feuilletée", "pâte brisée"],
+    "tart": ["tarte", "tartelette"], "sauce": ["sauce"], "dessert": ["dessert", "mousse"],
+    "drink_syrup": ["sirop de citron", "sirop de menthe"], "supplement": ["complément alimentaire", "vitamines"],
     "speculoos": ["speculoos", "spéculoos", "speculaas", "biscoff"],
     "herbal_lozenge": ["pastilles gorge", "ricola", "valda", "bonbons plantes menthol"],
     "chocolate_spread": ["pâte à tartiner"],

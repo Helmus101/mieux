@@ -61,6 +61,37 @@ def test_a_category_only_product_never_substitutes_a_typed_one():
     assert taxonomy.substitution(other, olives) is None
 
 
+def test_pantry_and_bakery_buckets_land_in_the_right_category():
+    cases = [
+        ("Sel fin au piment d'espelette", [], "salt"),
+        ("Sucre en poudre", ["en:sugars"], "sugar"),
+        ("Mélange d'épices", [], "spices"),
+        ("Farine de blé T55", [], "flour"),
+        ("Sauce marinière", [], "sauce"),
+        ("Sauce tomate basilic", ["en:tomato-sauces"], "tomato_sauce"),
+        ("Ketchup Heinz", ["en:ketchups"], "ketchup"),
+        ("Mayonnaise", ["en:mayonnaises"], "mayonnaise"),
+        ("Tarte aux fraises", [], "tart"),
+        ("Quiche lorraine", [], "pizza"),
+        ("Pâte feuilletée", [], "dough"),
+        ("Pâte à pizza", [], "pizza_dough"),
+        ("Pâte à tartiner", [], "chocolate_spread"),
+        ("Jus pomme framboise", [], "fruit_juice"),
+        ("Cocktail multifruits", [], "fruit_juice"),
+        ("Caramel beurre salé", [], "candy"),
+        ("Sirop de citron", [], "drink_syrup"),
+        ("Pâté de tête persillé", [], "pate_terrine"),
+        ("Pommes de terre", [], "potatoes"),
+    ]
+    for name, tags, want in cases:
+        assert _type(name, tags) == want, (name, _type(name, tags), want)
+
+
+def test_a_cough_syrup_is_not_a_drink_and_a_date_paste_is_not_a_pate():
+    assert _type("Sirop pour la toux", []) != "drink_syrup"
+    assert _type("Pâte de dattes", []) != "pate_terrine"
+
+
 OLIVE_TAGS = ["en:pickles", "en:olive-tree-products", "en:plant-based-pickles", "en:olives", "en:marinated-olives", "en:pitted-olives"]
 
 
