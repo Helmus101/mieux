@@ -18,7 +18,7 @@ R = [
     ("rusks", "cereals_bakery", "bread", "rusk", "slice_crisp", "breakfast", r"rusks|biscottes", r"biscotte|grilletine|rusk"),
     # Bare "grill" (grilled) alone must never classify a product as toast: "Pistaches grillées", "Poulet grillé" and
     # countless other grilled foods have nothing to do with toasted bread when there is no category tag to rule it out.
-    ("toasted_bread", "cereals_bakery", "bread", "toast", "slice_crisp", "breakfast", r"toasts|toasted-bread|toasted-bread-rolls|pains-grill", r"pain grill|tartines?|\btoast(?:s|ed)?\b"),
+    ("toasted_bread", "cereals_bakery", "bread", "toast", "slice_crisp", "breakfast", r"toasts|toasted-bread|toasted-bread-rolls|pains-grill", r"pain grill|tartines?\b|\btoast(?:s|ed)?\b"),
     ("sandwich_bread", "cereals_bakery", "bread", "sliced_loaf", "slice_soft", "sandwich_making", r"sliced-breads|sandwich-breads|packaged-breads|pains-de-mie", r"pain de mie|pain.*tranch|tranch.*pain|sandwich"),
     ("baguette", "cereals_bakery", "bread", "loaf", "loaf", "meal", r"baguettes|pains-de-campagne|rye-breads|(?<![a-z])breads\b|sourdough", r"baguette|pain de campagne|pain (au|aux|de|complet|nature)|\bpain\b(?!\s+d[ée]pices?)"),
     ("crackers", "cereals_bakery", "snack_cracker", "cracker", "cracker", "snacking", r"crispbreads|pretzels|rice-cakes|(?<!-)crackers?\b|galettes", r"cracker|bretzel|pretzel|galette de riz|knäcke"),
@@ -114,7 +114,7 @@ R = [
     ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops", r"bonbon|gomme|r[ée]glisse|sucette|mentos|dragées?|chewy|caramels? mous"),
     # ---- savoury snacks, meals
     ("chips", "snacks", "chips", "chips", "chips", "snacking", r"chips|crisps|potato-crisps|tortilla-chips|puffs", r"chips|tortilla|crisps"),
-    ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|dried-fruits|seeds", r"amande|cajou|cacahu|pistache|noix|noisette|fruits secs|graines"),
+    ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|dried-fruits|seeds", r"(?!.*\bhuiles?\b)(?:amande|cajou|cacahu|pistache|noix|noisette|fruits secs|graines)"),
     ("soup", "meals", "soup", "liquid", "soup", "meal", r"soups|veloutes|broths", r"soupe|velout[ée]|bouillon"),
     # Raw dough to bake and top at home is not a substitute for a finished, ready-to-eat pizza: different preparation, different use.
     ("pizza_dough", "cereals_bakery", "dough", "pizza_dough", "raw_dough", "cooking_ingredient", r"pizza-dough|pizza-bases|pizza-shells", r"p[âa]te à pizza|fond(?:s)? de pizza|base(?:s)? (?:à |pour )?pizza|pizza dough"),
