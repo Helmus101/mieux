@@ -91,9 +91,9 @@ R = [
     ("capsule_tassimo", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"tassimo", r"tassimo"),
     ("pods_senseo", "drinks", "coffee", "pod", "pod", "hot_drink", r"senseo|coffee-pods", r"senseo|dosettes? souples?|\bpods?\b"),
     ("capsule_other", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"coffee-capsules|(?:^|\s)en:capsules", r"capsules?|dosettes?"),
-    ("coffee_beans", "drinks", "coffee", "beans", "beans", "hot_drink", r"coffee-beans|whole-bean|roasted-coffee-beans", r"\ben grains?\b|grains? de caf|\bbeans?\b"),
+    ("coffee_beans", "drinks", "coffee", "beans", "beans", "hot_drink", r"coffee-beans|whole-bean|roasted-coffee-beans", r"(?:caf[ée]|coffee|espresso|caff[èe])\b.{0,25}\b(?:en grains?|grains?|in grani|beans?)\b|\b(?:en grains?|grains?|in grani|beans?)\b.{0,25}\b(?:caf[ée]|coffee|espresso|caff[èe])\b"),
     ("instant_coffee", "drinks", "coffee", "instant", "instant", "hot_drink", r"instant-coffees|soluble-coffees", r"soluble|instantan|instant"),
-    ("ground_coffee", "drinks", "coffee", "ground", "ground", "hot_drink", r"ground-coffees|(?:^|\s)en:coffees\b|filter-coffees|roasted-coffees", r"\bmoulu|ground coffee|caf[eé] moulu|\bcaf[eé]\b"),
+    ("ground_coffee", "drinks", "coffee", "ground", "ground", "hot_drink", r"ground-coffees|(?:^|\s)en:coffees\b|filter-coffees|roasted-coffees", r"\bmoulu|ground coffee|caf[eé] moulu|\bcaf[eé]\b|\bespressos?\b"),
     ("herbal_tea", "drinks", "infusion", "infusion", "infusion", "hot_drink", r"herbal-teas|infusions|tisanes|herbal-infusions", r"tisane|infusion"),
     # Bare "the" (no accent) is the ordinary English word "the", found in all kinds of unrelated brand names
     # ("Carrefour The Market"); bare "tea" alone is thin too. Require the accented French word or a real tea phrase.
@@ -149,6 +149,8 @@ R = [
     ("vegetable_puree", "produce", "fruit_veg", "puree", "puree", "meal", r"vegetable-purees|pur[ée]es-de-legumes|vegetable-puree", r"pur[ée]e de (?:brocoli|carotte|courgette|potiron|panais|c[ée]leri|patates? douces?|petits? pois|choux?[ -]fleur|l[ée]gumes?)"),
     ("mushrooms", "produce", "fruit_veg", "mushroom", "mushroom", "cooking_ingredient", r"mushrooms|canned-mushrooms|dried-mushrooms|fresh-mushrooms|fungi", r"champignons?|c[eè]pes?|girolles?|morilles?|pleurotes?|shiitak[ei]|portobello|chanterelles?"),
     ("potatoes", "produce", "vegetable", "potato", "fresh", "meal", r"(?:^|\s)en:(?:potatoes?|potato-products|fresh-potatoes)(?:\s|$)", r"pommes? de terre|patates?\b|\bpotato(?:es)?\b"),
+    # Maïs/corn is its own small category: corn flakes, popcorn and corn chips are other products (rejected by name below).
+    ("corn", "produce", "vegetable", "corn", "canned", "meal", r"(?:^|\s)en:(?:corn|canned-corn|canned-sweet-corn|sweet-corn)(?:\s|$)", r"\bmaïs\b|sweet corn|\bcorn\b"),
     # Fresh fruit is its own purchase: an apple is not a cabbage, and not a lemonade either (the name guard below keeps
     # juice, jam, compote, syrup, frozen and cooked versions out). Different fruits are different variants, never substitutes.
     ("fresh_fruit", "produce", "fruit_veg", "fruit", "fresh", "snacking", r"(?:^|\s)en:(?:fresh-fruits?|fruits?|berries|apples|bananas|oranges|citrus|grapes|pears|peaches|apricots|plums|cherries|melons|watermelons|pineapples|mangoes|kiwis|strawberries|raspberries|blueberries|blackberries|currants|lemons|avocados)(?:\s|$)",
@@ -221,7 +223,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "pate": {"pate_terrine": 1},
     "beer": {"beer": 1}, "wine": {"wine": 1}, "spirits": {"spirits": 1}, "vinegar": {"vinegar": 1},
     "protein_powder": {"protein_powder": 1}, "ice_cream": {"ice_cream": 1},
-    "salt": {"salt": 1}, "spices": {"spices": 1}, "potatoes": {"potatoes": 1}, "flour": {"flour": 1},
+    "salt": {"salt": 1}, "spices": {"spices": 1}, "potatoes": {"potatoes": 1}, "flour": {"flour": 1}, "corn": {"corn": 1},
     "fresh_fruit": {"fresh_fruit": 1},
     "dough": {"dough": 1, "pizza_dough": 2}, "tart": {"tart": 1, "cakes": 3},
     "drink_syrup": {"drink_syrup": 1}, "supplement": {"supplement": 1}, "dessert": {"dessert": 1, "ice_cream": 2},
@@ -293,7 +295,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
-                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms", "rice_pudding",
+                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms", "rice_pudding", "corn",
                 "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid in _CHEESE_TYPES and _not_a_cheese(name):
@@ -406,6 +408,7 @@ _TYPE_REJECTS = {
     "pasta": re.compile(r"\bp[âa]t[èéêe]\b|charcut|p[âa]tes? de fruits", re.I),
     "chips": re.compile(r"chips? cookies?|chocolate chips?|chips? au chocolat|p[ée]pites? de chocolat", re.I),
     "fruits_veg": re.compile(r"pur[ée]es?|grill|marin|r[ôo]ti", re.I),   # a purée or a grilled vegetable is another preparation
+    "corn": re.compile(r"flakes?|chips?|popcorn|flocons?|cereals?|muesli|granola|salad|soupe?|soup|glace|ice cream|g[âa]teaux?|biscuits?|galettes?|cr[êe]pes?|gaufres?", re.I),   # corn flakes, popcorn, corn cakes and corn snacks are not corn
 }
 # A flavoured yogurt is not a plain one, whatever generic "yogurts" tag it carries.
 _FLAVOURED_YOGURT = re.compile(
