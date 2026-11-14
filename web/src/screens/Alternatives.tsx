@@ -179,6 +179,7 @@ export default function Alternatives() {
               })()}
               <div className="ameta">
                 {e.vs != null && <span className="tile main" title={e.why}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span></span>}
+                {e.q != null && <span className="sm mut" title={t('alt.qualityTip')}>{t('alt.quality')} {e.q}</span>}
               </div>
             </div>
             <div className="aprice">
