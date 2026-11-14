@@ -434,6 +434,8 @@ def _ingredient_not_standalone(tid: str, family: str, name: str) -> bool:
         return False
     if _DRINK_NAME.search(name):
         return True
+    if tid == "fish_canned":
+        return False   # canned fish is preserved IN a sauce or oil: "sardines à la sauce tomate" is still sardines, not a sauce dish
     if (family in _DISH_FAMILIES or tid in _EXTRA_COMPONENT_TYPES) and _DISH_CONTEXT.search(name):
         return True
     return False
