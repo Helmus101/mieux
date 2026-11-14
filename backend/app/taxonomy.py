@@ -78,14 +78,14 @@ R = [
     # ---- drinks
     ("plant_drink", "drinks", "plant_drink", "liquid", "drink", "breakfast", r"plant-based-milks|milk-substitutes|rice-based-drinks|oat-based-drinks|soy-milks|almond-milks|hazelnut-based-drinks|plant-milks", r"boisson (v[ée]g[ée]tale|au riz|[àa] l.avoine|soja|amande|coco|avoine)|lait (d.|de )?(amande|avoine|soja|coco|riz)|bevande"),
     ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"\bjus\b|nectar|pur jus|tropico|capri.?sun|oasis\b|boisson aux fruits|fruit shoot|smoothie|cocktail (?:de )?fruits?|cocktail multifruits?"),
-    ("soda", "drinks", "soda", "liquid", "drink", "any", r"sodas|carbonated-drinks|colas|lemonades|energy-drinks", r"cola|limonade|soda|boisson gazeuse|orangina|fanta|sprite|energy"),
+    ("soda", "drinks", "soda", "liquid", "drink", "any", r"sodas|carbonated-drinks|colas|lemonades|energy-drinks", r"\bcola\b|\bcoca.?cola\b|limonade|\bsoda\b|boissons? gazeuses?|orangina|fanta|sprite|energy drink|boissons? [ée]nerg[ée]tisantes?"),
     ("water", "drinks", "water", "liquid", "drink", "any", r"waters|spring-waters|mineral-waters", r"^eau\b|eau (min[ée]rale|de source|gazeuse|plate)"),
     # Alcohol: a beer, a wine and a spirit are three different purchases and never substitute each other.
     ("beer", "drinks", "beer", "beer", "liquid", "drink", r"beers|craft-beers|non-alcoholic-beers|ales|lagers|radlers", r"bi[èe]re|\bbeer\b|pale ale|\bipa\b|stout|lager|panach[ée]|grimbergen|heineken|leffe"),
     ("wine", "drinks", "wine", "wine", "liquid", "drink", r"wines|red-wines|white-wines|rose-wines|sparkling-wines|champagnes", r"\bvin\b|\bwine\b|ros[ée]|champagne|prosecco|cr[ée]mant|bordeaux|bourguignon|sauvignon|merlot"),
     ("spirits", "drinks", "spirits", "spirits", "liquid", "drink", r"spirits|vodkas|whiskies|whisky|rums|gins|liqueurs|brandies|pastis|tequilas", r"vodka|whisk(?:y|ies)|rhum|\brum\b|\bgin\b|liqueur|pastis|calvados|cognac|armagnac|tequila"),
     # A cordial to dilute ("sirop de citron") is a drink, not a cough syrup.
-    ("drink_syrup", "drinks", "syrup", "cordial", "liquid", "drink", r"syrups|drink-syrups|cordials|fruit-syrups", r"^(?!.*\btoux\b).*\bsirops?\b|\bcordial\b|\bdiluant\b"),
+    ("drink_syrup", "drinks", "syrup", "cordial", "liquid", "drink", r"syrups|drink-syrups|cordials|fruit-syrups", r"^(?!.*\bau sirop\b)(?!.*\btoux\b).*\bsirops?\b|\bcordial\b|\bdiluant\b"),
     ("capsule_nespresso", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"nespresso", r"nespresso"),
     ("capsule_dolce_gusto", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"dolce-gusto", r"dolce ?gusto"),
     ("capsule_tassimo", "drinks", "coffee", "capsule", "capsule", "hot_drink", r"tassimo", r"tassimo"),
@@ -102,7 +102,7 @@ R = [
     ("chocolate_spread", "sweet", "spread", "spread", "spread", "breakfast", r"chocolate-spreads|hazelnut-spreads|cocoa-and-hazelnuts-spreads|chocolate-and-hazelnut-spreads|pates-a-tartiner-au-chocolat|pates-a-tartiner-aux-noisettes|pates-a-tartiner-au-cacao|produits-a-tartiner-sucres|pates-a-tartiner(?!-vegetal)", r"p[âa]te [àa] tartiner|nutella|pasta cao|chocolate spread"),
     # Compote is a fruit dessert (often for babies), never a spread: it gets its own small category before the jam rule can claim it.
     ("compote", "produce", "fruit", "compote", "spoon", "dessert", r"compotes?|fruit-purees?|apple-compotes?|apple-sauces?", r"\bcompotes?\b|applesauce|pur[ée]e de (pomme|fruit)|compote (de|d.)(pomme|fruit|p[êe]che|abricot|pomme)"),
-    ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|fruit-and-vegetable-preserves|fruit-preserves", r"confiture|confettura|marmelade|compote|gel[ée]e"),
+    ("jam", "sweet", "spread", "spread", "spread", "breakfast", r"jams|marmalades|fruit-spreads|fruit-and-vegetable-preserves|fruit-preserves", r"confiture|confettura|mermelada|marmelade|compote|gel[ée]e|konfit[üu]re|confitura"),
     ("peanut_butter", "sweet", "spread", "spread", "spread", "breakfast", r"peanut-butters|nut-butters", r"beurre (de |d.)(cacahu|amande|noisette|cajou)|peanut butter|(almond|cashew|hazelnut) butter|pur[ée]e (d.|de )?(amandes?|noisettes?|cajou|noix de cajou|cacahu[eè]tes?|pistaches?|noix de p[ée]can|s[ée]same)|cr[èe]me d.amandes?\b(?!.*(dessert|glac))|tahin"),
     ("honey", "sweet", "spread", "spread", "spread", "breakfast", r"honeys", r"\bmiel\b"),
     ("ice_cream", "sweet", "dessert", "ice_cream", "frozen", "dessert", r"ice-creams|frozen-desserts|sorbets|ice-cream-tubs|ice-cream-cones", r"\bglaces?\b|sorbet|ice cream|cr[èe]me glac[ée]e|esquimau"),
@@ -111,16 +111,16 @@ R = [
     # IMPORTANT: Chocolate tablets are confectionery, not snack bars, even if they contain nuts or fruit
     ("chocolate_bar", "sweet", "chocolate", "bar", "bar", "snacking", r"chocolates|chocolate-bars|dark-chocolates|milk-chocolates", r"chocolat (noir|au lait|blanc)(?!.*(barre|energy|sport|protein|c[ée]r[ée]ale|granola))|tablette"),
     ("speculoos", "sweet", "biscuit", "biscuit", "biscuit", "snacking", r"speculoos|speculaas|sp[ée]culoos", r"^(?!.*(tartiner|spread|p[âa]te\\b|cr[èe]me|glace|ice cream|yaourt|yogurt|chocolat|boisson|drink|sirop|caf[ée]|latte|pomme|compote|dessert|fromage|c[ée]r[ée]ales?|muesli|granola|barre|poudre|mousse|flan|riz au lait))(?=.*(sp[ée]culoos|speculaas|biscoff|bastogne|des flandres|lotus))"),
-    ("sweet_biscuits", "sweet", "biscuit", "biscuit", "biscuit", "snacking", r"biscuits|cookies|shortbread|sweet-biscuits|biscuits-and-cakes|butter-biscuits", r"biscuit|cookie|sabl[ée]|petit beurre|galette bretonne|palet"),
+    ("sweet_biscuits", "sweet", "biscuit", "biscuit", "biscuit", "snacking", r"biscuits|cookies|shortbread|sweet-biscuits|butter-biscuits", r"biscuit|cookie|sabl[ée]|petit beurre|galette bretonne|palet"),
     ("cakes", "sweet", "cake", "cake", "cake", "snacking", r"cakes|madeleines|pound-cakes|pancakes|crepes|waffles|muffins", r"gâteau|gateau|madeleine|cake|cr[êe]pe|gaufre|muffin|quatre-quarts"),
     ("herbal_lozenge", "sweet", "candy", "lozenge", "lozenge", "throat", r"throat-lozenges|cough-drops|herbal-candies|lozenges|pastilles", r"ricola|valda|fisherman|halls\b|strepsils|pastilles? (pour la gorge|menthol|eucalyptus|aux plantes|au miel|\w+ miel)|bonbons? (aux )?(plantes|herbes|gorge|menthol|eucalyptus)|\bmenthol|eucalyptus|\bgorge\b|lozenge|cough"),
     ("chewing_gum", "sweet", "candy", "gum", "gum", "snacking", r"chewing-gums?|chewing gums?", r"chewing[- ]?gum|\btrident\b|hollywood|freedent"),
     ("licorice", "sweet", "candy", "licorice", "licorice", "snacking", r"liquorice|licorice|r[ée]glisse", r"r[ée]glisse|liquorice|licorice|amarelli"),
     ("gummies", "sweet", "candy", "gummy", "gummy", "snacking", r"gummies|jelly-candies|fruit-gums|marshmallows", r"gomm(e|es) (fruit|ours)|gummi|gummies|ourson|haribo|jelly|marshmallow|guimauve|fruits? gums?"),
-    ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops|caramels", r"bonbon|gomme|r[ée]glisse|sucette|mentos|dragées?|chewy|caramels? mous|\bcaramel\b"),
+    ("candy", "sweet", "candy", "candy", "candy", "snacking", r"candies|confectioneries|gummies|chewing-gum|lollipops|caramels", r"bonbon|gomme|r[ée]glisse|sucette|mentos|dragées?|chewy|caramels? mous|\bcaramel\b|p[âa]tes? de fruits"),
     # ---- savoury snacks, meals
-    ("chips", "snacks", "chips", "chips", "chips", "snacking", r"chips|crisps|potato-crisps|tortilla-chips|puffs", r"chips|tortilla|crisps"),
-    ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|dried-fruits|seeds", r"(?!.*\bhuiles?\b)(?:amande|cajou|cacahu|pistache|noix|noisette|fruits secs|graines)"),
+    ("chips", "snacks", "chips", "chips", "chips", "snacking", r"chips|crisps|potato-crisps|tortilla-chips|puffs", r"\bchips\b|\bcrisps\b|chips? (?:de|au|aux|à la)|tortilla chips|nachos"),
+    ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|seeds", r"(?!.*\bhuiles?\b)(?:amande|cajou|cacahu|pistache|noix|noisette|fruits secs|graines)"),
     ("soup", "meals", "soup", "liquid", "soup", "meal", r"soups|veloutes|broths", r"soupe|velout[ée]|bouillon"),
     # Raw dough to bake and top at home is not a substitute for a finished, ready-to-eat pizza: different preparation, different use.
     ("pizza_dough", "cereals_bakery", "dough", "pizza_dough", "raw_dough", "cooking_ingredient", r"pizza-dough|pizza-bases|pizza-shells", r"p[âa]te à pizza|fond(?:s)? de pizza|base(?:s)? (?:à |pour )?pizza|pizza dough"),
@@ -145,12 +145,16 @@ R = [
     ("fish_canned", "meat_fish", "fish", "can", "cold_fish", "meal", r"canned-fish|tunas|sardines|mackerels|canned-tunas", r"thon|sardine|maquereau|saumon fum"),
     # Specific vegetable forms before the generic bucket below: a jarred grilled/marinated vegetable, a smooth cooked purée and
     # raw/frozen produce are not interchangeable (different preparation, different use), so each gets its own type.
-    ("grilled_vegetables", "produce", "fruit_veg", "grilled", "jar", "antipasti", r"grilled-vegetables|antipasti|marinated-vegetables|roasted-peppers|roasted-vegetables|fruits|vegetables|fresh-plant", r"poivrons? grill[ée]s?|l[ée]gumes? grill[ée]s?|aubergines? grill[ée]es?|courgettes? grill[ée]es?|antipasti|l[ée]gumes? marin[ée]s?|poivrons? r[ôo]tis?"),
-    ("vegetable_puree", "produce", "fruit_veg", "puree", "puree", "meal", r"vegetable-purees|pur[ée]es-de-legumes|fruits|vegetables|fresh-plant", r"pur[ée]e de (?:brocoli|carotte|courgette|potiron|panais|c[ée]leri|patates? douces?|petits? pois|choux?[ -]fleur|l[ée]gumes?)"),
-    ("mushrooms", "produce", "fruit_veg", "mushroom", "mushroom", "cooking_ingredient", r"mushrooms|canned-mushrooms|dried-mushrooms|fresh-mushrooms|fungi|fruits|vegetables|fresh-plant", r"champignons?|c[eè]pes?|girolles?|morilles?|pleurotes?|shiitak[ei]|portobello|chanterelles?"),
-    ("fruits_veg", "produce", "fruit_veg", "produce", "produce", "meal", r"fruits|vegetables|fresh-plant|plant-based-foods-and-beverages-fruits|canned-vegetables", r"l[ée]gumes|haricots verts|petits pois|tomates? (pel|concass)|carotte|pomme de terre"),
-    ("legumes", "produce", "legumes", "legumes", "legumes", "meal", r"legumes|pulses|lentils|chickpeas|beans|pois-chiches", r"lentille|pois chiche|haricots (rouges|blancs)|f[èe]ves"),
+    ("grilled_vegetables", "produce", "fruit_veg", "grilled", "jar", "antipasti", r"grilled-vegetables|antipasti|marinated-vegetables|roasted-peppers|roasted-vegetables", r"poivrons? grill[ée]s?|l[ée]gumes? grill[ée]s?|aubergines? grill[ée]es?|courgettes? grill[ée]es?|antipasti|l[ée]gumes? marin[ée]s?|poivrons? r[ôo]tis?"),
+    ("vegetable_puree", "produce", "fruit_veg", "puree", "puree", "meal", r"vegetable-purees|pur[ée]es-de-legumes|vegetable-puree", r"pur[ée]e de (?:brocoli|carotte|courgette|potiron|panais|c[ée]leri|patates? douces?|petits? pois|choux?[ -]fleur|l[ée]gumes?)"),
+    ("mushrooms", "produce", "fruit_veg", "mushroom", "mushroom", "cooking_ingredient", r"mushrooms|canned-mushrooms|dried-mushrooms|fresh-mushrooms|fungi", r"champignons?|c[eè]pes?|girolles?|morilles?|pleurotes?|shiitak[ei]|portobello|chanterelles?"),
     ("potatoes", "produce", "vegetable", "potato", "fresh", "meal", r"(?:^|\s)en:(?:potatoes?|potato-products|fresh-potatoes)(?:\s|$)", r"pommes? de terre|patates?\b|\bpotato(?:es)?\b"),
+    # Fresh fruit is its own purchase: an apple is not a cabbage, and not a lemonade either (the name guard below keeps
+    # juice, jam, compote, syrup, frozen and cooked versions out). Different fruits are different variants, never substitutes.
+    ("fresh_fruit", "produce", "fruit_veg", "fruit", "fresh", "snacking", r"(?:^|\s)en:(?:fresh-fruits?|fruits?|berries|apples|bananas|oranges|citrus|grapes|pears|peaches|apricots|plums|cherries|melons|watermelons|pineapples|mangoes|kiwis|strawberries|raspberries|blueberries|blackberries|currants|lemons|avocados)(?:\s|$)",
+     r"^(?!.*\b(?:jus|nectar|sirop|confiture|confit|chutney|compote|s[èe]ch|surgel|conserve|au sirop|chips|crisps|yaourt|glace|tarte|g[âa]teau|boisson|p[ée]tillant|sauce|vinaigre|ar[ôo]me|parfum|saveur|eau|financiers?|biscuits?|cakes?|muffins?|sorbets?|curds?|bonbons?|gel[ée]es?|p[âa]tes? de fruits|smoothies?|yaourts?|desserts?|m[ée]langes?|poudres?)\b).*\b(?:pommes?|bananes?|oranges?|citrons?|ananas|fraises?|framboises?|myrtilles?|poires?|p[êe]ches?|abricots?|raisins?|mangues?|kiwis?|melons?|past[èe]ques?|cl[ée]mentines?|mandarines?|prunes?|cerises?|figues?|dattes?|avocats?|groseilles?)\b"),
+    ("fruits_veg", "produce", "fruit_veg", "produce", "produce", "meal", r"vegetables|canned-vegetables|fresh-vegetables|vegetable-based-foods", r"l[ée]gumes|haricots verts|petits pois|tomates? (pel|concass)|carotte|pomme de terre"),
+    ("legumes", "produce", "legumes", "legumes", "legumes", "meal", r"legumes|pulses|lentils|chickpeas|beans|pois-chiches", r"lentille|pois chiche|haricots (rouges|blancs)|f[èe]ves"),
     # Olives are their own small category: a jar of green olives substitutes another jar of olives, never olive oil (the name
     # starts with "huile") and never a pizza that merely lists olives among its ingredients.
     ("olives", "produce", "olives", "olives", "jar", "snacking", r"(?:^|\s)en:(?:olives?|marinated-olives|green-olives|black-olives|pitted-olives|stuffed-olives|kalamata-olives|whole-olives)(?:\s|$)", r"^(?!.*\b(?:huile|oil|olio)\b)(?:les?\s+)?(?:olives?|aceitunas?)\b"),
@@ -218,6 +222,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "beer": {"beer": 1}, "wine": {"wine": 1}, "spirits": {"spirits": 1}, "vinegar": {"vinegar": 1},
     "protein_powder": {"protein_powder": 1}, "ice_cream": {"ice_cream": 1},
     "salt": {"salt": 1}, "spices": {"spices": 1}, "potatoes": {"potatoes": 1}, "flour": {"flour": 1},
+    "fresh_fruit": {"fresh_fruit": 1},
     "dough": {"dough": 1, "pizza_dough": 2}, "tart": {"tart": 1, "cakes": 3},
     "drink_syrup": {"drink_syrup": 1}, "supplement": {"supplement": 1}, "dessert": {"dessert": 1, "ice_cream": 2},
     "sauces": {"sauce": 1},   # a generic sauce is another generic sauce; ketchup, mayonnaise and tomato sauce keep their own clusters
@@ -239,7 +244,7 @@ _BROAD_LEAFS = {
 
 
 # A preserve/jam tag on a product whose name names no fruit at all is a tagging error, not a jam.
-_JAM_WORDS = re.compile(r"confiture|confettura|marmellata|jam\b|conserve|preserve|marmelade|compote|gel[ée]e|pur[ée]e|fruit|fraise|framboise|myrtille|m[ûu]re|cassis|abricot|pruneau|pomme|poire|figue|orange|citron|agrume|melon|p[êe]che|cerise|banane|coing|rhubarbe", re.I)
+_JAM_WORDS = re.compile(r"confiture|confettura|marmellata|mermelada|confitura|konfit[üu]re|marmelade|jam\b|conserve|preserve|compote|gel[ée]e|pur[ée]e|fruit|fraise|framboise|myrtille|m[ûu]re|cassis|abricot|pruneau|pomme|poire|figue|orange|citron|agrume|melon|p[êe]che|cerise|banane|coing|rhubarbe", re.I)
 
 _CHEESE_TYPES = {"cheese", "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese"}
 
@@ -256,6 +261,15 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
+        if tid == "plain_yogurt" and _FLAVOURED_YOGURT.search(name):
+            continue   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
+        if _ingredient_not_standalone(tid, fam, name):
+            continue   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
+        _reject = _TYPE_REJECTS.get(tid)
+        if _reject and _reject.search(name):
+            continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
+        if tid == "nuts" and _NOT_NUTS_TAG.search(tags):
+            continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast") and nr.search(name):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
 
@@ -263,6 +277,15 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
+        if tid == "plain_yogurt" and _FLAVOURED_YOGURT.search(name):
+            continue   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
+        if _ingredient_not_standalone(tid, fam, name):
+            continue   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
+        _reject = _TYPE_REJECTS.get(tid)
+        if _reject and _reject.search(name):
+            continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
+        if tid == "nuts" and _NOT_NUTS_TAG.search(tags):
+            continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if tr.search(tags) and nr.search(name):
             if tid == "jam" and not _JAM_WORDS.search(name):
                 continue   # 'preserves' tag on barley and lentils: a tagging error, never a jam
@@ -275,6 +298,15 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
+        if tid == "plain_yogurt" and _FLAVOURED_YOGURT.search(name):
+            continue   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
+        if _ingredient_not_standalone(tid, fam, name):
+            continue   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
+        _reject = _TYPE_REJECTS.get(tid)
+        if _reject and _reject.search(name):
+            continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
+        if tid == "nuts" and _NOT_NUTS_TAG.search(tags):
+            continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if nr.search(name) and tid in specific:
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"name matches specific form: {nr.pattern[:40]}"}
 
@@ -282,6 +314,15 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
+        if tid == "plain_yogurt" and _FLAVOURED_YOGURT.search(name):
+            continue   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
+        if _ingredient_not_standalone(tid, fam, name):
+            continue   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
+        _reject = _TYPE_REJECTS.get(tid)
+        if _reject and _reject.search(name):
+            continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
+        if tid == "nuts" and _NOT_NUTS_TAG.search(tags):
+            continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if tr.search(tags):
             if tid == "jam" and not _JAM_WORDS.search(name):
                 continue   # 'preserves' tag on barley and lentils: a tagging error, never a jam
@@ -293,6 +334,15 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
+        if tid == "plain_yogurt" and _FLAVOURED_YOGURT.search(name):
+            continue   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
+        if _ingredient_not_standalone(tid, fam, name):
+            continue   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
+        _reject = _TYPE_REJECTS.get(tid)
+        if _reject and _reject.search(name):
+            continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
+        if tid == "nuts" and _NOT_NUTS_TAG.search(tags):
+            continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if nr.search(name) or nr.search(generic_name):
             # Reject generic "bar" matches without context
             if tid in ("fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar"):
@@ -325,13 +375,61 @@ _CHEESE_DISH = re.compile(
     r"wraps?|bagels?|soupes?|velout[ée]s?|b[ée]chamel|sauces?|carr[ée]s? de (bl[ée]|pomme)|risotto|quinotto|croquettes?|"
     r"beignets?|flan sal[ée]|r[ôöo]stis?|pav[ée]s? (au|aux|de|à)|boulettes?|bouch[ée]es?|po[êe]l[ée]es?|samoussas?|\bnems?\b|"
     r"accras?|aligot|tacos?|cakes? sal[ée]s?|muffins?|omelettes?|tortillas?|frittatas?|goug[èe]res?|cannellonis?|parmentiers?|hachis|"
-    r"rigatonis?|pennes?|spaghettis?|tagliatelles?|fusillis?|macaronis?|gnocchis?|farfalles?|linguines?|pesto|pur[ée]es?|chips?|crisps?",
+    r"rigatonis?|pennes?|spaghettis?|tagliatelles?|fusillis?|macaronis?|gnocchis?|farfalles?|linguines?|pesto|pur[ée]es?|chips?|crisps?|"
+    r"yaourts?|yogourts?|yogurts?|glaces?",
     re.I)
 # A product only FLAVOURED with a cheese ("Lay's saveur emmental") is not that cheese.
 _CHEESE_FLAVOUR = re.compile(
     r"(saveur|go[ûu]t|ar[ôo]me|parfum)[^,.;]{0,20}"
     r"(emmental|comt[ée]|gruy[èe]re|parmesan|cheddar|gouda|roquefort|camembert|brie|mozzarella|ch[èe]vre|feta|ricotta)",
     re.I)
+
+
+# A drink is not the ingredient its name mentions ("limonade artisanale pomme aux épices", "boisson chocolatée").
+_DRINK_NAME = re.compile(r"\b(?:boissons?|limonades?|jus|sodas?|cocktails?|smoothies?|nectars?|p[ée]tillants?|eaux?|bi[èe]res?|vins?|infusions?|th[ée]s?|caf[ée]s?)\b", re.I)
+# Raw ingredients and produce: when the name reads as a prepared dish that merely contains them, the dish wins.
+_DISH_FAMILIES = {"meat_fish", "produce", "pantry", "dairy"}
+_EXTRA_COMPONENT_TYPES = {"honey", "salt", "sugar", "flour", "spices", "oil", "butter", "milk", "nuts"}
+# A word that makes this type impossible in its own right: a pâté is charcuterie (not pasta), a sausage is not a ham,
+# and chocolate chips are not crisps.
+# A "seeds" tag also marks cereals and pulses, which are not nuts.
+_NOT_NUTS_TAG = re.compile(r"legume|cereal|pulse|quinoa|semolina|wheat|rice|buckwheat|barley|oat|rye|corn|maize", re.I)
+_TYPE_REJECTS = {
+    "ham": re.compile(r"saucissons?|saucisses?|salami|chorizo|lardon|bacon|pancetta|rillettes?|p[âa]t[èéêe]\b|volaille|dinde|poulet", re.I),
+    "pasta": re.compile(r"\bp[âa]t[èéêe]\b|charcut|p[âa]tes? de fruits", re.I),
+    "chips": re.compile(r"chips? cookies?|chocolate chips?|chips? au chocolat|p[ée]pites? de chocolat", re.I),
+    "fruits_veg": re.compile(r"pur[ée]es?|grill|marin|r[ôo]ti", re.I),   # a purée or a grilled vegetable is another preparation
+}
+# A flavoured yogurt is not a plain one, whatever generic "yogurts" tag it carries.
+_FLAVOURED_YOGURT = re.compile(
+    r"vanille|vanilla|chocolat|chocolate|schoko|stracciatella|fraise|framboise|myrtille|fruit|miel|honey|caramel|p[ée]pite|cookie|sp[ée]culoos|coco|"
+    r"citron|p[êe]che|peach|abricot|banane|mangue|noisette|amande|cr[èe]me glac[ée]e|sucr[ée]|"
+    r"pfirsich|maracuja|erdbeer|kirsche|himbeer|apfel|zitrone", re.I)
+
+
+# A prepared dish that merely contains an ingredient (a galette jambon, a tarte au chocolat). Unlike _CHEESE_DISH this
+# leaves out the ingredients that are also dish-sounding on their own: "Filets de poulet" and "Purée de carotte" stay
+# poultry and produce.
+_DISH_CONTEXT = re.compile(
+    r"cr[êe]pes?|galettes?|pizzas?|quiches?|sandwichs?|burgers?|gratins?|lasagn\w*|ravioli|tortellini|croques?|tartes?|"
+    r"tartelettes?|feuillet[ée]s?|cordons?[ -]bleus?|nuggets?|salades?|tartiflette|raclette (kit|pour)|p[âa]tes\b|paninis?|"
+    r"wraps?|bagels?|tartinables?|sauces?|carr[ée]s? de|risotto|quinotto|croquettes?|beignets?|flan sal[ée]|"
+    r"r[ôöo]stis?|pav[ée]s? (au|aux|de|à)|boulettes?|bouch[ée]es?|po[êe]l[ée]es?|samoussas?|\bnems?\b|accras?|aligot|"
+    r"tacos?|cakes? sal[ée]s?|muffins?|omelettes?|tortillas?|frittatas?|goug[èe]res?|cannellonis?|parmentiers?|hachis|"
+    r"rigatonis?|pennes?|spaghettis?|tagliatelles?|fusillis?|macaronis?|gnocchis?|farfalles?|linguines?|pesto",
+    re.I)
+
+
+def _ingredient_not_standalone(tid: str, family: str, name: str) -> bool:
+    """A drink named after an ingredient is a drink, and a dish named after an ingredient is a dish: neither is that
+    ingredient for substitution purposes (a lemonade aux épices is not a spice, a galette jambon is not a ham)."""
+    if family == "drinks":
+        return False
+    if _DRINK_NAME.search(name):
+        return True
+    if (family in _DISH_FAMILIES or tid in _EXTRA_COMPONENT_TYPES) and _DISH_CONTEXT.search(name):
+        return True
+    return False
 
 
 def _not_a_cheese(name: str) -> bool:
@@ -516,6 +614,12 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
 # Variants inside one product type: a real difference the shopper should know about, disclosed as a trade-off (never a reason to hide the product).
 _VARIANTS = {
     "plain_yogurt": [("greek", r"\bgrec|greek|skyr|\bgrecque")],
+    "fresh_fruit": [("apple", r"pomme(?! de terre)|apple"), ("banana", r"banane|banana"), ("orange", r"orange|cl[ée]mentine|mandarine|citron|lemon|pamplemousse"),
+                    ("pineapple", r"ananas|pineapple"), ("strawberry", r"fraise|strawberry"), ("raspberry", r"framboise|raspberry"),
+                    ("blueberry", r"myrtille|blueberry|groseille|currant|cassis"), ("pear", r"poire|pear"), ("peach", r"p[êe]che|peach|nectarine|abricot|apricot"),
+                    ("grape", r"raisin|grape"), ("melon", r"melon|past[èe]que|watermelon"), ("plum", r"prune|plum|quetsche|mirabelle"),
+                    ("kiwi", r"kiwi"), ("mango", r"mangue|mango"), ("cherry", r"cerise|cherry"), ("fig", r"figue|fig\b"),
+                    ("date", r"datte|date\b"), ("avocado", r"avocat|avocado")],
     "baguette": [("wholemeal", r"complet|int[ée]gral|wholemeal|whole[- ]?wheat|seigle|c[ée]r[ée]ales|graines")],
     "sandwich_bread": [("wholemeal", r"complet|int[ée]gral|wholemeal|whole[- ]?wheat|seigle|c[ée]r[ée]ales|graines")],
     "oil": [("olive", r"olive|oliva")],
@@ -557,7 +661,7 @@ def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
-_HARD_VARIANT_TYPES = {"nuts", "peanut_butter", "dip", "syrup"}
+_HARD_VARIANT_TYPES = {"nuts", "peanut_butter", "dip", "syrup", "fresh_fruit"}
 
 
 # Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.
@@ -569,7 +673,7 @@ TYPE_TERMS: Dict[str, List[str]] = {
     "beef": ["boeuf", "bœuf", "steak haché"], "pork": ["porc", "rôti de porc"],
     "beer": ["bière"], "wine": ["vin rouge", "vin blanc", "vin rosé"], "ice_cream": ["glace", "crème glacée"],
     "salt": ["sel fin", "gros sel", "sel marin"], "spices": ["épices", "paprika", "poivre", "cumin"], "flour": ["farine", "semoule"],
-    "potatoes": ["pommes de terre", "patates"], "dough": ["pâte feuilletée", "pâte brisée"],
+    "potatoes": ["pommes de terre", "patates"], "fresh_fruit": ["pommes", "bananes", "oranges"], "dough": ["pâte feuilletée", "pâte brisée"],
     "tart": ["tarte", "tartelette"], "sauce": ["sauce"], "dessert": ["dessert", "mousse"],
     "drink_syrup": ["sirop de citron", "sirop de menthe"], "supplement": ["complément alimentaire", "vitamines"],
     "speculoos": ["speculoos", "spéculoos", "speculaas", "biscoff"],

@@ -134,7 +134,8 @@ def test_deep_similarity_prefers_the_same_kind_of_product():
 
 
 def test_pack_size_variants_collapse_into_one_recommendation():
-    o = prod("1", "Yaourt fruits", YOG, 4, 12)
+    # A plain yogurt: a fruit yogurt is a different kind of product, not another pack size of this one.
+    o = prod("1", "Yaourt nature", YOG, 4, 12)
     big, small = prod("2", "Skyr nature", YOG, 10, 5), prod("3", "Skyr nature", YOG, 10, 5)
     big["quantity"] = {"amount": 1000.0, "unit": "g"}
     r = engine.choose(o, [small, big], ["protein"], [], None, "similar", 5, lang="en")
