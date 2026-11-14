@@ -156,12 +156,12 @@ R = [
     ("fresh_fruit", "produce", "fruit_veg", "fruit", "fresh", "snacking", r"(?:^|\s)en:(?:fresh-fruits?|fruits?|berries|apples|bananas|oranges|citrus|grapes|pears|peaches|apricots|plums|cherries|melons|watermelons|pineapples|mangoes|kiwis|strawberries|raspberries|blueberries|blackberries|currants|lemons|avocados)(?:\s|$)",
      r"^(?!.*\b(?:jus|nectar|sirop|confiture|confit|chutney|compote|s[èe]ch|surgel|conserve|au sirop|chips|crisps|yaourt|glace|tarte|g[âa]teau|boisson|p[ée]tillant|sauce|vinaigre|ar[ôo]me|parfum|saveur|eau|financiers?|biscuits?|cakes?|muffins?|sorbets?|curds?|bonbons?|gel[ée]es?|p[âa]tes? de fruits|smoothies?|yaourts?|desserts?|m[ée]langes?|poudres?)\b).*\b(?:pommes?|bananes?|oranges?|citrons?|ananas|fraises?|framboises?|myrtilles?|poires?|p[êe]ches?|abricots?|raisins?|mangues?|kiwis?|melons?|past[èe]ques?|cl[ée]mentines?|mandarines?|prunes?|cerises?|figues?|dattes?|avocats?|groseilles?)\b"),
     ("fruits_veg", "produce", "fruit_veg", "produce", "produce", "meal", r"vegetables|canned-vegetables|fresh-vegetables|vegetable-based-foods", r"l[ée]gumes|haricots verts|petits pois|tomates? (pel|concass)|carotte|pomme de terre"),
-    ("legumes", "produce", "legumes", "legumes", "legumes", "meal", r"legumes|pulses|lentils|chickpeas|beans|pois-chiches", r"lentille|pois chiche|haricots (rouges|blancs)|f[èe]ves"),
+    ("legumes", "produce", "legumes", "legumes", "legumes", "meal", r"(?:^|\s)en:(?:legumes|canned-legumes|dried-legumes|pulses|lentils|chickpeas|beans|kidney-beans|haricot-beans|fava-beans|baked-beans|pois-chiches)(?:\s|$)", r"lentilles?|pois chiches?|haricots? (?:rouges?|blancs?|cocos?)|f[èe]ves"),   # haricots verts are fresh vegetables, not pulses
     # Olives are their own small category: a jar of green olives substitutes another jar of olives, never olive oil (the name
     # starts with "huile") and never a pizza that merely lists olives among its ingredients.
     ("olives", "produce", "olives", "olives", "jar", "snacking", r"(?:^|\s)en:(?:olives?|marinated-olives|green-olives|black-olives|pitted-olives|stuffed-olives|kalamata-olives|whole-olives)(?:\s|$)", r"^(?!.*\b(?:huile|oil|olio)\b)(?:les?\s+)?(?:olives?|aceitunas?)\b"),
     # ---- sauces, oils
-    ("ketchup", "condiments", "sauce", "sauce", "sauce", "any", r"ketchups|tomato-ketchups", r"ketchup"),
+    ("ketchup", "condiments", "sauce", "sauce", "sauce", "any", r"ketchups?|tomato-ketchups?", r"ketchup"),
     ("mayonnaise", "condiments", "sauce", "sauce", "sauce", "any", r"mayonnaises|dressings|vinaigrettes", r"mayonnaise|vinaigrette|mayo"),
     ("tomato_sauce", "condiments", "sauce", "sauce", "cooking_sauce", "meal", r"tomato-sauces|pasta-sauces|bolognese", r"sauce (tomate|bolognaise|pesto)|coulis"),
     ("mustard", "condiments", "sauce", "sauce", "sauce", "any", r"mustards", r"moutarde"),
@@ -270,7 +270,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
         _reject = _TYPE_REJECTS.get(tid)
         if _reject and _reject.search(name):
             continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
-        if tid == "nuts" and _NOT_NUTS_TAG.search(tags):
+        if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
             continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast") and nr.search(name):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
@@ -286,7 +286,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
         _reject = _TYPE_REJECTS.get(tid)
         if _reject and _reject.search(name):
             continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
-        if tid == "nuts" and _NOT_NUTS_TAG.search(tags):
+        if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
             continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if tr.search(tags) and nr.search(name):
             if tid == "jam" and not _JAM_WORDS.search(name):
@@ -296,7 +296,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
                 "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms", "rice_pudding", "corn",
-                "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives")
+                "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives", "ham", "muesli", "legumes")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
@@ -307,7 +307,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
         _reject = _TYPE_REJECTS.get(tid)
         if _reject and _reject.search(name):
             continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
-        if tid == "nuts" and _NOT_NUTS_TAG.search(tags):
+        if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
             continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if nr.search(name) and tid in specific:
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"name matches specific form: {nr.pattern[:40]}"}
@@ -323,7 +323,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
         _reject = _TYPE_REJECTS.get(tid)
         if _reject and _reject.search(name):
             continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
-        if tid == "nuts" and _NOT_NUTS_TAG.search(tags):
+        if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
             continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if tr.search(tags):
             if tid == "jam" and not _JAM_WORDS.search(name):
@@ -343,7 +343,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
         _reject = _TYPE_REJECTS.get(tid)
         if _reject and _reject.search(name):
             continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
-        if tid == "nuts" and _NOT_NUTS_TAG.search(tags):
+        if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
             continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if nr.search(name) or nr.search(generic_name):
             # Reject generic "bar" matches without context
@@ -398,7 +398,10 @@ _EXTRA_COMPONENT_TYPES = {"honey", "salt", "sugar", "flour", "spices", "oil", "b
 # A word that makes this type impossible in its own right: a pâté is charcuterie (not pasta), a sausage is not a ham,
 # and chocolate chips are not crisps.
 # A "seeds" tag also marks cereals and pulses, which are not nuts.
-_NOT_NUTS_TAG = re.compile(r"legume|cereal|pulse|quinoa|semolina|wheat|rice|buckwheat|barley|oat|rye|corn|maize", re.I)
+# Anchored to real legume/cereal/pulse tags: the parent "legumes-and-their-products" also covers peanuts, which ARE nuts.
+_NOT_NUTS_TAG = re.compile(r"(?:^|\s)en:(?:legumes?|pulses?|lentils?|chickpeas?|cereals?|quinoa|semolina|wheat|rice|buckwheat|barley|oats?|rye|corns?|maize)(?:\s|$)", re.I)
+# A positive nut/peanut tag outranks a legume or cereal parent: OFF files peanuts under both.
+_NUTS_TAG = re.compile(r"(?:^|\s)en:(?:nuts|peanuts?|almonds?|cashew-nuts?|pistachios?|walnuts?|hazelnuts?|nuts-and-their-products|roasted-nuts|salted-nuts)(?:\s|$)", re.I)
 # Words that make a product something other than fresh fruit, whatever fruit tag it carries: juice, jam, compote, syrup,
 # frozen or cooked versions, and anything baked or flavoured with the fruit.
 _NOT_FRESH = re.compile(
@@ -407,7 +410,7 @@ _NOT_FRESH = re.compile(
     r"muffins?|sorbets?|curds?|bonbons?|gel[ée]es?|poudres?|smoothies?|desserts?|m[ée]langes?)\b", re.I)
 _TYPE_REJECTS = {
     "fresh_fruit": _NOT_FRESH,   # a jar of blueberries in syrup is not fresh fruit, whatever its "blueberries" tag says
-    "ham": re.compile(r"saucissons?|saucisses?|salami|chorizo|lardon|bacon|pancetta|rillettes?|p[âa]t[èéêe]\b|volaille|dinde|poulet", re.I),
+    "ham": re.compile(r"saucissons?|saucisses?|salami|chorizo|lardons?|bacon|pancetta|rillettes?|p[âa]t[èéêe]\b|volaille|dinde|poulet", re.I),
     "pasta": re.compile(r"\bp[âa]t[èéêe]\b|charcut|p[âa]tes? de fruits", re.I),
     "chips": re.compile(r"chips? cookies?|chocolate chips?|chips? au chocolat|p[ée]pites? de chocolat", re.I),
     "fruits_veg": re.compile(r"pur[ée]es?|grill|marin|r[ôo]ti", re.I),   # a purée or a grilled vegetable is another preparation
@@ -418,6 +421,12 @@ _TYPE_REJECTS = {
     "instant_coffee": re.compile(r"glaces?|ice cream|sorbet|yaourts?|yogurts?|mousse|g[âa]teaux?|cakes?|desserts?", re.I),
     # A dairy dessert is not automatically a spoon dessert: a vanilla yogurt is a yogurt.
     "dessert": re.compile(r"yaourts?|yogurts?|glaces?|sorbet", re.I),
+    # Peanuts and tree nuts are sold as nuts, not pulses, whatever parent "legumes" tag they carry.
+    "legumes": re.compile(r"cacahu[èe]tes?|peanuts?|noix|almonds?|pistaches?|pignons?|noisettes?|graines", re.I),
+    # A "barre granola" is a snack bar, not a box of muesli.
+    "muesli": re.compile(r"\bbarres?\b", re.I),
+    # "Pois chiches très peu de jus" is chickpeas canned in juice, not a juice.
+    "fruit_juice": re.compile(r"pois chiches?|lentilles?|haricots?|l[ée]gumes?|conserves?|au jus|dans son jus|ma[ïi]s\b", re.I),
 }
 # A flavoured yogurt is not a plain one, whatever generic "yogurts" tag it carries.
 _FLAVOURED_YOGURT = re.compile(
@@ -444,10 +453,11 @@ def _ingredient_not_standalone(tid: str, family: str, name: str) -> bool:
     ingredient for substitution purposes (a lemonade aux épices is not a spice, a galette jambon is not a ham)."""
     if family == "drinks":
         return False
-    if tid == "fish_canned":
-        # Canned fish is preserved IN a sauce, oil or wine: "maquereaux au vin blanc" is still fish, not a drink.
-        # Only a real beverage word (boisson, jus, ...) disqualifies it - "vin blanc" as a preserving liquid does not.
-        stripped = re.sub(r"\bvin\s+(?:blanc|rouge|ros[ée])\b", " ", name, flags=re.I)
+    if tid in ("fish_canned", "legumes"):
+        # Preserved foods are packed IN a liquid or sauce: "sardines au jus", "maquereaux au vin blanc",
+        # "pois chiches très peu de jus" are still the food, not a drink or a dish.
+        # Only a real beverage word (boisson, soda, ...) disqualifies them - packing liquids do not.
+        stripped = re.sub(r"\bvin\s+(?:blanc|rouge|ros[ée])\b|\bjus\b", " ", name, flags=re.I)
         return bool(_DRINK_NAME.search(stripped))
     if _DRINK_NAME.search(name):
         return True

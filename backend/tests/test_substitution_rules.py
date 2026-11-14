@@ -1131,12 +1131,14 @@ def test_mushrooms_have_their_own_type_and_find_each_other_without_a_category_ta
 
 def test_a_product_with_no_category_tag_still_substitutes_when_both_names_agree_on_the_same_specific_type():
     """A thin Open Food Facts record with no usable category tag used to be rejected outright by the confidence gate,
-    even when its name plainly says what it is and another product's name agrees: 'Jambonneau de porc cuit' and
-    'Jambon de Paris' both name ham, so a missing category tag must not mean zero alternatives. Capped at level 2:
-    name alone is never 'almost identical'. A name that resolves to a different type must still be rejected."""
-    jambonneau = P("Jambonneau de porc cuit", [])
-    jambon = P("Jambon de Paris", [])
-    quiche = P("Quiche au jambon", [])
-    r = sub(jambonneau, jambon)
+    even when its name plainly says what it is and another product's name agrees: 'Riz basmati' and 'Riz thai long'
+    both name rice, so a missing category tag must not mean zero alternatives. Capped at level 2:
+    name alone is never 'almost identical'. A name that resolves to a different type must still be rejected.
+    (Ham is not used here anymore: it is now a name_specific type, so two hams agreeing on the name earn high
+    confidence and level 1 legitimately - the cap only applies to the plain name_only path.)"""
+    riz1 = P("Riz basmati", [])
+    riz2 = P("Riz thai long", [])
+    quiche = P("Quiche au riz", [])
+    r = sub(riz1, riz2)
     assert r is not None and r["level"] == 2 and r["same_type"] is True
-    assert sub(jambonneau, quiche) is None
+    assert sub(riz1, quiche) is None
