@@ -1916,7 +1916,7 @@ def _price_map(s: Session, uid: str, orig: Dict[str, Any], prods: List[Dict[str,
 
 def _legacy_candidates(s: Session, orig: Dict[str, Any], body: "AltReq", allergens: List[str], chain_of: Any) -> List[Dict[str, Any]]:
     """Fallback when the alternatives database is not built: read the product's categories in Open Food Facts, then attach chain evidence and popularity."""
-    peers = [rescore(c, body.strict_additives) for c in _peers(s, orig, body.category_mode, body.priorities, allergens) if " / " not in (c.get("name") or "")]   # a name that is a category path ("Epicerie / Epicerie Sucrée / ...") is a data error
+    peers = [c for c in _peers(s, orig, body.category_mode, body.priorities, allergens) if " / " not in (c.get("name") or "")]   # a name that is a category path ("Epicerie / Epicerie Sucrée / ...") is a data error
     getattr(app.state.prices, "prefetch", lambda *_: None)([orig["barcode"]] + [c["barcode"] for c in peers])
     seen_fr = getattr(app.state.prices, "seen_in_france", lambda _b: False)
     peers = [({**c, "soldInFrance": True, "frEvidence": "open_prices"} if seen_fr(c["barcode"]) else c) for c in peers]
@@ -1958,7 +1958,7 @@ def _index_pool(s: Session, uid: str, orig: Dict[str, Any], body: "AltReq", alle
         if row is None:
             continue
         p = {**p, "chains": row["chains"], "soldInFrance": True, "frEvidence": "open_prices", "popularity": {"scans": row["scans"], "chains": len(row["chains"])}}
-        peers.append(rescore(p, body.strict_additives))
+        peers.append(p)   # the strict rescore runs after the hard filters, only for candidates that can actually be shown
         prices[p["barcode"]] = row["per100_cents"]
         points[p["barcode"]] = {"source": "open_prices", "date": row["price_date"], "where": None, "scope": "market", "stale": row["price_stale"],
                                 "pack_cents": row["pack_cents"], "currency": market.currency()}
@@ -2060,6 +2060,10 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         same_type = [c for c in kept if c["substitution"]["level"] == 1]
         peers = same_type if len(same_type) >= engine.MIN_SAME_TYPE else kept
     stages["comparable"] = len(peers)
+
+    # Strict additive rescoring is the expensive part of preparing a candidate (full score recompute), so it runs
+    # only now, on the comparable pool - not on every retrieved product that the filters above will drop anyway.
+    peers = [rescore(c, body.strict_additives) for c in peers]
 
     # 5. RANK the whole eligible pool. The tabs are cut to their display size at the very end, after the "only if it is
     # really better" rules, so a tab - or a store filter - still has its rows.
