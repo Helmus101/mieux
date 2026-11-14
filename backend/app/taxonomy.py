@@ -394,7 +394,14 @@ _EXTRA_COMPONENT_TYPES = {"honey", "salt", "sugar", "flour", "spices", "oil", "b
 # and chocolate chips are not crisps.
 # A "seeds" tag also marks cereals and pulses, which are not nuts.
 _NOT_NUTS_TAG = re.compile(r"legume|cereal|pulse|quinoa|semolina|wheat|rice|buckwheat|barley|oat|rye|corn|maize", re.I)
+# Words that make a product something other than fresh fruit, whatever fruit tag it carries: juice, jam, compote, syrup,
+# frozen or cooked versions, and anything baked or flavoured with the fruit.
+_NOT_FRESH = re.compile(
+    r"\b(?:jus|nectar|sirop|confiture|confit|chutney|compote|s[èe]ch|surgel|conserve|au sirop|chips|crisps|yaourt|glace|"
+    r"tarte|g[âa]teau|g[âa]teaux|boisson|p[ée]tillant|sauce|vinaigre|ar[ôo]me|parfum|saveur|eau|financiers?|biscuits?|cakes?|"
+    r"muffins?|sorbets?|curds?|bonbons?|gel[ée]es?|poudres?|smoothies?|desserts?|m[ée]langes?)\b", re.I)
 _TYPE_REJECTS = {
+    "fresh_fruit": _NOT_FRESH,   # a jar of blueberries in syrup is not fresh fruit, whatever its "blueberries" tag says
     "ham": re.compile(r"saucissons?|saucisses?|salami|chorizo|lardon|bacon|pancetta|rillettes?|p[âa]t[èéêe]\b|volaille|dinde|poulet", re.I),
     "pasta": re.compile(r"\bp[âa]t[èéêe]\b|charcut|p[âa]tes? de fruits", re.I),
     "chips": re.compile(r"chips? cookies?|chocolate chips?|chips? au chocolat|p[ée]pites? de chocolat", re.I),

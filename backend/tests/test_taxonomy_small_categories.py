@@ -192,3 +192,11 @@ def test_quinoa_and_lentils_carry_a_seeds_tag_but_are_not_nuts():
     assert _type("Quinoa rouge", ["en:seeds", "en:cereal-grains", "en:quinoa"]) != "nuts"
     assert _type("Linsen", ["en:seeds", "en:legumes", "en:lentils"]) != "nuts"
     assert _type("Graines de courges", ["en:seeds", "en:pumpkin-seeds"]) == "nuts"
+
+
+def test_a_jarred_fruit_is_not_fresh_fruit_even_with_a_fruit_tag():
+    jarred = {"name": "Myrtilles sauvages au sirop", "categories": ["en:blueberries"]}
+    fresh = {"name": "Myrtilles sauvages", "categories": ["en:blueberries"]}
+    assert taxonomy.classify(jarred)["type"] != "fresh_fruit"
+    assert taxonomy.classify(fresh)["type"] == "fresh_fruit"
+    assert taxonomy.substitution(jarred, fresh)["level"] == 2   # same fruit, different preparation: still an alternative
