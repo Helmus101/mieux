@@ -58,7 +58,7 @@ def test_additives_levels_a_to_d_and_unknown_is_b_with_low_evidence():
     assert additive_level("e330") == ("A", True) and additive_level("e951") == ("C", True) and additive_level("e250") == ("C", True) and additive_level("e250", True) == ("D", True) and additive_level("e999") == ("B", False)
     clean = prod(GOOD, "lait")
     bad = prod(GOOD, "lait", adds=["en:e250", "en:e951"])
-    assert dim(clean, "additives")["score"] == 100 and dim(bad, "additives")["score"] <= 60
+    assert dim(clean, "additives")["score"] == 100 and dim(bad, "additives")["score"] == 70   # two moderate-risk additives: -15 each (Yuka scale)
     assert additive_level("e171") == ("D", True)                      # titanium dioxide: banned in the EU since 2022
     assert "additive_unknown" in prod(GOOD, "lait", adds=["en:e999"])["score"]["confidence"]["doubts"]
 
@@ -200,7 +200,7 @@ def test_strict_additive_mode_follows_the_yuka_formula_and_sorbate_is_flagged():
     p = prod(hummus, "pois chiches, huile, sel, conservateur : sorbate de potassium", adds=["en:e202", "en:e330"], cats=("en:condiments", "en:sauces", "en:dips", "en:hummus"))
     balanced = p["score"]["total"]
     strict = quality(p, False, {**p["scoreInputs"], "strict": True})
-    assert strict["mode"] == "strict" and strict["total"] <= 45 and strict["total"] < balanced - 15      # Yuka: 32
+    assert strict["mode"] == "strict" and strict["total"] <= 49 and strict["total"] < balanced - 15      # Yuka caps a high-risk additive at 49
     assert any(f["key"] == "additive_d" for f in strict["flags"]) and "additive_d" in strict["caps"]
     clean = quality(prod(hummus, "pois chiches, huile, sel", cats=("en:condiments", "en:sauces")), False, {"strict": True})
     assert clean["total"] > strict["total"] + 15                                                      # the additive is what pulls it down
@@ -218,8 +218,8 @@ def test_additive_table_is_complete_consistent_and_cited():
 
 def test_strict_mode_caps_nutriscore_d_and_e_at_49_and_uses_yuka_penalties():
     from app.score import quality, d_additives
-    assert d_additives(["en:e202"], strict=True)[0] == 0 and d_additives(["en:e407"], strict=True)[0] == 50   # high 0, moderate 50 of the additive score
-    assert d_additives(["en:e471"], strict=True)[0] == 0 and d_additives(["en:e481"], strict=True)[0] == 50   # emulsifiers follow Yuka: E471 high, E481 moderate
+    assert d_additives(["en:e202"], strict=True)[0] == 70 and d_additives(["en:e407"], strict=True)[0] == 85   # high -30, moderate -15 of the additive score (Yuka)
+    assert d_additives(["en:e471"], strict=True)[0] == 70 and d_additives(["en:e481"], strict=True)[0] == 85   # emulsifiers follow Yuka: E471 high, E481 moderate
     choc = {"energy-kcal_100g": 540, "fat_100g": 30, "saturated-fat_100g": 11, "sugars_100g": 45, "salt_100g": 0.1, "fiber_100g": 2, "proteins_100g": 6}
     p = prod(choc, "sucre, huile, noisettes", cats=("en:snacks",))
     s = quality(p, True, {**p["scoreInputs"], "strict": True})                       # organic would add 10 points, still capped by the D/E rule
@@ -311,9 +311,9 @@ def test_zero_calorie_does_not_mean_clean_artificial_additives_and_sugar_are_pen
     fake = prod(zero, "eau gazéifiée, colorant : caramel E150d, acidifiant : acide citrique, édulcorants : aspartame, acésulfame K, arôme", adds=("en:e150d", "en:e951", "en:e950", "en:e330"), cats=drink)
     sugary = prod({"energy-kcal_100g": 42, "sugars_100g": 10.6, "saturated-fat_100g": 0, "fat_100g": 0, "salt_100g": 0.01}, "eau gazéifiée, sucre, arôme", cats=drink)
     c, f, s = _strict(clean), _strict(fake), _strict(sugary)
-    assert f["total"] <= 55 and "risky_additive" in f["caps"]          # a sweetened, coloured zero soda is not "good"
+    assert f["total"] <= 64 and "risky_additive" in f["caps"]          # a sweetened, coloured zero soda is capped by its moderate/high-risk additives
     assert c["total"] - f["total"] >= 30                               # same calories, very different ingredient quality
-    assert s["total"] < c["total"] - 30 and any(x["key"] == "ingredients" and x["of"] == 25 for x in s["parts"])  # sugar costs the ingredient mark too
+    assert s["total"] < c["total"] - 30 and any(x["key"] == "ingredients" and x["of"] == 15 for x in s["parts"])  # sugar costs the ingredient mark too
     assert "artificial_intense_sweetener" in f["dimensions"][-1]["detail"]["notes"] and "added_sugar_amount" in s["dimensions"][-1]["detail"]["notes"]
 
 

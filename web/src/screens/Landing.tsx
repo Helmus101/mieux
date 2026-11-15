@@ -39,6 +39,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         <button className="lp-btn lp-btn-sm" onClick={onEnter}>{t('land.cta')}</button>
       </header>
 
+      <main>
       <section className="lp-hero">
         <div className="lp-hero-copy">
           <h1 className="lp-h1">{t('land.h1a')} <span className="lp-h1-tail">{t('land.h1b')}</span></h1>
@@ -67,7 +68,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               </li>
             ))}
           </ul>
-          <figcaption>{t('land.ex.real', { d: new Date(ex.date).toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) })}</figcaption>
+          <figcaption className="lp-cap">{t('land.ex.real', { d: new Date(ex.date).toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) })}</figcaption>
         </figure>
       </section>
 
@@ -82,7 +83,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               <div className="lp-rule" key={k}>
                 <b>{t('land.' + k + 't')}</b>
                 <p>{t('land.' + k + 'd')}</p>
-                <p className="lp-uvp-eg"><b>{a.name}</b> · {a.perKgCents != null ? `${eur(a.perKgCents)}/kg` : t('land.ex.noPrice')} · {a.score}/100</p>
+                <p className="lp-uvp-eg"><b>{a.name}</b>{a.perKgCents != null ? `${eur(a.perKgCents)}/kg` : t('land.ex.noPrice')} · {a.score}/100</p>
               </div>
             );
           })}
@@ -123,6 +124,8 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           </div>
         </section>
       )}
+
+      </main>
 
       <footer className="lp-foot">
         <span>{t('land.foot')} · <a href="/stats">{t('usage.link')}</a> · <a href="/blog">Blog</a><br /><span className="lp-measure">{t('land.measure')}</span><br />{t('land.contact')} <a href={`mailto:${CONTACT}`}>{CONTACT}</a></span>

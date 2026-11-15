@@ -304,7 +304,7 @@ class AltReq(BaseModel):
     limit: int = Field(10, ge=1, le=10)  # results shown to the client; 3 displayed initially, expandable to 10
     chains: List[str] = []  # chain ids the user shops at (empty = all)
     nearby_only: bool = False  # with a location: keep only products listed at a chain that has a branch within the radius (and within the user's chains)
-    strict_additives: bool = True  # strict mode (40 % nutrition + 25 % additives + 25 % ingredient quality, every additive concern one level higher)
+    strict_additives: bool = True  # strict mode (55 % nutrition + 30 % additives + 15 % ingredient quality, every additive concern one level higher)
     same_size: bool = False  # only products whose pack size is within half to double of the scanned one
     substitution_max: int = Field(2, ge=1, le=4)  # 1 = almost identical, 2 = very similar (same small product category). 3-4 are broader products, never shown unless explicitly asked for.
     profile: str = "budget"  # how the value score weighs affordability vs nutrition: budget | balanced | nutrition

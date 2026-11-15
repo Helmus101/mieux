@@ -1,8 +1,8 @@
 /* Mieux web design system. Tokens mirror shared/theme.ts (paper, ink, leaf green, sage, clay). One definition per selector; sections below. */
 
 /* ===== 1. Design tokens ===== */
-:root{--r:8px; --r-lg:12px; --bg:#FFFFFF; --surface:#FFFFFF; --card:#F1F4F1; --ink:#14201A; --mut:#5A6660; --line:rgba(15,26,21,.12); --leaf:#1F4D3A; --olive:#7FA65A; --clay:#F26B3A; --sage:#EAF1ED; --accent:#1F4D3A; --accent-ink:#FFFFFF; --tint:#EAF1ED; --warn:#D95A22; --bad:#A33B2B; --blue:#1F4D3A; --glass:rgba(255,255,255,.92); --shadow:none; --ease:cubic-bezier(.32,.72,0,1)}
-@media(prefers-color-scheme:dark){:root{--bg:#0D1210;--surface:#151C18;--card:#151C18;--ink:#F2F5F3;--mut:#A3AFA8;--line:#24302A;
+:root{--thumb:#FFFFFF; --r:8px; --r-lg:12px; --bg:#FFFFFF; --surface:#FFFFFF; --card:#F5F5F7; --ink:#14201A; --mut:#5A6660; --line:rgba(60,60,67,.16); --leaf:#1F4D3A; --olive:#7FA65A; --clay:#F26B3A; --sage:#EAF1ED; --accent:#1F4D3A; --accent-ink:#FFFFFF; --tint:#EAF1ED; --warn:#D95A22; --bad:#A33B2B; --blue:#1F4D3A; --glass:rgba(255,255,255,.92); --shadow:none; --ease:cubic-bezier(.32,.72,0,1)}
+@media(prefers-color-scheme:dark){:root{--thumb:#34423A;--bg:#0D1210;--surface:#151C18;--card:#151C18;--ink:#F2F5F3;--mut:#A3AFA8;--line:#24302A;
   --leaf:#2C6350;--olive:#9CBE77;--clay:#FF8A5C;--sage:#1A2620;
   --accent:#6FCF97;--accent-ink:#07140D;--tint:rgba(111,207,151,.14);--warn:#FF9A6B;--bad:#E4695A;--blue:#9CBE77;
   --glass:rgba(13,18,16,.85);--shadow:none}}
@@ -78,28 +78,28 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .field input{flex:1; background:none; padding:6px 0}
 .chip{background:var(--card); border-radius:999px; padding:12px 18px; min-height:44px; font-size:16px; font-weight:500; cursor:pointer; transition:transform .18s var(--ease),background .2s,color .2s; box-shadow:none; border:1px solid var(--line)}
 .chip.on{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
-.seg .thumb{position:absolute; top:2px; bottom:2px; border-radius:8px; background:var(--card); transition:left .3s var(--ease); box-shadow:none; border:1px solid var(--line)}
+.seg .thumb{position:absolute; top:2px; bottom:2px; border-radius:10px; background:var(--thumb); transition:left .3s var(--ease); box-shadow:0 1px 3px rgba(0,0,0,.14),0 0 0 .5px rgba(0,0,0,.04); border:0}
 .pill.w{color:var(--warn); background:none}
 .pill.b{color:var(--bad); background:none}
 .pill.g{color:var(--mut); background:none}
 .chips{display:flex; flex-wrap:wrap; gap:12px}
 .btn.sm{width:auto; font-size:16px; min-height:48px; padding:11px 18px; margin-top:0}
 .btn.plain{background:none; box-shadow:none; border:0; color:var(--mut); margin-top:4px}
-.seg{display:flex; border-radius:8px; padding:2px; position:relative; background:var(--tint); border:1px solid var(--line); margin:16px 0}
+.seg{display:flex; border-radius:12px; padding:2px; position:relative; background:var(--card); border:0; margin:16px 0}
 .pill{display:inline-block; border-radius:999px; font-size:13px; background:var(--tint); color:var(--ink); border:1px solid var(--line); font-weight:500; margin:4px 8px 4px 0; padding:5px 12px}
 .seg button.on{color:var(--ink); font-weight:600}
 .seg button:not(.on){color:var(--mut)}
-.btn{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; font-size:17px; cursor:pointer; transition:transform .18s var(--ease),opacity .2s; box-shadow:var(--shadow); border:1px solid var(--line); background:var(--surface); color:var(--ink); font-weight:600; border-radius:8px; min-height:52px; padding:14px 18px; margin-top:10px}
+.btn{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; font-size:17px; cursor:pointer; transition:transform .18s var(--ease),opacity .2s; box-shadow:var(--shadow); border:1px solid var(--line); background:var(--surface); color:var(--ink); font-weight:600; border-radius:12px; min-height:52px; padding:14px 18px; margin-top:10px}
 .btn.primary{box-shadow:none; background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
 .iconbtn svg{width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
 .iconbtn.on{color:var(--accent)}
 .iconbtn.on svg{fill:currentColor}
 .iconbtn em{position:absolute; top:1px; right:-1px; min-width:18px; height:18px; padding:0 5px; border-radius:8px; background:var(--clay,#F26B3A); color:#fff; font-style:normal; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center}
 .link{border:0; background:none; color:var(--accent); font-size:15px; font-weight:600; padding:0}
-.seg button{flex:1; border:0; background:none; border-radius:8px; font-weight:500; cursor:pointer; position:relative; z-index:1; transition:color .2s; padding:12px 6px; font-size:15px; min-height:40px}
+.seg button{flex:1; border:0; background:none; border-radius:10px; font-weight:500; cursor:pointer; position:relative; z-index:1; transition:color .2s; padding:12px 6px; font-size:15px; min-height:44px}
 .iconbtn{position:relative; width:40px; height:40px; flex:none; border:0; border-radius:12px; background:transparent; color:var(--ink); cursor:pointer; display:inline-flex; align-items:center; justify-content:center}
 .btn:active,.chip:active,.tab:active{transform:scale(.97)}
-.linkbtn{display:inline-block; width:auto; border:0; background:none; color:var(--accent); font-size:14px; font-weight:600; padding:8px 0 8px 8px; min-height:40px; min-width:0; flex:none; white-space:nowrap; text-decoration:underline; text-underline-offset:3px; cursor:pointer}
+.linkbtn{display:inline-block; width:auto; border:0; background:none; color:var(--accent); font-size:14px; font-weight:600; padding:8px 0 8px 8px; min-height:44px; min-width:0; flex:none; white-space:nowrap; text-decoration:underline; text-underline-offset:3px; cursor:pointer}
 
 /* ===== 6. Lists and rows ===== */
 .cell+.cell::before{content:""; position:absolute; top:0; left:0; right:0; height:.5px; background:var(--line)}
@@ -114,7 +114,7 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .card.tint{background:var(--tint); border-color:var(--line)}
 .row{display:flex; align-items:center; gap:16px}
 .card>p.mut.sm:first-child{margin-top:0}
-.card{background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:none; padding:16px; margin:12px 0}
+.card{background:var(--card); border:0; border-radius:16px; box-shadow:none; padding:16px; margin:12px 0}
 .group{background:transparent; border:0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); border-radius:0; overflow:hidden; box-shadow:none; margin:12px 0}
 .cell{display:flex; align-items:center; gap:14px; position:relative; transition:background .15s; padding:12px 2px; min-height:52px}
 
@@ -132,7 +132,7 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .hero{background:none; color:var(--ink); padding:6px 0; margin:0 0 8px; box-shadow:none; border-radius:0}
 .hero h1{font-size:20px; line-height:1.3; letter-spacing:-.02em; font-weight:700}
 .hero p{margin:2px 0 0; font-size:13.5px; opacity:.6}
-.hero .btn{background:var(--accent); color:var(--accent-ink); margin-top:12px; padding:11px 16px; font-size:15px; border-radius:8px}
+.hero .btn{background:var(--accent); color:var(--accent-ink); margin-top:12px; padding:11px 16px; font-size:15px; border-radius:12px}
 .pricebig{font-weight:800; line-height:1.1; font-size:28px; letter-spacing:-.5px}
 .bar{background:rgba(31,77,58,.12); border-radius:99px; overflow:hidden; height:4px}
 .bar i{display:block; height:100%; border-radius:99px; transform-origin:left; animation:grow .9s var(--ease) both; background:var(--accent)}
@@ -353,11 +353,11 @@ video{width:100%; border-radius:12px; background:#000; max-height:360px; object-
 .stats-block{margin-top:28px}
 .stats-block>h2{margin:0 0 12px}
 .stats-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(158px,1fr)); gap:12px}
-.stats-card{border:1px solid var(--line); border-radius:12px; padding:18px; background:var(--card)}
+.stats-card{border:0; border-radius:16px; padding:18px; background:var(--card)}
 .stats-card.hi{background:var(--tint); border-color:transparent}
 .stats-num{font-size:42px; font-weight:800; letter-spacing:-1.2px; line-height:1; font-variant-numeric:tabular-nums; color:var(--accent)}
 .stats-label{margin-top:10px; font-size:14.5px; line-height:1.35; color:var(--mut)}
-.stats-panel{border:1px solid var(--line); border-radius:12px; padding:16px 18px 6px; background:var(--card)}
+.stats-panel{border:0; border-radius:16px; padding:16px 18px 6px; background:var(--card)}
 .stats-table{width:100%; border-collapse:collapse; font-size:15.5px; font-variant-numeric:tabular-nums}
 .stats-table th{text-align:left; padding:0 0 10px; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--mut)}
 .stats-table th:not(:first-child),.stats-table td:not(:first-child){text-align:right}
@@ -389,7 +389,7 @@ td .nova{padding:4px 8px}
 @keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
 .loader .slow{margin-top:18px; width:100%; animation:enter .4s var(--ease)}
 .mini-ring{display:inline-block; width:16px; height:16px; border-radius:50%; border:2px solid var(--line); border-top-color:var(--accent); animation:spin .9s linear infinite!important; vertical-align:-3px; margin-right:8px}
-.sumcard{border:1px solid var(--line); border-radius:12px; background:var(--card); padding:18px; margin:0 0 16px}
+.sumcard{border:0; border-radius:16px; background:var(--card); padding:18px; margin:0 0 16px}
 .sum3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
 .sum3>div{display:flex; flex-direction:column; gap:6px; min-width:0}
 .sum3 b{font-size:30px; letter-spacing:-.5px; line-height:1}
@@ -399,24 +399,22 @@ td .nova{padding:4px 8px}
 .sum3 .dl.down{color:var(--bad)}
 .grabzone{padding:10px 0 14px; margin:-6px 0 0; cursor:grab; touch-action:none}
 .grabzone .grab{margin:0 auto}
-.desktop-qr-banner,.mobile-web-banner{position:relative; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 42px 14px 16px; margin:16px 0}
+.desktop-qr-banner,.mobile-web-banner{position:relative; background:var(--card); border:0; border-radius:16px; padding:14px 42px 14px 16px; margin:16px 0}
 .mobile-web-banner h3,.qr-left h3{margin:0 0 4px; font-size:14px; font-weight:600}
 .mobile-web-banner p,.qr-left p{margin:2px 0 0; font-size:12px; color:var(--mut); line-height:1.4}
 .mobile-web-steps{margin-top:8px!important; color:var(--ink)!important}
-.mobile-web-close{position:absolute; top:8px; right:10px; width:28px; height:28px; border:0; background:transparent; color:var(--mut); font-size:22px; line-height:1; border-radius:8px; cursor:pointer}
+.mobile-web-close{position:absolute; top:0; right:0; width:44px; height:44px; border:0; background:transparent; color:var(--mut); font-size:22px; line-height:1; border-radius:8px; cursor:pointer}
 .mobile-web-close:hover{background:var(--bg)}
 .mobile-web-close:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
-.install-card{display:flex; align-items:center; gap:10px; padding:10px 8px 10px 12px; margin:12px 0; border:1px solid var(--line); border-radius:12px; background:var(--card)}
+.install-card{display:flex; align-items:center; gap:10px; padding:10px 8px 10px 12px; margin:12px 0; border:0; border-radius:16px; background:var(--card)}
 .install-card img{border-radius:8px; flex:none}
 .install-card .grow{min-width:0; line-height:1.25}
 .install-card .grow>*{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-.install-card .btn{flex:none; white-space:nowrap; min-height:34px; padding:0 14px; margin-top:0; width:auto}
+.install-card .btn{flex:none; white-space:nowrap; min-height:44px; padding:0 14px; margin-top:0; width:auto}
 .install-card .grow.wrap>*{white-space:normal; overflow:visible}
 .ob-points{list-style:none; margin:18px 0 0; padding:0; display:grid; gap:10px}
 .ob-points li{position:relative; padding-left:24px; font-size:15.5px; font-weight:600; line-height:1.35}
 .ob-points li::before{content:""; position:absolute; left:0; top:.35em; width:12px; height:12px; border-radius:50%; background:var(--accent)}
-.ob-points li:nth-child(2)::before{background:var(--clay)}
-.ob-points li:nth-child(3)::before{background:var(--olive)}
 *::-webkit-scrollbar{display:none}
 .chain-chip:active,a:active{transform:scale(.97); opacity:.8}
 .brand{display:inline-flex; align-items:center; gap:8px; font-size:22px; letter-spacing:-.6px; color:var(--ink)}
@@ -493,7 +491,7 @@ kbd{font:600 12px ui-monospace,Menlo,monospace; background:var(--card); border:1
 
 /* shape system: controls 8px, surfaces 12px, pills only for selectable chips and compact status */
 .ai-note{margin:10px 0 8px; padding:12px 14px; background:var(--tint); border-radius:8px; font-size:15px; line-height:1.55}
-.card{border-radius:12px}
+.card{border-radius:16px}
 .sheet{border-top-left-radius:12px; border-top-right-radius:12px}
 
 /* an empty list is a short instruction and one action, not a box */

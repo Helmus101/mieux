@@ -76,8 +76,9 @@ PROTEIN = [(0, 25), (3, 50), (8, 75), (15, 92), (25, 100)]
 FIBRE = [(0, 25), (2, 50), (4, 70), (7, 90), (10, 100)]
 
 # ---------------------------------------------------------------- additives A-D (evidence-based, simplified; unknown additive = B, low evidence)
-ADD_PENALTY = {"A": 0, "B": 6, "C": 22, "D": 50}  # balanced reading
-ADD_PENALTY_STRICT = {"A": 0, "B": 20, "C": 50, "D": 100}  # Yuka: -6 / -15 / -30 points out of the 30 for limited / moderate / high risk
+# Yuka's published additive penalties: -6 limited, -15 moderate, -30 high risk, per additive, out of 100.
+ADD_PENALTY = {"A": 0, "B": 6, "C": 15, "D": 30}
+ADD_PENALTY_STRICT = {"A": 0, "B": 6, "C": 15, "D": 30}  # same scale; strict mode differs through precautionary additive levels, ingredient penalties and caps
 ADD_NOTE = {"A": "Pas de préoccupation identifiée dans ce contexte", "B": "Préoccupation limitée ou selon le contexte", "C": "Préoccupation selon les conditions d'usage", "D": "Préoccupation documentée plus forte ou usage restreint"}
 
 
@@ -493,9 +494,10 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
     # 3. overall = 80 % nutritional + 20 % ingredient, with safeguards: good ingredients cannot lift the total far above the nutrition,
     #    and serious weaknesses cap it whatever else the product does well
     total = nq if iq is None else .8 * nq + .2 * iq
-    if strict:  # 40 % nutrition + 25 % additives + 25 % ingredient quality + 10 % organic (a flagged additive pulls its points down; ingredient quality carries added sugar, artificial additives and ultra-processing)
+    if strict:  # Yuka's published split is 60 % nutrition / 30 % additives / 10 % organic; ingredient quality keeps a
+        # smaller share (15 %) because it carries what Nutri-Score cannot see: added-sugar amount, artificial additives, NOVA 4.
         ing_mark = dscore["ingredients"][0] if dscore["ingredients"][0] is not None else 50.0  # no ingredient list: neither a bonus nor a penalty, and confidence drops
-        total = .40 * nq + .25 * dscore["additives"][0] + .25 * ing_mark + (10 if organic else 0)
+        total = .55 * nq + .30 * dscore["additives"][0] + .15 * ing_mark + (10 if organic else 0)
     caps = []
     total2 = total if strict else min(total, nq + 8)
     if total2 < total:
@@ -512,8 +514,8 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
         total2 = min(total2, 64); caps.append("serious_weakness")
     total = round(max(0.0, total2))
     if strict:
-        parts = [{"key": "nutrition", "got": round(.40 * nq, 1), "of": 40}, {"key": "additives", "got": round(.25 * dscore["additives"][0], 1), "of": 25},
-                 {"key": "ingredients", "got": round(.25 * ing_mark, 1), "of": 25}, {"key": "organic", "got": 10 if organic else 0, "of": 10}]
+        parts = [{"key": "nutrition", "got": round(.55 * nq, 1), "of": 55}, {"key": "additives", "got": round(.30 * dscore["additives"][0], 1), "of": 30},
+                 {"key": "ingredients", "got": round(.15 * ing_mark, 1), "of": 15}, {"key": "organic", "got": 10 if organic else 0, "of": 10}]
     else:
         parts = [{"key": "nutrition", "got": round(.8 * nq, 1), "of": 80}, {"key": "ingredients", "got": round(.2 * (iq if iq is not None else nq), 1), "of": 20}]
     uncapped = round(sum(x["got"] for x in parts))
