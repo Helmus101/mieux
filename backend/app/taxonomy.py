@@ -379,7 +379,7 @@ _CHEESE_DISH = re.compile(
     r"beignets?|flan sal[ée]|r[ôöo]stis?|pav[ée]s? (au|aux|de|à)|boulettes?|bouch[ée]es?|po[êe]l[ée]es?|samoussas?|\bnems?\b|"
     r"accras?|aligot|tacos?|cakes? sal[ée]s?|muffins?|omelettes?|tortillas?|frittatas?|goug[èe]res?|cannellonis?|parmentiers?|hachis|"
     r"rigatonis?|pennes?|spaghettis?|tagliatelles?|fusillis?|macaronis?|gnocchis?|farfalles?|linguines?|pesto|pur[ée]es?|chips?|crisps?|"
-    r"[ée]cras[ée]s?|pommes? de terre|pan[ée]s?\b|"
+    r"[ée]cras[ée]s?|pommes? de terre|pan[ée]s?\b|crackers?|souffl[ée]s?|boulgour|quinoa|poivronnade|croqs?\b|l[ée]gumes?\b|"
     r"yaourts?|yogourts?|yogurts?|glaces?",
     re.I)
 # A product only FLAVOURED with a cheese ("Lay's saveur emmental") is not that cheese.
