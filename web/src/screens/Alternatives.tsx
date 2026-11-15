@@ -138,8 +138,12 @@ export default function Alternatives() {
     <Screen>
       <NavBar onBack={back} />
       <h1 className="atitle">{t('alt.title')}</h1>
-      {r?.original && <p className="mut asub">{r.original.name}{r.original.brand && r.original.brand.toLowerCase() !== r.original.name.toLowerCase() ? ' · ' + r.original.brand : ''}</p>}
+      {r?.original && (() => {
+        const o = r.original, oq = o.score?.total, ou = unitPrice(r.original_price?.per100_cents, r.original_size ? { ...r.original_size } : undefined, r.original_size?.unit === 'ml');
+        return <p className="mut asub"><span className="asub-k">{t('alt.replacing')}</span> {o.name}{o.brand && o.brand.toLowerCase() !== o.name.toLowerCase() ? ' · ' + o.brand : ''}{oq != null && <> · {t('alt.quality')} {Math.round(oq)}</>}{ou && <> · {formatCents(ou.perUnitCents)}/{ou.unit}</>}</p>;
+      })()}
       {!err && <Segmented value={vp} onChange={(k) => { haptic('tap'); setVp(k as typeof vp); }} options={profileOptions} />}
+      {!err && <p className="mut aprof">{t('alt.profileSub_' + vp)}</p>}
       {!none && chainOptions.length > 1 && (
         <div className="chainfilter" role="group" aria-label={t('alt.filterChain')}>
           <button type="button" className={'chainchip all' + (chain == null ? ' on' : '')} aria-pressed={chain == null} onClick={() => setChain(null)}>{t('alt.allChains')}</button>
@@ -180,9 +184,10 @@ export default function Alternatives() {
                 return <div className="achains" title={cs.map(chainName).join(', ')}>{cs.length ? <>{t('alt.seenAt')} {cs.slice(0, 3).map(chainName).join(' · ')}{cs.length > 3 ? ` +${cs.length - 3}` : ''}</> : t('alt.chainUnknown')}</div>;
               })()}
               <div className="ameta">
-                {e.vs != null && <span className="tile main" title={e.why}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span></span></span>}
-                {e.q != null && <span className="sm mut" title={t('alt.qualityTip')}>{t('alt.quality')} {e.q}</span>}
+                {e.vs != null && <span className="tile main" title={e.why}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span><span className="cap vcap">{t('alt.valueShort')}</span></span></span>}
+                {e.q != null && <span className="sm mut" title={t('alt.qualityTip')}>{t('alt.quality')} {Math.max(0, Math.min(100, Math.round(e.q)))}</span>}
               </div>
+              {e.why && <div className="awhy">{(w => w.charAt(0).toUpperCase() + w.slice(1))(String(e.why).replace(/^[^:]{0,40}\d+\/100\s*:\s*/, '').replace(/(\d+)\/100/g, (_m, n) => `${Math.min(100, +n)}/100`))}</div>}
             </div>
             <div className="aprice">
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>

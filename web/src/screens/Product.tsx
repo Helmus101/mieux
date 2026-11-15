@@ -75,8 +75,8 @@ export default function Product() {
     <Screen>
       <NavBar onBack={back} />
       <Card>
-        <h2 style={{ margin: '0 0 6px', textTransform: 'none', letterSpacing: 0, fontSize: 22, color: 'var(--ink)' }}>{t(err.kind === 'rate' ? 'product.nf.rateTitle' : err.kind === 'auth' ? 'product.nf.authTitle' : err.kind === 'notfood' ? 'product.nf.foodTitle' : err.kind === 'notfound' ? 'product.nf.title' : err.kind === 'invalid' ? 'product.nf.invalidTitle' : err.kind === 'network' ? 'product.nf.netTitle' : 'product.nf.srvTitle')}</h2>
-        {err.kind === 'notfound' && <><p style={{ margin: '4px 0' }}>{t('product.nf.code', { c: barcode ?? '' })}</p><p className="mut sm">{t('product.nf.why')}</p></>}
+        <h2 style={{ margin: '0 0 6px', textTransform: 'none', letterSpacing: 0, fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{t(err.kind === 'rate' ? 'product.nf.rateTitle' : err.kind === 'auth' ? 'product.nf.authTitle' : err.kind === 'notfood' ? 'product.nf.foodTitle' : err.kind === 'notfound' ? 'product.nf.title' : err.kind === 'invalid' ? 'product.nf.invalidTitle' : err.kind === 'network' ? 'product.nf.netTitle' : 'product.nf.srvTitle')}</h2>
+        {err.kind === 'notfound' && <><p className="mut" style={{ margin: '4px 0' }}>{t('product.nf.code', { c: barcode ?? '' })}</p><p className="mut sm">{t('product.nf.why')}</p></>}
         {err.kind === 'notfood' && <p className="mut">{t('product.nf.food')}</p>}
         {err.kind === 'rate' && <p className="mut">{t('product.nf.rate')}</p>}
         {err.kind === 'auth' && <p className="mut">{t('product.nf.auth')}</p>}
@@ -170,7 +170,7 @@ export default function Product() {
             <div><span className="mut sm">{t('sdim.ingredient')}</span><b style={{ color: toneVar(p.score.ingredient?.tone) }}>{p.score.ingredient ? p.score.ingredient.score : '—'}</b></div>
             <div><span className="mut sm">{t('sdim.processing')}</span><NovaBadge group={p.novaGroup} estimated={p.novaEstimated} /></div>
           </div>
-          {p.score.caps?.length > 0 && <p className="mut sm">{p.score.caps.map((c: string) => t('cap.' + c)).join(' ')}</p>}
+          {p.score.caps?.length > 0 && <div className="capnote">{p.score.caps.map((c: string) => <p key={c} className="mut sm">{t('cap.' + c)}</p>)}</div>}
           <div className="nsec">{t('sdim.grp_nutrition')}</div>
           {p.score.dimensions.filter((d: any) => d.group === 'nutrition' && d.relevant && !d.missing).map((d: any) => {
             const sg = d.key === 'sugar' ? p.score.sugar : null, sk = sg?.kind;
@@ -217,7 +217,7 @@ export default function Product() {
           return <div className="ing">
             <h4>{t('ing.list')}</h4>
             <p>{ing ? cap(ing) + '.' : t('product.noIng')}</p>
-            {p.allergens.length > 0 && <><h4>{t('ing.allergens')}</h4><p className="ing-al">{p.allergens.join(', ')}</p></>}
+            {p.allergens.length > 0 && <><h4>{t('ing.allergens')}</h4><p className="ing-al">{p.allergens.map((a: string) => { const k = 'restr.a_' + a.replace(/^en:/, ''), v = t(k); return v === k ? a : v; }).join(', ')}</p></>}
             {p.allergens.length === 0 && <p className="mut sm">{raw ? t('product.allergenNone') : t('product.allergenMissing')}</p>}
             {traces && <><h4>{t('ing.traces')}</h4><p>{cap(traces) + '.'}</p></>}
           </div>;

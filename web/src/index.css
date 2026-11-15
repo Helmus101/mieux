@@ -635,3 +635,61 @@ input[type=search]{border-radius:10px}
 }
 @media (prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:fade .15s ease both}}
 @media(prefers-contrast:more){:root{--sep:rgba(60,60,67,.6)}}
+
+/* Alternatives: anchor line, visible reason, labelled score */
+.asub-k{font-weight:600; color:var(--ink)}
+.aprof{margin:10px 0 0; font-size:13.5px; line-height:1.4}
+.awhy{margin-top:8px; font-size:13.5px; line-height:1.4; color:var(--mut); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+.ameta .tile-row{align-items:center; gap:8px}
+.ameta .vcap{font-size:13px; font-weight:500; color:var(--mut)}
+.twoscores .scorecap{display:flex; align-items:center; height:24px}
+.twoscores .scorecap button,.twoscores .scorecap [role=button]{margin:-10px 0 -10px 2px}   /* keeps the 44px hit area without pushing the badge down */
+.awhy{-webkit-line-clamp:3}
+
+/* Explanatory paragraphs sit one step below body text, so labels and values lead */
+p.mut{font-size:14.5px; line-height:1.5}
+
+/* Score detail: cap notes read as separate lines, and a sugar tag no longer squeezes the value */
+.capnote p{margin:4px 0}
+.nrow-top{flex-wrap:wrap; gap:4px 12px; align-items:baseline}
+.nrow-top>span:first-child{display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px}
+.nrow-top>span:last-child{margin-left:auto}
+
+/* ===== Product page redesign: numbers lead, containers are fewer ===== */
+.twoscores{background:var(--surface); border-radius:16px; padding:18px 4px 16px; margin:16px 0 4px}
+.twoscores>div{padding:0 16px; gap:4px}
+.twoscores>div+div{padding-left:20px; margin-left:0}
+.twoscores .stile{background:none; padding:0; min-width:0; border-radius:0; font-size:46px; letter-spacing:-.035em; gap:3px; align-items:baseline; color:var(--accent)}
+.twoscores .stile.w{background:none; color:var(--warn)}
+.twoscores .stile.b{background:none; color:var(--bad)}
+.twoscores .stile small{font-size:14px; font-weight:500; color:var(--mut); opacity:1; letter-spacing:0}
+.twoscores>div>b{font-size:15px}
+.twoscores .scorecap{height:20px}
+/* Disclosure rows form one grouped list instead of four separate cards */
+.coll{border-radius:0; margin:0; padding:0 16px; border-top:1px solid var(--line)}
+.coll+.coll{margin-top:0}
+.coll:not(.coll+.coll){border-top:0; border-radius:16px 16px 0 0; margin-top:14px}
+.coll:not(:has(~ .coll)){border-radius:0 0 16px 16px}
+.coll:not(.coll+.coll):not(:has(~ .coll)){border-radius:16px}
+.coll>summary{min-height:56px}
+.altcta{border-radius:16px}
+.twoscores .mut,.twoscores .scoredef{font-size:13px; line-height:1.35}
+.twoscores>div>.mut.sm:nth-of-type(n){min-height:0}
+.fl{margin:16px 4px 0}
+
+/* ===== Scan peek redesign: identity, then the two scores, then one clear action ===== */
+.peek{flex-direction:column; align-items:stretch; gap:12px; padding:14px 16px 14px; border-radius:16px}
+.peek-top{display:flex; align-items:center; gap:12px; padding-right:28px}
+.peek-main{flex:1; min-width:0; display:flex; flex-direction:column}
+.peek-main b{font-size:16px; line-height:1.25}
+.peek-scores{display:grid; grid-template-columns:1fr 1fr; gap:0}
+.peek-scores>div{display:flex; flex-direction:column; gap:2px; min-width:0}
+.peek-scores>div+div{padding-left:16px; border-left:1px solid var(--line)}
+.peek-cap{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.peek-n{font-size:34px; font-weight:700; line-height:1.05; letter-spacing:-.035em; text-align:left}
+.peek-n i{font-style:normal; font-size:13px; font-weight:500; color:var(--mut); letter-spacing:0; margin-left:2px}
+.peek-scores small{font-size:12.5px; color:var(--mut); font-weight:500}
+.peek .peek-open{align-self:stretch; margin:0; padding:0 16px; min-height:46px; border-radius:999px; background:var(--accent); color:var(--accent-ink); text-decoration:none; font-size:15px; font-weight:600}
+.peek .peek-wait{display:flex; align-items:center; gap:8px; min-height:46px; justify-content:center}
+.peek-x{top:4px; right:4px}
+.peek{bottom:calc(104px + env(safe-area-inset-bottom))}

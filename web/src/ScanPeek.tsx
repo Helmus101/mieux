@@ -46,16 +46,17 @@ export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOp
       onClick={() => { if (p && priceDone && performance.now() - lastDrag.current > 200) onOpen(code); }} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && p && priceDone) { e.preventDefault(); onOpen(code); } }}>
       <button className="peek-x" aria-label={t('scan.close')} onClick={(e) => { e.stopPropagation(); onClose(); }}>×</button>
       {failed ? <span className="mut">{t('scan.peekFailed')}</span> : !p ? <><Skeleton h={18} w="60%" /><Skeleton h={14} w="35%" /></> : <>
-        {p.imageUrl && <img src={p.imageUrl} alt="" />}
-        <div className="peek-main">
-          <b>{p.name}</b>
-          <span className="mut sm">{p.brand ?? ''}</span>
-          {priceDone
-            ? <button className="peek-open" onClick={(e) => { e.stopPropagation(); onOpen(code); }}>{t('scan.peekView')}</button>
-            : <span className="mut sm"><span className="mini-ring" /> {t('alt.pricing')}</span>}
+        <div className="peek-top">
+          {p.imageUrl && <img src={p.imageUrl} alt="" />}
+          <div className="peek-main"><b>{p.name}</b>{p.brand && p.brand.toLowerCase() !== (p.name ?? '').toLowerCase() && <span className="mut sm">{p.brand}</span>}</div>
         </div>
-        <div className="peek-score" style={{ color }}>{sc ? sc.total : '–'}<small>{verdict}</small></div>
-        <div className="peek-score" style={{ color: pq == null ? 'var(--mut)' : pq >= 65 ? 'var(--accent)' : pq >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pq ?? '–'}<small>{t('score.pq')}</small></div>
+        <div className="peek-scores">
+          <div><span className="peek-cap">{t('score.quality')}</span><div className="peek-n" style={{ color }}>{sc ? sc.total : '–'}<i>/100</i></div><small>{verdict}</small></div>
+          <div><span className="peek-cap">{t('score.value')}</span><div className="peek-n" style={{ color: pq == null ? 'var(--mut)' : pq >= 65 ? 'var(--accent)' : pq >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pq ?? '–'}<i>/100</i></div><small>{t('score.pq')}</small></div>
+        </div>
+        {priceDone
+          ? <button className="peek-open" onClick={(e) => { e.stopPropagation(); onOpen(code); }}>{t('scan.peekView')}</button>
+          : <span className="mut sm peek-wait"><span className="mini-ring" /> {t('alt.pricing')}</span>}
       </>}
     </div>
   );

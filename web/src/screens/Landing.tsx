@@ -136,6 +136,12 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         </section>
       )}
 
+      <section className="lp-sec lp-final">
+        <h2>{t('land.finalTitle')}</h2>
+        <p className="lp-lead">{t('land.finalSub')}</p>
+        <div className="lp-cta"><button className="lp-btn lp-btn-lg" onClick={onEnter}>{t('land.cta')}</button></div>
+      </section>
+
       </main>
 
       <footer className="lp-foot">

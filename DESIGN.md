@@ -22,7 +22,7 @@ Quiet, Apple-adjacent utility: neutral surfaces, one deep green accent, large ti
 Score tones: g, g2, y, w, b map to accent, olive, clay, warn, bad. Dark mode follows `prefers-color-scheme`.
 
 ## Typography
-System stack (SF Pro / Segoe / Roboto), tabular numerals. Landing H1 `clamp(40px, 8.4vw, 88px)`, weight 700, tracking -.045em; H2 `clamp(30px, 5.4vw, 56px)`; body 17px; small print 12-13px. App h2 16px/600, h3 17px/600.
+System stack (SF Pro / Segoe / Roboto), tabular numerals. Landing H1 `clamp(44px, 6vw, 68px)` desktop, `clamp(36px, 10.4vw, 44px)` phone, weight 700, tracking -.045em; H2 `clamp(30px, 5.4vw, 56px)`; body 17px; small print 12-13px. App h2 16px/600, h3 17px/600.
 
 ## Shape and space
 Radius 8 / 12 (app), 14-28 (landing cards), pills 999px for buttons. Landing page gutter `max(clamp(20px,5vw,40px), (100% - 1040px)/2)`; sections 64-128px vertical.
@@ -41,3 +41,6 @@ Hero entrance only (12px rise, .5s, ease `cubic-bezier(.32,.72,0,1)`); landing s
 - One dominant action per view.
 - No decorative imagery; product photos and the real example carry the page.
 - Keep landing and app tokens in sync with `shared/theme.ts`.
+- Explanatory paragraphs (`p.mut`) are 14.5px, one step below body text.
+- Alternatives rows: price per kilo and the difference vs the scanned product lead; the Valeur badge is always labelled, Qualité sits beside it, and the reason for the suggestion is visible text (never a tooltip). The scanned product is anchored above the list ("Vous remplacez ...").
+- Product page: the two scores (Qualité, Valeur) share one surface card; numerals are set in the tone colour (no filled badges, which read as alarms), with the verdict word beneath. Disclosure rows (score detail, additives, where to find, ingredients) form one grouped list with hairline dividers, not separate cards. One filled action per screen: "Trouver mieux ou moins cher".
