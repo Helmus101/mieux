@@ -9,24 +9,24 @@
 :where(.lp-hero,.lp-sec,.lp-foot){max-width:1040px;margin:0 auto;padding-left:clamp(20px,5vw,40px);padding-right:clamp(20px,5vw,40px)}
 
 /* top bar */
-.lp-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px clamp(20px,5vw,40px);border-bottom:1px solid var(--line)}
+.lp-nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:calc(10px + env(safe-area-inset-top)) clamp(20px,5vw,40px) 10px;background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line)}
 .lp-word{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;letter-spacing:-.035em;text-decoration:none;color:var(--leaf)}
 .landing .lp-word img{width:24px;height:24px;border:0;border-radius:6px}
 
 /* buttons and links */
-.lp-btn{border:0;background:var(--leaf);color:var(--paper);font-weight:600;border-radius:10px;min-height:44px;padding:0 20px;font-size:15px}
+.lp-btn{border:0;background:var(--leaf);color:var(--paper);font-weight:600;border-radius:14px;min-height:46px;padding:0 22px;font-size:15.5px;box-shadow:0 1px 2px rgba(20,32,26,.12),0 4px 14px rgba(31,77,58,.14)}
 .lp-btn:hover{background:#173B2C}
 .lp-btn-sm{min-height:40px;padding:0 16px;font-size:14.5px}
-.lp-btn-lg{font-size:17px;padding:0 24px;min-height:52px;border-radius:12px}
+.lp-btn-lg{font-size:18px;padding:0 28px;min-height:54px;border-radius:16px}
 .lp-link{border:0;background:none;padding:0;font-size:14px;color:var(--leaf);text-decoration:underline;text-underline-offset:4px;text-decoration-color:rgba(31,77,58,.4)}
 .lp-link:hover{text-decoration-color:var(--leaf)}
 .lp-btn:focus-visible,.lp-link:focus-visible{outline:2px solid var(--leaf);outline-offset:3px}
 
 /* hero: the message on the left, a real example on the right */
 .lp-hero{display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,5vw,72px);align-items:center;padding-top:clamp(36px,6vw,80px);padding-bottom:clamp(40px,6vw,80px)}
-.lp-h1{font-size:clamp(30px,3.6vw,44px);line-height:1.12;letter-spacing:-.035em;font-weight:800;text-wrap:balance}
+.lp-h1{font-size:clamp(38px,5.2vw,64px);line-height:1.05;letter-spacing:-.04em;font-weight:800;text-wrap:balance;font-optical-sizing:auto}
 .lp-h1 .lp-h1-tail{display:block;margin-top:.18em;font-weight:500;color:var(--soft)}
-.lp-sub{margin-top:20px;max-width:46ch;font-size:17px;line-height:1.6;color:var(--soft);text-wrap:pretty}
+.lp-sub{margin-top:22px;max-width:44ch;font-size:19px;line-height:1.55;color:var(--soft);text-wrap:pretty}
 .lp-cta{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;margin-top:28px}
 .lp-trust{font-size:13px;color:var(--soft);max-width:30ch}
 
@@ -36,7 +36,7 @@
 .lp-scan img{width:56px;height:56px}
 .lp-scan-l{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .lp-scan small{font-size:12.5px;color:var(--soft)}.lp-scan b{font-size:16.5px;line-height:1.25}.lp-scan span{font-size:13px;color:var(--soft)}
-.lp-score{flex:none;display:flex;align-items:baseline;gap:1px;padding:8px 10px;border-radius:10px;background:var(--clay);color:#fff}
+.lp-score{flex:none;display:flex;align-items:baseline;gap:1px;padding:8px 10px;border-radius:10px;background:var(--clay);color:#fff;box-shadow:0 2px 8px rgba(242,107,58,.3);animation:lpFloat 5s ease-in-out 1.2s infinite}
 .lp-score b{font-size:30px;line-height:1;letter-spacing:-.04em}.lp-score small{font-size:12px;color:#fff;opacity:.85}
 .lp-alts{list-style:none;margin:0;padding:0}
 .lp-alt{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
@@ -121,3 +121,7 @@
 .lp-uvp-eg{margin-top:10px!important;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;color:var(--soft)}
 .lp-uvp-eg b{color:var(--ink);font-weight:600}
 
+
+@keyframes lpFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.lp-score{animation:none}}
+@media (prefers-reduced-transparency:reduce){.lp-nav{background:var(--paper);backdrop-filter:none;-webkit-backdrop-filter:none}}
