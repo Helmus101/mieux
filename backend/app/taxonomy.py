@@ -261,40 +261,79 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     brand = (p.get("brand") or "")
     generic_name = (p.get("generic_name") or "")
 
+    # The per-rule vetoes below depend only on the product, not on the rule: they used to re-run the same regexes
+    # once per rule per pass (five full sweeps of RULES, ~800 regex searches per product). They are computed once
+    # here; each pass then costs a dict lookup per rule plus the pass's own tag/name test.
+    cheese_dish = _not_a_cheese(name)
+    flavoured_yogurt = bool(_FLAVOURED_YOGURT.search(name))
+    drink_name = bool(_DRINK_NAME.search(name))
+    dish_name = bool(_DISH_CONTEXT.search(name))
+    legume_drink = bool(_DRINK_NAME.search(re.sub(r"\bvin\s+(?:blanc|rouge|ros[ée])\b|\bjus\b", " ", name, flags=re.I)))
+    not_nuts_tag = bool(_NOT_NUTS_TAG.search(tags))
+    nuts_tag = bool(_NUTS_TAG.search(tags))
+    raw_ready = bool(_READY_RAW_TAG.search(tags))
+    dish_tag = bool(_READY_DISH_TAG.search(tags))
+    _rej: Dict[str, bool] = {}
+    _nr_name: Dict[str, bool] = {}
+    _nr_gen: Dict[str, bool] = {}
+    _tr_hit: Dict[str, bool] = {}
+
+    def _rejects(tid: str) -> bool:
+        if tid not in _rej:
+            r = _TYPE_REJECTS.get(tid)
+            _rej[tid] = bool(r and r.search(name))
+        return _rej[tid]
+
+    def _guard(tid: str, fam: Optional[str]) -> bool:
+        """The vetoes every pass shares (False = this rule cannot claim the product). Same checks, same order of
+        outcomes as the inline blocks this replaces - only the regex work is hoisted out of the per-rule loop."""
+        if tid in _CHEESE_TYPES and cheese_dish:
+            return False   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
+        if tid == "plain_yogurt" and flavoured_yogurt:
+            return False   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
+        # _ingredient_not_standalone, with its name-level regexes already computed once above.
+        if fam != "drinks":
+            if tid in ("fish_canned", "legumes"):
+                # Preserved foods are packed IN a liquid or sauce: only a real beverage word disqualifies them.
+                if legume_drink or (tid == "legumes" and dish_name):
+                    return False   # a drink, or a pulse named inside a prepared dish, is not the ingredient
+            elif drink_name or ((fam in _DISH_FAMILIES or tid in _EXTRA_COMPONENT_TYPES) and dish_name):
+                return False   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
+        if _rejects(tid):
+            return False   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
+        if tid == "nuts" and not_nuts_tag and not nuts_tag:
+            return False   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
+        if tid == "ready_meal" and raw_ready and not dish_tag:
+            return False   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
+        return True
+
+    def _nr(tid: str, nr) -> bool:
+        if tid not in _nr_name:
+            _nr_name[tid] = bool(nr.search(name))
+        return _nr_name[tid]
+
+    def _ng(tid: str, nr) -> bool:
+        if tid not in _nr_gen:
+            _nr_gen[tid] = bool(nr.search(generic_name))
+        return _nr_gen[tid]
+
+    def _tr(tid: str, tr) -> bool:
+        if tid not in _tr_hit:
+            _tr_hit[tid] = bool(tr.search(tags))
+        return _tr_hit[tid]
+
     # Machine systems and forms named in the product name win over a generic tag: a Nespresso capsule does not fit a Dolce Gusto machine, sliced brioche is not a pastry.
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid in _CHEESE_TYPES and _not_a_cheese(name):
-            continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
-        if tid == "plain_yogurt" and _FLAVOURED_YOGURT.search(name):
-            continue   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
-        if _ingredient_not_standalone(tid, fam, name):
-            continue   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
-        _reject = _TYPE_REJECTS.get(tid)
-        if _reject and _reject.search(name):
-            continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
-        if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
-            continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
-        if tid == "ready_meal" and _READY_RAW_TAG.search(tags) and not _READY_DISH_TAG.search(tags):
-            continue   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
+        if not _guard(tid, fam):
+            continue
         if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast") and nr.search(name):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
 
     # Priority 1: High-specificity product type tags + name agreement (highest confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid in _CHEESE_TYPES and _not_a_cheese(name):
-            continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
-        if tid == "plain_yogurt" and _FLAVOURED_YOGURT.search(name):
-            continue   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
-        if _ingredient_not_standalone(tid, fam, name):
-            continue   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
-        _reject = _TYPE_REJECTS.get(tid)
-        if _reject and _reject.search(name):
-            continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
-        if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
-            continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
-        if tid == "ready_meal" and _READY_RAW_TAG.search(tags) and not _READY_DISH_TAG.search(tags):
-            continue   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
-        if tr.search(tags) and nr.search(name):
+        if not _guard(tid, fam):
+            continue
+        if _tr(tid, tr) and _nr(tid, nr):
             if tid == "jam" and not _JAM_WORDS.search(name):
                 continue   # 'preserves' tag on barley and lentils: a tagging error, never a jam
             return {"type": tid, **_META[tid], "source": "tags_and_name", "confidence": "high", "reason": f"specific category tag '{tr.pattern[:30]}' and name '{nr.pattern[:30]}' agree"}
@@ -304,60 +343,27 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
                 "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms", "rice_pudding", "corn",
                 "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives", "ham", "muesli", "legumes", "fried_onions")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid in _CHEESE_TYPES and _not_a_cheese(name):
-            continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
-        if tid == "plain_yogurt" and _FLAVOURED_YOGURT.search(name):
-            continue   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
-        if _ingredient_not_standalone(tid, fam, name):
-            continue   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
-        _reject = _TYPE_REJECTS.get(tid)
-        if _reject and _reject.search(name):
-            continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
-        if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
-            continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
-        if tid == "ready_meal" and _READY_RAW_TAG.search(tags) and not _READY_DISH_TAG.search(tags):
-            continue   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
-        if nr.search(name) and tid in specific:
+        if not _guard(tid, fam):
+            continue
+        if tid in specific and _nr(tid, nr):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"name matches specific form: {nr.pattern[:40]}"}
 
     # Priority 3: Broad category tags with supporting name evidence (medium confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid in _CHEESE_TYPES and _not_a_cheese(name):
-            continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
-        if tid == "plain_yogurt" and _FLAVOURED_YOGURT.search(name):
-            continue   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
-        if _ingredient_not_standalone(tid, fam, name):
-            continue   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
-        _reject = _TYPE_REJECTS.get(tid)
-        if _reject and _reject.search(name):
-            continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
-        if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
-            continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
-        if tid == "ready_meal" and _READY_RAW_TAG.search(tags) and not _READY_DISH_TAG.search(tags):
-            continue   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
-        if tr.search(tags):
+        if not _guard(tid, fam):
+            continue
+        if _tr(tid, tr):
             if tid == "jam" and not _JAM_WORDS.search(name):
                 continue   # 'preserves' tag on barley and lentils: a tagging error, never a jam
-            if nr.search(name) or nr.search(generic_name):
+            if _nr(tid, nr) or _ng(tid, nr):
                 return {"type": tid, **_META[tid], "source": "tags_with_name", "confidence": "medium", "reason": f"category tag '{tr.pattern[:30]}' with supporting name evidence"}
             return {"type": tid, **_META[tid], "source": "tags_only", "confidence": "medium", "reason": f"category tag '{tr.pattern[:30]}' only (no name support)"}
 
     # Priority 4: Name-only matches for general types (low confidence - may be ambiguous)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
-        if tid in _CHEESE_TYPES and _not_a_cheese(name):
-            continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
-        if tid == "plain_yogurt" and _FLAVOURED_YOGURT.search(name):
-            continue   # a flavoured yogurt is not a plain one, even when the tag list only says "yogurts"
-        if _ingredient_not_standalone(tid, fam, name):
-            continue   # a drink or a dish named after this ingredient is that drink or dish, not the ingredient
-        _reject = _TYPE_REJECTS.get(tid)
-        if _reject and _reject.search(name):
-            continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
-        if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
-            continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
-        if tid == "ready_meal" and _READY_RAW_TAG.search(tags) and not _READY_DISH_TAG.search(tags):
-            continue   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
-        if nr.search(name) or nr.search(generic_name):
+        if not _guard(tid, fam):
+            continue
+        if _nr(tid, nr) or _ng(tid, nr):
             # Reject generic "bar" matches without context
             if tid in ("fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar"):
                 # Only accept if name clearly indicates snack bar format, not just any bar
