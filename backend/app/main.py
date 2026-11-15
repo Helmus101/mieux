@@ -10,6 +10,7 @@ import logging
 import math
 import os
 import threading
+import time
 from typing import Any, Dict, Iterator, List, Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
@@ -249,10 +250,14 @@ def _warm_candidate_taxonomy() -> None:
     request does not pay the per-product taxonomy cost cold. Classification is memoised process-wide, OFF data is
     static, so this is pure cache filling - it never changes a result."""
     def work() -> None:
-        for code, alt in getattr(app.state.alt, "_clients", {}).items():
+        clients = getattr(app.state.alt, "_clients", {})
+        for code in ("FR", "US"):
+            alt = clients.get(code)
+            if alt is None:
+                continue
             market.set_current(code)
             try:
-                codes = alt.codes_by_scans(30000)
+                codes = alt.codes_by_scans(8000)
             except Exception:
                 continue
             for i in range(0, len(codes), 400):
@@ -266,6 +271,7 @@ def _warm_candidate_taxonomy() -> None:
                          "categories": cats, "generic_name": r.get("generic_name") or ""}
                     taxonomy.classify(p)
                     taxonomy._untyped_tokens(p)
+                time.sleep(0.5)   # spread the work out: warmup must never starve a real request of CPU
     threading.Thread(target=work, daemon=True, name="alt-taxonomy-warm").start()
 
 
