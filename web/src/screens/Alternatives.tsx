@@ -177,17 +177,17 @@ export default function Alternatives() {
             {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
             <div className="amain">
               <div className="aname">{e.product.name}</div>
-              <div className="abrand">{e.product.brand}</div>
               {(() => {
                 // Availability is only shown for stores from Settings, and only the chosen ones when a selection exists.
                 const cs = (e.product.chains ?? []).filter((id: string) => chainsFor(country).some((c) => c.id === id) && (!myChains.length || myChains.includes(id)));
-                return <div className="achains" title={cs.map(chainName).join(', ')}>{cs.length ? <>{t('alt.seenAt')} {cs.slice(0, 3).map(chainName).join(' · ')}{cs.length > 3 ? ` +${cs.length - 3}` : ''}</> : t('alt.chainUnknown')}</div>;
+                const at = cs.length ? `${t('alt.seenAt')} ${cs.slice(0, 2).map(chainName).join(' · ')}${cs.length > 2 ? ` +${cs.length - 2}` : ''}` : t('alt.chainUnknown');
+                return <div className="abrand" title={cs.map(chainName).join(', ')}>{[e.product.brand, at].filter(Boolean).join(' · ')}</div>;
               })()}
               <div className="ameta">
-                {e.vs != null && <span className="tile main" title={e.why}><span className="tile-row"><span className={'stile sm ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')}><b>{e.vs}</b></span><span className="cap vcap">{t('alt.valueShort')}</span></span></span>}
-                {e.q != null && <span className="sm mut" title={t('alt.qualityTip')}>{t('alt.quality')} {Math.max(0, Math.min(100, Math.round(e.q)))}</span>}
+                {e.vs != null && <span className={'av ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')} title={e.why}><b>{e.vs}</b> {t('alt.valueShort')}</span>}
+                {e.q != null && <span className="aq" title={t('alt.qualityTip')}>{t('alt.quality')} {Math.max(0, Math.min(100, Math.round(e.q)))}</span>}
               </div>
-              {e.why && <div className="awhy">{(w => w.charAt(0).toUpperCase() + w.slice(1))(String(e.why).replace(/^[^:]{0,40}\d+\/100\s*:\s*/, '').replace(/(\d+)\/100/g, (_m, n) => `${Math.min(100, +n)}/100`))}</div>}
+              {e.why && <div className="awhy">{(w => w.charAt(0).toUpperCase() + w.slice(1))(String(e.why).replace(/^[^:]{0,40}\d+\/100\s*:\s*/, '').replace(/^qualit[ée] nutritionnelle \d+\/100,\s*/i, '').replace(/^nutritional quality \d+\/100,\s*/i, '').replace(/(\d+)\/100/g, (_m, n) => `${Math.min(100, +n)}/100`))}</div>}
             </div>
             <div className="aprice">
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>

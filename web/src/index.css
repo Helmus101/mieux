@@ -693,3 +693,16 @@ p.mut{font-size:14.5px; line-height:1.5}
 .peek .peek-wait{display:flex; align-items:center; gap:8px; min-height:46px; justify-content:center}
 .peek-x{top:4px; right:4px}
 .peek{bottom:calc(104px + env(safe-area-inset-bottom))}
+
+/* ===== Alternatives rows: name, one line of context, one line of scores, one reason ===== */
+.arow{position:relative; padding:16px 0; gap:12px}
+.abrand{font-size:13px; color:var(--mut); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ameta{display:flex; flex-wrap:nowrap; gap:0 14px; margin-top:8px; align-items:baseline; font-size:14px}
+.av{font-weight:600; color:var(--ink)}
+.av b{font-size:20px; font-weight:700; letter-spacing:-.03em; margin-right:2px}
+.av.g b{color:var(--accent)} .av.w b{color:var(--warn)} .av.b b{color:var(--bad)}
+.aq{color:var(--mut)}
+.awhy{margin-top:6px; font-size:13px; line-height:1.4; color:var(--mut); -webkit-line-clamp:2}
+.aprice{align-self:start; gap:1px}
+.arow .flagbtn{position:absolute; right:-10px; bottom:2px; min-width:44px; min-height:44px; opacity:.55; font-size:14px}
+.arow .flagbtn:hover,.arow .flagbtn:focus-visible{opacity:1}
