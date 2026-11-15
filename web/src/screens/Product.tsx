@@ -7,7 +7,7 @@ import { formatCents, isLiquid } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
 import { priceHeadline } from '@shared/verdict';
 import PqExplain from '../PqExplain';
-import { Bar, Button, Card, Collapsible, haptic, Muted, NovaBadge, AmountScale, NutriScore, Pill, Row, Screen, NavBar, Segmented, Sheet, Skeleton, Loader, ChainLogo } from '../ui';
+import { Bar, Button, Card, Collapsible, haptic, Muted, Pill, Row, Screen, NavBar, Sheet, Skeleton, Loader, ChainLogo } from '../ui';
 import { routes, useNav } from '../nav';
 import SaveButton from '../SaveButton';
 import Where from '../Where';
@@ -20,8 +20,6 @@ import { getStrict } from '@shared/config';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const PRICE_WAIT_MS = 12000;   // longest the quality and value scores stay hidden while the price is looked up
-const TONE_V: Record<string, string> = { g: 'var(--accent)', g2: 'var(--olive)', y: 'var(--clay)', w: 'var(--warn)', b: 'var(--bad)' };
-const toneVar = (tn?: string) => ({ g: 'var(--accent)', g2: 'var(--olive)', w: 'var(--warn)', b: 'var(--bad)' } as Record<string, string>)[tn ?? ''] ?? 'var(--ink)';
 
 export default function Product() {
   const { barcode } = useParams<{ barcode: string }>();
@@ -29,7 +27,7 @@ export default function Product() {
   const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare);
   const country = useProfile((s) => s.country);
   const hist = useHistory();
-  const [d, setD] = useState<any>(() => (barcode ? readCache(prodKey(barcode, estimates, getStrict())) : null)), [err, setErr] = useState<{ kind: 'notfound' | 'notfood' | 'invalid' | 'server' | 'network' | 'rate' | 'auth'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0), [basis, setBasis] = useState<'100' | 'serving' | 'pack'>('100');
+  const [d, setD] = useState<any>(() => (barcode ? readCache(prodKey(barcode, estimates, getStrict())) : null)), [err, setErr] = useState<{ kind: 'notfound' | 'notfood' | 'invalid' | 'server' | 'network' | 'rate' | 'auth'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0);
   useEffect(() => {
     if (!barcode) return;
     setD(readCache(prodKey(barcode, estimates, getStrict()))); setErr(null); setOffline(false);   // the scan peek's answer shows at once while this refetches
@@ -62,15 +60,6 @@ export default function Product() {
     }
     return () => { live = false; if (giveUp) clearTimeout(giveUp); };
   }, [barcode, d?.product?.id, headKind]);
-  const [aiNote, setAiNote] = useState<{ text: string; source?: string } | null>(null);
-  const [aiBusy, setAiBusy] = useState(false);
-  const aiAsked = useRef(false);
-  const explainScore = () => {
-    if (!barcode || aiAsked.current) return;
-    aiAsked.current = true; setAiBusy(true);
-    api.scoreExplain(barcode).then((x: any) => setAiNote(x)).catch(() => undefined).finally(() => setAiBusy(false));
-  };
-  useEffect(() => { aiAsked.current = false; setAiNote(null); setAiBusy(false); }, [barcode]);
   if (err) return (
     <Screen>
       <NavBar onBack={back} />
@@ -100,11 +89,6 @@ export default function Product() {
   );
 
   const p = d.product, pc = d.price_context;
-  const liquid = isLiquid(p), per = liquid ? 'ml' : 'g';
-  const bases = [{ key: '100', label: t('sdim.per100', { u: per }), f: 1 }, ...(p.servingG ? [{ key: 'serving', label: t('sdim.perServing', { n: Math.round(p.servingG), u: per }), f: p.servingG / 100 }] : []),
-    ...(p.quantity?.amount ? [{ key: 'pack', label: t('sdim.perPack', { n: Math.round(p.quantity.amount), u: per }), f: p.quantity.amount / 100 }] : [])];
-  const factor = (bases.find((b) => b.key === basis) ?? bases[0]).f;
-  const amt = (v: number | null | undefined) => (v == null ? '—' : String(Math.round(v * factor * 10) / 10).replace('.', ','));
   const head = priceHeadline(pc);
   const pricePending = head.kind === 'none' && priceSettledFor !== barcode && priceGaveUpFor !== barcode;
   const packOf = (perKgCents?: number | null, explicit?: number | null) => (explicit != null && explicit > 0 ? explicit : (perKgCents != null && perKgCents > 0 && p.quantity?.amount ? Math.round(perKgCents * p.quantity.amount / 1000) : null));
@@ -158,33 +142,6 @@ export default function Product() {
         </>) : <Muted>{t('score.na')}</Muted>}
       </section>
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
-      {p.score && !pricePending && <Collapsible open={false} title={t('sdim.title')} onOpen={explainScore}>
-          {aiBusy && <p className="mut sm"><span className="mini-ring" />{t('ex.loading')}</p>}
-          {aiNote && <p className="ai-note">{aiNote.text}{aiNote.source !== 'llm' && <span className="mut sm"> · {t('ex.template')}</span>}</p>}
-          {p.score.parts && <p className="mut sm" style={{ margin: '6px 0 0' }}>{p.score.parts.map((x: any) => `${t('score.part_' + x.key)} ${Math.round(x.got)}/${x.of}`).join(' · ')}{p.score.uncapped > p.score.total ? ` · ${t('score.cappedFrom', { a: p.score.uncapped, b: p.score.total })}` : ''}</p>}
-        <Row wrap><NutriScore grade={p.nutriScore} /></Row>
-          <div className="nsec">{t('sdim.amountsFor')}</div>
-          {bases.length > 1 ? <Segmented value={basis} onChange={(k) => setBasis(k as any)} options={bases.map((b) => ({ key: b.key, label: b.label }))} /> : <p className="mut sm">{bases[0].label}</p>}
-          <div className="trio">
-            <div><span className="mut sm">{t('sdim.nutritional')}</span><b style={{ color: toneVar(p.score.nutritional.tone) }}>{p.score.nutritional.score}</b></div>
-            <div><span className="mut sm">{t('sdim.ingredient')}</span><b style={{ color: toneVar(p.score.ingredient?.tone) }}>{p.score.ingredient ? p.score.ingredient.score : '—'}</b></div>
-            <div><span className="mut sm">{t('sdim.processing')}</span><NovaBadge group={p.novaGroup} estimated={p.novaEstimated} /></div>
-          </div>
-          {p.score.caps?.length > 0 && <div className="capnote">{p.score.caps.map((c: string) => <p key={c} className="mut sm">{t('cap.' + c)}</p>)}</div>}
-          <div className="nsec">{t('sdim.grp_nutrition')}</div>
-          {p.score.dimensions.filter((d: any) => d.group === 'nutrition' && d.relevant && !d.missing).map((d: any) => {
-            const sg = d.key === 'sugar' ? p.score.sugar : null, sk = sg?.kind;
-            return (
-              <div className="nrow" key={d.key}>
-                <div className="nrow-top"><span>{t('sdim.' + d.key)}{sk === 'natural' && <span className="tag nat">{t('nut.sugarNatural')}</span>}{(sk === 'added' || sk === 'mixed') && <span className="tag add">{t('nut.sugarAdded')}</span>}</span>
-                  {d.scale ? <span><b>{d.key === 'plant' ? d.scale.value : amt(d.scale.value)} {d.scale.unit}</b>{d.scale.estimated && <span className="mut sm"> ({t('add2.est')})</span>} <span className="mut sm" style={{ color: TONE_V[d.scale.tone] }}>{t((d.scale.better === 'more' ? 'tierPos.' : 'tier.') + d.scale.tier)}</span></span>
-                    : <span className="mut sm" style={{ color: TONE_V[d.tone] }}>{d.key === 'micro' ? t('sdim.microList', { n: (d.detail.rich?.length ?? 0) + (d.detail.source?.length ?? 0) }) : t('tier.' + (d.score >= 75 ? 'excellent' : d.score >= 50 ? 'good' : d.score >= 25 ? 'poor' : 'bad'))}</span>}</div>
-                {d.scale && <AmountScale scale={d.scale} />}
-                {sg && (sk === 'added' || sk === 'mixed') && sg.added?.length > 0 && <p className="mut sm">{t('nut.sugarAddedNote', { x: sg.added.join(', ') })}</p>}
-                {d.key === 'fat' && d.detail?.sat != null && <p className="mut sm">{t('sdim.fatDetail', { s: amt(d.detail.sat), f: amt(d.detail.total) })}{d.detail.trans != null ? ' · ' + t('sdim.trans', { x: amt(d.detail.trans) }) : ''}</p>}
-              </div>);
-          })}
-      </Collapsible>}
 
       {p.score && (() => {
         const all = [...(p.score.additives?.items ?? [])] as any[];

@@ -512,7 +512,7 @@ def quality(p: Dict[str, Any], organic: bool = False, raw: Optional[Dict[str, An
         total2 = min(total2, 45); caps.append("two_serious_weaknesses")
     elif len(bad) == 1:
         total2 = min(total2, 64); caps.append("serious_weakness")
-    total = round(max(0.0, total2))
+    total = round(min(100.0, max(0.0, total2)))  # the organic bonus can push the raw total past 100
     if strict:
         parts = [{"key": "nutrition", "got": round(.55 * nq, 1), "of": 55}, {"key": "additives", "got": round(.30 * dscore["additives"][0], 1), "of": 30},
                  {"key": "ingredients", "got": round(.15 * ing_mark, 1), "of": 15}, {"key": "organic", "got": 10 if organic else 0, "of": 10}]
