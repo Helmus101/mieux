@@ -96,3 +96,6 @@ web/dist/
 *.db-shm
 *.db-wal
 *.db-journal
+
+# Audit artifacts
+.production-readiness/

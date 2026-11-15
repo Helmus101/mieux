@@ -20,8 +20,8 @@ body:has(.landing){margin:0}   /* the landing does not load the app stylesheet: 
 .landing .lp-word img{width:26px;height:26px;border-radius:7px;background:none}
 
 /* buttons and links: one dominant action */
-.lp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;background:var(--leaf);color:var(--on-leaf);font-weight:600;border-radius:14px;min-height:44px;padding:0 20px;font-size:16px;transition:transform .12s ease,opacity .15s,background .2s}
-.lp-btn:hover{opacity:.92}
+.lp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;background:var(--leaf);color:var(--on-leaf);font-weight:600;border-radius:14px;min-height:44px;padding:0 20px;font-size:16px;transition:transform .16s cubic-bezier(.23,1,.32,1),opacity .15s,background .2s}
+@media (hover:hover) and (pointer:fine){.lp-btn:hover{opacity:.92}}
 .lp-btn:active{transform:scale(.97)}
 .lp-btn-sm{padding:0 16px;font-size:15px}
 .lp-btn-lg{min-height:56px;padding:0 30px;font-size:18px;border-radius:16px}
@@ -154,7 +154,10 @@ body:has(.landing){margin:0}   /* the landing does not load the app stylesheet: 
 #difference{background:var(--bg)}
 #uvp{background:var(--bg)}
 /* content eases in with a soft spring-like curve; nothing is hidden unless the observer is running */
-.js-rv .rv{opacity:0;transform:translateY(28px);transition:opacity .8s cubic-bezier(.32,.72,0,1) var(--d,0ms),transform .9s cubic-bezier(.32,.72,0,1) var(--d,0ms)}
+.js-rv .rv{opacity:0;transform:translateY(14px);transition:opacity .5s cubic-bezier(.23,1,.32,1) var(--d,0ms),transform .6s cubic-bezier(.23,1,.32,1) var(--d,0ms)}
 .js-rv .rv.in{opacity:1;transform:none}
 @media (prefers-reduced-motion:reduce){.js-rv .rv{opacity:1;transform:none;transition:none}}
 @media (max-width:520px){.lp-hero{padding-top:40px}.lp-cta .lp-btn-lg{width:auto}}
+
+/* The comparison note lines up with the table it qualifies, not the page edge */
+.lp-vs + .lp-note{max-width:880px;margin-inline:auto}
