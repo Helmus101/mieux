@@ -130,7 +130,7 @@ R = [
     # A tart is its own bakery purchase: a fruit tart is not a cake, and a tarte fine is not a pizza.
     ("tart", "sweet", "cake", "tart", "tart", "snacking", r"(?:^|\s)en:(?:tarts|fruit-tarts|pies|tartlets)(?:\s|$)", r"tartes?\b|tartelettes?|\bpie\b"),
     ("pizza", "meals", "pizza", "pizza", "pizza", "meal", r"pizzas|quiches|tarte-flambes?", r"pizza|quiche|flammekueche|tarte flamb"),
-    ("ready_meal", "meals", "ready_meal", "meal", "meal", "meal", r"meals|prepared-meals|ready-meals|sandwiches|salads", r"plat cuisin|lasagne|hachis|couscous|paella|sandwich|salade"),
+    ("ready_meal", "meals", "ready_meal", "meal", "meal", "meal", r"meals|prepared-meals|ready-meals|sandwiches|salads", r"plat cuisin|lasagne|hachis|couscous|paella|sandwich|salade|ratatouille|\btian\b|l[ée]gumes? (?:cuisin[ée]s?|saut[ée]s?|gratin[ée]s?|proven[çc]aux)|po[êe]l[ée]e (?:de|aux) l[ée]gumes"),
     ("ham", "meat_fish", "charcuterie", "slices", "cold_cut", "meal", r"hams|cooked-hams|dry-hams|charcuteries|bacon|cured-meats", r"jambon|lardons|saucisson|charcuterie|bacon|\bham\b|gammon"),
     ("sausage", "meat_fish", "charcuterie", "sausage", "cook", "meal", r"sausages|merguez", r"saucisse|merguez|chipolata"),
     # Meat and poultry: each animal is its own small category (a chicken breast is not a beef steak); pâtés and terrines are
@@ -273,6 +273,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
         if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
             continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
+        if tid == "ready_meal" and _READY_RAW_TAG.search(tags) and not _READY_DISH_TAG.search(tags):
+            continue   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
         if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast") and nr.search(name):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
 
@@ -289,6 +291,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
         if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
             continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
+        if tid == "ready_meal" and _READY_RAW_TAG.search(tags) and not _READY_DISH_TAG.search(tags):
+            continue   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
         if tr.search(tags) and nr.search(name):
             if tid == "jam" and not _JAM_WORDS.search(name):
                 continue   # 'preserves' tag on barley and lentils: a tagging error, never a jam
@@ -310,6 +314,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
         if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
             continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
+        if tid == "ready_meal" and _READY_RAW_TAG.search(tags) and not _READY_DISH_TAG.search(tags):
+            continue   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
         if nr.search(name) and tid in specific:
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"name matches specific form: {nr.pattern[:40]}"}
 
@@ -326,6 +332,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
         if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
             continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
+        if tid == "ready_meal" and _READY_RAW_TAG.search(tags) and not _READY_DISH_TAG.search(tags):
+            continue   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
         if tr.search(tags):
             if tid == "jam" and not _JAM_WORDS.search(name):
                 continue   # 'preserves' tag on barley and lentils: a tagging error, never a jam
@@ -346,6 +354,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             continue   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
         if tid == "nuts" and _NOT_NUTS_TAG.search(tags) and not _NUTS_TAG.search(tags):
             continue   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
+        if tid == "ready_meal" and _READY_RAW_TAG.search(tags) and not _READY_DISH_TAG.search(tags):
+            continue   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
         if nr.search(name) or nr.search(generic_name):
             # Reject generic "bar" matches without context
             if tid in ("fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar"):
@@ -430,6 +440,15 @@ _TYPE_REJECTS = {
     # "Pois chiches très peu de jus" is chickpeas canned in juice, not a juice.
     "fruit_juice": re.compile(r"pois chiches?|lentilles?|haricots?|l[ée]gumes?|conserves?|au jus|dans son jus|ma[ïi]s\b", re.I),
 }
+# OFF's broad "en:meals" tag also lands on dry couscous, quinoa and bagged salads. A ready meal needs a tag that names a
+# prepared dish; raw grain/produce tags without one keep the product out of ready_meal.
+_READY_DISH_TAG = re.compile(
+    r"prepared-(?!vegetables\b|potatoes\b|fruits?\b)|-\w*dishes\b|meals-with|canned-meals|plant-based-meals|microwave-meals|"
+    r"frozen-meals|lasagn\w*|pizzas?\b|quiches?\b|sandwiches\b|burgers?\b|cannelloni|ravioli|stews?|casseroles?|"
+    r"tarts?\b|pies?\b|pot-au-feu| ready-meals|prepared-meals", re.I)
+_READY_RAW_TAG = re.compile(
+    r":couscous\b|:quinoa\b|cereal-grains|cereal-semolinas|wheat-semolinas|durum-wheat|cereals-and-their-products|"
+    r":seeds\b|:rice\b|:flour\b|fruits-and-vegetables-based-foods|vegetables-based-foods|fresh-fruits?|fresh-vegetables|:pulses\b", re.I)
 # A flavoured yogurt is not a plain one, whatever generic "yogurts" tag it carries.
 _FLAVOURED_YOGURT = re.compile(
     r"vanille|vanilla|chocolat|chocolate|schoko|stracciatella|fraise|framboise|myrtille|fruit|miel|honey|caramel|p[ée]pite|cookie|sp[ée]culoos|coco|"
@@ -446,7 +465,7 @@ _DISH_CONTEXT = re.compile(
     r"wraps?|bagels?|tartinables?|sauces?|carr[ée]s? de|risotto|quinotto|croquettes?|beignets?|flan sal[ée]|"
     r"r[ôöo]stis?|pav[ée]s? (au|aux|de|à)|boulettes?|bouch[ée]es?|po[êe]l[ée]es?|samoussas?|\bnems?\b|accras?|aligot|"
     r"tacos?|cakes? sal[ée]s?|muffins?|omelettes?|tortillas?|frittatas?|goug[èe]res?|cannellonis?|parmentiers?|hachis|"
-    r"rigatonis?|pennes?|spaghettis?|tagliatelles?|fusillis?|macaronis?|gnocchis?|farfalles?|linguines?|pesto",
+    r"rigatonis?|pennes?|spaghettis?|tagliatelles?|fusillis?|macaronis?|gnocchis?|farfalles?|linguines?|pesto|moussaka|ratatouille|\btian\b|couscous|paella",
     re.I)
 
 
@@ -460,7 +479,10 @@ def _ingredient_not_standalone(tid: str, family: str, name: str) -> bool:
         # "pois chiches très peu de jus" are still the food, not a drink or a dish.
         # Only a real beverage word (boisson, soda, ...) disqualifies them - packing liquids do not.
         stripped = re.sub(r"\bvin\s+(?:blanc|rouge|ros[ée])\b|\bjus\b", " ", name, flags=re.I)
-        return bool(_DRINK_NAME.search(stripped))
+        if _DRINK_NAME.search(stripped):
+            return True
+        # A pulse named inside a prepared dish ("couscous de pois chiches", "... façon moussaka") is the dish, not the pulse.
+        return tid == "legumes" and bool(_DISH_CONTEXT.search(name))
     if _DRINK_NAME.search(name):
         return True
     if (family in _DISH_FAMILIES or tid in _EXTRA_COMPONENT_TYPES) and _DISH_CONTEXT.search(name):
@@ -532,7 +554,12 @@ def level_between(a: str, b: str) -> Optional[int]:
 _CATEGORY_TYPE = "cat:"
 UNCATEGORISED = _CATEGORY_TYPE + "en:uncategorised"
 _GENERIC_LEAF = {"en:groceries", "en:foods", "en:beverages", "en:plant-based-foods", "en:plant-based-foods-and-beverages", "fr:autres-produits", "en:dietary-supplements", "en:meals", "en:snacks", "en:sauces", "en:condiments", "en:frozen-foods", "en:meats", "en:plant-based-foods-and-beverages-fruits"}
-_UNTYPED_STOP = set("avec sans pour dans plus bio extra fins fine fines france francais française français origine nature naturel naturelle format maxi mini grand grande petit petite recette original originale traditionnel traditionnelle selection sélection qualité saveur gout goût premium light".split())
+_UNTYPED_STOP = set("avec sans pour dans plus bio extra fins fine fines france francais française français origine nature naturel naturelle format maxi mini grand grande petit petite recette original originale traditionnel traditionnelle selection sélection qualité saveur gout goût premium light cuit cuite cuits cuites cuisine cuisiné cuisinée cuisinés cuisinées préparé préparée préparés préparées cooked prepared".split())
+
+
+def _dish_stem(w: str) -> str:
+    """Plural tolerance for dish matching: 'aubergines' and 'aubergine' are the same ingredient."""
+    return w[:-1] if len(w) > 3 and w.endswith("s") else w
 
 
 def _untyped_tokens(p: Dict[str, Any]) -> set:
@@ -609,6 +636,16 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
         return None  # No cluster relationship exists - completely incompatible types
     if name_only_agreement:
         lv = max(lv, 2)   # name alone, with no category tag on either side, never reaches "almost identical"
+
+    # Two ready meals share an aisle, not a dish: without a shared ingredient word or a shared specific category tag
+    # they are only a broad alternative (level 4), never "very similar" - a lasagne is not a substitute for ratatouille.
+    if lv <= 2 and co["type"] == cc["type"] == "ready_meal":
+        stems_o = {_dish_stem(w) for w in _untyped_tokens(orig)}
+        stems_c = {_dish_stem(w) for w in _untyped_tokens(cand)}
+        leaf_o = {t for t in (orig.get("categories") or []) if t not in _GENERIC_LEAF}
+        leaf_c = {t for t in (cand.get("categories") or []) if t not in _GENERIC_LEAF}
+        if not (stems_o & stems_c) and not (leaf_o & leaf_c):
+            lv = 4
 
     # Variant handling
     vo, vc = variant(orig, co["type"]), variant(cand, cc["type"])
