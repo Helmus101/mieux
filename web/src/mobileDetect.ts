@@ -9,6 +9,9 @@ export const isStandalone = () => window.matchMedia('(display-mode: standalone)'
 
 /** Get the app URL for QR code linking. */
 export const getAppUrl = () => {
-  const origin = window.location.origin;
-  return origin + '/app';
+  // A phone cannot reach localhost / LAN-only hosts, so a QR made there would just hang: point it at the public site.
+  const { hostname, origin } = window.location;
+  const local = /^(localhost|127\.|0\.0\.0\.0|\[::1\]|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(hostname) || hostname.endsWith('.local');
+  const site = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_SITE_URL || 'https://mieuxmanger.vercel.app';
+  return (local ? site : origin) + '/app';
 };
