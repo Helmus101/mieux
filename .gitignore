@@ -93,3 +93,6 @@ backend/data/
 *.tar.gz
 web/dist/
 *.db.gz
+*.db-shm
+*.db-wal
+*.db-journal
