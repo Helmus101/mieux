@@ -167,7 +167,9 @@ export default function Alternatives() {
         const u = unitPrice(e.price100, e.product?.quantity, isLiquid(e.product));
         const d = diffOf(e);
         return (
-          <article key={e.product.id} className="arow" onClick={() => { haptic('tap'); go(routes.product(e.product.id)); }}>
+          <div key={e.product.id} className="arow" role="button" tabIndex={0} aria-label={e.product.name}
+            onClick={() => { haptic('tap'); go(routes.product(e.product.id)); }}
+            onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); haptic('tap'); go(routes.product(e.product.id)); } }}>
             {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
             <div className="amain">
               <div className="aname">{e.product.name}</div>
@@ -189,7 +191,7 @@ export default function Alternatives() {
               {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
               <button className="flagbtn" aria-label={t('sub.notComparable')} title={t('sub.notComparable')} onClick={async (ev) => { ev.stopPropagation(); try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}>⚑</button>
             </div>
-          </article>);
+          </div>);
       })}</div>}
       {r && !busy && !showMore && ranked.length > 3 && <Button small plain onPress={() => { haptic('tap'); setShowMore(true); }}>{t('alt.showMore')}</Button>}
       <Toast text={note} />

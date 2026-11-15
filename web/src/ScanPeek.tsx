@@ -33,7 +33,7 @@ export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOp
   const verdict = conflict ? t('scan.peekConflict') : sc ? t('score.' + sc.band) : t('score.na');
   return (
     <div className="peek" role="button" tabIndex={0} aria-label={t('scan.peekOpen')} style={{ transform: `translateY(${Math.max(0, dy)}px)`, opacity: 1 - Math.min(1, Math.max(0, dy) / 160), transition: start.current == null ? 'transform .2s, opacity .2s' : 'none', cursor: priceDone ? undefined : 'wait' }}
-      onClick={() => { if (p && priceDone) onOpen(code); }} onKeyDown={(e) => { if (e.key === 'Enter' && p && priceDone) onOpen(code); }}
+      onClick={() => { if (p && priceDone) onOpen(code); }} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && p && priceDone) { e.preventDefault(); onOpen(code); } }}
       onPointerDown={(e) => { start.current = e.clientY; }} onPointerMove={(e) => { if (start.current != null) setDy(e.clientY - start.current); }}
       onPointerUp={() => { const far = dy > 60; start.current = null; if (far) onClose(); else setDy(0); }} onPointerCancel={() => { start.current = null; setDy(0); }}>
       <button className="peek-x" aria-label={t('scan.close')} onClick={(e) => { e.stopPropagation(); onClose(); }}>×</button>
