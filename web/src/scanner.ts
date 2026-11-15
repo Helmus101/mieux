@@ -10,7 +10,7 @@ export class Cancelled extends Error { constructor() { super('cancelled'); this.
 export async function openCamera(video: HTMLVideoElement, isCurrent: () => boolean = () => true): Promise<MediaStream> {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: false,
-    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
   });
   if (!isCurrent()) { stream.getTracks().forEach((t) => t.stop()); throw new Cancelled(); }
   video.srcObject = stream; video.setAttribute('playsinline', ''); video.muted = true;
@@ -40,37 +40,59 @@ function frameRegion(video: HTMLVideoElement, frame?: HTMLElement | null) {
 /** Starts scanning an already-playing video. Returns a stop function. Uses the native detector when present (fast), else ZXing on a small centre crop. */
 /** `continuous`: keeps reading after a hit; the same code is ignored for 3 s so holding the phone still does not repeat it. */
 export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: string) => void, frame?: HTMLElement | null, continuous = false): Promise<() => void> {
-  let stopped = false, last = 0, lastCode = '', lastAt = 0;
+  let stopped = false, lastCode = '', lastAt = 0;
   const done = (c: string) => {
     if (stopped || !validBarcode(c)) return false;
     if (continuous) { const now = Date.now(); if (c === lastCode && now - lastAt < 3000) return false; lastCode = c; lastAt = now; try { navigator.vibrate?.(30); } catch { /* ignore */ } onCode(c); return false; }
     stopped = true; try { navigator.vibrate?.(30); } catch { /* ignore */ } onCode(c); return true; };
+  // Next video frame: in step with the camera when the browser can say so, else the display refresh.
+  const nextFrame = (cb: () => void) => { const v = video as any; if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(() => cb()); else requestAnimationFrame(() => cb()); };
+  // Native detector when it reads EAN/UPC; ZXing otherwise. Frames are never queued: one decode at a time, always on the freshest frame.
+  let det: any = null;
   if ('BarcodeDetector' in window) {
-    const det = new (window as any).BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
-    const cv0 = document.createElement('canvas'), cx0 = cv0.getContext('2d', { willReadFrequently: true })!;
-    const loop = async (t: number) => {
+    try {
+      const sup: string[] = await (window as any).BarcodeDetector.getSupportedFormats?.() ?? [];
+      const want = ['ean_13', 'ean_8', 'upc_a', 'upc_e'].filter((f) => !sup.length || sup.includes(f));
+      if (want.length) det = new (window as any).BarcodeDetector({ formats: want });
+    } catch { det = null; }
+  }
+  const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true })!;
+  const crop = (maxW: number) => {
+    const g = frameRegion(video, frame), k = Math.min(1, maxW / g.sw);
+    cv.width = Math.max(1, Math.round(g.sw * k)); cv.height = Math.max(1, Math.round(g.sh * k));
+    cx.drawImage(video, g.sx, g.sy, g.sw, g.sh, 0, 0, cv.width, cv.height);
+  };
+  if (det) {
+    const loop = async () => {
       if (stopped) return;
-      if (t - last > 40 && video.readyState >= 2) { last = t; try { const g = frameRegion(video, frame); const k = Math.min(1, 640 / g.sw); cv0.width = Math.max(1, Math.round(g.sw * k)); cv0.height = Math.max(1, Math.round(g.sh * k)); cx0.drawImage(video, g.sx, g.sy, g.sw, g.sh, 0, 0, cv0.width, cv0.height); const r = await det.detect(cv0); for (const b of r) if (done(b.rawValue)) return; } catch { /* keep going */ } }
-      requestAnimationFrame(loop);
+      if (video.readyState >= 2 && video.videoWidth) {
+        try {
+          crop(1024);  // detail matters more than speed here: the native detector is fast and thin bars blur away when downscaled
+          let r = await det.detect(cv);
+          if (!r.length) r = await det.detect(video);  // barcode outside the frame: look at the whole picture
+          for (const b of r) if (done(b.rawValue)) return;
+        } catch { /* keep going */ }
+      }
+      nextFrame(loop);
     };
-    requestAnimationFrame(loop);
+    nextFrame(loop);
   } else {
     const Z = await import('./zxing');
     const reader = new Z.MultiFormatUPCEANReader();
-    const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true })!;
-    const loop = (t: number) => {
+    let seen = '', seenAt = 0;
+    const loop = () => {
       if (stopped) return;
-      if (t - last > 45 && video.videoWidth) {
-        last = t;
-        // decode only the centre band, downscaled: ~5x faster than the full frame and where the user aims anyway
-        const { sx, sy, sw, sh } = frameRegion(video, frame);
-        const k = Math.min(1, 512 / sw); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
-        cx.drawImage(video, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
-        try { if (done(Z.decodeCanvas(reader, cv))) return; } catch { /* no code in this frame */ }
+      if (video.videoWidth) {
+        crop(800);
+        try {
+          const c = Z.decodeCanvas(reader, cv), now = Date.now();
+          // ZXing misreads more often than the native detector: trust a code once two reads in a row agree
+          if (validBarcode(c)) { if (c === seen && now - seenAt < 1200) { if (done(c)) return; } else { seen = c; seenAt = now; } }
+        } catch { /* no code in this frame */ }
       }
-      requestAnimationFrame(loop);
+      nextFrame(loop);
     };
-    requestAnimationFrame(loop);
+    nextFrame(loop);
   }
   return () => { stopped = true; };
 }

@@ -3,7 +3,8 @@
  * this single file with React Native components (View/Text/Pressable/Animated, bottom-sheet, expo-haptics).
  * The API of each primitive is intentionally React-Native-shaped (onPress, children, no DOM events).
  */
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useSpringDrag } from '../spring';
 import { nutriScoreColors, novaColors } from '@shared/theme';
 import { t } from '@shared/i18n';
 
@@ -91,41 +92,39 @@ export function CountUp({ value, format }: { value: number; format: (v: number) 
   return <span className="big">{format(v)}</span>;
 }
 
+/**
+ * Bottom sheet. It follows the finger 1:1, resists when pulled up past its rest position, and on release is thrown to
+ * wherever the flick is heading (open or dismissed) by a spring that carries the finger's velocity. Grabbing it while it
+ * is still moving picks it up where it is. Enter and exit use the same spring along the same path (up from the bottom, back down).
+ */
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title?: string; children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ y: number; t: number; on: boolean } | null>(null);
-  const [dy, setDyState] = useState(0), [dragging, setDragging] = useState(false);
-  const dyRef = useRef(0);
-  const setDy = (v: number) => { dyRef.current = v; setDyState(v); };
+  const [mounted, setMounted] = useState(open);
+  useEffect(() => { if (open) setMounted(true); }, [open]);
+  if (!mounted) return null;
+  return <SheetBody open={open} onClose={onClose} title={title} onGone={() => setMounted(false)}>{children}</SheetBody>;
+}
+
+function SheetBody({ open, onClose, onGone, title, children }: { open: boolean; onClose: () => void; onGone: () => void; title?: string; children: ReactNode }) {
+  const scrim = useRef<HTMLDivElement>(null), h = useRef(600), openRef = useRef(open);
+  openRef.current = open;
+  const { ref, animateTo, set } = useSpringDrag<HTMLDivElement>({
+    axis: 'y', response: 0.32, bounce: 0.15,
+    snaps: () => [0, h.current],
+    canStart: (e: PointerEvent): boolean => !!(e.target as HTMLElement).closest?.('.grabzone') || (e.currentTarget as HTMLElement).scrollTop <= 0,
+    onMove: (y) => { if (scrim.current) scrim.current.style.opacity = String(Math.max(0, Math.min(1, 1 - y / h.current))); },
+    onSettle: (pt) => { if (pt > 0) { if (openRef.current) onClose(); onGone(); } },
+  });
+  useLayoutEffect(() => { const el = ref.current; if (!el) return; h.current = el.offsetHeight; set(h.current); animateTo(0); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!open) animateTo(h.current); }, [open]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) return;
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
   }, [open, onClose]);
-  useEffect(() => { if (!open) { setDy(0); setDragging(false); drag.current = null; } }, [open]);
-  if (!open) return null;
-  const start = (y: number, target: EventTarget | null) => {
-    const onHandle = !!(target as HTMLElement | null)?.closest?.('.grabzone');
-    drag.current = { y, t: Date.now(), on: onHandle || (ref.current?.scrollTop ?? 0) <= 0 };
-  };
-  const move = (y: number) => { const d = drag.current; if (!d?.on) return; const delta = y - d.y; if (delta > 0) { setDragging(true); setDy(delta); } else if (dyRef.current !== 0) setDy(0); };
-  const end = () => {
-    const d = drag.current; drag.current = null; setDragging(false);
-    const v = dyRef.current;
-    if (d?.on && (v > 110 || (v > 40 && v / Math.max(1, Date.now() - d.t) > 0.5))) onClose();
-    setDy(0);
-  };
-  const mouse = (e: React.MouseEvent) => {
-    start(e.clientY, e.target);
-    const mv = (m: MouseEvent) => move(m.clientY);
-    const up = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', up); end(); };
-    window.addEventListener('mousemove', mv); window.addEventListener('mouseup', up);
-  };
   return <>
-    <div className="scrim" onClick={onClose} style={{ opacity: Math.max(0.2, 1 - dy / 500) }} />
-    <div ref={ref} className="sheet" style={{ transform: dy ? `translateY(${dy}px)` : undefined, transition: dragging ? 'none' : 'transform .25s var(--ease)' }}
-      onTouchStart={(e) => start(e.touches[0].clientY, e.target)} onTouchMove={(e) => move(e.touches[0].clientY)} onTouchEnd={end} onTouchCancel={end}>
-      <div className="grabzone" onMouseDown={mouse}><div className="grab" /></div>
+    <div ref={scrim} className="scrim" onClick={onClose} style={{ opacity: 0, pointerEvents: open ? undefined : 'none' }} />
+    <div ref={ref} className="sheet" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="grabzone"><div className="grab" /></div>
       {title && <h3 style={{ marginBottom: 8 }}>{title}</h3>}{children}
     </div>
   </>;

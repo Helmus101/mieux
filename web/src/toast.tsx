@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
+import { useSpringDrag } from './spring';
 import { create } from 'zustand';
 
 interface Item { id: number; text: string; undo?: () => void; actionLabel?: string }
@@ -14,13 +15,14 @@ export function toast(text: string, opts: { undo?: () => void; actionLabel?: str
 const dismiss = (id: number) => useToasts.setState((s) => ({ items: s.items.filter((i) => i.id !== id) }));
 
 function ToastCard({ item }: { item: Item }) {
-  const [dx, setDx] = useState(0), start = useRef<number | null>(null);
+  // Follows the finger sideways; a flick either way carries it off (momentum-projected), a gentle pull springs back.
+  const { ref } = useSpringDrag<HTMLDivElement>({
+    axis: 'x', response: 0.3, bounce: 0.1, snaps: () => [-window.innerWidth, 0, window.innerWidth],
+    onMove: (x) => { if (ref.current) ref.current.style.opacity = String(1 - Math.min(1, Math.abs(x) / 160)); },
+    onSettle: (pt) => { if (pt !== 0) dismiss(item.id); },
+  });
   return (
-    <div className="toast2" role="status" style={{ transform: `translateX(${dx}px)`, opacity: 1 - Math.min(1, Math.abs(dx) / 160), transition: start.current == null ? 'transform .2s, opacity .2s' : 'none' }}
-      onPointerDown={(e) => { start.current = e.clientX; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); }}
-      onPointerMove={(e) => { if (start.current != null) setDx(e.clientX - start.current); }}
-      onPointerUp={() => { const far = Math.abs(dx) > 80; start.current = null; if (far) dismiss(item.id); else setDx(0); }}
-      onPointerCancel={() => { start.current = null; setDx(0); }}>
+    <div ref={ref} className="toast2" role="status">
       <span>{item.text}</span>
       {item.undo && <button onClick={() => { item.undo?.(); dismiss(item.id); }}>{item.actionLabel ?? 'Annuler'}</button>}
     </div>

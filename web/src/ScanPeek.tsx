@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSpringDrag } from './spring';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useHistory } from '@shared/stores';
@@ -10,14 +11,20 @@ import { getStrict } from '@shared/config';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** A quick card over the live camera: title, the two scores and a way into the full page. It stays until the shopper closes it or scans another product. */
 export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOpen: (code: string) => void; onClose: () => void }) {
-  const [d, setD] = useState<any>(null), [failed, setFailed] = useState(false), [dy, setDy] = useState(0), start = useRef<number | null>(null);
+  const [d, setD] = useState<any>(null), [failed, setFailed] = useState(false), lastDrag = useRef(0);
   // The card waits for the price lookup (started the moment the product is known) before it can be opened:
   // "Recherche du prix…" shows while it runs, then the page opens with the price already cached.
   const [priceDone, setPriceDone] = useState(false);
   const PRICE_WAIT_MS = 12000;   // same ceiling as the product page: after this the card opens anyway
   const addScan = useHistory((s) => s.addScan);
+  // Dragged down it follows the finger, and a flick throws it off screen (momentum-projected); a short pull springs back.
+  const { ref, set } = useSpringDrag<HTMLDivElement>({
+    axis: 'y', response: 0.3, bounce: 0.1, snaps: () => [0, 220],
+    onMove: (y) => { if (y) lastDrag.current = performance.now(); if (ref.current) ref.current.style.opacity = String(1 - Math.min(1, Math.max(0, y) / 160)); },
+    onSettle: (pt) => { if (pt > 0) onClose(); },
+  });
   useEffect(() => {
-    let live = true; setD(null); setFailed(false); setDy(0); setPriceDone(false);
+    let live = true; setD(null); setFailed(false); set(0); setPriceDone(false);
     // Both requests start together: the price endpoint loads the product itself, so there is nothing to wait for.
     // PRICE_WAIT_MS bounds the whole wait from the scan, not from the product fetch.
     const giveUp = setTimeout(() => { if (live) setPriceDone(true); }, PRICE_WAIT_MS);
@@ -35,10 +42,8 @@ export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOp
   const pq: number | null = d?.price_context?.value?.value_score ?? null;
   const verdict = conflict ? t('scan.peekConflict') : sc ? t('score.' + sc.band) : t('score.na');
   return (
-    <div className="peek" role="button" tabIndex={0} aria-label={t('scan.peekOpen')} style={{ transform: `translateY(${Math.max(0, dy)}px)`, opacity: 1 - Math.min(1, Math.max(0, dy) / 160), transition: start.current == null ? 'transform .2s, opacity .2s' : 'none', cursor: priceDone ? undefined : 'wait' }}
-      onClick={() => { if (p && priceDone) onOpen(code); }} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && p && priceDone) { e.preventDefault(); onOpen(code); } }}
-      onPointerDown={(e) => { start.current = e.clientY; }} onPointerMove={(e) => { if (start.current != null) setDy(e.clientY - start.current); }}
-      onPointerUp={() => { const far = dy > 60; start.current = null; if (far) onClose(); else setDy(0); }} onPointerCancel={() => { start.current = null; setDy(0); }}>
+    <div ref={ref} className="peek" role="button" tabIndex={0} aria-label={t('scan.peekOpen')} style={{ cursor: priceDone ? undefined : 'wait' }}
+      onClick={() => { if (p && priceDone && performance.now() - lastDrag.current > 200) onOpen(code); }} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && p && priceDone) { e.preventDefault(); onOpen(code); } }}>
       <button className="peek-x" aria-label={t('scan.close')} onClick={(e) => { e.stopPropagation(); onClose(); }}>×</button>
       {failed ? <span className="mut">{t('scan.peekFailed')}</span> : !p ? <><Skeleton h={18} w="60%" /><Skeleton h={14} w="35%" /></> : <>
         {p.imageUrl && <img src={p.imageUrl} alt="" />}
