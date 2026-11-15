@@ -50,7 +50,7 @@ export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: strin
     const cv0 = document.createElement('canvas'), cx0 = cv0.getContext('2d', { willReadFrequently: true })!;
     const loop = async (t: number) => {
       if (stopped) return;
-      if (t - last > 60 && video.readyState >= 2) { last = t; try { const g = frameRegion(video, frame); cv0.width = Math.round(g.sw); cv0.height = Math.round(g.sh); cx0.drawImage(video, g.sx, g.sy, g.sw, g.sh, 0, 0, cv0.width, cv0.height); const r = await det.detect(cv0); for (const b of r) if (done(b.rawValue)) return; } catch { /* keep going */ } }
+      if (t - last > 40 && video.readyState >= 2) { last = t; try { const g = frameRegion(video, frame); const k = Math.min(1, 640 / g.sw); cv0.width = Math.max(1, Math.round(g.sw * k)); cv0.height = Math.max(1, Math.round(g.sh * k)); cx0.drawImage(video, g.sx, g.sy, g.sw, g.sh, 0, 0, cv0.width, cv0.height); const r = await det.detect(cv0); for (const b of r) if (done(b.rawValue)) return; } catch { /* keep going */ } }
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
@@ -60,11 +60,11 @@ export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: strin
     const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true })!;
     const loop = (t: number) => {
       if (stopped) return;
-      if (t - last > 55 && video.videoWidth) {
+      if (t - last > 45 && video.videoWidth) {
         last = t;
         // decode only the centre band, downscaled: ~5x faster than the full frame and where the user aims anyway
         const { sx, sy, sw, sh } = frameRegion(video, frame);
-        const k = Math.min(1, 640 / sw); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
+        const k = Math.min(1, 512 / sw); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
         cx.drawImage(video, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
         try { if (done(Z.decodeCanvas(reader, cv))) return; } catch { /* no code in this frame */ }
       }
