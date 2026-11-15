@@ -41,7 +41,6 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
 
       <section className="lp-hero">
         <div className="lp-hero-copy">
-          <p className="lp-eyebrow">{t('land.eyebrow')}</p>
           <h1 className="lp-h1">{t('land.h1a')} <span className="lp-h1-tail">{t('land.h1b')}</span></h1>
           <p className="lp-sub">{t('land.lead')}</p>
           <div className="lp-cta">
@@ -100,17 +99,6 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         </ol>
       </section>
 
-      <section className="lp-sec lp-rules" id="rules">
-        <div className="lp-in">
-          <h2>{t('land.rulesTitle')}</h2>
-          <div className="lp-rule-grid">
-            {(['r1', 'r2', 'r3'] as const).map((k) => (
-              <div className="lp-rule" key={k}><b>{t('land.' + k + 't')}</b><p>{t('land.' + k + 'd')}</p></div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="lp-sec" id="difference">
         <h2>{t('land.yukaTitle')}</h2>
         <p className="lp-lead">{t('land.yukaLead')}</p>
@@ -136,14 +124,8 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         </section>
       )}
 
-      <section className="lp-sec lp-end">
-        <h2>{t('land.finalTitle')}</h2>
-        <button className="lp-btn lp-btn-lg" onClick={onEnter}>{t('land.cta')} <span aria-hidden>→</span></button>
-        <p className="lp-contact">{t('land.contact')} <a href={`mailto:${CONTACT}`}>{CONTACT}</a></p>
-      </section>
-
       <footer className="lp-foot">
-        <span>{t('land.foot')} · <a href="/stats">{t('usage.link')}</a> · <a href="/blog">Blog</a><br /><span className="lp-measure">{t('land.measure')}</span></span>
+        <span>{t('land.foot')} · <a href="/stats">{t('usage.link')}</a> · <a href="/blog">Blog</a><br /><span className="lp-measure">{t('land.measure')}</span><br />{t('land.contact')} <a href={`mailto:${CONTACT}`}>{CONTACT}</a></span>
         <button className="lp-link" onClick={onEnter}>{t('land.cta')}</button>
       </footer>
     </div>
