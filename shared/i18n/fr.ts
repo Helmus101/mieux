@@ -182,7 +182,7 @@ export const fr = {
     finalTitle: 'Payez moins. Mangez mieux.', finalSub: 'Ouvrez Mieux et scannez votre prochain produit.',
     // landing page, current version
     h1a: 'Scannez un produit au supermarché.', h1b: 'Mieux vous dit s\'il vaut son prix, et quoi prendre à la place.',
-    lead: 'Une note sur 100 expliquée ligne par ligne, le prix au kilo, et trois alternatives du même rayon : la moins chère, la mieux notée, le meilleur compromis. Quand un prix n\'est pas connu, on le dit.',
+    lead: 'La note sur 100, le prix au kilo, trois alternatives du même rayon : moins chère, mieux notée, meilleur rapport. Prix inconnu = dit, jamais inventé.',
     cta: 'Ouvrir Mieux', ctaFree: 'Gratuit, sans installation. Vos scans restent sur votre téléphone.',
     save: '−{p} % au kilo', more: '+{p} % au kilo',
     howLead: 'Pas de liste de courses à remplir, pas de régime à choisir. Vous scannez, vous lisez, vous décidez.',

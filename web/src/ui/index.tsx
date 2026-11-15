@@ -132,6 +132,19 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
 }
 export function Toast({ text }: { text: string | null }) { return text ? <div className="toast">{text}</div> : null; }
 
+/** Destructive-action confirmation as a bottom sheet - the app-native replacement for window.confirm(). */
+export function Confirm({ open, onClose, onConfirm, title, action, children }: { open: boolean; onClose: () => void; onConfirm: () => void; title?: string; action?: string; children: ReactNode }) {
+  return (
+    <Sheet open={open} onClose={onClose} title={title}>
+      <div className="mut">{children}</div>
+      <div className="row" style={{ marginTop: 16, gap: 10 }}>
+        <Button onPress={onClose}>{t('common.cancel')}</Button>
+        <Button danger onPress={() => { onConfirm(); onClose(); }}>{action ?? t('common.delete')}</Button>
+      </div>
+    </Sheet>
+  );
+}
+
 export function NovaBadge({ group, estimated }: { group: number | null | undefined; estimated?: boolean }) {
   if (!group) return <span className="pill g">NOVA ?</span>;
   return <span className="nova" style={{ background: novaColors[group] }} title={t('nova.g' + group)}>NOVA {group}{estimated && <small className="nova-est">{t('add2.est')}</small>}</span>;

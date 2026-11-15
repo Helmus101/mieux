@@ -183,7 +183,7 @@ export const en = {
     finalTitle: 'Pay less. Eat better.', finalSub: 'Open Mieux and scan your next product.',
     // landing page, current version
     h1a: 'Scan a product in the supermarket.', h1b: 'Mieux tells you whether it is worth its price, and what to take instead.',
-    lead: 'A score out of 100 explained line by line, the price per kilo, and three alternatives from the same shelf: the cheapest, the best scored, the best compromise. When a price is unknown, we say so.',
+    lead: 'A score out of 100, the price per kilo, three alternatives from the same shelf: cheapest, best scored, best value. Unknown prices are labelled, never invented.',
     cta: 'Open Mieux', ctaFree: 'Free, nothing to install. Your scans stay on your phone.',
     save: '−{p}% per kg', more: '+{p}% per kg',
     howLead: 'No shopping list to fill in, no diet to pick. You scan, you read, you decide.',

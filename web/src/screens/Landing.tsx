@@ -1,8 +1,13 @@
 import qrcode from 'qrcode-generator';
-import { t } from '@shared/i18n';
+import { t, setLocale } from '@shared/i18n';
+import { load } from '@shared/storage';
 import { isDesktop } from '../mobileDetect';
 import { LANDING_EXAMPLE as ex } from '../landingExample';
 import '../landing.css';
+
+// The landing honours the language saved in the app profile (French by default).
+const _savedLang = load<{ language?: string } | null>('fiq_profile', null)?.language;
+if (_savedLang === 'fr' || _savedLang === 'en') { setLocale(_savedLang); document.documentElement.lang = _savedLang; }
 
 const eur = (c: number) => (c / 100).toFixed(2).replace('.', ',') + ' €';
 const CONTACT = 'bonjourmieuxmanger@gmail.com';
@@ -36,6 +41,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
 
       <section className="lp-hero">
         <div className="lp-hero-copy">
+          <p className="lp-eyebrow">{t('land.eyebrow')}</p>
           <h1 className="lp-h1">{t('land.h1a')} <span className="lp-h1-tail">{t('land.h1b')}</span></h1>
           <p className="lp-sub">{t('land.lead')}</p>
           <div className="lp-cta">
@@ -64,6 +70,24 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           </ul>
           <figcaption>{t('land.ex.real', { d: new Date(ex.date).toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }) })}</figcaption>
         </figure>
+      </section>
+
+      <section className="lp-sec" id="uvp">
+        <h2>{t('land.uvpTitle')}</h2>
+        <p className="lp-lead">{t('land.uvpSub')}</p>
+        <div className="lp-rule-grid lp-uvp">
+          {([['u1', 'cheap'], ['u2', 'qualityPriced'], ['u3', 'value']] as const).map(([k, ak]) => {
+            const a = ex.alts.find((x) => x.key === ak);
+            if (!a) return null;
+            return (
+              <div className="lp-rule" key={k}>
+                <b>{t('land.' + k + 't')}</b>
+                <p>{t('land.' + k + 'd')}</p>
+                <p className="lp-uvp-eg"><b>{a.name}</b> · {a.perKgCents != null ? `${eur(a.perKgCents)}/kg` : t('land.ex.noPrice')} · {a.score}/100</p>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       <section className="lp-sec" id="how">

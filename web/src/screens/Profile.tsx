@@ -3,8 +3,8 @@ import { t, setLocale } from '@shared/i18n';
 import { clearAll } from '@shared/storage';
 import { useProfile, useHistory } from '@shared/stores';
 import { useState } from 'react';
-import { Screen, NavBar, LargeTitle, ChainLogo, Collapsible, Section, Chips, Chip, Group, Cell, Segmented } from '../ui';
-import { chainsFor, COUNTRIES, type Country } from '@shared/chains';
+import { Screen, NavBar, LargeTitle, Section, Chips, Chip, Group, Cell, Segmented, Confirm } from '../ui';
+import { COUNTRIES, type Country } from '@shared/chains';
 import { searchAddress, type Home } from '../place';
 import { isInstalled, openInstall } from '../install';
 import { APP_VERSION } from '../report';
@@ -16,7 +16,8 @@ export default function Profile() {
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const exp = async () => { const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = 'mieux-donnees.json'; a.click(); };
-  const erase = async () => { if (!confirm(t('profile.eraseConfirm'))) return; await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset(); location.href = '/'; };
+  const [askErase, setAskErase] = useState(false);
+  const erase = async () => { await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset(); location.href = '/'; };
   return (
     <Screen>
       <NavBar />
@@ -34,11 +35,6 @@ export default function Profile() {
         {COUNTRIES.length > 1 && <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />}
         {p.country === 'US' && <p className="mut sm">{t('country.usNote')}</p>}
       </Section>}
-      <Collapsible title={t('chains.title')}>
-        <p className="mut sm" style={{ marginBottom: 8 }}>{t('chains.hint')}</p>
-        <div className="chain-pick">{chainsFor(p.country).map((c) => { const on = (p.chains ?? []).includes(c.id); return <button key={c.id} className={'chain-chip' + (on ? ' on' : '')} onClick={() => p.toggleChain(c.id)}><ChainLogo id={c.id} name={c.name} size={22} />{c.name}</button>; })}</div>
-        <p className="mut sm">{(p.chains ?? []).length ? t('chains.some', { n: (p.chains ?? []).length }) : t('chains.all')}{(p.chains ?? []).length > 0 && <> · <a onClick={() => p.clearChains()} style={{ cursor: 'pointer' }}>{t('chains.clear')}</a></>}</p>
-      </Collapsible>
       <Section title={t('profile.diet')}><Segmented value={p.diet} onChange={(k) => p.setDiet(k as 'omnivore' | 'vegetarian' | 'vegan')} options={(['omnivore', 'vegetarian', 'vegan'] as const).map((d) => ({ key: d, label: t('diets.' + d) }))} /></Section>
       <Section title={t('profile.restrictions')}><Chips>{['gluten', 'milk', 'peanuts', 'nuts'].map((a) => <Chip key={a} on={p.allergens.includes(a)} onPress={() => p.toggleAllergen(a)}>{t('diets.' + a)}</Chip>)}</Chips><p className="mut sm">{t('onboarding.allergyNote')}</p></Section>
       <Section title={t('profile.contactTitle')}>
@@ -52,9 +48,10 @@ export default function Profile() {
       <Section title={t('profile.localTitle')}>
         <Group>
           <Cell onPress={exp} chevron>{t('profile.export')}</Cell>
-          <Cell onPress={erase}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
+          <Cell onPress={() => setAskErase(true)}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
         </Group>
       </Section>
+      <Confirm open={askErase} onClose={() => setAskErase(false)} onConfirm={erase} title={t('profile.erase')} action={t('profile.erase')}>{t('profile.eraseConfirm')}</Confirm>
       <p className="about-credit">{t('brand.credit')}<br />Mieux {APP_VERSION}</p>
     </Screen>
   );

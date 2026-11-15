@@ -26,6 +26,9 @@ input,textarea,select,[contenteditable],.selectable{-webkit-user-select:text; us
 img,svg{-webkit-user-drag:none; user-select:none}
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; scrollbar-width:none}
 button,a,[role=button],.chain-chip{cursor:pointer; transition:transform .12s ease,opacity .12s ease}
+/* Feedback on pointer-down, not release: the press itself is the response (Apple "Designing Fluid Interfaces"). */
+button:active:not(:disabled),.chip:active,.tab:active,.iconbtn:active,.seg button:active,.chain-chip:active{transform:scale(.96)}
+.cell.tap:active,.cell[role=button]:active{background:var(--card)}
 body{font-size:16px}
 h1{line-height:1.1; font-weight:700; letter-spacing:-.4px; font-size:30px; margin:8px 0 6px}
 body,.score,.scorebig,.mut,.cell,.card,td,th,input{font-variant-numeric:tabular-nums}
@@ -64,7 +67,7 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 .navbar .back svg{width:26px; height:26px; stroke:currentColor; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round}
 .navbar .ttl{opacity:0; transition:opacity .2s; margin:0 auto; font-size:17px; font-weight:600; max-width:55%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .tabbar .tab{font-size:10.5px}
-.tabbar{position:fixed; left:0; right:0; bottom:0; z-index:30; border-top:.5px solid var(--line); padding:8px 0 calc(8px + env(safe-area-inset-bottom)); background:var(--bg); backdrop-filter:none; -webkit-backdrop-filter:none; view-transition-name:tabbar; transform:translateZ(0); padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+.tabbar{position:fixed; left:0; right:0; bottom:0; z-index:30; border-top:.5px solid var(--line); padding:8px 0 calc(8px + env(safe-area-inset-bottom)); background:var(--glass); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); view-transition-name:tabbar; transform:translateZ(0); padding-bottom:calc(8px + env(safe-area-inset-bottom))}
 
 /* ===== 5. Buttons and controls ===== */
 .btn:active{transform:scale(.97); opacity:.85}
@@ -535,3 +538,8 @@ kbd{font:600 12px ui-monospace,Menlo,monospace; background:var(--card); border:1
 .seg button{font-size:14px; padding-left:2px; padding-right:2px}
 .ing .mut.sm{margin-top:12px}
 .nocheaper{margin:6px 0 10px}
+
+/* Reduced motion: cross-fades instead of slides/springs - feedback stays, vestibular motion goes. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
