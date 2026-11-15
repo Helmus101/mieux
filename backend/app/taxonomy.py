@@ -33,6 +33,7 @@ R = [
     ("pesto", "condiments", "sauce", "pesto", "jar", "meal", r"(?:^|\s)en:(?:green-|red-)?pestos?(?:\s|$)", r"pesto"),
     ("dip", "condiments", "dip", "dip", "tub", "snacking", r"(?:^|\s)en:(?:dips|hummus|houmous|taramas?|tzatziki|guacamoles?)(?:\s|$)|fr:(?:houmous|taramas?|tzatziki)", r"houm[ou]{1,2}s|hummus|tarama|tzatziki|guacamole|ktipiti|baba ghan|mouhamara|dip\b"),
     ("tapenade", "condiments", "sauce", "tapenade", "jar", "meal", r"(?:^|\s)en:(?:tapenades?|antipasti|olive-spreads?)(?:\s|$)", r"tapenade|caviar d.aubergine|cr[èe]me d.olive|cr[èe]me de poivron|antipasti|sp[ée]cialit[ée] (?:[àa]|aux?) (?:la |l.)?(?:tomate|olive|poivron|aubergine)"),
+    ("fried_onions", "pantry", "condiment", "fried_onions", "jar", "seasoning", r"(?:^|\s)en:fried-onions(?:\s|$)", r"oignons?[^a-zà-ÿ]{0,15}frits?|frits?[^a-zà-ÿ]{0,15}oignons?|onions?[^a-zà-ÿ]{0,15}fried|fried[^a-zà-ÿ]{0,15}onions?|r[öo]st\w*zwiebel\w*|zwiebel\w*r[öo]st\w*"),
     ("sugar", "pantry", "sugar", "sugar", "granulated", "baking", r"(?:^|\s)en:(?:white-|cane-|brown-|powdered-|icing-)?sugars?(?:\s|$)", r"^sucre|\bsucre (blanc|roux|semoule|en poudre|glace|de canne)|\bsugar\b"),
     ("salt", "pantry", "salt", "salt", "granulated", "seasoning", r"(?:^|\s)en:(?:salts?|sea-salts?|table-salts?|fleur-de-sel)(?:\s|$)", r"^sel\b|\bsel (fin|gros|marin|de mer|gris|fleur)|\bsea salt\b|\btable salt\b"),
     ("spices", "pantry", "spice", "spice", "powder", "seasoning", r"(?:^|\s)en:(?:spices?|seasonings?|herbs-and-spices|dried-herbs|peppers|paprikas?|cinnamons?|cumin|curry-powders?|spice-mixes?)(?:\s|$)", r"\b[ée]pices?\b|\bspices?\b|paprika|cumin|curry (en poudre|powder)|\bpoivre\b|\bpepper\b|cannelle|\bcinnamon\b|muscade|nutmeg|safran|saffron|origan|oregano|\bthym\b|\bthyme\b|basilic|basil|herbes de provence|\bpiment\b|chili powder|garam masala|\bcurcuma\b|turmeric"),
@@ -301,7 +302,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
                 "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms", "rice_pudding", "corn",
-                "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives", "ham", "muesli", "legumes")
+                "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives", "ham", "muesli", "legumes", "fried_onions")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if tid in _CHEESE_TYPES and _not_a_cheese(name):
             continue   # a crêpe, pizza or sandwich that names its cheese is a prepared dish, not a cheese
@@ -425,7 +426,7 @@ _TYPE_REJECTS = {
     "ham": re.compile(r"saucissons?|saucisses?|salami|chorizo|lardons?|bacon|pancetta|rillettes?|p[âa]t[èéêe]\b|volaille|dinde|poulet", re.I),
     "pasta": re.compile(r"\bp[âa]t[èéêe]\b|charcut|p[âa]tes? de fruits", re.I),
     "chips": re.compile(r"chips? cookies?|chocolate chips?|chips? au chocolat|p[ée]pites? de chocolat", re.I),
-    "fruits_veg": re.compile(r"pur[ée]es?|grill|marin|r[ôo]ti", re.I),   # a purée or a grilled vegetable is another preparation
+    "fruits_veg": re.compile(r"pur[ée]es?|grill|marin|r[ôo]ti|oignons?[^a-zà-ÿ]{0,15}frits?|frits?[^a-zà-ÿ]{0,15}oignons?|onions?[^a-zà-ÿ]{0,15}fried|fried[^a-zà-ÿ]{0,15}onions?|r[öo]st\w*zwiebel\w*", re.I),   # a purée, a grilled vegetable or fried onions are other preparations
     "corn": re.compile(r"flakes?|chips?|popcorn|flocons?|cereals?|muesli|granola|salad|soupe?|soup|glace|ice cream|g[âa]teaux?|biscuits?|galettes?|cr[êe]pes?|gaufres?", re.I),   # corn flakes, popcorn, corn cakes and corn snacks are not corn
     # A coffee is not a dessert or a dairy product: "glace au café" and "yaourt café" are those products, not coffee.
     "coffee_beans": re.compile(r"glaces?|ice cream|sorbet|yaourts?|yogurts?|mousse|g[âa]teaux?|cakes?|desserts?", re.I),
@@ -652,6 +653,8 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
     diff = [vo, vc] if co["type"] == cc["type"] and vo and vc and vo != vc else None
     if diff and co["type"] in _HARD_VARIANT_TYPES and "standard" not in diff:
         return None    # hazelnuts lead to hazelnuts, not to almonds or mixed fruit
+    if co["type"] == cc["type"] in _HARD_VARIANT_TYPES and (vo is None) != (vc is None):
+        lv = min(4, lv + 2)   # one side names its variant, the other doesn't: related dips, never the same product
 
     # Nut-specific handling
     if co["type"] == cc["type"] == "nuts":
@@ -700,7 +703,7 @@ _VARIANTS = {
              ("cashew", r"cajou|cashew"), ("pistachio", r"pistache|pistachio"), ("pecan", r"p[ée]can|pecan"), ("coconut", r"noix de coco|coconut"),
              ("dried_fruit", r"fruits? secs?|raisin|abricot|datte|figue|cranberr|pruneau|dried[- ]fruit"), ("seeds", r"graines|seeds|tournesol|courge|s[ée]same|lin\b|chia"),
              ("mixed", r"m[ée]lange|mix|cocktail|assorti")],
-    "dip": [("hummus", r"houm[ou]{1,2}s|hummus"), ("tarama", r"tarama"), ("tzatziki", r"tzatziki"), ("guacamole", r"guacamole"), ("pepper", r"ktipiti|poivron|mouhamara"), ("aubergine", r"aubergine|baba")],   # a houmous leads to houmous, a tarama to tarama
+    "dip": [("hummus", r"houm[ou]{1,2}s|hummus"), ("tarama", r"tarama"), ("tzatziki", r"tzatziki"), ("guacamole", r"guacamole"), ("pepper", r"ktipiti|poivron|mouhamara"), ("aubergine", r"aubergine|baba"), ("salsa", r"\bsalsa\b|mexic\w*")],   # a houmous leads to houmous, a tarama to tarama
     "peanut_butter": [("almond", r"amande|almond"), ("hazelnut", r"noisette|hazelnut"), ("peanut", r"cacahu|peanut|arachide"), ("cashew", r"cajou|cashew"), ("sesame", r"s[ée]same|tahin|tahini"), ("pistachio", r"pistache|pistachio"), ("pecan", r"p[ée]can|pecan")],   # an almond purée is not a peanut butter
     "milk": [("skimmed", r"[ée]cr[ée]m|skimmed"), ("whole", r"entier|whole")],
     # Rice, almond, soy, oat and coconut drinks share nothing but being "a plant-based drink": different base, taste,
