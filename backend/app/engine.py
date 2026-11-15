@@ -33,8 +33,25 @@ def _tok(name: str, brand: Optional[str] = None) -> set:
     return {w for w in re.split(r"[^a-zà-ÿ]+", (name or "").lower()) if len(w) > 2 and w not in _STOP and w not in b}
 
 
+_SIM_CACHE: Dict[tuple, float] = {}
+
+
+def _sim_fp(p: Dict[str, Any]) -> tuple:
+    """Everything deep_similarity reads, as a hashable fingerprint: same inputs, same score, cacheable."""
+    n, q = p.get("nutriments") or {}, p.get("quantity") or {}
+    return (tuple(p.get("categories") or ()), p.get("name") or "", p.get("brand") or "", (q.get("amount"), q.get("unit")),
+            n.get("energyKcal100g"), n.get("fat100g"), n.get("carbohydrates100g"), n.get("protein100g"))
+
+
 def deep_similarity(o: Dict[str, Any], c: Dict[str, Any]) -> float:
-    """0..1 'is this really the same kind of product?'. Category path (specific tags weigh more), name words, macro profile, pack size."""
+    """0..1 'is this really the same kind of product?'. Category path (specific tags weigh more), name words, macro profile, pack size.
+    Memoised on the exact inputs: the same pair is scored in prefilter, choose and every ranking pass."""
+    key = (_sim_fp(o), _sim_fp(c))
+    hit = _SIM_CACHE.get(key)
+    if hit is not None:
+        return hit
+    if len(_SIM_CACHE) > 200_000:
+        _SIM_CACHE.clear()
     ot, ct = o["categories"], c["categories"]
     w = {t: 1 + i / max(1, len(set(ot) | set(ct))) for i, t in enumerate(dict.fromkeys(ot + ct))}
     inter, union = sum(w[t] for t in set(ot) & set(ct)), sum(w[t] for t in set(ot) | set(ct))
@@ -49,7 +66,7 @@ def deep_similarity(o: Dict[str, Any], c: Dict[str, Any]) -> float:
     nutr = 1 - sum(dists) / len(dists) if dists else 0.5
     oq, cq = o.get("quantity"), c.get("quantity")
     size = min(oq["amount"], cq["amount"]) / max(oq["amount"], cq["amount"]) if (oq and cq and oq["unit"] == cq["unit"]) else 0.5
-    return round(0.45 * cat + 0.20 * name + 0.25 * nutr + 0.10 * size, 3)
+    return _SIM_CACHE.setdefault(key, round(0.45 * cat + 0.20 * name + 0.25 * nutr + 0.10 * size, 3))
 
 
 def type_filter(orig: Dict[str, Any], peers: List[Dict[str, Any]], min_same: int = 4, parent_floor: float = 0.6) -> List[Dict[str, Any]]:

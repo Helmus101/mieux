@@ -563,9 +563,19 @@ def _dish_stem(w: str) -> str:
     return w[:-1] if len(w) > 3 and w.endswith("s") else w
 
 
+_UT_CACHE: Dict[tuple, set] = {}
+
+
 def _untyped_tokens(p: Dict[str, Any]) -> set:
+    key = (p.get("name") or "", p.get("brand") or "")
+    hit = _UT_CACHE.get(key)
+    if hit is not None:
+        return hit
+    if len(_UT_CACHE) > 100_000:
+        _UT_CACHE.clear()
     brand = {w for w in re.split(r"[^a-zà-ÿ0-9]+", (p.get("brand") or "").lower()) if w}
-    return {w for w in re.split(r"[^a-zà-ÿ]+", (p.get("name") or "").lower()) if len(w) > 3 and w not in _UNTYPED_STOP and w not in brand}
+    hit = _UT_CACHE[key] = {w for w in re.split(r"[^a-zà-ÿ]+", (p.get("name") or "").lower()) if len(w) > 3 and w not in _UNTYPED_STOP and w not in brand}
+    return hit
 
 
 def _untyped_substitute(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -653,8 +663,8 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
     diff = [vo, vc] if co["type"] == cc["type"] and vo and vc and vo != vc else None
     if diff and co["type"] in _HARD_VARIANT_TYPES and "standard" not in diff:
         return None    # hazelnuts lead to hazelnuts, not to almonds or mixed fruit
-    if co["type"] == cc["type"] in _HARD_VARIANT_TYPES and (vo is None) != (vc is None):
-        lv = min(4, lv + 2)   # one side names its variant, the other doesn't: related dips, never the same product
+    if co["type"] == cc["type"] in _HARD_VARIANT_TYPES and ((vo or "standard") == "standard") != ((vc or "standard") == "standard"):
+        lv = min(4, lv + 2)   # one side names its variant, the other is generic: related products, never the same one
 
     # Nut-specific handling
     if co["type"] == cc["type"] == "nuts":
@@ -712,19 +722,35 @@ _VARIANTS = {
                      ("coconut", r"coco(?!a)|coconut"), ("hazelnut", r"noisette|hazelnut"), ("spelt", r"[ée]peautre|spelt"), ("barley", r"orge|barley")],
     "olives": [("green", r"verte?s?\b|green"), ("black", r"noire?s?\b|black|kalamata"), ("stuffed", r"farci|stuffed"), ("pitted", r"d[ée]noyaut|pitted")],
     "syrup": [("maple", r"[ée]rable|maple"), ("agave", r"agave")],     # maple syrup is not agave syrup: different taste, different product
+    # A can of kidney beans is not a can of chickpeas: pulses are different products, not shapes of one.
+    "legumes": [("haricot_rouge", r"haricots?[- ]rouges?|kidney"), ("pois_chiche", r"pois chiches?|chickpeas?|garbanzo"),
+                ("lentille", r"lentilles?|corail"), ("feve", r"f[èe]ves?|fava|broad beans"),
+                ("haricot_blanc", r"haricots?[- ](?:blancs?|cocos?)|cannellini|flageolets?|navy beans?"),
+                ("azuki", r"azuki|adzuki|black beans?|noires?")],
+    # Soba (buckwheat) and rice noodles are not wheat pasta: different flour, texture and use.
+    "pasta": [("soba", r"\bsoba\b|sarrasin|buckwheat"), ("rice_noodle", r"nouilles? de riz|rice noodles?|vermicelle de riz|\bpho\b")],
 }
+
+
+_VAR_CACHE: Dict[tuple, Optional[str]] = {}
 
 
 def variant(p: Dict[str, Any], type_id: Optional[str]) -> Optional[str]:
     """Which variant of its type this product is (e.g. greek / plain yogurt), or None when the type has no variants. Looks at the name and the category tags."""
+    key = (type_id or "", p.get("name") or "", tuple(p.get("categories") or []))
+    hit = _VAR_CACHE.get(key, False)
+    if hit is not False:
+        return hit
+    if len(_VAR_CACHE) > 100_000:
+        _VAR_CACHE.clear()
     rules = _VARIANTS.get(type_id or "")
     if not rules:
-        return None
+        return _VAR_CACHE.setdefault(key, None)
     text = ((p.get("name") or "") + " " + " ".join(p.get("categories") or [])).lower()
     for name, rx in rules:
         if re.search(rx, text):
-            return name
-    return "standard"
+            return _VAR_CACHE.setdefault(key, name)
+    return _VAR_CACHE.setdefault(key, "standard")
 
 
 def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
@@ -737,7 +763,7 @@ def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
-_HARD_VARIANT_TYPES = {"nuts", "peanut_butter", "dip", "syrup", "fresh_fruit"}
+_HARD_VARIANT_TYPES = {"nuts", "peanut_butter", "dip", "syrup", "fresh_fruit", "legumes", "pasta"}
 
 
 # Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.

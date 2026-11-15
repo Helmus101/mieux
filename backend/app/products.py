@@ -97,15 +97,18 @@ def _fr_evidence(raw):
     return "gs1_fr" if (code[:3].isdigit() and 300 <= int(code[:3]) <= 379) or len(code) < 8 else "off_tag"
 
 
-def normalize(raw: Dict[str, Any]) -> Dict[str, Any]:
+def normalize(raw: Dict[str, Any], with_score: bool = True) -> Dict[str, Any]:
     out = _normalize(raw)
     nm = raw.get("nutriments") or {}
-    out["taxonomy"] = classify(out)
     out["organic"] = any(l in ("en:organic", "en:eu-organic", "fr:ab-agriculture-biologique") for l in raw.get("labels_tags") or [])
     fvn = _num(nm, "fruits-vegetables-legumes-estimate-from-ingredients")
     inputs = {"trans": _num(nm, "trans-fat"), "added": _num(nm, "added-sugars"), "fvn": fvn if fvn is not None else _num(nm, "fruits-vegetables-nuts-estimate-from-ingredients")}
     out["scoreInputs"] = inputs  # kept so the score can be recomputed (strict additives, user data) without refetching
-    out["score"] = quality(out, False, inputs)
+    if with_score:
+        # The full score and taxonomy classify are only needed for candidates that survive the substitution gate;
+        # the alternatives pool runs into the thousands, so it normalises without them and scores the shortlist.
+        out["taxonomy"] = classify(out)
+        out["score"] = quality(out, False, inputs)
     return out
 
 

@@ -527,13 +527,32 @@ OVERRIDE_FIELDS = {"ingredients_text": str, "fvn_pct": float, "protein_100g": fl
                    "saturated_fat_100g": float, "energy_kcal_100g": float}
 
 
+_STRICT_SCORE_CACHE: Dict[tuple, Any] = {}
+_SCORE_CACHE: Dict[tuple, Any] = {}
+
+
+def _scored(p: Dict[str, Any], strict: bool) -> Dict[str, Any]:
+    """The quality score for one candidate, computed only now that it survived every hard filter. Memoised per market +
+    product + mode: OFF data is static and the score is deterministic, so repeat requests and shared candidate pools
+    never pay for it twice."""
+    if not strict and (p.get("score") or {}).get("total") is not None:
+        return p
+    q = {**p}
+    key = (market.current(), p.get("barcode") or p.get("id"), strict)
+    hit = _SCORE_CACHE.get(key)
+    if hit is None:
+        if len(_SCORE_CACHE) > 200_000:
+            _SCORE_CACHE.clear()
+        hit = _SCORE_CACHE[key] = score.quality(q, False, {**(p.get("scoreInputs") or {}), "strict": strict})
+    q["score"] = hit
+    return q
+
+
 def rescore(p: Dict[str, Any], strict: bool) -> Dict[str, Any]:
     """Same product, score recomputed in strict (Yuka-like) additive mode."""
     if not strict:
         return p
-    q = {**p}
-    q["score"] = score.quality(q, False, {**(p.get("scoreInputs") or {}), "strict": True})
-    return q
+    return _scored(p, True)
 
 
 def with_user_data(s: Session, uid: str, p: Dict[str, Any], strict: bool = False) -> Dict[str, Any]:
@@ -863,7 +882,7 @@ def insights(request: Request, uid: str = Depends(user), s: Session = Depends(ge
         if not prio:
             skipped.append({"name": orig["name"], "reason": tr(lang, "skip_prio")})
             continue
-        res = engine.choose(orig, _peers(s, orig, "similar", prio, pr.allergens), prio, pr.allergens, diet, "similar", 6, lang=lang)
+        res = engine.choose(orig, [_scored(c, False) for c in _peers(s, orig, "similar", prio, pr.allergens)], prio, pr.allergens, diet, "similar", 6, lang=lang)
         o100 = value.per100(e["last"]["unit_price_cents"], qty)
         # DB access stays on this thread (sessions are not thread-safe); only the network calls fan out.
         prep = []
@@ -1534,7 +1553,7 @@ def _untyped_search(orig: Dict[str, Any], prio, allergens) -> List[Dict[str, Any
         try:
             for r in app.state.off.search_name(q):
                 if r.get("product_name") and _raw_candidate(r, prio or [], allergens or [], orig):
-                    p = normalize(r)
+                    p = normalize(r, with_score=False)
                     out.setdefault(p["barcode"], p)
         except (OFFError, AttributeError):
             continue
@@ -1542,7 +1561,7 @@ def _untyped_search(orig: Dict[str, Any], prio, allergens) -> List[Dict[str, Any
     if head_word:
         for r in _name_any([head_word]):
             if r.get("product_name") and _raw_candidate(r, prio or [], allergens or [], orig):
-                p = normalize(r)
+                p = normalize(r, with_score=False)
                 out.setdefault(p["barcode"], p)
     return list(out.values())
 
@@ -1603,11 +1622,11 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
         found: Dict[str, Dict[str, Any]] = {}
         for r in app.state.off.quick_products(list(dict.fromkeys(_type_codes() + _tax_codes()))):
             if r.get("product_name") and _raw_candidate(r, prio, alg, orig):
-                p = normalize(r)
+                p = normalize(r, with_score=False)
                 found.setdefault(p["barcode"], p)
         for r in _search_any(orig):
             if r.get("product_name") and _raw_candidate(r, prio, alg, orig):
-                p = normalize(r)
+                p = normalize(r, with_score=False)
                 found.setdefault(p["barcode"], p)
         for p in _untyped_search(orig, prio, alg):
             found.setdefault(p["barcode"], p)
@@ -1651,12 +1670,12 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             continue
         # Retrieval is intentionally broader than ranking. Products with different names
         # and brands still reach taxonomy.substitution before being rejected or ranked.
-        p = normalize(r)
+        p = normalize(r, with_score=False)
         pool.setdefault(p["barcode"], p)
     # Candidates found by what the product IS (its type's names, OR-matched), whatever their brand calls them and however rarely they are scanned.
     for r in _search_any(orig):
         if r.get("product_name") and _raw_candidate(r, prio, alg, orig):
-            p = normalize(r)
+            p = normalize(r, with_score=False)
             pool.setdefault(p["barcode"], p)
     for p in _untyped_search(orig, prio, alg):
         pool.setdefault(p["barcode"], p)
@@ -1667,7 +1686,7 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             try:
                 for r in app.state.off.search_category(tag):
                     if r.get("product_name"):
-                        p = normalize(r)
+                        p = normalize(r, with_score=False)
                         pool.setdefault(p["barcode"], p)
             except OFFError:
                 continue
@@ -1681,7 +1700,7 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             try:
                 for r in app.state.off.search_name(" ".join(words)):
                     if r.get("product_name"):
-                        p = normalize(r)
+                        p = normalize(r, with_score=False)
                         pool.setdefault(p["barcode"], p)
             except (OFFError, AttributeError):
                 pass
@@ -1953,7 +1972,7 @@ def _index_pool(s: Session, uid: str, orig: Dict[str, Any], body: "AltReq", alle
     prices: Dict[str, float] = {}
     points: Dict[str, Any] = {}
     for raw in app.state.off.quick_products(list(by_code)):
-        p = normalize(raw)
+        p = normalize(raw, with_score=False)
         row = by_code.get(p["barcode"])
         if row is None:
             continue
@@ -2063,7 +2082,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
 
     # Strict additive rescoring is the expensive part of preparing a candidate (full score recompute), so it runs
     # only now, on the comparable pool - not on every retrieved product that the filters above will drop anyway.
-    peers = [rescore(c, body.strict_additives) for c in peers]
+    peers = [_scored(c, body.strict_additives) for c in peers]
 
     # 5. RANK the whole eligible pool. The tabs are cut to their display size at the very end, after the "only if it is
     # really better" rules, so a tab - or a store filter - still has its rows.
