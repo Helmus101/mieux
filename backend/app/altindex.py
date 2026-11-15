@@ -44,6 +44,17 @@ class AltIndex:
             except sqlite3.Error:
                 return False
 
+    def codes_by_scans(self, limit: int = 30000) -> List[str]:
+        """The most-scanned product codes: the candidates real requests are most likely to meet, for cache warmup."""
+        c = self._c()
+        if c is None:
+            return []
+        with self._lock:
+            try:
+                return [r[0] for r in c.execute("select code from alt order by scans desc limit ?", (limit,)).fetchall()]
+            except sqlite3.Error:
+                return []
+
     def candidates(self, tags: List[str], type_id: Optional[str] = None, groups: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Every eligible product in the scanned product's categories: its OFF category tags, its Mieux type and its 1000+ taxonomy groups.
         Retrieval is deliberately broad; taxonomy.substitution decides what is comparable afterwards."""

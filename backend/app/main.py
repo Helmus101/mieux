@@ -242,6 +242,34 @@ app.state.alt = market.PerMarket({
 })
 app.state.llm = None  # comparison explanations stay deterministic
 app.state.score_llm = exp.GeminiLLM() if os.environ.get("GEMINI_API_KEY") else None  # rephrases the quality score; the template is the fallback
+
+
+def _warm_candidate_taxonomy() -> None:
+    """Background warmup: classify the most-scanned alternatives-database products of every market so the first real
+    request does not pay the per-product taxonomy cost cold. Classification is memoised process-wide, OFF data is
+    static, so this is pure cache filling - it never changes a result."""
+    def work() -> None:
+        for code, alt in getattr(app.state.alt, "_clients", {}).items():
+            market.set_current(code)
+            try:
+                codes = alt.codes_by_scans(30000)
+            except Exception:
+                continue
+            for i in range(0, len(codes), 400):
+                try:
+                    raws = app.state.off.quick_products(codes[i:i + 400])
+                except Exception:
+                    continue
+                for r in raws:
+                    cats = [c for c in (r.get("categories_tags") or []) if c.startswith("en:") and c == c.lower()]
+                    p = {"name": r.get("product_name") or "", "brand": r.get("brands") or "",
+                         "categories": cats, "generic_name": r.get("generic_name") or ""}
+                    taxonomy.classify(p)
+                    taxonomy._untyped_tokens(p)
+    threading.Thread(target=work, daemon=True, name="alt-taxonomy-warm").start()
+
+
+_warm_candidate_taxonomy()
 app.state.sessions = db.make_session_factory()
 visit_batcher.set_app_state(app.state)  # Enable background visit batching
 with app.state.sessions() as _s:
