@@ -67,10 +67,11 @@ R = [
     # Each style gets its own type; the generic 'cheese' row below stays only as a catch-all for what matches none of them.
     ("blue_cheese", "dairy", "cheese", "blue", "soft_strong", "meal", r"blue-cheeses", r"roquefort|bleu d.?auvergne|fourme d.?ambert|gorgonzola|bleu de bresse|st[- ]?agur|cabrales|bleu des? causses"),
     ("soft_ripened_cheese", "dairy", "cheese", "soft_ripened", "soft", "meal", r"soft-cheeses|washed[- ]rind-cheeses|camembert|brie-cheeses", r"camembert|\bbrie\b|coulommiers|pont[- ]l.[ée]v[êe]que|munster|reblochon|[ée]poisses|maroilles|chaource|livarot|vacherin|st[- ]?marcellin|langres"),
-    ("fresh_goat_cheese", "dairy", "cheese", "goat", "soft", "meal", r"goat-cheeses|goats-cheeses", r"(?:fromage de |bûche |crottin de )?ch[èe]vre(?! chaud)|crottin(?: de chavignol)?|picodon|rocamadour|valen[çc]ay"),
+    ("fresh_goat_cheese", "dairy", "cheese", "goat", "soft", "meal", r"goat-cheeses|goats-cheeses", r"(?:fromage de |bûche |crottin de )?ch[èe]vres?\b(?!\s+chaud)|crottin(?: de chavignol)?|picodon|rocamadour|valen[çc]ay"),
     ("mozzarella_fresh", "dairy", "cheese", "fresh_pasta", "soft", "meal", r"mozzarellas|fresh-cheeses|burratas", r"mozzarella|burrata|ricotta|feta\b|buffala|stracciatella"),
-    ("hard_cheese", "dairy", "cheese", "hard", "hard", "meal", r"hard-cheeses|semi-hard-cheeses", r"emmental|comt[ée]|gruy[èe]re|parmesan|parmigiano|cheddar|gouda|beaufort|appenzell|raclette\b|\btomme?\b|abondance|cantal|mimolette|edam|manchego|pecorino"),
-    ("cheese", "dairy", "cheese", "cheese", "cheese", "meal", r"cheeses|fromages", r"fromage|camembert|emmental|comt[ée]|brie|gouda|mozzarella|chèvre|chevre"),
+    # Short names need word boundaries: "edam" is inside "edamamé", "gouda" inside "goudale" - neither is a cheese.
+    ("hard_cheese", "dairy", "cheese", "hard", "hard", "meal", r"hard-cheeses|semi-hard-cheeses", r"emmental|comt[ée]s?\b|gruy[èe]res?\b|parmesan|parmigiano|cheddar|\bgouda\b|beaufort|appenzell|raclette\b|\btomme?\b|abondance|cantal|mimolette|\bedam\b|manchego|pecorino"),
+    ("cheese", "dairy", "cheese", "cheese", "cheese", "meal", r"cheeses|fromages", r"fromage|camembert|emmental|comt[ée]s?\b|\bbrie\b|\bgouda\b|mozzarella|ch[èe]vres?\b"),
     ("eggs", "dairy", "eggs", "eggs", "eggs", "cooking", r"eggs|oeufs", r"\bu?[oœ]e?ufs?\b(?!.*(chocolat|p[âa]ques|plat|mayonnaise|brouill))"),
     ("milk", "dairy", "milk", "liquid", "drink", "breakfast", r"^en:milks$|whole-milks|semi-skimmed-milks|skimmed-milks|uht-milks|cow-milks", r"^lait\b|lait (demi|entier|écrém|ecrem|uht)"),
     ("cream", "dairy", "cream", "liquid", "cooking", "cooking", r"(?:^|\s)en:(?:creams|fresh-creams|whipping-creams|double-creams|cr[èe]mes-fra[iî]ches)(?:\s|$)", r"cr[èe]me (fra[iî]che|liquide|enti[èe]re)|cr[èe]me fra"),
@@ -378,12 +379,13 @@ _CHEESE_DISH = re.compile(
     r"beignets?|flan sal[ée]|r[ôöo]stis?|pav[ée]s? (au|aux|de|à)|boulettes?|bouch[ée]es?|po[êe]l[ée]es?|samoussas?|\bnems?\b|"
     r"accras?|aligot|tacos?|cakes? sal[ée]s?|muffins?|omelettes?|tortillas?|frittatas?|goug[èe]res?|cannellonis?|parmentiers?|hachis|"
     r"rigatonis?|pennes?|spaghettis?|tagliatelles?|fusillis?|macaronis?|gnocchis?|farfalles?|linguines?|pesto|pur[ée]es?|chips?|crisps?|"
+    r"[ée]cras[ée]s?|pommes? de terre|pan[ée]s?\b|"
     r"yaourts?|yogourts?|yogurts?|glaces?",
     re.I)
 # A product only FLAVOURED with a cheese ("Lay's saveur emmental") is not that cheese.
 _CHEESE_FLAVOUR = re.compile(
     r"(saveur|go[ûu]t|ar[ôo]me|parfum)[^,.;]{0,20}"
-    r"(emmental|comt[ée]|gruy[èe]re|parmesan|cheddar|gouda|roquefort|camembert|brie|mozzarella|ch[èe]vre|feta|ricotta)",
+    r"(emmental|comt[ée]s?\b|gruy[èe]res?\b|parmesan|cheddar|\bgouda\b|roquefort|camembert|\bbrie\b|mozzarella|ch[èe]vres?\b|feta\b|ricotta)",
     re.I)
 
 
