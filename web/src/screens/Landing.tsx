@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import qrcode from 'qrcode-generator';
 import { t, setLocale } from '@shared/i18n';
 import { load } from '@shared/storage';
@@ -32,8 +33,17 @@ function Diff({ perKg }: { perKg: number | null }) {
 export default function Landing({ onEnter }: { onEnter: () => void }) {
   const lang = document.documentElement.lang || 'fr';
   const desktop = isDesktop();
+  const root = useRef<HTMLDivElement>(null);
+  // Sections ease in as they scroll into view; the hidden state only exists once this runs, so without JS nothing is hidden.
+  useEffect(() => {
+    const el = root.current; if (!el || !('IntersectionObserver' in window)) return;
+    el.classList.add('js-rv');
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    el.querySelectorAll('.lp-sec h2, .lp-sec .lp-lead, .lp-rule, .lp-steps li, .lp-vs-row, .lp-phone>*').forEach((n, i) => { (n as HTMLElement).style.setProperty('--d', `${(i % 3) * 60}ms`); n.classList.add('rv'); io.observe(n); });
+    return () => io.disconnect();
+  }, []);
   return (
-    <div className="landing">
+    <div className="landing" ref={root}>
       <header className="lp-nav">
         <a className="lp-word" href="/" aria-label="Mieux"><img src="/logo.svg" alt="" width={24} height={24} />mieux</a>
         <button className="lp-btn lp-btn-sm" onClick={onEnter}>{t('land.cta')}</button>
@@ -45,7 +55,8 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           <h1 className="lp-h1">{t('land.h1a')} <span className="lp-h1-tail">{t('land.h1b')}</span></h1>
           <p className="lp-sub">{t('land.lead')}</p>
           <div className="lp-cta">
-            <button className="lp-btn lp-btn-lg" onClick={onEnter}>{t('land.cta')} <span aria-hidden>→</span></button>
+            <button className="lp-btn lp-btn-lg" onClick={onEnter}>{t('land.cta')}</button>
+            <a className="lp-more" href="#how">{t('land.howTitle')} <span aria-hidden>›</span></a>
             <p className="lp-trust">{t('land.ctaFree')}</p>
           </div>
         </div>

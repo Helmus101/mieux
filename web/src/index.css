@@ -566,3 +566,71 @@ h1,.big,.scorebig,.stats-num{font-optical-sizing:auto}
 @media (prefers-reduced-motion:reduce){.cmdk,.peek,.toast2{animation:fade .15s ease both!important;filter:none!important}}
 @media(prefers-reduced-transparency:reduce){.cmdk,.toast2,.sheet{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}.toast2{background:#1e1e1e}}
 @media(prefers-contrast:more){.sheet,.cmdk,.peek{border:1px solid var(--line)}.sheet .grab{background:var(--mut)}}
+
+/* ===== 16. iOS-native layer: grouped-inset lists, large titles, system controls ===== */
+/* Light mode sits on the iOS "grouped" grey with white rows; dark keeps the elevated-surface model. */
+:root{--bg:#F2F2F7; --surface:#FFFFFF; --card:#FFFFFF; --sep:rgba(60,60,67,.29); --fill:rgba(120,120,128,.12)}
+@media(prefers-color-scheme:dark){:root{--bg:#0D1210; --surface:#151C18; --card:#151C18; --sep:rgba(84,84,88,.6); --fill:rgba(120,120,128,.24)}}
+html,body{font:17px/1.294 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; letter-spacing:-.022em; -webkit-text-size-adjust:100%}
+body{font-size:17px; -webkit-touch-callout:none}
+.app{-webkit-user-select:none; user-select:none}
+.app p,.app .selectable,.app .ing,.app .coll-body{-webkit-user-select:text; user-select:text}
+/* Large title: 34pt bold, tight tracking; the bar's small title takes over once it scrolls away. */
+.screen>h1,.screen h1.large{font-size:34px; line-height:1.12; letter-spacing:.37px; font-weight:700; margin:6px 0 10px}
+h2{font-size:13px; font-weight:400; letter-spacing:-.08px; text-transform:uppercase; color:var(--mut); margin:28px 16px 7px}
+h3{font-size:20px; font-weight:600; letter-spacing:.38px}
+/* Inset grouped lists: rounded white blocks, hairline separators that start after the leading edge. */
+.group{background:var(--surface); border:0; border-radius:12px; margin:12px 0}
+.group .cell{padding:11px 16px; min-height:44px}
+.group .cell+.cell::before{left:16px; background:var(--sep); transform:scaleY(.5); transform-origin:top}
+.cell .chev{color:rgba(60,60,67,.3); font-size:22px; font-weight:500}
+@media(prefers-color-scheme:dark){.cell .chev{color:rgba(235,235,245,.3)}}
+.cell.tap:active,.cell[role=button]:active,.arow:active{background:var(--fill); transition:none}
+.cell.tap,.arow{transition:background .35s var(--ease)}   /* instant on press, eased on release, like a UITableViewCell */
+.card{background:var(--surface); border-radius:12px; padding:16px}
+.coll{background:var(--surface); border:0; border-radius:12px; margin:12px 0; padding:0 16px}
+.coll:last-of-type{border-bottom:0}
+.coll+.coll{margin-top:8px}
+/* Controls at iOS sizes. */
+.btn{min-height:50px; border-radius:14px; font-size:17px; font-weight:600; letter-spacing:-.022em; border:0; box-shadow:none}
+.btn.primary,.btn.pri{background:var(--accent); color:var(--accent-ink)}
+.btn:active{transform:none; opacity:.55; transition:opacity 0s}   /* iOS buttons dim on touch instead of shrinking */
+.btn{transition:opacity .25s ease}
+.chip{border:0; background:var(--fill); font-size:15px; min-height:36px; padding:7px 14px}
+.chip.on{background:var(--accent); color:var(--accent-ink)}
+.chip:active{transform:none; opacity:.6}
+.seg{background:var(--fill); border-radius:9px; padding:2px}
+.seg .thumb{border-radius:7px; box-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04); transition:left .35s var(--ease)}
+.seg button{font-size:13px; font-weight:500; min-height:32px; padding:6px 4px}
+input[type=text],input[type=search],input[type=email],input[type=password],input:not([type]),textarea{background:var(--fill); border-radius:10px; font-size:17px; padding:10px 12px}
+input:focus,textarea:focus{box-shadow:none}
+input[type=search]{border-radius:10px}
+/* Navigation bar: 44pt, back chevron + label in tint, centred semibold title, hairline appears on scroll only. */
+.navbar{box-shadow:none; background:transparent; backdrop-filter:none; -webkit-backdrop-filter:none; transition:background .25s,box-shadow .25s}
+.navbar.scrolled{background:var(--glass); backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px); box-shadow:0 .33px 0 var(--sep)}
+.navbar .ttl{font-size:17px; font-weight:600; letter-spacing:-.43px}
+.navbar.scrolled .ttl{opacity:1}
+.navbar .back{font-size:17px; letter-spacing:-.43px}
+/* Tab bar: 49pt, 25pt icons, 10pt labels, translucent with a hairline; the active tab is tinted. */
+.tabbar{border-top:.33px solid var(--sep); padding-top:6px}
+.tab{min-height:49px; gap:2px; font-size:10px; font-weight:500; letter-spacing:.12px; padding:2px 0}
+.tab svg{width:25px; height:25px; stroke-width:1.8}
+.tab:active{transform:none; opacity:.5}
+/* Sheets: 10pt-radius grabber, 38pt corners, secondary grouped background. */
+.sheet{border-top-left-radius:38px; border-top-right-radius:38px; padding-top:6px; box-shadow:0 -4px 40px rgba(0,0,0,.16)}
+@media (max-width:560px){.sheet{border-top-left-radius:20px; border-top-right-radius:20px}}
+.sheet .grab{width:36px; height:5px; background:rgba(60,60,67,.3)}
+.toast2{border-radius:14px; background:rgba(44,44,46,.88); font-size:15px; letter-spacing:-.24px}
+/* iOS navigation transitions (view transitions, direction set in nav.ts): push slides the new screen in over a parallaxed old one; pop reverses; tabs cross-fade. */
+@supports (view-transition-name:none){
+  @keyframes ios-in{from{transform:translateX(100%)}to{transform:none}}
+  @keyframes ios-out{from{transform:none}to{transform:translateX(-28%)}}
+  @keyframes ios-pop-in{from{transform:translateX(-28%)}to{transform:none}}
+  @keyframes ios-pop-out{from{transform:none}to{transform:translateX(100%)}}
+  html[data-nav=push]::view-transition-old(root){animation:.4s var(--ease) both ios-out}
+  html[data-nav=push]::view-transition-new(root){animation:.4s var(--ease) both ios-in}
+  html[data-nav=pop]::view-transition-old(root){animation:.4s var(--ease) both ios-pop-out; z-index:2}
+  html[data-nav=pop]::view-transition-new(root){animation:.4s var(--ease) both ios-pop-in}
+}
+@media (prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:fade .15s ease both}}
+@media(prefers-contrast:more){:root{--sep:rgba(60,60,67,.6)}}

@@ -8,9 +8,21 @@ export const routes = {
   blog: '/blog',
   blogPost: (slug: string) => `/blog/${slug}`,
 };
-/** Runs a navigation inside a view transition when the browser supports it (a short cross-fade), otherwise just navigates. */
-const withTransition = (f: () => void) => {
-  const d = document as Document & { startViewTransition?: (cb: () => void) => unknown };
-  if (d.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) d.startViewTransition(f); else f();
+/** Runs a navigation inside a view transition when the browser supports it, otherwise just navigates.
+ *  `dir` picks the motion like iOS: "push" slides in from the right, "pop" slides back out, "tab" is a plain cross-fade. */
+const withTransition = (f: () => void, dir: 'push' | 'pop' | 'tab') => {
+  const d = document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<unknown> } };
+  if (!d.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { f(); return; }
+  const root = document.documentElement;
+  root.dataset.nav = dir;
+  const clear = () => { delete root.dataset.nav; };
+  d.startViewTransition(f).finished.then(clear, clear);
 };
-export function useNav() { const n = useNavigate(); return { go: (p: string, state?: unknown) => withTransition(() => n(p, { state })), back: () => withTransition(() => n(-1)) }; }
+const TABS = [routes.list, routes.scan, routes.profile];
+export function useNav() {
+  const n = useNavigate();
+  return {
+    go: (p: string, state?: unknown) => withTransition(() => n(p, { state }), TABS.includes(p) ? 'tab' : 'push'),
+    back: () => withTransition(() => n(-1), 'pop'),
+  };
+}
