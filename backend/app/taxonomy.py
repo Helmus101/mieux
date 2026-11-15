@@ -136,6 +136,12 @@ R = [
     ("sausage", "meat_fish", "charcuterie", "sausage", "cook", "meal", r"sausages|merguez", r"saucisse|merguez|chipolata"),
     # Meat and poultry: each animal is its own small category (a chicken breast is not a beef steak); pâtés and terrines are
     # their own charcuterie purchase. Only the same animal ever substitutes another cut of it.
+    # Cooked, ready-to-eat poultry (deli slices: "blanc de poulet", "filet rôti", "aiguillettes rôti") is charcuterie,
+    # not a raw cut: it substitutes other cooked poultry slices, never a raw chicken breast, thigh or drumstick. OFF files
+    # it under the same "chickens"/"poultry" tags as raw birds, so the prepared/cooked tags are the deciding signal.
+    ("deli_poultry", "charcuterie", "charcuterie", "poultry_slices", "slices", "ready_to_eat",
+     r"prepared-poultry|prepared-chicken|prepared-turkey|cooked-chicken|cooked-poultry|cooked-turkey|poultry-hams|charcuterie-de-volaille|reconstituted-chicken",
+     r"(?=.*\b(?:poulet|dinde|volaille|chicken|turkey|canard|duck)\b)(?=.*\b(?:tranch[ée]e?s?|r[ôo]ti[es]?|cuits?(?:es?)?|cuisin[ée]s?|[ée]touff[ée]e?s?)\b)"),
     ("chicken", "meat_fish", "poultry", "poultry_cut", "cut", "meal", r"chickens|chicken-breasts|chicken-thighs|chicken-drumsticks|chicken-wings|chicken-legs|poultry|fr:aiguillettes-de-poulet", r"\bpoulet\b|\bchicken\b|volaille|aiguillette"),
     ("turkey", "meat_fish", "poultry", "poultry_cut", "cut", "meal", r"turkeys|turkey-cutlets|turkey-breasts|turkey-thighs|turkey-drumsticks", r"\bdinde\b|\bturkey\b|escalope de dinde"),
     ("duck", "meat_fish", "poultry", "poultry_cut", "cut", "meal", r"ducks|duck-breasts|duck-legs|duck-fillets|magret", r"\bcanard\b|\bduck\b|magret"),
@@ -220,6 +226,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "soup": {"soup": 1}, "pizza": {"pizza": 1}, "ready": {"ready_meal": 1, "pizza": 3},
     "pizza_dough": {"pizza_dough": 1},   # raw dough to top at home, never interchangeable with a finished pizza
     "cold_cuts": {"ham": 1, "sausage": 3}, "fish": {"fish_canned": 1},
+    "deli_poultry": {"deli_poultry": 1},   # cooked sliced poultry is its own purchase: never a raw bird, never a ham
     "poultry": {"chicken": 1, "turkey": 2, "duck": 4},   # another bird is related, not the same purchase
     "red_meat": {"beef": 1, "veal": 2, "pork": 4, "lamb": 4},
     "pate": {"pate_terrine": 1},
@@ -273,6 +280,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     nuts_tag = bool(_NUTS_TAG.search(tags))
     raw_ready = bool(_READY_RAW_TAG.search(tags))
     dish_tag = bool(_READY_DISH_TAG.search(tags))
+    deli_tag = bool(_DELI_TAG.search(tags))
     _rej: Dict[str, bool] = {}
     _nr_name: Dict[str, bool] = {}
     _nr_gen: Dict[str, bool] = {}
@@ -305,6 +313,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             return False   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
         if tid == "ready_meal" and raw_ready and not dish_tag:
             return False   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
+        if tid in ("chicken", "turkey", "duck") and deli_tag:
+            return False   # cooked deli poultry is charcuterie, not a raw bird - even under shared "chickens"/"poultry" tags
         return True
 
     def _nr(tid: str, nr) -> bool:
@@ -442,6 +452,8 @@ _TYPE_REJECTS = {
     "dessert": re.compile(r"yaourts?|yogurts?|glaces?|sorbet", re.I),
     # Peanuts and tree nuts are sold as nuts, not pulses, whatever parent "legumes" tag they carry.
     "legumes": re.compile(r"cacahu[èe]tes?|peanuts?|noix|almonds?|pistaches?|pignons?|noisettes?|graines", re.I),
+    # A poultry rillettes or pâté is a spread, not slices.
+    "deli_poultry": re.compile(r"rillettes?|terrines?|p[âa]t[ée]\b|p[âa]t[ée]s? (?:de|à|en)", re.I),
     # A "barre granola" is a snack bar, not a box of muesli.
     "muesli": re.compile(r"\bbarres?\b", re.I),
     # "Pois chiches très peu de jus" is chickpeas canned in juice, not a juice.
@@ -456,6 +468,11 @@ _READY_DISH_TAG = re.compile(
 _READY_RAW_TAG = re.compile(
     r":couscous\b|:quinoa\b|cereal-grains|cereal-semolinas|wheat-semolinas|durum-wheat|cereals-and-their-products|"
     r":seeds\b|:rice\b|:flour\b|fruits-and-vegetables-based-foods|vegetables-based-foods|fresh-fruits?|fresh-vegetables|:pulses\b", re.I)
+# Cooked poultry sold as charcuterie ("blanc de poulet", "filet rôti"): the tags that make a bird product deli, not raw.
+# Poultry-specific on purpose - the broad "prepared-meats"/"charcuteries-cuites" tags also cover ham and pâté.
+_DELI_TAG = re.compile(
+    r"prepared-poultry|prepared-chicken|prepared-turkey|cooked-chicken|cooked-poultry|cooked-turkey|poultry-hams|"
+    r"charcuterie-de-volaille|reconstituted-chicken", re.I)
 # A flavoured yogurt is not a plain one, whatever generic "yogurts" tag it carries.
 _FLAVOURED_YOGURT = re.compile(
     r"vanille|vanilla|chocolat|chocolate|schoko|stracciatella|fraise|framboise|myrtille|fruit|miel|honey|caramel|p[ée]pite|cookie|sp[ée]culoos|coco|"

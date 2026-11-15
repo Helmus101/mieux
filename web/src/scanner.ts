@@ -60,11 +60,11 @@ export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: strin
     const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true })!;
     const loop = (t: number) => {
       if (stopped) return;
-      if (t - last > 70 && video.videoWidth) {
+      if (t - last > 55 && video.videoWidth) {
         last = t;
         // decode only the centre band, downscaled: ~5x faster than the full frame and where the user aims anyway
         const { sx, sy, sw, sh } = frameRegion(video, frame);
-        const k = Math.min(1, 720 / sw); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
+        const k = Math.min(1, 640 / sw); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
         cx.drawImage(video, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
         try { if (done(Z.decodeCanvas(reader, cv))) return; } catch { /* no code in this frame */ }
       }

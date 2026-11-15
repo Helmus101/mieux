@@ -11,3 +11,6 @@ export function readCache<T>(key: string, maxAgeMs = 30 * 60_000): T | null {
 export function writeCache(key: string, v: unknown) {
   try { sessionStorage.setItem(PREFIX + key, JSON.stringify({ at: Date.now(), v })); } catch { /* storage full or unavailable: just no cache */ }
 }
+
+/** Product-page payload keyed by everything that changes the answer, so the scan peek's fetch is reused on open. */
+export const prodKey = (barcode: string, approximate: boolean, strict: boolean) => `prod:${barcode}:${approximate ? 1 : 0}:${strict ? 1 : 0}`;

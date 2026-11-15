@@ -1142,3 +1142,29 @@ def test_a_product_with_no_category_tag_still_substitutes_when_both_names_agree_
     r = sub(riz1, riz2)
     assert r is not None and r["level"] == 2 and r["same_type"] is True
     assert sub(riz1, quiche) is None
+
+
+def test_cooked_deli_poultry_is_not_a_raw_chicken_cut():
+    """Fleury Michon 'Blanc de Poulet' and friends are cooked sliced poultry (charcuterie), sold in the same OFF
+    'chickens'/'poultry' tags as raw birds. They must substitute other cooked poultry slices and never a raw
+    breast, thigh or drumstick - a raw 'filet de poulet' is a different product."""
+    deli_tags = ["en:meats-and-their-products", "en:prepared-meats", "en:chicken-and-its-products",
+                 "en:prepared-poultry-meats", "fr:charcuteries-cuites", "en:poultry-hams",
+                 "en:prepared-chicken-meats", "en:cooked-chicken-breast-slices"]
+    blanc = P("Blanc de Poulet", deli_tags)
+    filet_roti = P("Filet de poulet rôti", ["en:prepared-meats", "fr:charcuteries-cuites", "en:poultry-hams", "en:cooked-chicken-breast-slices"])
+    blanc2 = P("Blanc de poulet nature 4 tranches", deli_tags)
+    escalope = P("Escalope de poulet", ["en:chickens", "en:chicken-breasts"])
+    cuisse = P("Cuisse de poulet", ["en:chickens", "en:chicken-thighs"])
+    filet = P("Filet de poulet", ["en:chickens", "en:chicken-breasts"])
+    assert taxonomy.classify(blanc)["type"] == "deli_poultry"
+    assert taxonomy.classify(filet_roti)["type"] == "deli_poultry"
+    assert taxonomy.classify(blanc2)["type"] == "deli_poultry"
+    for raw in (escalope, cuisse, filet):
+        assert taxonomy.classify(raw)["type"] == "chicken"
+        assert sub(blanc, raw) is None and sub(raw, blanc) is None    # cooked slices are not a raw cut
+    assert sub(blanc, blanc2)["level"] == 1                          # other cooked poultry slices do substitute
+    assert sub(blanc, filet_roti) is not None
+    # A raw bird that happens to carry a cooked-sounding name stays raw: the OFF tags decide, not the name alone.
+    roti_raw = P("Rôti de dinde", ["en:turkeys", "en:turkey"])
+    assert taxonomy.classify(roti_raw)["type"] == "turkey" and sub(blanc, roti_raw) is None

@@ -4,6 +4,8 @@ import { t } from '@shared/i18n';
 import { useHistory } from '@shared/stores';
 import { countScan } from './account';
 import { Skeleton } from './ui';
+import { prodKey, writeCache } from './swr';
+import { getStrict } from '@shared/config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** A quick card over the live camera: title, the two scores and a way into the full page. It stays until the shopper closes it or scans another product. */
@@ -16,14 +18,15 @@ export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOp
   const addScan = useHistory((s) => s.addScan);
   useEffect(() => {
     let live = true; setD(null); setFailed(false); setDy(0); setPriceDone(false);
-    let giveUp: ReturnType<typeof setTimeout> | undefined;
+    // Both requests start together: the price endpoint loads the product itself, so there is nothing to wait for.
+    // PRICE_WAIT_MS bounds the whole wait from the scan, not from the product fetch.
+    const giveUp = setTimeout(() => { if (live) setPriceDone(true); }, PRICE_WAIT_MS);
+    api.getWebPriceQuick(code).then(() => undefined).catch(() => undefined).finally(() => { if (live) { clearTimeout(giveUp); setPriceDone(true); } });
     api.getProduct(code).then((x: any) => {
-      if (!live) return; setD(x); addScan(x.product); api.addScan(code).catch(() => undefined); countScan(code);
-      giveUp = setTimeout(() => { if (live) setPriceDone(true); }, PRICE_WAIT_MS);
-      api.getWebPriceQuick(code).then(() => undefined).catch(() => undefined).finally(() => { if (live) { if (giveUp) clearTimeout(giveUp); setPriceDone(true); } });
+      if (!live) return; setD(x); writeCache(prodKey(code, false, getStrict()), x); addScan(x.product); api.addScan(code).catch(() => undefined); countScan(code);
     })
       .catch(() => { if (live) { setFailed(true); setPriceDone(true); } });
-    return () => { live = false; if (giveUp) clearTimeout(giveUp); };
+    return () => { live = false; clearTimeout(giveUp); };
   }, [code]);
   const p = d?.product, sc = p?.score;
   const conflict = (d?.fit ?? []).some((x: any) => (x.priority.startsWith('allergen:') || x.priority.startsWith('diet:')) && x.status === 'conflict');
@@ -42,8 +45,9 @@ export default function ScanPeek({ code, onOpen, onClose }: { code: string; onOp
         <div className="peek-main">
           <b>{p.name}</b>
           <span className="mut sm">{p.brand ?? ''}</span>
-          {!priceDone && <span className="mut sm"><span className="mini-ring" /> {t('alt.pricing')}</span>}
-          <button className="peek-open" disabled={!priceDone} onClick={(e) => { e.stopPropagation(); if (priceDone) onOpen(code); }}>{t('scan.peekView')}</button>
+          {priceDone
+            ? <button className="peek-open" onClick={(e) => { e.stopPropagation(); onOpen(code); }}>{t('scan.peekView')}</button>
+            : <span className="mut sm"><span className="mini-ring" /> {t('alt.pricing')}</span>}
         </div>
         <div className="peek-score" style={{ color }}>{sc ? sc.total : '–'}<small>{verdict}</small></div>
         <div className="peek-score" style={{ color: pq == null ? 'var(--mut)' : pq >= 65 ? 'var(--accent)' : pq >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pq ?? '–'}<small>{t('score.pq')}</small></div>
