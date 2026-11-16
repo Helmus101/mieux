@@ -29,7 +29,7 @@ export function haptic(kind: HapticKind | number = 'tap') {
   if (!enabled) return;
   try {
     const pattern = typeof kind === 'number' ? kind : PATTERNS[kind];
-    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') navigator.vibrate(pattern);
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function' && (navigator as any).userActivation?.hasBeenActive !== false) navigator.vibrate(pattern);   // before the first tap Chrome blocks it and logs a warning
     else if (typeof document !== 'undefined') { iosTick(); if (Array.isArray(pattern) && pattern.length > 2) setTimeout(iosTick, 70); }
   } catch { /* unsupported */ }
 }

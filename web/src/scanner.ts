@@ -4,6 +4,9 @@
 import { validBarcode } from '@shared/barcode';
 export { validBarcode };
 
+/** A short tick on a hit. Chrome blocks vibration until the user has tapped the page (and logs a warning), so wait for that. */
+const buzz = () => { try { if ((navigator as any).userActivation?.hasBeenActive !== false) navigator.vibrate?.(30); } catch { /* ignore */ } };
+
 export class Cancelled extends Error { constructor() { super('cancelled'); this.name = 'Cancelled'; } }
 
 /** isCurrent lets a caller abandon a start that was superseded (React StrictMode mounts twice; fast navigation) before it touches the video. */
@@ -48,8 +51,8 @@ export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: strin
   let stopped = false, lastCode = '', lastAt = 0;
   const done = (c: string) => {
     if (stopped || !validBarcode(c)) return false;
-    if (continuous) { const now = Date.now(); if (c === lastCode && now - lastAt < 3000) return false; lastCode = c; lastAt = now; try { navigator.vibrate?.(30); } catch { /* ignore */ } onCode(c); return false; }
-    stopped = true; try { navigator.vibrate?.(30); } catch { /* ignore */ } onCode(c); return true; };
+    if (continuous) { const now = Date.now(); if (c === lastCode && now - lastAt < 3000) return false; lastCode = c; lastAt = now; buzz(); onCode(c); return false; }
+    stopped = true; buzz(); onCode(c); return true; };
   // Next video frame: in step with the camera when the browser can say so, else the display refresh.
   const nextFrame = (cb: () => void) => { const v = video as any; if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(() => cb()); else requestAnimationFrame(() => cb()); };
   // Native detector when it reads EAN/UPC; ZXing otherwise. Frames are never queued: one decode at a time, always on the freshest frame.

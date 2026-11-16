@@ -170,8 +170,6 @@ export default function Product() {
         return <Collapsible open={false} title={`${t('sdim.title')} · ${s.total}${t('score.outOf')}`}>
           <p className="mut sm" style={{ margin: '0 0 10px' }}>{t('sdim.profile', { x: t('prof.' + s.profile) })}{s.confidence ? ' · ' + t('sdim.confidence', { x: t('sdim.conf_' + s.confidence.level), p: s.confidence.pct }) : ''}{s.incomplete ? ' · ' + t('sdim.incomplete') : ''}</p>
           {((s.parts ?? []) as any[]).map((x) => <div key={x.key} style={{ margin: '10px 0' }}><Row spread><b>{t('score.part_' + x.key)}</b><Muted>{num(x.got)} / {x.of} {t('score.pts')}</Muted></Row><div className={'cbar ' + zc(x.of && x.got / x.of >= 0.8 ? 'g' : x.of && x.got / x.of >= 0.6 ? 'g2' : x.of && x.got / x.of >= 0.4 ? 'y' : x.of && x.got / x.of >= 0.2 ? 'w' : 'b')}><i style={{ width: Math.max(2, x.of ? 100 * x.got / x.of : 0) + '%' }} /></div></div>)}
-          {s.uncapped != null && s.uncapped !== s.total && <p className="mut sm">{t('score.cappedFrom', { a: s.uncapped, b: s.total })}</p>}
-          {((s.caps ?? []) as string[]).map((c) => <p key={c} className="mut sm" style={{ color: 'var(--warn)' }}>{t('cap.' + c)}</p>)}
           <h4 style={{ margin: '16px 0 4px' }}>{t('sdim.nutritional')}</h4>
           {dims.filter((d) => d.group === 'nutrition').map((d) => <div key={d.key} style={{ margin: '10px 0' }}>
             <Row spread><span>{t('sdim.' + d.key)}{d.scale?.estimated ? ' *' : ''}</span>{d.missing ? <Muted>{t('sdim.missing')}</Muted> : <b className={'ztxt ' + zc(d.scale?.tone ?? d.tone)}>{d.scale ? `${num(d.scale.value)} ${d.scale.unit}` : ''}{d.scale?.tier ? ' · ' + t('tier.' + d.scale.tier) : ''}</b>}</Row>
