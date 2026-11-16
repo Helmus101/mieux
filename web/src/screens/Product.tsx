@@ -145,6 +145,41 @@ export default function Product() {
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
 
       {p.score && (() => {
+        const s = p.score, dims = ((s.dimensions ?? []) as any[]).filter((d) => d.relevant !== false && d.key !== 'micro');
+        const num = (v: number) => String(Math.round(v * 10) / 10).replace('.', ',');
+        return <Collapsible open title={`${t('sdim.title')} · ${s.total}${t('score.outOf')}`}>
+          <p className="mut sm" style={{ margin: '0 0 10px' }}>{t('sdim.profile', { x: t('prof.' + s.profile) })}{s.confidence ? ' · ' + t('sdim.confidence', { x: t('sdim.conf_' + s.confidence.level), p: s.confidence.pct }) : ''}{s.incomplete ? ' · ' + t('sdim.incomplete') : ''}</p>
+          {((s.parts ?? []) as any[]).map((x) => <div key={x.key} style={{ margin: '10px 0' }}><Row spread><b>{t('score.part_' + x.key)}</b><Muted>{num(x.got)} / {x.of} {t('score.pts')}</Muted></Row><Bar value={x.of ? Math.max(0, Math.min(1, x.got / x.of)) : 0} /></div>)}
+          {s.uncapped != null && s.uncapped !== s.total && <p className="mut sm">{t('score.cappedFrom', { a: s.uncapped, b: s.total })}</p>}
+          {((s.caps ?? []) as string[]).map((c) => <p key={c} className="mut sm" style={{ color: 'var(--warn)' }}>{t('cap.' + c)}</p>)}
+          <h4 style={{ margin: '16px 0 4px' }}>{t('sdim.nutritional')}</h4>
+          {dims.filter((d) => d.group === 'nutrition').map((d) => <div key={d.key} style={{ margin: '10px 0' }}>
+            <Row spread><span>{t('sdim.' + d.key)}{d.scale?.estimated ? ' *' : ''}</span>{d.missing ? <Muted>{t('sdim.missing')}</Muted> : <Muted>{d.scale ? `${num(d.scale.value)} ${d.scale.unit}` : ''}{d.scale?.tier ? ' · ' + t('tier.' + d.scale.tier) : ''}</Muted>}</Row>
+            {!d.missing && d.score != null && <Bar value={Math.max(0, Math.min(1, d.score / 100))} />}
+            {d.key === 'fat' && d.detail?.sat != null && <p className="mut sm" style={{ margin: '2px 0 0' }}>{t('sdim.fatDetail', { s: num(d.detail.sat), f: num(d.detail.total ?? 0) })}</p>}
+          </div>)}
+          <h4 style={{ margin: '16px 0 4px' }}>{t('sdim.ingredient')}</h4>
+          {dims.filter((d) => d.group === 'ingredients').map((d) => <div key={d.key} style={{ margin: '10px 0' }}>
+            <Row spread><span>{t('sdim.' + d.key)}</span><Muted>{d.score != null ? `${d.score}/100` : t('sdim.missing')}</Muted></Row>
+            {d.score != null && <Bar value={Math.max(0, Math.min(1, d.score / 100))} />}
+          </div>)}
+          {s.nova?.group != null && <p className="mut sm">{t('sdim.processing')}: NOVA {s.nova.group}{s.nova.estimated ? ' *' : ''}. {t('sdim.processingNote')}</p>}
+          <p className="mut sm">{t(s.mode === 'strict' ? 'score.method3' : 'score.method2')}</p>
+          <p className="mut sm">{t('score.indicative')}</p>
+        </Collapsible>;
+      })()}
+      {p.nutriments && (() => {
+        const n = p.nutriments, liq = isLiquid(p);
+        const rows: [string, number | null | undefined, string, boolean?][] = [
+          ['energy', n.energyKcal100g, 'kcal'], ['fat', n.fat100g, 'g'], ['sat', n.saturatedFat100g, 'g', true], ['carbs', n.carbohydrates100g, 'g'],
+          ['sugars', n.sugars100g, 'g', true], ['fibre', n.fiber100g, 'g'], ['protein', n.protein100g, 'g'], ['salt', n.salt100g, 'g'],
+        ];
+        return <Collapsible open title={liq ? t('product.nutrition').replace('100g / 100ml', '100ml') : t('product.nutrition')}>
+          {rows.map(([k, v, u, sub]) => <Row key={k} spread><span style={{ paddingLeft: sub ? 14 : 0 }} className={sub ? 'mut' : undefined}>{t('product.' + k)}</span><b>{v == null ? '–' : `${Math.round(v * 10) / 10} ${u}`.replace('.', ',')}</b></Row>)}
+          <p className="mut sm">{t('product.nutriNote')}</p>
+        </Collapsible>;
+      })()}
+      {p.score && (() => {
         const all = [...(p.score.additives?.items ?? [])] as any[];
         const items = all.filter((x) => x.known || !all.some((o) => o !== x && x.code.startsWith(o.code))).sort((x, y) => y.level.localeCompare(x.level) || x.code.localeCompare(y.code));
         const risky = items.filter((x) => x.level === 'C' || x.level === 'D');
