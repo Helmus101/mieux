@@ -55,7 +55,6 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
     <div ref={ref} className={'peek' + (expanded ? ' peek-hidden' : '')} role="button" tabIndex={0} aria-label={t('scan.peekOpen')} style={{ cursor: priceDone ? undefined : 'wait' }}
       onTouchStart={(e) => { touch.current.y = e.touches[0].clientY; }} onTouchEnd={(e) => { if (p && touch.current.y - e.changedTouches[0].clientY > 36) expand(); }}
       onClick={() => { if (p && performance.now() - lastDrag.current > 200) expand(); }} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && p) { e.preventDefault(); expand(); } }}>
-      <button className="peek-x" aria-label={t('scan.close')} onClick={(e) => { e.stopPropagation(); onClose(); }}>×</button>
       {failed ? <span className="mut">{t('scan.peekFailed')}</span> : !p ? <><Skeleton h={18} w="60%" /><Skeleton h={14} w="35%" /></> : <>
         <div className="peek-top">
           {p.imageUrl && <img src={p.imageUrl} alt="" />}
@@ -65,7 +64,6 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
           <div><span className="peek-cap">{t('score.quality')}</span><div className="peek-n" style={{ color }}>{sc ? sc.total : '–'}<i>/100</i></div><small>{verdict}</small></div>
           <div><span className="peek-cap">{t('score.value')}</span><div className="peek-n" style={{ color: pq == null ? 'var(--mut)' : pq >= 65 ? 'var(--accent)' : pq >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pq ?? '–'}<i>/100</i></div><small>{t('score.pq')}</small></div>
         </div>
-        <button className="peek-open" onClick={(e) => { e.stopPropagation(); expand(); }}><svg viewBox="0 0 24 24" aria-hidden><path d="M6 15l6-6 6 6" /></svg>{t('scan.peekView')}</button>
         <span className="peek-grip" aria-hidden />
       </>}
     </div>
@@ -74,7 +72,6 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
           onTouchStart={(e) => { touch.current = { y: e.touches[0].clientY, top: body.current?.scrollTop ?? 0 }; }}
           onTouchEnd={(e) => { if (touch.current.top <= 0 && e.changedTouches[0].clientY - touch.current.y > 80) collapse(); }}>
           <div className="peek-handle" onClick={collapse} role="button" aria-label={t('common.back')}><i /></div>
-          <button className="peek-x peek-sheet-x" aria-label={t('scan.close')} onClick={collapse}>×</button>
           <div className="peek-body" ref={body}>
             <Suspense fallback={<Loader />}><ProductPage barcode={code} onBack={collapse} /></Suspense>
           </div>

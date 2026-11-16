@@ -1,6 +1,7 @@
 import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { clearAll } from '@shared/storage';
+import { wipeLocalData } from '../wipe';
 import { useProfile, useHistory } from '@shared/stores';
 import { useState } from 'react';
 import { Screen, NavBar, LargeTitle, Section, Chips, Chip, Group, Cell, Segmented, Confirm } from '../ui';
@@ -17,7 +18,7 @@ export default function Profile() {
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const exp = async () => { const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = 'mieux-donnees.json'; a.click(); };
   const [askErase, setAskErase] = useState(false);
-  const erase = async () => { await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset(); location.href = '/'; };
+  const erase = async () => { await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset(); await wipeLocalData(); location.href = '/'; };
   return (
     <Screen>
       <NavBar />
