@@ -2,11 +2,8 @@
 
 /* ===== 1. Design tokens ===== */
 :root{--thumb:#FFFFFF; --r:8px; --r-lg:12px; --bg:#FFFFFF; --surface:#FFFFFF; --card:#F5F5F7; --ink:#14201A; --mut:#5A6660; --line:rgba(60,60,67,.16); --leaf:#1F4D3A; --olive:#7FA65A; --clay:#F26B3A; --sage:#EAF1ED; --accent:#1F4D3A; --accent-ink:#FFFFFF; --tint:#EAF1ED; --warn:#D95A22; --bad:#A33B2B; --blue:#1F4D3A; --glass:rgba(255,255,255,.92); --shadow:none; --ease:cubic-bezier(.32,.72,0,1); --ease-out:cubic-bezier(.23,1,.32,1)}
-@media(prefers-color-scheme:dark){:root{--thumb:#34423A;--bg:#0D1210;--surface:#151C18;--card:#151C18;--ink:#F2F5F3;--mut:#A3AFA8;--line:#24302A;
-  --leaf:#2C6350;--olive:#9CBE77;--clay:#FF8A5C;--sage:#1A2620;
-  --accent:#6FCF97;--accent-ink:#07140D;--tint:rgba(111,207,151,.14);--warn:#FF9A6B;--bad:#E4695A;--blue:#9CBE77;
-  --glass:rgba(13,18,16,.85);--shadow:none}}
-@media(prefers-color-scheme:dark){.cmdk{background:#1c1f1d}}
+
+
 
 /* ===== 2. Reset and typography ===== */
 h2{font-size:16px; font-weight:600; letter-spacing:0; color:var(--ink); margin:28px 0 8px}
@@ -553,7 +550,7 @@ kbd{font:600 12px ui-monospace,Menlo,monospace; background:var(--card); border:1
 @media(prefers-reduced-transparency:reduce){.navbar,.tabbar{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none}}
 /* Increased contrast: separators and hairlines carry more weight. */
 @media(prefers-contrast:more){:root{--line:rgba(15,26,21,.32)}
-@media(prefers-color-scheme:dark){:root{--line:#3A4A42}}}
+}
 
 /* ===== 15. Fluid motion: materials arrive, type has optical tracking ===== */
 @keyframes materialize{from{opacity:0;transform:scale(.96);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
@@ -571,7 +568,7 @@ h1,.big,.scorebig,.stats-num{font-optical-sizing:auto}
 /* ===== 16. iOS-native layer: grouped-inset lists, large titles, system controls ===== */
 /* Light mode sits on the iOS "grouped" grey with white rows; dark keeps the elevated-surface model. */
 :root{--bg:#F2F2F7; --surface:#FFFFFF; --card:#FFFFFF; --sep:rgba(60,60,67,.29); --fill:rgba(120,120,128,.12)}
-@media(prefers-color-scheme:dark){:root{--bg:#0D1210; --surface:#151C18; --card:#151C18; --sep:rgba(84,84,88,.6); --fill:rgba(120,120,128,.24)}}
+
 html,body{font:17px/1.294 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif; letter-spacing:-.022em; -webkit-text-size-adjust:100%}
 body{font-size:17px; -webkit-touch-callout:none}
 .app{-webkit-user-select:none; user-select:none}
@@ -585,7 +582,7 @@ h3{font-size:20px; font-weight:600; letter-spacing:.38px}
 .group .cell{padding:11px 16px; min-height:44px}
 .group .cell+.cell::before{left:16px; background:var(--sep); transform:scaleY(.5); transform-origin:top}
 .cell .chev{color:rgba(60,60,67,.3); font-size:22px; font-weight:500}
-@media(prefers-color-scheme:dark){.cell .chev{color:rgba(235,235,245,.3)}}
+
 .cell.tap:active,.cell[role=button]:active,.arow:active{background:var(--fill); transition:none}
 .cell.tap,.arow{transition:background .35s var(--ease)}   /* instant on press, eased on release, like a UITableViewCell */
 .card{background:var(--surface); border-radius:12px; padding:16px}
@@ -732,30 +729,5 @@ p.mut{font-size:14.5px; line-height:1.5}
 .coll summary:active{background:var(--card)}
 
 /* ===== Dark mode refinement (last on purpose: it wins over the earlier dark token blocks) ===== */
-:root{color-scheme:light dark}
-@media(prefers-color-scheme:dark){
-  :root{
-    --bg:#0B100E; --surface:#141B17; --card:#19231D; --thumb:#34423A;
-    --ink:#EEF3F0; --mut:#9FAEA6; --line:#2B3831; --sep:rgba(130,150,140,.26); --fill:rgba(140,160,150,.18);
-    --glass:rgba(11,16,14,.82); --tint:rgba(134,176,150,.13);
-    /* calmer, desaturated palette: no neon on dark */
-    --accent:#86B196; --accent-ink:#0B130F; --olive:#A4B58A; --blue:#A4B58A; --clay:#D9966C; --warn:#D9996F; --bad:#CF7A6E;
-  }
-  /* Elevation: each layer a step lighter than the one under it, instead of one flat grey-green */
-  .sheet{background:#1C2721; box-shadow:0 -1px 0 var(--line)}
-  .cmdk{background:#1C2721}
-  .tabbar{border-top-color:var(--line)}
-  .toast{background:rgba(232,240,235,.94); color:#0B100E}
-  /* Thin tracks must stay visible on dark surfaces */
-  .bar{background:rgba(255,255,255,.12)}
-  .cbar{background:rgba(255,255,255,.12)}
-  /* Score tiles: dark ink on the warm tones, white on bright orange is hard to read */
-  .stile.w,.stile.b{color:#1A0F0A}
-  /* Zone colours lifted for dark backgrounds */
-  .z-g{--zc:#74AE8A}.z-g2{--zc:#A0B879}.z-y{--zc:#D2B766}.z-w{--zc:#D9996F}.z-b{--zc:#CF7A6E}
-  .zmark{background:var(--ink); box-shadow:0 0 0 2px var(--bg)}
-  /* Product photos sit on a light tile (their backgrounds are white): soften the edge so the tile does not glare */
-  .pid img,.arow>img,.cell img,.peek img{border-color:transparent; filter:brightness(.96)}
-  .arow:active,.cell.tap:active{background:rgba(134,176,150,.09)}
-  ::selection{background:rgba(134,176,150,.3)}
-}
+:root{color-scheme:light}
+

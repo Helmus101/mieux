@@ -1,6 +1,6 @@
 // Service worker: the app opens instantly from the cache and updates itself in the background. API calls always go to the network.
 // Bump C on every change to this file: the old cache is dropped on activation.
-const C = 'mieux-shell-v6';
+const C = 'mieux-shell-v7';
 const IMG = 'mieux-img-v1';   // product photos: kept between visits, never dropped with the shell cache
 const IMG_MAX = 300;
 const SHELL = ['/app', '/favicon.svg', '/icon-180.png', '/icon-192.png', '/logo.svg', '/manifest.webmanifest'];
@@ -8,7 +8,7 @@ const SHELL = ['/app', '/favicon.svg', '/icon-180.png', '/icon-192.png', '/logo.
 // Shown only when a page is requested while offline and nothing is cached yet (first visit without network).
 const OFFLINE_PAGE = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Mieux — hors ligne</title>
 <style>body{margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;background:#fff;color:#14201A;font:16px/1.5 -apple-system,system-ui,sans-serif;text-align:center;padding:24px}
-@media(prefers-color-scheme:dark){body{background:#0D1210;color:#F2F5F3}}b{font-size:28px;letter-spacing:-1px}i{font-style:normal;color:#F26B3A}p{color:#5A6660;max-width:32ch}
+b{font-size:28px;letter-spacing:-1px}i{font-style:normal;color:#F26B3A}p{color:#5A6660;max-width:32ch}
 button{font:inherit;font-weight:600;padding:14px 22px;border-radius:8px;border:0;background:#1F4D3A;color:#fff;min-height:48px}</style></head>
 <body><div><b>mieux<i>.</i></b><p>Pas de connexion pour l'instant. L'application s'ouvrira dès que le réseau revient.</p><button onclick="location.reload()">Réessayer</button></div></body></html>`;
 

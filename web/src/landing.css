@@ -4,10 +4,9 @@
   --pad:max(clamp(20px,5vw,40px),calc((100% - 1040px)/2));
   background:var(--bg);color:var(--ink);min-height:100vh;overflow-x:hidden;color-scheme:light dark;
   font:17px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
-@media (prefers-color-scheme:dark){.landing{--bg:#0D1210;--bg2:#151C18;--ink:#F5F5F7;--soft:#A3ACA6;--leaf:#6FCF97;--on-leaf:#07140D;--line:rgba(255,255,255,.14);--glass:rgba(13,18,16,.78);
-  --ok:#6FCF97;--ok-bg:rgba(111,207,151,.14);--chip:rgba(255,255,255,.09);--warn:#F08A55}}
+
 body:has(.landing){margin:0}   /* the landing does not load the app stylesheet: no default 8px browser margin around the full-width bands */
-@media (prefers-color-scheme:dark){html:has(.landing){background:#0D1210}}
+
 .landing *{box-sizing:border-box}
 :where(.landing h1,.landing h2,.landing p,.landing dl,.landing dd,.landing figure,.landing ol,.landing ul){margin:0;padding:0;letter-spacing:inherit;text-transform:none;color:inherit}
 .landing button{font:inherit;cursor:pointer}
@@ -180,4 +179,4 @@ body:has(.landing){margin:0}   /* the landing does not load the app stylesheet: 
 .lp-final{padding-top:clamp(48px,7vw,96px);padding-bottom:clamp(48px,7vw,96px)}
 .lp-final .lp-lead{margin-top:12px}
 .lp-final .lp-cta{margin-top:24px}
-@media (prefers-color-scheme:dark){.landing{--bg2:#151C18}}
+

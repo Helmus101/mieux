@@ -19,7 +19,7 @@ Quiet, Apple-adjacent utility: neutral surfaces, one deep green accent, large ti
 | `--bad` | #A33B2B | #E4695A | harmful / error |
 | `--line` | rgba(60,60,67,.16) | #24302A | hairlines |
 
-Score tones: g, g2, y, w, b map to accent, olive, clay, warn, bad. Dark mode follows `prefers-color-scheme`.
+Score tones: g, g2, y, w, b map to accent, olive, clay, warn, bad. The app is light mode only (no dark theme).
 
 ## Typography
 System stack (SF Pro / Segoe / Roboto), tabular numerals. Landing H1 `clamp(44px, 6vw, 68px)` desktop, `clamp(36px, 10.4vw, 44px)` phone, weight 700, tracking -.045em; H2 `clamp(30px, 5.4vw, 56px)`; body 17px; small print 12-13px. App h2 16px/600, h3 17px/600.
