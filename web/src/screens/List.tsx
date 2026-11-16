@@ -24,7 +24,6 @@ export default function List() {
         <Confirm open={ask} onClose={() => setAsk(false)} onConfirm={clearSaved} title={t('list.clear')} action={t('common.delete')}>{t('list.clearConfirm')}</Confirm>
       </> : <div className="empty"><p>{t('list.empty')}</p><Button primary onPress={() => go(routes.scan)}>{t('tabs.scan')}</Button></div>}
       <Group>
-        <Cell chevron onPress={() => go(routes.compare)}><b>{t('list.compareTool')}</b></Cell>
         <Cell chevron onPress={() => go(routes.history)}><b>{t('list.historyTool')}</b></Cell>
       </Group>
     </Screen>
