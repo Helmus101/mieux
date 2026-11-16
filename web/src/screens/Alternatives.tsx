@@ -197,7 +197,6 @@ export default function Alternatives() {
                 {e.vs != null && <span className={'av ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')} title={e.why}><b>{e.vs}</b> {t('alt.valueShort')}</span>}
                 {e.q != null && <span className="aq" title={t('alt.qualityTip')}>{t('alt.quality')} {Math.max(0, Math.min(100, Math.round(e.q)))}</span>}
               </div>
-              {e.why && <div className="awhy">{(w => w.charAt(0).toUpperCase() + w.slice(1))(String(e.why).replace(/^[^:]{0,40}\d+\/100\s*:\s*/, '').replace(/^qualit[ée] nutritionnelle \d+\/100,\s*/i, '').replace(/^nutritional quality \d+\/100,\s*/i, '').replace(/(\d+)\/100/g, (_m, n) => `${Math.min(100, +n)}/100`))}</div>}
             </div>
             <div className="aprice">
               {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
