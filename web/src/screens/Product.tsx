@@ -176,8 +176,6 @@ export default function Product() {
             <Row spread><span>{t('sdim.' + d.key)}</span>{d.score != null ? <b className={'ztxt ' + zc(d.tone)}>{d.score}/100</b> : <Muted>{t('sdim.missing')}</Muted>}</Row>
             {d.score != null && <div className={'cbar ' + zc(d.tone)}><i style={{ width: Math.max(2, d.score) + '%' }} /></div>}
           </div>)}
-          {s.nova?.group != null && <p className="mut sm">{t('sdim.processing')}: NOVA {s.nova.group}{s.nova.estimated ? ' *' : ''}. {t('sdim.processingNote')}</p>}
-          <p className="mut sm">{t(s.mode === 'strict' ? 'score.method3' : 'score.method2')}</p>
           <p className="mut sm">{t('score.indicative')}</p>
         </Collapsible>;
       })()}
