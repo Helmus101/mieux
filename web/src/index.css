@@ -737,7 +737,9 @@ p.mut{font-size:14.5px; line-height:1.5}
   :root{
     --bg:#0B100E; --surface:#141B17; --card:#19231D; --thumb:#34423A;
     --ink:#EEF3F0; --mut:#9FAEA6; --line:#2B3831; --sep:rgba(130,150,140,.26); --fill:rgba(140,160,150,.18);
-    --glass:rgba(11,16,14,.82); --tint:rgba(111,207,151,.16);
+    --glass:rgba(11,16,14,.82); --tint:rgba(134,176,150,.13);
+    /* calmer, desaturated palette: no neon on dark */
+    --accent:#86B196; --accent-ink:#0B130F; --olive:#A4B58A; --blue:#A4B58A; --clay:#D9966C; --warn:#D9996F; --bad:#CF7A6E;
   }
   /* Elevation: each layer a step lighter than the one under it, instead of one flat grey-green */
   .sheet{background:#1C2721; box-shadow:0 -1px 0 var(--line)}
@@ -750,10 +752,10 @@ p.mut{font-size:14.5px; line-height:1.5}
   /* Score tiles: dark ink on the warm tones, white on bright orange is hard to read */
   .stile.w,.stile.b{color:#1A0F0A}
   /* Zone colours lifted for dark backgrounds */
-  .z-g{--zc:#55C98A}.z-g2{--zc:#A3D16B}.z-y{--zc:#F0C85A}.z-w{--zc:#FF9A6B}.z-b{--zc:#F2796B}
+  .z-g{--zc:#74AE8A}.z-g2{--zc:#A0B879}.z-y{--zc:#D2B766}.z-w{--zc:#D9996F}.z-b{--zc:#CF7A6E}
   .zmark{background:var(--ink); box-shadow:0 0 0 2px var(--bg)}
   /* Product photos sit on a light tile (their backgrounds are white): soften the edge so the tile does not glare */
   .pid img,.arow>img,.cell img,.peek img{border-color:transparent; filter:brightness(.96)}
-  .arow:active,.cell.tap:active{background:rgba(111,207,151,.1)}
-  ::selection{background:rgba(111,207,151,.35)}
+  .arow:active,.cell.tap:active{background:rgba(134,176,150,.09)}
+  ::selection{background:rgba(134,176,150,.3)}
 }
