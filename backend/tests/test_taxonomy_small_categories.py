@@ -221,3 +221,23 @@ def test_bagged_leaf_salad_is_never_a_ready_meal_but_a_composed_salad_still_is()
 
 def test_pop_corn_is_not_typed_as_sweetcorn():
     assert _typ("Pop corn salé") != "corn"
+
+
+def _dried(name, cats=("en:dried-fruits",)):
+    return {"name": name, "brand": "X", "categories": list(cats), "generic_name": "", "ingredientsText": "x", "allergens": [], "traces": [], "analysis": [],
+            "quantity": {"amount": 250, "unit": "g"}}
+
+
+def test_raisins_only_lead_to_raisins_not_prunes_or_mixes():
+    from app import taxonomy
+    raisins = _dried("Raisins secs sultanines", ("en:dried-fruits", "en:raisins"))
+    assert taxonomy.substitution(raisins, _dried("Raisins golden", ("en:dried-fruits", "en:raisins")))
+    assert taxonomy.substitution(raisins, _dried("Pruneaux d'Agen")) is None
+    assert taxonomy.substitution(raisins, _dried("Mélange fruits secs")) is None
+
+
+def test_compotes_and_purees_naming_prunes_are_not_dried_fruit():
+    from app import taxonomy
+    assert taxonomy.classify({"name": "Purée Pomme Pruneaux", "brand": "", "categories": ["en:desserts"], "generic_name": ""})["type"] != "dried_fruit"
+    assert taxonomy.classify({"name": "Pommes pruneaux", "brand": "", "categories": ["en:desserts", "en:compotes", "fr:compotes-pommes-pruneau"], "generic_name": ""})["type"] != "dried_fruit"
+    assert taxonomy.classify({"name": "Pruneaux d'Agen", "brand": "", "categories": ["en:dried-fruits", "en:prunes"], "generic_name": ""})["type"] == "dried_fruit"

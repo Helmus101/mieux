@@ -313,6 +313,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             return False   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
         if tid == "nuts" and not_nuts_tag and not nuts_tag:
             return False   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
+        if tid == "dried_fruit" and _NOT_DRIED_TAGS.search(tags) and "en:dried-fruits" not in tags:
+            return False   # a compote, purée or dish that names a fruit is not the dried fruit itself
         if tid == "ready_meal" and _LEAF_SALAD.search(name) and not _SALAD_DISH.search(name):
             return False   # a bag of mâche, rocket or mixed leaves is fresh produce, not a prepared dish
         if tid == "ready_meal" and raw_ready and not dish_tag:
@@ -398,6 +400,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             "reason": "no rule and no usable category tag: uncategorised, so only a shared distinctive name word can match"}
 
 
+_NOT_DRIED_TAGS = re.compile(r"(?:^|\s)en:(?:compotes?|apple-compotes|fruit-compotes|purees|fruit-purees|desserts|meals|plant-based-meals|dishes)(?:\s|$)|fr:compotes")
 _LEAF_SALAD = re.compile(r"\b(?:m[âa]che|roquette|laitue|batavia|mesclun|jeunes? pousses?|feuilles? de ch[êe]ne|romaine|[ée]pinards?|lollo|scarole|frisée)\b", re.I)
 _SALAD_DISH = re.compile(r"poulet|thon|saumon|jambon|crevettes?|[oœ]eufs?|fromage|ch[èe]vre|lardons?|taboul|\briz\b|p[âa]tes|quinoa|lentilles|c[ée]r[ée]ales|surimi|pizza|quiche|sandwich|wrap|compos[ée]e|repas|\bbol\b|bowl|c[ée]sar|vinaigrette|croûtons|croutons", re.I)
 _CLASS_CACHE: Dict[Any, Dict[str, Any]] = {}
@@ -465,7 +468,7 @@ _TYPE_REJECTS = {
     # A galette or wafer made of rice is a crisp, not a grain of rice; rice flour and rice drinks are not rice either.
     "rice": re.compile(r"galettes?|crisp|wafers?|reiswaffeln|farine|flocons?|pudding|au lait|boisson|drink|sirop", re.I),
     # Dried fruit inside a biscuit, cake, bar or dish is that product, not a pack of dried fruit.
-    "dried_fruit": re.compile(r"biscuits?|cookies?|sabl[ée]s?|cakes?|g[âa]teaux?|muffins?|muesli|\bbarres?\b|\bpain\b|brioche|crackers?|tartes?|confiture|compote|\bjus\b|nectar|glaces?|sorbet|vin\b|bi[èe]re|p[âa]t[ée]s? de fruits|croustilles?|chips|m[ée]lange.*noix", re.I),
+    "dried_fruit": re.compile(r"pur[ée]e|orge\b|tajine|couscous|boulgour|semoule|poulet|porc\b|lapin|agneau|canard|farci|biscuits?|cookies?|sabl[ée]s?|cakes?|g[âa]teaux?|muffins?|muesli|\bbarres?\b|\bpain\b|brioche|crackers?|tartes?|confiture|compote|\bjus\b|nectar|glaces?|sorbet|vin\b|bi[èe]re|p[âa]t[ée]s? de fruits|croustilles?|chips|m[ée]lange.*noix", re.I),
     # "Pois chiches très peu de jus" is chickpeas canned in juice, not a juice.
     "fruit_juice": re.compile(r"pois chiches?|lentilles?|haricots?|l[ée]gumes?|conserves?|au jus|dans son jus|ma[ïi]s\b", re.I),
 }
@@ -732,6 +735,9 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
 
 # Variants inside one product type: a real difference the shopper should know about, disclosed as a trade-off (never a reason to hide the product).
 _VARIANTS = {
+    "dried_fruit": [("mix", r"m[ée]lange|assortiment|\bmix\b|cocktail|fruits? secs"), ("raisin", r"raisin|sultanine|corinthe"), ("prune", r"pruneau|\bprunes?\b"),
+                    ("date", r"datte|\bdates?\b"), ("fig", r"figue"), ("apricot", r"abricot|apricot"), ("cranberry", r"cranberr|craisin|airelle"), ("goji", r"goji"),
+                    ("mango", r"mangue|mango"), ("banana", r"banane|banana"), ("apple", r"pomme|apple"), ("pineapple", r"ananas|pineapple"), ("blueberry", r"myrtille|blueberry")],
     "plain_yogurt": [("greek", r"\bgrec|greek|skyr|\bgrecque")],
     "fresh_fruit": [("apple", r"pomme(?! de terre)|apple"), ("banana", r"banane|banana"), ("orange", r"orange|cl[ée]mentine|mandarine|citron|lemon|pamplemousse"),
                     ("pineapple", r"ananas|pineapple"), ("strawberry", r"fraise|strawberry"), ("raspberry", r"framboise|raspberry"),
@@ -796,7 +802,7 @@ def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
-_HARD_VARIANT_TYPES = {"nuts", "peanut_butter", "dip", "syrup", "fresh_fruit", "legumes", "pasta"}
+_HARD_VARIANT_TYPES = {"dried_fruit", "nuts", "peanut_butter", "dip", "syrup", "fresh_fruit", "legumes", "pasta"}
 
 
 # Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.
