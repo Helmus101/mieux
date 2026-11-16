@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, PanResponder, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { api } from '@shared/api/client';
 import { getStrict } from '@shared/config';
@@ -25,7 +26,7 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
   const [expanded, setExpanded] = useState(false);
   const sheetY = useRef(new Animated.Value(H)).current;
   const expand = () => { haptic('heavy'); setExpanded(true); onExpandedChange?.(true); Animated.spring(sheetY, { toValue: 0, damping: 28, stiffness: 260, mass: 1, useNativeDriver: true }).start(); };
-  const collapse = () => { haptic('tap'); onExpandedChange?.(false); Animated.spring(sheetY, { toValue: H, damping: 30, stiffness: 300, mass: 1, useNativeDriver: true }).start(() => setExpanded(false)); };
+  const collapse = () => { haptic('tap'); onExpandedChange?.(false); Animated.spring(sheetY, { toValue: H, damping: 30, stiffness: 300, mass: 1, useNativeDriver: true }).start(() => { setExpanded(false); onClose(); }); };   // closing the opened product closes the card too
   useEffect(() => () => onExpandedChange?.(false), []);   // closing the card or leaving the tab unlocks the scanner
   const [d, setD] = useState<any>(null), [failed, setFailed] = useState(false), [priceDone, setPriceDone] = useState(false);
   const addScan = useHistory((s) => s.addScan);
@@ -82,7 +83,7 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
             <View><Muted small>{t('score.quality')}</Muted><Text style={{ color: toneColor(tone, c.dark), fontSize: 34, fontWeight: '700', letterSpacing: -1 }}>{sc ? sc.total : '–'}<Text style={{ fontSize: 14, color: c.mut }}>/100</Text></Text><Muted small>{conflict ? t('scan.peekConflict') : sc ? t('score.' + sc.band) : t('score.na')}</Muted></View>
             <View><Muted small>{t('score.value')}</Muted><Text style={{ color: pq == null ? c.mut : toneColor(pq >= 65 ? 'g' : pq >= 40 ? 'w' : 'b', c.dark), fontSize: 34, fontWeight: '700', letterSpacing: -1 }}>{pq ?? '–'}{pq != null ? <Text style={{ fontSize: 14, color: c.mut }}>/100</Text> : null}</Text></View>
           </Row>
-          {ready ? <View style={{ backgroundColor: c.accent, borderRadius: 999, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: c.accentInk, fontWeight: '600', fontSize: 16 }}>{t('scan.peekView')}</Text></View>
+          {ready ? <View style={{ backgroundColor: c.accent, borderRadius: 999, minHeight: 44, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}><Ionicons name="chevron-up" size={18} color={c.accentInk} /><Text style={{ color: c.accentInk, fontWeight: '600', fontSize: 16 }}>{t('scan.peekView')}</Text></View>
             : <Muted small>{t('alt.pricing')}</Muted>}
         </>}
       </Pressable>
@@ -92,6 +93,7 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
         <View {...sheetPan.panHandlers} accessibilityLabel={t('common.back')} style={{ height: 28, alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: c.line }} />
         </View>
+        <Pressable hitSlop={12} onPress={collapse} style={{ position: 'absolute', top: 4, right: 14, zIndex: 3 }} accessibilityLabel={t('scan.close')}><Text style={{ color: c.mut, fontSize: 26 }}>×</Text></Pressable>
         <EmbeddedContext.Provider value={{ close: collapse }}><ProductView barcode={code} /></EmbeddedContext.Provider>
       </Animated.View>
     )}
