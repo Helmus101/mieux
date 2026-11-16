@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, PanResponder, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { api } from '@shared/api/client';
 import { getStrict } from '@shared/config';
@@ -70,7 +69,6 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
     <Animated.View {...pan.panHandlers} style={{ position: 'absolute', left: 12, right: 12, bottom: 96, transform: [{ translateY: y }], opacity: expanded ? 0 : y.interpolate({ inputRange: [0, 160], outputRange: [1, 0], extrapolate: 'clamp' }) }} pointerEvents={expanded ? 'none' : 'auto'}>
       <Pressable disabled={!ready} onPress={expand} accessibilityLabel={t('scan.peekOpen')}
         style={{ backgroundColor: c.bg, borderRadius: 20, padding: 16, gap: 12, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 18, shadowOffset: { width: 0, height: 6 } }}>
-        <Pressable hitSlop={12} onPress={onClose} style={{ position: 'absolute', top: 10, right: 14, zIndex: 2 }} accessibilityLabel={t('scan.close')}><Text style={{ color: c.mut, fontSize: 22 }}>×</Text></Pressable>
         {failed ? <Muted>{t('scan.peekFailed')}</Muted> : !p ? <><Skeleton h={18} w="60%" /><Skeleton h={14} w="35%" /></> : <>
           <Row style={{ paddingRight: 24 }}>
             {p.imageUrl ? <Image source={{ uri: p.imageUrl }} style={{ width: 52, height: 52, borderRadius: 8, backgroundColor: '#fff' }} contentFit="contain" /> : null}
@@ -83,8 +81,7 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
             <View><Muted small>{t('score.quality')}</Muted><Text style={{ color: toneColor(tone, c.dark), fontSize: 34, fontWeight: '700', letterSpacing: -1 }}>{sc ? sc.total : '–'}<Text style={{ fontSize: 14, color: c.mut }}>/100</Text></Text><Muted small>{conflict ? t('scan.peekConflict') : sc ? t('score.' + sc.band) : t('score.na')}</Muted></View>
             <View><Muted small>{t('score.value')}</Muted><Text style={{ color: pq == null ? c.mut : toneColor(pq >= 65 ? 'g' : pq >= 40 ? 'w' : 'b', c.dark), fontSize: 34, fontWeight: '700', letterSpacing: -1 }}>{pq ?? '–'}{pq != null ? <Text style={{ fontSize: 14, color: c.mut }}>/100</Text> : null}</Text></View>
           </Row>
-          {ready ? <View style={{ backgroundColor: c.accent, borderRadius: 999, minHeight: 44, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 }}><Ionicons name="chevron-up" size={18} color={c.accentInk} /><Text style={{ color: c.accentInk, fontWeight: '600', fontSize: 16 }}>{t('scan.peekView')}</Text></View>
-            : <Muted small>{t('alt.pricing')}</Muted>}
+          {ready ? <View style={{ alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: c.line }} /> : <Muted small>{t('alt.pricing')}</Muted>}
         </>}
       </Pressable>
     </Animated.View>
@@ -93,7 +90,6 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
         <View {...sheetPan.panHandlers} accessibilityLabel={t('common.back')} style={{ height: 28, alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: c.line }} />
         </View>
-        <Pressable hitSlop={12} onPress={collapse} style={{ position: 'absolute', top: 4, right: 14, zIndex: 3 }} accessibilityLabel={t('scan.close')}><Text style={{ color: c.mut, fontSize: 26 }}>×</Text></Pressable>
         <EmbeddedContext.Provider value={{ close: collapse }}><ProductView barcode={code} /></EmbeddedContext.Provider>
       </Animated.View>
     )}

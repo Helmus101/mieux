@@ -4,6 +4,9 @@ import Constants from 'expo-constants';
 import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { clearAll } from '@shared/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Image } from 'expo-image';
+import { clearCache } from '@/lib/cache';
 import { useProfile, useHistory } from '@shared/stores';
 import { COUNTRIES, type Country } from '@shared/chains';
 import { Body, Cell, Chip, Chips, Confirm, Field, Group, LargeTitle, Muted, Screen, Section, Segmented } from '@/components/ui';
@@ -22,7 +25,11 @@ export default function Profile() {
     const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone };
     await Share.share({ message: JSON.stringify(d, null, 1) }).catch(() => undefined);
   };
-  const erase = async () => { await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset(); };
+  const erase = async () => {
+    await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset();
+    // Everything else the app keeps on the phone: any remaining stored keys, the in-memory answers and the cached photos.
+    clearCache(); await AsyncStorage.clear().catch(() => undefined); await Image.clearDiskCache().catch(() => undefined); Image.clearMemoryCache().catch(() => undefined);
+  };
   return (
     <Screen title={t('profile.title')} bottom={110}>
       <LargeTitle>{t('profile.title')}</LargeTitle>
