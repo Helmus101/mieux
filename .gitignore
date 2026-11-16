@@ -99,3 +99,5 @@ web/dist/
 
 # Audit artifacts
 .production-readiness/
+brag-output/
+brag-output-*/
