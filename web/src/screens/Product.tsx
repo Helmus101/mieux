@@ -57,6 +57,7 @@ export default function Product() {
     prefetchAlternatives(barcode);
   }, [barcode]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
+  const inCompare = useProfile((s) => !!d?.product && s.compare.includes(d.product.id));   // a hook: it must run before the early returns below, on every render
   const pageName: string | undefined = d?.product?.name;
   useEffect(() => {   // the browser tab, history and shares carry the product and the brand
     if (!pageName) return;
@@ -109,7 +110,6 @@ export default function Product() {
   );
 
   const p = d.product, pc = d.price_context;
-  const inCompare = useProfile((s) => s.compare.includes(p.id));
   const head = priceHeadline(pc);
   const pricePending = head.kind === 'none' && priceSettledFor !== barcode && priceGaveUpFor !== barcode;
   const packOf = (perKgCents?: number | null, explicit?: number | null) => (explicit != null && explicit > 0 ? explicit : (perKgCents != null && perKgCents > 0 && p.quantity?.amount ? Math.round(perKgCents * p.quantity.amount / 1000) : null));

@@ -220,7 +220,7 @@ allowed_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://local
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=False,   # the session is a header, not a cookie: nothing here needs credentialed requests
+    allow_credentials=True,    # the browser's error reporter sends credentialed requests: without this header it is blocked. Origins are an explicit list, never '*'.
     allow_methods=["*"],
     allow_headers=["*"],
 )
