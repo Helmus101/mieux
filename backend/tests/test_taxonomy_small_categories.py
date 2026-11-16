@@ -283,3 +283,15 @@ def test_capers_in_vinegar_are_pickles_not_vinegar_and_lead_only_to_capers():
     assert taxonomy.substitution(capers, p("Câpres", ["en:pickled-capers"]))
     assert taxonomy.substitution(capers, p("Vinaigre balsamique", ["en:vinegars"])) is None
     assert taxonomy.substitution(capers, p("Cornichons au vinaigre", ["en:pickled-gherkins"])) is None
+
+
+def test_branded_bouillon_cubes_and_ramen_win_over_a_generic_soup_or_noodle_tag():
+    from app import taxonomy
+    def typ(name, cats): return taxonomy.classify({"name": name, "brand": "", "categories": cats, "generic_name": ""})["type"]
+    for name in ("MAGGI Bouillon KUB BIO Légumes 80g", "Bouillon Kub Légumes", "MAGGI Bouillon de Volaille 18 cubes", "Knorr Bouillon de Légumes 15 Tablettes", "Vegan Bouillon powder"):
+        assert typ(name, ["en:soups"]) == "stock_cube", name
+    assert typ("Bouillon de légumes 1L brique", ["en:soups"]) == "soup"
+    assert typ("Velouté de légumes", ["en:soups"]) == "soup"
+    assert typ("Buldak Spicy Ramen", ["en:pastas", "en:noodles"]) == "asian_noodles"
+    assert typ("Nouilles de blé instantanées saveur poulet", ["en:noodles"]) == "asian_noodles"
+    assert typ("Spaghetti n°5", ["en:pastas"]) == "pasta"

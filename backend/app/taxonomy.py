@@ -25,7 +25,7 @@ R = [
     ("breakfast_cereal", "cereals_bakery", "cereal", "cereal", "cereal", "breakfast", r"breakfast-cereals|cereal-flakes|cornflakes|extruded-cereals", r"corn ?flakes|c[ée]r[ée]ales|pétales|petales|chocapic|special k"),
     ("muesli", "cereals_bakery", "cereal", "muesli", "cereal", "breakfast", r"mueslis|granola|oat-flakes|porridge|cereal-clusters", r"muesli|granola|porridge|flocons d.avoine|cruesly|crunchy|clusters?"),
     ("asian_noodles", "cereals_bakery", "pasta", "asian_noodles", "pasta", "meal", r"instant-noodles?|ramen|udon|soba|rice-noodles?|asian-noodles?|rice-vermicelli|noodle-soups?|cup-noodles?",
-     r"ramen|udon|\bsoba\b|instant noodles?|noodles? (?:instant|bowl|cup|saveur)|cup noodles?|nouilles? (?:instantan[ée]es?|chinoises?|asiatiques?|de riz|sautées?|saveur|udon|soba|ramen|japonaises?|thaï)|nouilles? (?:poulet|boeuf|b[œo]euf|crevette|légumes?)|\bpho\b|pad thai|mie goreng|yakisoba|buldak|indomie|nissin|samyang|vermicelles? de riz"),
+     r"ramen|udon|\bsoba\b|instant noodles?|noodles? (?:instant|bowl|cup|saveur)|cup noodles?|nouilles? (?:instantan[ée]es?|chinoises?|asiatiques?|de riz|sautées?|saveur|udon|soba|ramen|japonaises?|thaï)|nouilles?.{0,24}instantan|nouilles? (?:poulet|boeuf|b[œo]euf|crevette|légumes?)|nouilles?[^,]{0,24}instantan|\bpho\b|pad thai|mie goreng|yakisoba|buldak|indomie|nissin|samyang|vermicelles? de riz"),
     ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes?|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles?|vermicel|gnocchi"),
     ("rice_pudding", "dairy", "dessert", "milk_dessert", "spoon", "dessert", r"rice-puddings?|milk-desserts?", r"\briz au lait\b|rice pudding|cr[èe]me de riz|cr[èe]me riz"),
     ("rice", "cereals_bakery", "grain", "grain", "grain", "meal", r"\brices?\b(?!-based|-pudding|-cakes?|-flours?)|basmati", r"^riz\b(?!\s+au\s+lait)|\briz (basmati|long|complet|thai)"),
@@ -33,7 +33,7 @@ R = [
     ("cocoa_powder", "sweet", "cocoa", "powder", "powder", "drink_mix", r"cocoa-powders|instant-chocolate-powders|chocolate-powders", r"cacao (en poudre|maigre|sucr|soluble)|poudre de cacao|chocolat en poudre|banania|nesquik|benco|ovomaltine"),
     ("soy_sauce", "condiments", "sauce", "soy_sauce", "liquid", "seasoning", r"soy-sauces|soya-sauces", r"sauce soja|soy sauce|shoyu|tamari"),
     ("stock_cube", "condiments", "seasoning", "stock_cube", "cube", "seasoning", r"bouillon-cubes?|stock-cubes?|dehydrated-[a-z-]*bouillons?|bouillons?-en-poudre|fonds?-de-(?:veau|volaille|poisson|boeuf)|cubes-de-bouillon|bouillons?-deshydrates?",
-     r"bouillons?\s+(?:en\s+)?(?:cubes?|poudre|d[ée]shydrat|paillettes|granul)|cubes?\s+(?:de\s+)?bouillon|bouillon\s+cubes?|stock\s+cubes?|fonds?\s+de\s+(?:veau|volaille|poisson|b[œo]euf)|\bcubes?\s+(?:de\s+)?(?:l[ée]gumes|poule|b[œo]euf|volaille|poisson)"),
+     r"bouillons?\s+(?:en\s+)?(?:cubes?|poudre|d[ée]shydrat|paillettes|granul|kub|tablettes?)|cubes?\s+(?:de\s+)?bouillon|bouillon\s+cubes?|stock\s+cubes?|\bkub\b|fonds?\s+de\s+(?:veau|volaille|poisson|b[œo]euf)|\bcubes?\s+(?:de\s+)?(?:l[ée]gumes|poule|b[œo]euf|volaille|poisson)|\d+\s*cubes?\b|bouillon\s+(?:de\s+)?(?:l[ée]gumes?|volaille|poule|b[œo]euf|boeuf|poisson|vegan|vegetal)(?!.*(?:\d\s?(?:cl|ml|l)\b|brique|pr[êe]t|liquide|velout))|(?:vegan\s+)?bouillon\s+powder"),
     ("pesto", "condiments", "sauce", "pesto", "jar", "meal", r"(?:^|\s)en:(?:green-|red-)?pestos?(?:\s|$)", r"pesto"),
     ("dip", "condiments", "dip", "dip", "tub", "snacking", r"(?:^|\s)en:(?:dips|hummus|houmous|taramas?|tzatziki|guacamoles?)(?:\s|$)|fr:(?:houmous|taramas?|tzatziki)", r"houm[ou]{1,2}s|hummus|tarama|tzatziki|guacamole|ktipiti|baba ghan|mouhamara|dip\b"),
     ("tapenade", "condiments", "sauce", "tapenade", "jar", "meal", r"(?:^|\s)en:(?:tapenades?|antipasti|olive-spreads?)(?:\s|$)", r"tapenade|caviar d.aubergine|cr[èe]me d.olive|cr[èe]me de poivron|antipasti|sp[ée]cialit[ée] (?:[àa]|aux?) (?:la |l.)?(?:tomate|olive|poivron|aubergine)"),
@@ -347,7 +347,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if not _guard(tid, fam):
             continue
-        if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast") and nr.search(name):
+        if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast", "stock_cube", "asian_noodles") and nr.search(name):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
 
     # Priority 1: High-specificity product type tags + name agreement (highest confidence)
@@ -361,7 +361,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
-                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms", "rice_pudding", "corn",
+                "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms", "rice_pudding", "corn", "asian_noodles", "stock_cube", "pickles",
                 "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives", "ham", "muesli", "legumes", "fried_onions", "dried_fruit")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if not _guard(tid, fam):

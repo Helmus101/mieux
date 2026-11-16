@@ -425,7 +425,15 @@ def _load_product(s: Session, barcode: str, refresh: bool = False) -> Dict[str, 
     else:
         s.add(db.Product(id=p["id"], name=p["name"], brand=p["brand"], category=p["category"], data=json.dumps(p)))
     s.add(db.ProductSnapshot(product_id=p["id"], source_updated_at=p["dataQuality"]["lastUpdatedAt"], raw=json.dumps(raw)[:200000]))
-    s.commit()
+    try:
+        s.commit()
+    except IntegrityError:
+        # Another request (scan card, price lookup, product page) stored the same new product a moment ago: use its row.
+        s.rollback()
+        other = s.get(db.Product, p["id"])
+        if other is None:
+            raise
+        return json.loads(other.data)
     return p
 
 
