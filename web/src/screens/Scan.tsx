@@ -20,6 +20,7 @@ export default function Scan() {
   const stopScan = useRef<(() => void) | null>(null);
   const run = useRef(0);
   const [peek, setPeek] = useState<string | null>(null);
+  const locked = useRef(false);   // the result sheet is open: the camera keeps running but a new barcode must not replace what is being read
   const [on, setOn] = useState(false), [starting, setStarting] = useState(true), [torch, setTorchOn] = useState(false), [canTorch, setCanTorch] = useState(false), [err, setErr] = useState('');
 
   const stop = () => { run.current++; stopScan.current?.(); stopScan.current = null; closeCamera(stream.current); stream.current = null; setOn(false); };
@@ -31,6 +32,7 @@ export default function Scan() {
     try {
       stream.current = await openCamera(video.current!, () => id === run.current); setOn(true); setStarting(false); setCanTorch(torchSupported(stream.current));
       const stopper = await scanBarcodes(video.current!, (c) => {
+        if (locked.current) return;
         scanClick(); haptic('success');
         if (forCompare) { api.getProduct(c).catch(() => undefined); api.getWebPriceQuick(c); stop(); open(c); } else setPeek(c);     // keep the camera running; the card shows the product
       }, frame.current, !forCompare);
@@ -54,7 +56,7 @@ export default function Scan() {
         <button className="cam-btn" onClick={close} aria-label={t('common.back')}><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
         {canTorch && on && <button className={'cam-btn' + (torch ? ' lit' : '')} onClick={flip} aria-label={t('scan.torch')}><svg viewBox="0 0 24 24"><path d="M7 3h10l-2 7v3l-3 3-3-3v-3zM12 16v5" /></svg></button>}
       </div>
-      {peek && !forCompare && <ScanPeek code={peek} onClose={() => setPeek(null)} onOpen={(c) => { stop(); setPeek(null); go(routes.product(c)); }} />}
+      {peek && !forCompare && <ScanPeek code={peek} onClose={() => { locked.current = false; setPeek(null); }} onExpandedChange={(v) => { locked.current = v; }} />}
       <div className="cam-bottom">
         {err ? <p className="cam-err">{err}</p> : <p>{on ? (forCompare ? t('compare.scanForCompare') : t('scan.point')) : starting ? t('scan.opening') : t('simple.camNeeded')}</p>}
         {!on && !starting && <button className="cam-main" onClick={start}>{t('scan.open')}</button>}

@@ -34,9 +34,12 @@ function ScaleBar({ scale }: { scale: any }) {
 
 const PRICE_WAIT_MS = 12000;   // longest the quality and value scores stay hidden while the price is looked up
 
-export default function Product() {
-  const { barcode } = useParams<{ barcode: string }>();
-  const { go, back } = useNav();
+/** `barcode` and `onBack` let the scanner show this same page inside its expandable sheet; as a route both come from the URL and history. */
+export default function Product({ barcode: barcodeProp, onBack }: { barcode?: string; onBack?: () => void } = {}) {
+  const params = useParams<{ barcode: string }>();
+  const barcode = barcodeProp ?? params.barcode;
+  const { go, back: navBack } = useNav();
+  const back = onBack ?? navBack;
   const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare), removeCompare = useProfile((s) => s.removeCompare);
   const country = useProfile((s) => s.country);
   const hist = useHistory();

@@ -111,13 +111,6 @@ export async function scanBarcodes(video: HTMLVideoElement, onCode: (code: strin
   return () => { stopped = true; };
 }
 
-/** Grabs a full-resolution, contrast-boosted frame for OCR. */
-export function captureFrame(video: HTMLVideoElement): Promise<Blob> {
-  const cv = document.createElement('canvas'); cv.width = video.videoWidth; cv.height = video.videoHeight;
-  const cx = cv.getContext('2d')!; cx.filter = 'grayscale(1) contrast(1.4)'; cx.drawImage(video, 0, 0);
-  return new Promise((ok, no) => cv.toBlob((b) => (b ? ok(b) : no(new Error('capture'))), 'image/jpeg', 0.92));
-}
-
 /** Torch (flash) toggle where the camera supports it; resolves to whether it is now on. */
 export async function setTorch(stream: MediaStream | null, on: boolean): Promise<boolean> {
   const track = stream?.getVideoTracks()[0];
