@@ -14,7 +14,7 @@ export function altRequest(barcode: string) {
   const q = p.priorities.filter((k: string) => k !== 'budget' && k !== 'value');
   const prios = q.length ? q : ['overall'];
   const chains = (p.chains ?? []).filter((id: string) => chainsFor(p.country).some((c) => c.id === id));
-  const home = p.place, hasHome = home?.lat != null;
+  const home = p.place, hasHome = typeof home?.lat === 'number' && typeof home?.lon === 'number';   // both coordinates, or the server rejects the location (422)
   const diet = p.diet ?? 'omnivore', allergens = [...(p.allergens ?? [])].sort();   // sent with the request (not left to the server's copy, which syncs a moment later) and part of the key, so changing them never shows a stale list
   const key = `alt:${barcode}:${prios.join()}:${chains.join()}:${diet}:${allergens.join()}`;   // the answer carries every profile's ranking: switching profile never asks again
   const body = { priorities: prios, diet, excluded_allergens: allergens, category_mode: 'similar', limit: 10, substitution_max: 2, same_size: false, chains, price_constraint: 'any', approximate: p.estimates, ...(hasHome ? { location: { lat: home!.lat, lon: home!.lon, radius_km: NEAR_KM } } : {}) };

@@ -148,9 +148,9 @@ visit_batcher = VisitBatcher(batch_size=10, flush_interval=30)
 
 # Rate limiting
 def client_ip(request: Request) -> str:
-    """Behind Vercel and Fly's proxy every request comes from a proxy: rate limit per real client address instead."""
-    xff = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()      # the web app reaches the API through Vercel: the real visitor is the first X-Forwarded-For hop
-    return xff or request.headers.get("fly-client-ip") or get_remote_address(request)
+    """Rate limit per real client address. Fly sets Fly-Client-IP itself (a client cannot forge it); the first X-Forwarded-For hop
+    is client-controlled, so it is only a last resort when neither Fly's header nor a socket address is available."""
+    return request.headers.get("fly-client-ip") or get_remote_address(request) or (request.headers.get("x-forwarded-for") or "").split(",")[-1].strip() or "unknown"
 
 
 limiter = Limiter(key_func=client_ip)
@@ -216,11 +216,11 @@ async def log_requests(request: Request, call_next):
 
 # CORS is added last, so it is the outermost middleware. A response replayed by the idempotency cache (or built by any
 # other middleware) then still carries Access-Control-Allow-Origin; otherwise the browser blocks a repeated cross-origin POST.
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8010").split(",")
+allowed_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8010").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_credentials=False,   # the session is a header, not a cookie: nothing here needs credentialed requests
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -295,9 +295,12 @@ def get_db() -> Iterator[Session]:
         s.close()
 
 
+_SESSION_ID = re.compile(r"^[A-Za-z0-9_.:-]{8,128}$")   # bounded and plain: an id is a row key, never free text
+
+
 def user(x_session_id: Optional[str] = Header(None), s: Session = Depends(get_db)) -> str:
     """Every request is anonymous: the device sends X-Session-Id and that is the user. No accounts, no tokens."""
-    if not x_session_id or len(x_session_id) < 8:
+    if not x_session_id or not _SESSION_ID.match(x_session_id):
         raise HTTPException(401, "X-Session-Id header required")
     uid = x_session_id
     if not s.get(db.User, uid):
@@ -2457,9 +2460,9 @@ def readiness_check(request: Request):
         if off_local is not None and hasattr(off_local, "_q"):
             off_local._q("select 1 from off_products limit 1", ())
     except Exception as e:
-        raise HTTPException(503, f"Not ready: {str(e)}")
-    return {"status": "ready", "database": "connected", "price_search": {"providers": webprice.providers(), "searches_today": webprice._day["n"], "daily_cap": webprice.DAILY_CAP,
-                                                                       "gemini_paused": time.time() < webprice._gemini["down_until"]}}
+        logger.error("readiness check failed: %s", e)      # the detail goes to the log, not to whoever calls the endpoint
+        raise HTTPException(503, "Not ready")
+    return {"status": "ready", "database": "connected", "price_search": {"enabled": webprice.enabled(), "searches_today": webprice._day["n"], "daily_cap": webprice.DAILY_CAP}}
 
 
 DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "web", "dist"))  # the built web app (npm run build): one server, one address, any device

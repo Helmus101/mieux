@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
@@ -28,18 +28,24 @@ export default function Alternatives() {
   // One recommendation score, weighted by what the shopper says matters (budget first by default). Changing it re-asks the API.
   const vp = useProfile((s) => s.valueProfile) ?? 'budget', setVp = useProfile((s) => s.setValueProfile);
   const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null), autoRetry = useRef(0);
+  useEffect(() => { autoRetry.current = 0; }, [barcode]);
   useEffect(() => {
     if (!barcode || !prios.length) return;
     setErr(null);
-    let gone = false;
+    let gone = false, retry: ReturnType<typeof setTimeout> | undefined;
     // The product page usually started this very request already: the answer is in the cache or about to arrive.
     const stale = cachedAlternatives(barcode);
     if (stale) { setR(stale); setBusy(false); } else setBusy(true);   // show the last answer at once, then refresh it
     fetchAlternatives(barcode)
       .then((x: any) => { if (!gone) setR(x); })
-      .catch((e: unknown) => { if (!gone) setErr(friendlyError(e)); }).finally(() => { if (!gone) setBusy(false); });
-    return () => { gone = true; };
+      .catch((e: unknown) => {
+        if (gone) return;
+        // One quiet retry before showing an error: most failures here are a dropped request or a busy moment on the server.
+        if (autoRetry.current < 1 && (e as { response?: { status?: number } })?.response?.status !== 404) { autoRetry.current += 1; retry = setTimeout(() => setTry((n) => n + 1), 1200); return; }
+        setErr(friendlyError(e));
+      }).finally(() => { if (!gone && !retry) setBusy(false); });
+    return () => { gone = true; if (retry) clearTimeout(retry); };
   }, [barcode, prios.join(), mode, pc, estimates, home?.lat, home?.lon, subMax, sameSize, myChains.join(), tries]);
   const rowOf = (e: any) => ({
     ps_web: e.price_source?.source === "web_search",

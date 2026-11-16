@@ -7,11 +7,5 @@ Disallow: /stats
 # The API is not a website.
 Disallow: /v1/
 
-# Admin and internal pages
-Disallow: /admin
-
-# Crawl-delay for respectful crawling
-Crawl-delay: 1
-
 # Sitemap
 Sitemap: https://mieuxmanger.vercel.app/sitemap.xml

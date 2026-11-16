@@ -702,7 +702,7 @@ def test_readiness_is_ready_and_rate_limit_uses_the_real_client(monkeypatch):
     assert r.status_code == 200 and r.json()["status"] == "ready" and "price_search" in r.json()
     class Req:
         def __init__(self, h): self.headers, self.client = h, type("C", (), {"host": "10.0.0.1"})()
-    assert main.client_ip(Req({"x-forwarded-for": "203.0.113.7, 76.76.21.1", "fly-client-ip": "76.76.21.1"})) == "203.0.113.7"
+    assert main.client_ip(Req({"x-forwarded-for": "203.0.113.7, 76.76.21.1", "fly-client-ip": "76.76.21.1"})) == "76.76.21.1"   # a client-supplied X-Forwarded-For hop is never trusted over Fly's own header
     assert main.client_ip(Req({"fly-client-ip": "198.51.100.2"})) == "198.51.100.2"
 
 

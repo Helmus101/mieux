@@ -273,7 +273,7 @@ def test_alternatives_never_start_a_fresh_web_search_for_a_candidate(monkeypatch
     monkeypatch.setattr(main, "_search_targets", lambda orig, orig_unpriced, prods, prices, *a, **k: (calls.append(list(prods)), real_targets(orig, orig_unpriced, prods, prices, *a, **k))[1])
     monkeypatch.setattr(webprice, "enabled", lambda: True)
     main.app.state.prices = type("N", (), {"latest": lambda self, b, q, *a: None, "chain_summary": CHAIN_SUMMARY})()
-    Hr = {"X-Session-Id": "nofresh-user-001", "X-Lang": "en", "X-Forwarded-For": "203.0.113.55"}
+    Hr = {"X-Session-Id": "nofresh-user-001", "X-Lang": "en", "Fly-Client-IP": "203.0.113.55"}
     _s = main.app.state.sessions(); _s.query(db.Product).delete(); _s.commit()
     c.post("/v1/products/1/alternatives", headers=Hr, json={"priorities": ["protein"], "excluded_allergens": ["peanuts"]})
     assert calls and all(prods == [] for prods in calls)   # _search_targets was always called with no candidates to search

@@ -10,7 +10,8 @@ export default class ErrorBoundary extends Component<{ children: ReactNode; rese
     console.error(e);
     const chunk = /Loading chunk|dynamically imported module|Importing a module script failed|Unexpected token '<'/i.test(e.message);
     report(chunk ? 'chunk' : 'boundary', e);
-    try { if (chunk && !sessionStorage.getItem('mieux_reloaded')) { sessionStorage.setItem('mieux_reloaded', '1'); location.reload(); } } catch { /* storage unavailable */ }
+    // One automatic reload per 30 s (not one per tab session): a later deploy can strand the page again, but a loop is still impossible.
+    try { const last = Number(sessionStorage.getItem('mieux_reloaded') || 0); if (chunk && Date.now() - last > 30000) { sessionStorage.setItem('mieux_reloaded', String(Date.now())); location.reload(); } } catch { /* storage unavailable */ }
   }
   componentDidUpdate(prev: { resetKey?: string }) { if (this.state.failed && prev.resetKey !== this.props.resetKey) this.setState({ failed: false }); }
   render() {
