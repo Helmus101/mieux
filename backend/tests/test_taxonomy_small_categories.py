@@ -200,3 +200,24 @@ def test_a_jarred_fruit_is_not_fresh_fruit_even_with_a_fruit_tag():
     assert taxonomy.classify(jarred)["type"] != "fresh_fruit"
     assert taxonomy.classify(fresh)["type"] == "fresh_fruit"
     assert taxonomy.substitution(jarred, fresh)["level"] == 2   # same fruit, different preparation: still an alternative
+
+
+def _typ(name, brand="", categories=()):
+    from app import taxonomy
+    return taxonomy.classify({"name": name, "brand": brand, "categories": list(categories), "generic_name": ""})["type"]
+
+
+def test_plain_pate_name_is_a_pate_but_pate_dough_and_pasta_are_not():
+    assert _typ("pâté Hénaff", "Hénaff") == "pate_terrine"
+    assert _typ("Pâtes coquillettes", "Panzani") != "pate_terrine"
+    assert _typ("Pâte à tartiner noisettes") != "pate_terrine"
+
+
+def test_bagged_leaf_salad_is_never_a_ready_meal_but_a_composed_salad_still_is():
+    assert _typ("Salade mâche") != "ready_meal"
+    assert _typ("Mâche Roquette Betterave 175 G", "Florette") != "ready_meal"
+    assert _typ("Salade césar poulet") == "ready_meal"
+
+
+def test_pop_corn_is_not_typed_as_sweetcorn():
+    assert _typ("Pop corn salé") != "corn"

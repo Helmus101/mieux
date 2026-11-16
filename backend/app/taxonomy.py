@@ -150,7 +150,7 @@ R = [
     ("pork", "meat_fish", "red_meat", "meat_cut", "cut", "meal", r"(?:^|\s)en:(?:pork|pork-cuts|pork-roasts|pork-chops|pork-tenderloin|pork-loin)(?:\s|$)", r"\bporc\b|\bpork\b|\bcochon\b"),
     ("veal", "meat_fish", "red_meat", "meat_cut", "cut", "meal", r"(?:^|\s)en:(?:veal|veal-cuts|veal-escalopes)(?:\s|$)", r"\bveau\b|\bveal\b"),
     ("lamb", "meat_fish", "red_meat", "meat_cut", "cut", "meal", r"(?:^|\s)en:(?:lamb|lamb-cuts|mutton|gigots)(?:\s|$)", r"\bagneau\b|\blamb\b|\bmouton\b|gigot"),
-    ("pate_terrine", "meat_fish", "charcuterie", "pate", "spread", "meal", r"country-terrines|terrines|rillettes|duck-rillettes|pates-de-campagne|pates-en-croute|foie-gras|pate-de-campagne", r"rillettes?|terrines?|p[âa]t[ée] (?:de campagne|de foie|de t[êe]te|de canard|de lapin|de gibier|du chef|breton|en cro[ûu]te|de volaille)|p[âa]t[ée] [àa] la|foie gras"),
+    ("pate_terrine", "meat_fish", "charcuterie", "pate", "spread", "meal", r"country-terrines|terrines|rillettes|duck-rillettes|pates-de-campagne|pates-en-croute|foie-gras|pate-de-campagne", r"rillettes?|terrines?|p[âa]t[ée] (?:de campagne|de foie|de t[êe]te|de canard|de lapin|de gibier|du chef|breton|en cro[ûu]te|de volaille)|p[âa]t[ée] [àa] la|\bp[âa]t[é]\b(?!.{0,25}\b(?:pommes?|pomme de terre|pommes de terre|fruits?|poires?)\b)|foie gras"),
     ("fish_canned", "meat_fish", "fish", "can", "cold_fish", "meal", r"canned-fish|tunas|sardines|mackerels|canned-tunas", r"thon|sardine|maquereau|saumon fum"),
     # Specific vegetable forms before the generic bucket below: a jarred grilled/marinated vegetable, a smooth cooked purée and
     # raw/frozen produce are not interchangeable (different preparation, different use), so each gets its own type.
@@ -313,6 +313,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             return False   # the name rules this type out (a pâté is not pasta, a sausage is not a ham)
         if tid == "nuts" and not_nuts_tag and not nuts_tag:
             return False   # quinoa, lentils and semolina carry a "seeds" tag but are cereals and pulses, never nuts
+        if tid == "ready_meal" and _LEAF_SALAD.search(name) and not _SALAD_DISH.search(name):
+            return False   # a bag of mâche, rocket or mixed leaves is fresh produce, not a prepared dish
         if tid == "ready_meal" and raw_ready and not dish_tag:
             return False   # dry couscous, quinoa and bagged salads carry "en:meals" but are not prepared dishes
         if tid in ("chicken", "turkey", "duck") and deli_tag:
@@ -396,6 +398,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             "reason": "no rule and no usable category tag: uncategorised, so only a shared distinctive name word can match"}
 
 
+_LEAF_SALAD = re.compile(r"\b(?:m[âa]che|roquette|laitue|batavia|mesclun|jeunes? pousses?|feuilles? de ch[êe]ne|romaine|[ée]pinards?|lollo|scarole|frisée)\b", re.I)
+_SALAD_DISH = re.compile(r"poulet|thon|saumon|jambon|crevettes?|[oœ]eufs?|fromage|ch[èe]vre|lardons?|taboul|\briz\b|p[âa]tes|quinoa|lentilles|c[ée]r[ée]ales|surimi|pizza|quiche|sandwich|wrap|compos[ée]e|repas|\bbol\b|bowl|c[ée]sar|vinaigrette|croûtons|croutons", re.I)
 _CLASS_CACHE: Dict[Any, Dict[str, Any]] = {}
 
 
@@ -445,7 +449,7 @@ _TYPE_REJECTS = {
     "pasta": re.compile(r"\bp[âa]t[èéêe]\b|charcut|p[âa]tes? de fruits", re.I),
     "chips": re.compile(r"chips? cookies?|chocolate chips?|chips? au chocolat|p[ée]pites? de chocolat", re.I),
     "fruits_veg": re.compile(r"pur[ée]es?|grill|marin|r[ôo]ti|oignons?[^a-zà-ÿ]{0,15}frits?|frits?[^a-zà-ÿ]{0,15}oignons?|onions?[^a-zà-ÿ]{0,15}fried|fried[^a-zà-ÿ]{0,15}onions?|r[öo]st\w*zwiebel\w*", re.I),   # a purée, a grilled vegetable or fried onions are other preparations
-    "corn": re.compile(r"flakes?|chips?|popcorn|flocons?|cereals?|muesli|granola|salad|soupe?|soup|glace|ice cream|g[âa]teaux?|biscuits?|galettes?|cr[êe]pes?|gaufres?", re.I),   # corn flakes, popcorn, corn cakes and corn snacks are not corn
+    "corn": re.compile(r"flakes?|chips?|pop[ -]?corn|flocons?|cereals?|muesli|granola|salad|soupe?|soup|glace|ice cream|g[âa]teaux?|biscuits?|galettes?|cr[êe]pes?|gaufres?", re.I),   # corn flakes, popcorn, corn cakes and corn snacks are not corn
     # A coffee is not a dessert or a dairy product: "glace au café" and "yaourt café" are those products, not coffee.
     "coffee_beans": re.compile(r"glaces?|ice cream|sorbet|yaourts?|yogurts?|mousse|g[âa]teaux?|cakes?|desserts?", re.I),
     "ground_coffee": re.compile(r"glaces?|ice cream|sorbet|yaourts?|yogurts?|mousse|g[âa]teaux?|cakes?|desserts?", re.I),
