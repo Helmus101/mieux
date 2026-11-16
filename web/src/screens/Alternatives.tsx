@@ -70,9 +70,13 @@ export default function Alternatives() {
   // The backend ranks by one value score (affordability, nutrition and efficiency, weighted by the chosen profile).
   // Every profile is ranked by the server in the same answer: pick the chosen profile's score and order, no new request.
   const sourceRows = (k: string): any[] => {
-    const rows = (r?.rankings?.[k] ?? []) as any[];
+    let rows = (r?.rankings?.[k] ?? []) as any[];
+    // The value ranking can legitimately be empty (every candidate's price too old or unverifiable) while the
+    // match list still has real alternatives: show those rather than claiming there is nothing.
+    const fallback = !rows.length && k === 'value';
+    if (fallback) rows = ((r?.rankings?.match ?? r?.alternatives ?? []) as any[]);
     const per = new Map<string, any>(((r?.rankings?.profiles?.[vp] ?? []) as any[]).map((x) => [x.code, x]));
-    if (!per.size) return rows;
+    if (!per.size || fallback) return rows;
     return rows.filter((e) => per.has(e.product?.barcode)).map((e) => ({ ...e, value_score: per.get(e.product.barcode).value_score, why: per.get(e.product.barcode).why }))
       .sort((a, b) => b.value_score - a.value_score);
   };
