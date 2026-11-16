@@ -887,6 +887,13 @@ def cached_only(product: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return data if (data and fresh) else ({**data, "stale": True} if data else None)
 
 
+def fresh_miss(product: Dict[str, Any]) -> bool:
+    """True when a search for this product already ran its full course recently and found nothing (or found the product
+    but no price): the miss is cached, so looking again right away would only repeat the same empty answer."""
+    fresh, data = _cached(str(product.get("barcode") or ""))
+    return fresh and (data is None or bool(data.get("no_price")))
+
+
 def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: bool = True, http: Optional[Http] = None, deadline: Optional[float] = None, force: bool = False) -> Optional[Dict[str, Any]]:
     """{per100_cents, pack_cents, store, source_urls, date, source:'web_search', approximate:True} or None.
 

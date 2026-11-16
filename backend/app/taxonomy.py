@@ -21,12 +21,12 @@ R = [
     ("toasted_bread", "cereals_bakery", "bread", "toast", "slice_crisp", "breakfast", r"toasts|toasted-bread|toasted-bread-rolls|pains-grill", r"pain grill|tartines?\b|\btoast(?:s|ed)?\b"),
     ("sandwich_bread", "cereals_bakery", "bread", "sliced_loaf", "slice_soft", "sandwich_making", r"sliced-breads|sandwich-breads|packaged-breads|pains-de-mie", r"pain de mie|pain.*tranch|tranch.*pain|sandwich"),
     ("baguette", "cereals_bakery", "bread", "loaf", "loaf", "meal", r"baguettes|pains-de-campagne|rye-breads|(?<![a-z])breads\b|sourdough", r"baguette|pain de campagne|pain (au|aux|de|complet|nature)|\bpain\b(?!\s+d[ée]pices?)"),
-    ("crackers", "cereals_bakery", "snack_cracker", "cracker", "cracker", "snacking", r"crispbreads|pretzels|rice-cakes|(?<!-)crackers?\b|galettes", r"cracker|bretzel|pretzel|galette de riz|knäcke|\bcrisp(?:bread)?s?\b"),
+    ("crackers", "cereals_bakery", "snack_cracker", "cracker", "cracker", "snacking", r"crispbreads|pretzels|rice-cakes|(?<!-)crackers?\b|galettes", r"cracker|bretzel|pretzel|galettes? (?:de |au |aux )?(?:riz|maïs|blé|sarrasin|quinoa|céréales?)\b|knäcke|\bcrisp(?:bread)?s?\b"),
     ("breakfast_cereal", "cereals_bakery", "cereal", "cereal", "cereal", "breakfast", r"breakfast-cereals|cereal-flakes|cornflakes|extruded-cereals", r"corn ?flakes|c[ée]r[ée]ales|pétales|petales|chocapic|special k"),
     ("muesli", "cereals_bakery", "cereal", "muesli", "cereal", "breakfast", r"mueslis|granola|oat-flakes|porridge|cereal-clusters", r"muesli|granola|porridge|flocons d.avoine|cruesly|crunchy|clusters?"),
     ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes?|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles?|vermicel|gnocchi"),
     ("rice_pudding", "dairy", "dessert", "milk_dessert", "spoon", "dessert", r"rice-puddings?|milk-desserts?", r"\briz au lait\b|rice pudding|cr[èe]me de riz|cr[èe]me riz"),
-    ("rice", "cereals_bakery", "grain", "grain", "grain", "meal", r"\brices?\b(?!-based|-pudding)|basmati", r"^riz\b(?!\s+au\s+lait)|\briz (basmati|long|complet|thai)"),
+    ("rice", "cereals_bakery", "grain", "grain", "grain", "meal", r"\brices?\b(?!-based|-pudding|-cakes?|-flours?)|basmati", r"^riz\b(?!\s+au\s+lait)|\briz (basmati|long|complet|thai)"),
     # ---- pantry and condiments (granular types so staples like pesto or soy sauce get their own alternatives)
     ("cocoa_powder", "sweet", "cocoa", "powder", "powder", "drink_mix", r"cocoa-powders|instant-chocolate-powders|chocolate-powders", r"cacao (en poudre|maigre|sucr|soluble)|poudre de cacao|chocolat en poudre|banania|nesquik|benco|ovomaltine"),
     ("soy_sauce", "condiments", "sauce", "soy_sauce", "liquid", "seasoning", r"soy-sauces|soya-sauces", r"sauce soja|soy sauce|shoyu|tamari"),
@@ -123,6 +123,7 @@ R = [
     # ---- savoury snacks, meals
     ("chips", "snacks", "chips", "chips", "chips", "snacking", r"chips|crisps|potato-crisps|tortilla-chips|puffs", r"\bchips\b|\bcrisps\b|chips? (?:de|au|aux|à la)|tortilla chips|nachos"),
     ("nuts", "snacks", "nuts", "nuts", "nuts", "snacking", r"(?<!with-)nuts|almonds|cashew|peanuts|pistachios|walnuts|hazelnuts|seeds", r"(?!.*\bhuiles?\b)(?:amande|cajou|cacahu|pistache|noix|noisette|pignons?|fruits secs|graines)"),
+    ("dried_fruit", "snacks", "dried_fruit", "dried_fruit", "dried", "snacking", r"(?:^|\s)en:(?:dried-fruits?|dried-(?:goji|apricots?|cranberries?|prunes?|dates?|figs?|mangoes?|pineapples?|apples?|bananas?|berries|coconut|fruit-mixes?)|raisins?|sultana-raisins)(?:\s|$)", r"raisins?[^a-zà-ÿ]{0,12}(?:secs?|sultanines?)|sultanines?\b|(?:abricots?|dattes?|figues?|ananas|mangues?|pommes?|myrtilles?|bananes?)[^a-zà-ÿ]{0,12}(?:secs?|s[èe]ches?)|pruneaux?\b|craisins?\b|cranberries?[^a-zà-ÿ]{0,12}(?:secs?|dried|s[èe]ches?)|baies? de goji|\bgoji\b|airelles?\b|fruits? secs?\b"),
     ("soup", "meals", "soup", "liquid", "soup", "meal", r"soups|veloutes|broths", r"soupe|velout[ée]|bouillon"),
     # Raw dough to bake and top at home is not a substitute for a finished, ready-to-eat pizza: different preparation, different use.
     ("pizza_dough", "cereals_bakery", "dough", "pizza_dough", "raw_dough", "cooking_ingredient", r"pizza-dough|pizza-bases|pizza-shells", r"p[âa]te à pizza|fond(?:s)? de pizza|base(?:s)? (?:à |pour )?pizza|pizza dough"),
@@ -163,7 +164,7 @@ R = [
     # juice, jam, compote, syrup, frozen and cooked versions out). Different fruits are different variants, never substitutes.
     ("fresh_fruit", "produce", "fruit_veg", "fruit", "fresh", "snacking", r"(?:^|\s)en:(?:fresh-fruits?|fruits?|berries|apples|bananas|oranges|citrus|grapes|pears|peaches|apricots|plums|cherries|melons|watermelons|pineapples|mangoes|kiwis|strawberries|raspberries|blueberries|blackberries|currants|lemons|avocados)(?:\s|$)",
      r"^(?!.*\b(?:jus|nectar|sirop|confiture|confit|chutney|compote|s[èe]ch|surgel|conserve|au sirop|chips|crisps|yaourt|glace|tarte|g[âa]teau|boisson|p[ée]tillant|sauce|vinaigre|ar[ôo]me|parfum|saveur|eau|financiers?|biscuits?|cakes?|muffins?|sorbets?|curds?|bonbons?|gel[ée]es?|p[âa]tes? de fruits|smoothies?|yaourts?|desserts?|m[ée]langes?|poudres?)\b).*\b(?:pommes?|bananes?|oranges?|citrons?|ananas|fraises?|framboises?|myrtilles?|poires?|p[êe]ches?|abricots?|raisins?|mangues?|kiwis?|melons?|past[èe]ques?|cl[ée]mentines?|mandarines?|prunes?|cerises?|figues?|dattes?|avocats?|groseilles?)\b"),
-    ("fruits_veg", "produce", "fruit_veg", "produce", "produce", "meal", r"vegetables|canned-vegetables|fresh-vegetables|vegetable-based-foods", r"l[ée]gumes|haricots verts|petits pois|tomates? (pel|concass)|carotte|pomme de terre"),
+    ("fruits_veg", "produce", "fruit_veg", "produce", "produce", "meal", r"(?:^|\s)en:(?:vegetables|canned-vegetables|fresh-vegetables|vegetable-based-foods)(?:\s|$)", r"l[ée]gumes|haricots verts|petits pois|tomates? (pel|concass)|carotte|pomme de terre"),
     ("legumes", "produce", "legumes", "legumes", "legumes", "meal", r"(?:^|\s)en:(?:legumes|canned-legumes|dried-legumes|pulses|lentils|chickpeas|beans|kidney-beans|haricot-beans|fava-beans|baked-beans|pois-chiches)(?:\s|$)", r"lentilles?|pois chiches?|haricots? (?:rouges?|blancs?|cocos?)|f[èe]ves"),   # haricots verts are fresh vegetables, not pulses
     # Olives are their own small category: a jar of green olives substitutes another jar of olives, never olive oil (the name
     # starts with "huile") and never a pizza that merely lists olives among its ingredients.
@@ -250,6 +251,7 @@ _BROAD_LEAFS = {
     "en:groceries", "en:foods", "en:plant-based-foods-and-beverages", "en:meals",
     "en:snacks", "en:sweet-snacks", "en:salty-snacks", "en:sauces", "en:condiments",
     "en:dairies", "en:beverages", "fr:epicerie", "en:canned-foods", "en:fats",
+    "en:fruits-and-vegetables-based-foods",
     "en:spreads", "en:cereals-and-potatoes", "en:desserts",
 }
 
@@ -351,7 +353,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
     specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
                 "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms", "rice_pudding", "corn",
-                "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives", "ham", "muesli", "legumes", "fried_onions")
+                "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives", "ham", "muesli", "legumes", "fried_onions", "dried_fruit")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if not _guard(tid, fam):
             continue
@@ -434,7 +436,7 @@ _NUTS_TAG = re.compile(r"(?:^|\s)en:(?:nuts|peanuts?|almonds?|cashew-nuts?|pista
 # Words that make a product something other than fresh fruit, whatever fruit tag it carries: juice, jam, compote, syrup,
 # frozen or cooked versions, and anything baked or flavoured with the fruit.
 _NOT_FRESH = re.compile(
-    r"\b(?:jus|nectar|sirop|confiture|confit|chutney|compote|s[èe]ch|surgel|conserve|au sirop|chips|crisps|yaourt|glace|"
+    r"\b(?:jus|nectar|sirop|confiture|confit|chutney|compote|s[èe]ch|secs?\b|surgel|conserve|au sirop|chips|crisps|yaourt|glace|"
     r"tarte|g[âa]teau|g[âa]teaux|boisson|p[ée]tillant|sauce|vinaigre|ar[ôo]me|parfum|saveur|eau|financiers?|biscuits?|cakes?|"
     r"muffins?|sorbets?|curds?|bonbons?|gel[ée]es?|poudres?|smoothies?|desserts?|m[ée]langes?)\b", re.I)
 _TYPE_REJECTS = {
@@ -456,6 +458,10 @@ _TYPE_REJECTS = {
     "deli_poultry": re.compile(r"rillettes?|terrines?|p[âa]t[ée]\b|p[âa]t[ée]s? (?:de|à|en)", re.I),
     # A "barre granola" is a snack bar, not a box of muesli.
     "muesli": re.compile(r"\bbarres?\b", re.I),
+    # A galette or wafer made of rice is a crisp, not a grain of rice; rice flour and rice drinks are not rice either.
+    "rice": re.compile(r"galettes?|crisp|wafers?|reiswaffeln|farine|flocons?|pudding|au lait|boisson|drink|sirop", re.I),
+    # Dried fruit inside a biscuit, cake, bar or dish is that product, not a pack of dried fruit.
+    "dried_fruit": re.compile(r"biscuits?|cookies?|sabl[ée]s?|cakes?|g[âa]teaux?|muffins?|muesli|\bbarres?\b|\bpain\b|brioche|crackers?|tartes?|confiture|compote|\bjus\b|nectar|glaces?|sorbet|vin\b|bi[èe]re|p[âa]t[ée]s? de fruits|croustilles?|chips|m[ée]lange.*noix", re.I),
     # "Pois chiches très peu de jus" is chickpeas canned in juice, not a juice.
     "fruit_juice": re.compile(r"pois chiches?|lentilles?|haricots?|l[ée]gumes?|conserves?|au jus|dans son jus|ma[ïi]s\b", re.I),
 }
@@ -577,7 +583,7 @@ def level_between(a: str, b: str) -> Optional[int]:
 # only match another uncategorised product by a shared distinctive name word (never by category alone).
 _CATEGORY_TYPE = "cat:"
 UNCATEGORISED = _CATEGORY_TYPE + "en:uncategorised"
-_GENERIC_LEAF = {"en:groceries", "en:foods", "en:beverages", "en:plant-based-foods", "en:plant-based-foods-and-beverages", "fr:autres-produits", "en:dietary-supplements", "en:meals", "en:snacks", "en:sauces", "en:condiments", "en:frozen-foods", "en:meats", "en:plant-based-foods-and-beverages-fruits"}
+_GENERIC_LEAF = {"en:groceries", "en:foods", "en:beverages", "en:plant-based-foods", "en:plant-based-foods-and-beverages", "fr:autres-produits", "en:dietary-supplements", "en:meals", "en:snacks", "en:sauces", "en:condiments", "en:frozen-foods", "en:meats", "en:plant-based-foods-and-beverages-fruits", "en:fruits-and-vegetables-based-foods"}
 _UNTYPED_STOP = set("avec sans pour dans plus bio extra fins fine fines france francais française français origine nature naturel naturelle format maxi mini grand grande petit petite recette original originale traditionnel traditionnelle selection sélection qualité saveur gout goût premium light cuit cuite cuits cuites cuisine cuisiné cuisinée cuisinés cuisinées préparé préparée préparés préparées cooked prepared".split())
 
 

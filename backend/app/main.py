@@ -701,10 +701,11 @@ def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None
 def product_web_price(request: Request, barcode: str, uid: str = Depends(user), s: Session = Depends(get_db)):
     """One search for a product with no price: returns {price: {pack_cents, per100_cents, stores, chains, source_urls, approximate}} or {price: null}.
 
-    Always retries past cached misses (force=True): the background search during the alternatives call may have timed
-    out and left a fresh miss, but the dedicated 25-second slot here is enough for the same product.
+    Respects a cached miss: a search that already ran its full course and found nothing is not repeated (the scan peek
+    and this page would otherwise each run the same 25-second search for the same empty answer). A search cut short by
+    a deadline is never cached as a miss, so it is always retried here.
     """
-    return {"price": _web_price_for(s, barcode, max_seconds=25, force=True)}
+    return {"price": _web_price_for(s, barcode, max_seconds=25)}
 
 
 @app.post("/v1/web-prices")
@@ -727,9 +728,9 @@ def web_prices(request: Request, body: WebPricesReq, uid: str = Depends(user), s
     # This endpoint persists completed results below on the request thread.  Avoid a
     # duplicate SQLite write from a worker callback while the test client (or server)
     # is closing a request.
-    # This is an explicit user-visible retry: a cached miss from an interrupted or
-    # incomplete earlier search must not prevent alternatives from being priced now.
-    futures = {c: _search_once(products[c], persist=False, force=True) for c in todo}
+    # This is an explicit user-visible lookup: a cached miss from an interrupted or incomplete earlier search must not
+    # prevent alternatives from being priced now - but a search that genuinely completed with nothing is not repeated.
+    futures = {c: _search_once(products[c], persist=False) for c in todo}
     done, _ = wait(list(futures.values()), timeout=2.0) if futures else (set(), set())
     found = {}
     pending = []
@@ -768,7 +769,7 @@ def product(barcode: str, approximate: bool = False, strict: bool = True, uid: s
     # Start an approximate lookup immediately when no observed price exists.  The
     # product screen's request then joins this same future and can turn its result
     # into a clearly-labelled, approximate price-quality score without a second wait.
-    if webprice.enabled() and not context["your_last"] and not context["community"] and not webprice.cached_only(p):
+    if webprice.enabled() and not context["your_last"] and not context["community"] and not webprice.cached_only(p) and not webprice.fresh_miss(p):
         _search_once(p)
     return {"product": p, "fit": engine.fit(p, pr.priorities, pr.allergens, None if pr.diet == "omnivore" else pr.diet, lang),
             "price_context": context}
