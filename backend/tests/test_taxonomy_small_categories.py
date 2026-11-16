@@ -241,3 +241,45 @@ def test_compotes_and_purees_naming_prunes_are_not_dried_fruit():
     assert taxonomy.classify({"name": "Purée Pomme Pruneaux", "brand": "", "categories": ["en:desserts"], "generic_name": ""})["type"] != "dried_fruit"
     assert taxonomy.classify({"name": "Pommes pruneaux", "brand": "", "categories": ["en:desserts", "en:compotes", "fr:compotes-pommes-pruneau"], "generic_name": ""})["type"] != "dried_fruit"
     assert taxonomy.classify({"name": "Pruneaux d'Agen", "brand": "", "categories": ["en:dried-fruits", "en:prunes"], "generic_name": ""})["type"] == "dried_fruit"
+
+
+def test_bouillon_cubes_are_their_own_type_not_soup():
+    from app import taxonomy
+    cube = {"name": "Bouillon cube Légumes sans sel", "brand": "", "categories": ["en:dehydrated-vegetable-bouillons"], "generic_name": ""}
+    soup = {"name": "Velouté Légumes Verts", "brand": "", "categories": ["en:soups"], "generic_name": ""}
+    assert taxonomy.classify(cube)["type"] == "stock_cube"
+    assert taxonomy.classify(soup)["type"] == "soup"
+    assert taxonomy.substitution(cube, soup) is None
+
+
+def test_a_vegetable_only_leads_to_the_same_vegetable():
+    from app import taxonomy
+    def veg(name, cats): return {"name": name, "brand": "X", "categories": cats, "generic_name": "", "ingredientsText": "x", "allergens": [], "traces": [], "analysis": [], "quantity": {"amount": 400, "unit": "g"}}
+    tomato = veg("Chair de tomate Nature", ["en:tomatoes", "en:canned-tomatoes"])
+    assert taxonomy.substitution(tomato, veg("Pulpe de tomate", ["en:tomatoes", "en:canned-tomatoes"]))
+    assert taxonomy.substitution(tomato, veg("Carottes en rondelles", ["en:carrots", "en:canned-carrots"])) is None
+    assert taxonomy.substitution(tomato, veg("Haricots verts très fins", ["en:green-beans", "en:canned-green-beans"])) is None
+
+
+def test_mozzarella_with_a_singular_tag_is_still_mozzarella():
+    from app import taxonomy
+    assert taxonomy.classify({"name": "Mozzarella boule", "brand": "", "categories": ["en:italian-cheeses", "en:stretched-curd-cheeses", "en:mozzarella"], "generic_name": ""})["type"] == "mozzarella_fresh"
+
+
+def test_ramen_and_instant_noodles_are_not_pasta():
+    from app import taxonomy
+    ramen = {"name": "Ramen saveur boeuf", "brand": "", "categories": ["en:noodles", "en:instant-noodles"], "generic_name": ""}
+    spaghetti = {"name": "Spaghetti n°5", "brand": "", "categories": ["en:pastas", "en:spaghetti"], "generic_name": ""}
+    assert taxonomy.classify(ramen)["type"] == "asian_noodles"
+    assert taxonomy.classify(spaghetti)["type"] == "pasta"
+    assert taxonomy.substitution(ramen, spaghetti) is None
+
+
+def test_capers_in_vinegar_are_pickles_not_vinegar_and_lead_only_to_capers():
+    from app import taxonomy
+    def p(name, cats): return {"name": name, "brand": "X", "categories": cats, "generic_name": "", "ingredientsText": "x", "allergens": [], "traces": [], "analysis": [], "quantity": {"amount": 100, "unit": "g"}}
+    capers = p("Câpres surfines au vinaigre", ["en:pickles", "en:plant-based-pickles", "en:pickled-capers"])
+    assert taxonomy.classify(capers)["type"] == "pickles"
+    assert taxonomy.substitution(capers, p("Câpres", ["en:pickled-capers"]))
+    assert taxonomy.substitution(capers, p("Vinaigre balsamique", ["en:vinegars"])) is None
+    assert taxonomy.substitution(capers, p("Cornichons au vinaigre", ["en:pickled-gherkins"])) is None

@@ -1407,6 +1407,7 @@ def _warm_stores(chains: List[str], lat: float, lon: float) -> None:
 
 
 # Category tags too broad to say anything about the product: they are not worth a query.
+_UNIT_AGNOSTIC_TYPES = {"pickles", "olives"}
 _TOO_BROAD = {"en:foods", "en:plant-based-foods", "en:plant-based-foods-and-beverages", "en:groceries"}
 # Raw nutrient keys that must be present for the priority to be compared at all (a missing value is never treated as zero).
 _NEEDED = {"protein": ("proteins_100g",), "sugars": ("sugars_100g",), "fibre": ("fiber_100g",),
@@ -2005,7 +2006,10 @@ def _index_pool(s: Session, uid: str, orig: Dict[str, Any], body: "AltReq", alle
     rows = app.state.alt.candidates(tags[:3], otype, groups)
     if len(rows) < 30 and len(tags) > 3:
         rows = app.state.alt.candidates(tags[:8], otype, groups)   # a thin leaf category: also read the next levels
-    by_code = {r["code"]: r for r in rows if r["code"] != orig["barcode"] and (not oq or r["quantity"]["unit"] == oq["unit"])}   # a price per kg is never compared with one per litre
+    # A price per kg is never compared with one per litre - except for jarred pickles, capers and olives, which brands sell by drained
+    # weight or by volume of the same jar (105 ml here, 110 g there): holding to one unit leaves only vinegars and sauces to suggest.
+    same_unit = not oq or otype in _UNIT_AGNOSTIC_TYPES
+    by_code = {r["code"]: r for r in rows if r["code"] != orig["barcode"] and (same_unit or r["quantity"]["unit"] == oq["unit"])}
     peers: List[Dict[str, Any]] = []
     prices: Dict[str, float] = {}
     points: Dict[str, Any] = {}

@@ -24,12 +24,16 @@ R = [
     ("crackers", "cereals_bakery", "snack_cracker", "cracker", "cracker", "snacking", r"crispbreads|pretzels|rice-cakes|(?<!-)crackers?\b|galettes", r"cracker|bretzel|pretzel|galettes? (?:de |au |aux )?(?:riz|maïs|blé|sarrasin|quinoa|céréales?)\b|knäcke|\bcrisp(?:bread)?s?\b"),
     ("breakfast_cereal", "cereals_bakery", "cereal", "cereal", "cereal", "breakfast", r"breakfast-cereals|cereal-flakes|cornflakes|extruded-cereals", r"corn ?flakes|c[ée]r[ée]ales|pétales|petales|chocapic|special k"),
     ("muesli", "cereals_bakery", "cereal", "muesli", "cereal", "breakfast", r"mueslis|granola|oat-flakes|porridge|cereal-clusters", r"muesli|granola|porridge|flocons d.avoine|cruesly|crunchy|clusters?"),
+    ("asian_noodles", "cereals_bakery", "pasta", "asian_noodles", "pasta", "meal", r"instant-noodles?|ramen|udon|soba|rice-noodles?|asian-noodles?|rice-vermicelli|noodle-soups?|cup-noodles?",
+     r"ramen|udon|\bsoba\b|instant noodles?|noodles? (?:instant|bowl|cup|saveur)|cup noodles?|nouilles? (?:instantan[ée]es?|chinoises?|asiatiques?|de riz|sautées?|saveur|udon|soba|ramen|japonaises?|thaï)|nouilles? (?:poulet|boeuf|b[œo]euf|crevette|légumes?)|\bpho\b|pad thai|mie goreng|yakisoba|buldak|indomie|nissin|samyang|vermicelles? de riz"),
     ("pasta", "cereals_bakery", "pasta", "pasta", "pasta", "meal", r"pastas|spaghetti|macaroni|noodles", r"p[âa]tes?|spaghetti|penne|fusilli|tagliatelle|macaroni|coquillette|nouilles?|vermicel|gnocchi"),
     ("rice_pudding", "dairy", "dessert", "milk_dessert", "spoon", "dessert", r"rice-puddings?|milk-desserts?", r"\briz au lait\b|rice pudding|cr[èe]me de riz|cr[èe]me riz"),
     ("rice", "cereals_bakery", "grain", "grain", "grain", "meal", r"\brices?\b(?!-based|-pudding|-cakes?|-flours?)|basmati", r"^riz\b(?!\s+au\s+lait)|\briz (basmati|long|complet|thai)"),
     # ---- pantry and condiments (granular types so staples like pesto or soy sauce get their own alternatives)
     ("cocoa_powder", "sweet", "cocoa", "powder", "powder", "drink_mix", r"cocoa-powders|instant-chocolate-powders|chocolate-powders", r"cacao (en poudre|maigre|sucr|soluble)|poudre de cacao|chocolat en poudre|banania|nesquik|benco|ovomaltine"),
     ("soy_sauce", "condiments", "sauce", "soy_sauce", "liquid", "seasoning", r"soy-sauces|soya-sauces", r"sauce soja|soy sauce|shoyu|tamari"),
+    ("stock_cube", "condiments", "seasoning", "stock_cube", "cube", "seasoning", r"bouillon-cubes?|stock-cubes?|dehydrated-[a-z-]*bouillons?|bouillons?-en-poudre|fonds?-de-(?:veau|volaille|poisson|boeuf)|cubes-de-bouillon|bouillons?-deshydrates?",
+     r"bouillons?\s+(?:en\s+)?(?:cubes?|poudre|d[ée]shydrat|paillettes|granul)|cubes?\s+(?:de\s+)?bouillon|bouillon\s+cubes?|stock\s+cubes?|fonds?\s+de\s+(?:veau|volaille|poisson|b[œo]euf)|\bcubes?\s+(?:de\s+)?(?:l[ée]gumes|poule|b[œo]euf|volaille|poisson)"),
     ("pesto", "condiments", "sauce", "pesto", "jar", "meal", r"(?:^|\s)en:(?:green-|red-)?pestos?(?:\s|$)", r"pesto"),
     ("dip", "condiments", "dip", "dip", "tub", "snacking", r"(?:^|\s)en:(?:dips|hummus|houmous|taramas?|tzatziki|guacamoles?)(?:\s|$)|fr:(?:houmous|taramas?|tzatziki)", r"houm[ou]{1,2}s|hummus|tarama|tzatziki|guacamole|ktipiti|baba ghan|mouhamara|dip\b"),
     ("tapenade", "condiments", "sauce", "tapenade", "jar", "meal", r"(?:^|\s)en:(?:tapenades?|antipasti|olive-spreads?)(?:\s|$)", r"tapenade|caviar d.aubergine|cr[èe]me d.olive|cr[èe]me de poivron|antipasti|sp[ée]cialit[ée] (?:[àa]|aux?) (?:la |l.)?(?:tomate|olive|poivron|aubergine)"),
@@ -69,7 +73,7 @@ R = [
     ("blue_cheese", "dairy", "cheese", "blue", "soft_strong", "meal", r"blue-cheeses", r"roquefort|bleu d.?auvergne|fourme d.?ambert|gorgonzola|bleu de bresse|st[- ]?agur|cabrales|bleu des? causses"),
     ("soft_ripened_cheese", "dairy", "cheese", "soft_ripened", "soft", "meal", r"soft-cheeses|washed[- ]rind-cheeses|camembert|brie-cheeses", r"camembert|\bbrie\b|coulommiers|pont[- ]l.[ée]v[êe]que|munster|reblochon|[ée]poisses|maroilles|chaource|livarot|vacherin|st[- ]?marcellin|langres"),
     ("fresh_goat_cheese", "dairy", "cheese", "goat", "soft", "meal", r"goat-cheeses|goats-cheeses", r"(?:fromage de |bûche |crottin de )?ch[èe]vres?\b(?!\s+chaud)|crottin(?: de chavignol)?|picodon|rocamadour|valen[çc]ay"),
-    ("mozzarella_fresh", "dairy", "cheese", "fresh_pasta", "soft", "meal", r"mozzarellas|fresh-cheeses|burratas", r"mozzarella|burrata|ricotta|feta\b|buffala|stracciatella"),
+    ("mozzarella_fresh", "dairy", "cheese", "fresh_pasta", "soft", "meal", r"mozzarellas?|fresh-cheeses|burratas?", r"mozzarella|burrata|ricotta|feta\b|buffala|stracciatella"),
     # Short names need word boundaries: "edam" is inside "edamamé", "gouda" inside "goudale" - neither is a cheese.
     ("hard_cheese", "dairy", "cheese", "hard", "hard", "meal", r"hard-cheeses|semi-hard-cheeses", r"emmental|comt[ée]s?\b|gruy[èe]res?\b|parmesan|parmigiano|cheddar|\bgouda\b|beaufort|appenzell|raclette\b|\btomme?\b|abondance|cantal|mimolette|\bedam\b|manchego|pecorino"),
     ("cheese", "dairy", "cheese", "cheese", "cheese", "meal", r"cheeses|fromages", r"fromage|camembert|emmental|comt[ée]s?\b|\bbrie\b|\bgouda\b|mozzarella|ch[èe]vres?\b"),
@@ -174,6 +178,7 @@ R = [
     ("mayonnaise", "condiments", "sauce", "sauce", "sauce", "any", r"mayonnaises|dressings|vinaigrettes", r"mayonnaise|vinaigrette|mayo"),
     ("tomato_sauce", "condiments", "sauce", "sauce", "cooking_sauce", "meal", r"tomato-sauces|pasta-sauces|bolognese", r"sauce (tomate|bolognaise|pesto)|coulis"),
     ("mustard", "condiments", "sauce", "sauce", "sauce", "any", r"mustards", r"moutarde"),
+    ("pickles", "condiments", "condiment", "pickles", "jar", "seasoning", r"capers?|gherkins?|cornichons?|pickles?|pickled-[a-z-]+|capucines?", r"c[âa]pres?\b|capers?\b|cornichons?|gherkins?|\bpickles?\b|oignons? (?:grelots? )?au vinaigre|oignons? grelots?|capucines? au vinaigre"),
     ("vinegar", "condiments", "condiment", "vinegar", "liquid", "seasoning", r"vinegars|balsamic-vinegars|balsamic-vinegars-of-modena|wine-vinegars|apple-cider-vinegars", r"vinaigre|vinegar|balsamique"),
     ("protein_powder", "supplements", "supplement", "powder", "powder", "sports_energy", r"protein-powders|whey-proteins|protein-supplements", r"whey|isolat|casein|cas[ée]ine|prot[ée]ine.{0,12}(?:poudre|powder)|protein powder"),
     ("supplement", "supplements", "supplement", "supplement", "capsule", "health", r"dietary-supplements|food-supplements|vitamins|minerals|spirulina|herbal-supplements", r"compl[ée]ment alimentaire|\bsuppl[ée]ment\b|vitamines?\b|magn[ée]sium|collag[èe]ne|spiruline|om[ée]ga.?3|\bgelules?\b|\bcapsules?\b"),
@@ -735,6 +740,21 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
 
 # Variants inside one product type: a real difference the shopper should know about, disclosed as a trade-off (never a reason to hide the product).
 _VARIANTS = {
+    "pickles": [("caper", r"c[âa]pres?\b|capers?\b|capucines?"), ("gherkin", r"cornichons?|gherkins?|\bpickles?\b"), ("onion", r"oignons?|onions?|grelots?")],
+    "fruits_veg": [("veg_mix", r"m[ée]lange|macédoine|jardini[èe]re|po[êe]l[ée]e|ratatouille|l[ée]gumes? pour|mix de l[ée]gumes|\bmix\b"),
+                   ("tomato", r"tomate|tomato|passata|polpa"), ("carrot", r"carotte|carrot"), ("green_bean", r"haricots? verts?|green-beans|green beans"),
+                   ("bean", r"haricot|\bbeans?\b|flageolet|lingot"), ("pea", r"petits? pois|\bpois\b|\bpeas?\b"), ("spinach", r"[ée]pinard|spinach"),
+                   ("leek", r"poireau|leek"), ("zucchini", r"courgette|zucchini"), ("eggplant", r"aubergine|eggplant"), ("bell_pepper", r"poivron|bell-pepper"),
+                   ("cabbage", r"\bchou\b|\bchoux\b|chou-fleur|brocoli|cabbage|cauliflower|broccoli"), ("beet", r"betterave|beet"), ("onion", r"oignon|onion|[ée]chalote"),
+                   ("corn", r"ma[ïi]s|sweetcorn|sweet-corn"), ("artichoke", r"artichaut|artichoke"), ("asparagus", r"asperge|asparagus"), ("fennel", r"fenouil|fennel"),
+                   ("celery", r"c[ée]leri|celery")],
+    "tomato_sauce": [("ketchup", r"ketchup"), ("bolognese", r"bolognaise|bolognese|b[œo]uf|viande")],
+    "mozzarella_fresh": [("feta", r"\bfeta\b"), ("ricotta", r"ricotta"), ("burrata", r"burrata|stracciatella")],
+    "mayonnaise": [("vinaigrette", r"vinaigrette|assaisonnement|sauce salade")],
+    "tea": [("iced_tea", r"ice[d ]?-?tea|th[ée]s? glac|iced-teas|sweetened-beverages|soft-drinks|boisson")],
+    "dough": [("puff", r"feuillet|puff"), ("shortcrust", r"bris[ée]e|sabl[ée]e|shortcrust")],
+    "supplement": [("protein", r"prot[ée]ine|whey|protein"), ("vitamin", r"vitamine|vitamin|magn[ée]sium|\bzinc\b|\bfer\b|om[ée]ga|calcium|multivit"), ("spirulina", r"spiruline|spirulina|chlorelle")],
+    "pate_terrine": [("fish", r"thon|saumon|sardine|maquereau|poisson|crevette"), ("rillettes", r"rillettes?"), ("foie_gras", r"foie gras|bloc de foie")],
     "dried_fruit": [("mix", r"m[ée]lange|assortiment|\bmix\b|cocktail|fruits? secs"), ("raisin", r"raisin|sultanine|corinthe"), ("prune", r"pruneau|\bprunes?\b"),
                     ("date", r"datte|\bdates?\b"), ("fig", r"figue"), ("apricot", r"abricot|apricot"), ("cranberry", r"cranberr|craisin|airelle"), ("goji", r"goji"),
                     ("mango", r"mangue|mango"), ("banana", r"banane|banana"), ("apple", r"pomme|apple"), ("pineapple", r"ananas|pineapple"), ("blueberry", r"myrtille|blueberry")],
@@ -802,7 +822,7 @@ def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
-_HARD_VARIANT_TYPES = {"dried_fruit", "nuts", "peanut_butter", "dip", "syrup", "fresh_fruit", "legumes", "pasta"}
+_HARD_VARIANT_TYPES = {"pickles", "fruits_veg", "tomato_sauce", "mozzarella_fresh", "mayonnaise", "tea", "dough", "supplement", "pate_terrine", "dried_fruit", "nuts", "peanut_butter", "dip", "syrup", "fresh_fruit", "legumes", "pasta"}
 
 
 # Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.
