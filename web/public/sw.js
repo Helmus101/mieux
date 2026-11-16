@@ -1,6 +1,8 @@
 // Service worker: the app opens instantly from the cache and updates itself in the background. API calls always go to the network.
 // Bump C on every change to this file: the old cache is dropped on activation.
-const C = 'mieux-shell-v5';
+const C = 'mieux-shell-v6';
+const IMG = 'mieux-img-v1';   // product photos: kept between visits, never dropped with the shell cache
+const IMG_MAX = 300;
 const SHELL = ['/app', '/favicon.svg', '/icon-180.png', '/icon-192.png', '/logo.svg', '/manifest.webmanifest'];
 
 // Shown only when a page is requested while offline and nothing is cached yet (first visit without network).
@@ -15,7 +17,7 @@ self.addEventListener('install', (e) => {
   self.skipWaiting();
 });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== C).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== C && k !== IMG).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 // The page asks for the version to show "new version available" at the right time.
 self.addEventListener('message', (e) => { if (e.data === 'SKIP_WAITING') self.skipWaiting(); });
@@ -29,8 +31,21 @@ const refresh = (req) => fetch(req).then((r) => {
 });
 const offline = () => new Response(OFFLINE_PAGE, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 
+// Product photos (Open Food Facts): served from the device when seen before, otherwise fetched once and kept.
+const isPhoto = (u) => u.hostname === 'images.openfoodfacts.org' || u.hostname === 'static.openfoodfacts.org';
+async function photo(req) {
+  const cache = await caches.open(IMG), hit = await cache.match(req.url);
+  if (hit) return hit;
+  let r;
+  try { r = await fetch(new Request(req.url, { mode: 'cors', credentials: 'omit' })); } catch { r = null; }   // a readable response is cheap to store; an opaque one is padded to megabytes of quota
+  if (!r || !r.ok) { try { return await fetch(req); } catch { return Response.error(); } }
+  cache.put(req.url, r.clone()).then(async () => { const ks = await cache.keys(); if (ks.length > IMG_MAX) await Promise.all(ks.slice(0, ks.length - IMG_MAX).map((k) => cache.delete(k))); }).catch(() => undefined);
+  return r;
+}
+
 self.addEventListener('fetch', (e) => {
   const req = e.request, u = new URL(req.url);
+  if (req.method === 'GET' && req.destination === 'image' && isPhoto(u)) { e.respondWith(photo(req)); return; }
   if (req.method !== 'GET' || u.origin !== location.origin || u.pathname.startsWith('/v1')) return;
   if (req.mode === 'navigate') {  // the shell: the fresh copy when the network answers quickly (so a new version shows at once), the saved copy when it is slow or offline
     e.respondWith(caches.match('/app').then((m) => {

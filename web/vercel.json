@@ -26,7 +26,7 @@
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
         { "key": "Permissions-Policy", "value": "camera=(self), geolocation=(self), microphone=()" },
         { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://images.openfoodfacts.org https://static.openfoodfacts.org https://*.openfoodfacts.org; connect-src 'self' https://*.supabase.co https://mieux-api.fly.dev https://api.openfoodfacts.org https://geo.api.gouv.fr; media-src 'self' blob:; worker-src 'self' blob:; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" }
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://images.openfoodfacts.org https://static.openfoodfacts.org https://*.openfoodfacts.org; connect-src 'self' https://images.openfoodfacts.org https://*.supabase.co https://mieux-api.fly.dev https://api.openfoodfacts.org https://geo.api.gouv.fr; media-src 'self' blob:; worker-src 'self' blob:; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" }
       ]
     },
     {

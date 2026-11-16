@@ -177,14 +177,14 @@ export default function Alternatives() {
         void os;
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
       })()}
-      {r && !busy && <div className="alist">{shown.map((e: any) => {
+      {r && !busy && <div className="alist">{shown.map((e: any, i: number) => {
         const u = unitPrice(e.price100, e.product?.quantity, isLiquid(e.product));
         const d = diffOf(e);
         return (
           <div key={e.product.id} className="arow" role="button" tabIndex={0} aria-label={e.product.name}
             onClick={() => { haptic('tap'); go(routes.product(e.product.id)); }}
             onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); haptic('tap'); go(routes.product(e.product.id)); } }}>
-            {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading="lazy" decoding="async" width={60} height={60} /> : <span className="noimg" />}
+            {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading={i < 4 ? 'eager' : 'lazy'} decoding="async" width={60} height={60} /> : <span className="noimg" />}
             <div className="amain">
               <div className="aname">{e.product.name}</div>
               {(() => {
