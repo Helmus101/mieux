@@ -23,7 +23,7 @@ interface State extends Profile {
   valueProfile: ValueProfile; setValueProfile: (v: ValueProfile) => void;
   zone: Zone | null; setZone: (z: Zone | null) => void;
   setName: (n: string) => void; setPlace: (p: Place | null) => void; setStrictAdditives: (v: boolean) => void; setAutoCamera: (v: boolean) => void; setLanguage: (l: Language) => void; setCountry: (c: Country) => void; toggleChain: (id: string) => void; removeChain: (id: string) => void; setChains: (ids: string[]) => void; clearChains: () => void; hydrate: () => void; togglePriority: (k: string) => void; setPriorities: (ks: string[]) => void; setDiet: (d: Diet) => void; toggleAllergen: (k: string) => void; finish: () => void; reset: () => void;
-  compare: string[]; addCompare: (id: string) => void; removeCompare: (id: string) => void; clearCompare: () => void;
+  compare: string[]; addCompare: (id: string) => void; toggleCompare: (id: string) => void; removeCompare: (id: string) => void; clearCompare: () => void;
 }
 const platformOf = (): string => {
   if (typeof navigator === 'undefined') return 'web';
@@ -95,7 +95,8 @@ export const useProfile = create<State>((set, get) => {
     toggleAllergen: (k) => { const a = get().allergens; const n = a.includes(k) ? a.filter((x) => x !== k) : [...a, k]; set({ allergens: n }); persist({ ...get(), allergens: n }); },
     finish: () => { set({ onboarded: true }); persist({ ...get(), onboarded: true }); },
     reset: () => { set({ ...init, onboarded: false }); persist({ ...init, onboarded: false }); },
-    addCompare: (id) => { const c = get().compare.includes(id) ? get().compare : [...get().compare, id].slice(-4); set({ compare: c }); save('fiq_compare', c); },
+    addCompare: (id) => { const c = get().compare.includes(id) ? get().compare : [...get().compare, id].slice(-3); set({ compare: c }); save('fiq_compare', c); },
+    toggleCompare: (id) => { const c = get().compare; const n = c.includes(id) ? c.filter((x) => x !== id) : [...c.filter((x) => x !== id), id].slice(-3); set({ compare: n }); save('fiq_compare', n); },
     removeCompare: (id) => { const c = get().compare.filter((x) => x !== id); set({ compare: c }); save('fiq_compare', c); },
     clearCompare: () => { set({ compare: [] }); save('fiq_compare', []); },
   };

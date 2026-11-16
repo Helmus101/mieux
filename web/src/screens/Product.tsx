@@ -24,7 +24,7 @@ const PRICE_WAIT_MS = 12000;   // longest the quality and value scores stay hidd
 export default function Product() {
   const { barcode } = useParams<{ barcode: string }>();
   const { go, back } = useNav();
-  const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare);
+  const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare), removeCompare = useProfile((s) => s.removeCompare);
   const country = useProfile((s) => s.country);
   const hist = useHistory();
   const [d, setD] = useState<any>(() => (barcode ? readCache(prodKey(barcode, estimates, getStrict())) : null)), [err, setErr] = useState<{ kind: 'notfound' | 'notfood' | 'invalid' | 'server' | 'network' | 'rate' | 'auth'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0);
@@ -89,6 +89,7 @@ export default function Product() {
   );
 
   const p = d.product, pc = d.price_context;
+  const inCompare = useProfile((s) => s.compare.includes(p.id));
   const head = priceHeadline(pc);
   const pricePending = head.kind === 'none' && priceSettledFor !== barcode && priceGaveUpFor !== barcode;
   const packOf = (perKgCents?: number | null, explicit?: number | null) => (explicit != null && explicit > 0 ? explicit : (perKgCents != null && perKgCents > 0 && p.quantity?.amount ? Math.round(perKgCents * p.quantity.amount / 1000) : null));
@@ -181,7 +182,7 @@ export default function Product() {
         })()}
         <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('product.correct')}</a>
       </Collapsible>
-      <Button plain onPress={() => { addCompare(p.id); go(routes.compare); }}>{t('product.compare')}</Button>
+      <Button plain onPress={() => { if (inCompare) { removeCompare(p.id); } else { addCompare(p.id); go(routes.compare); } }}>{inCompare ? t('compare.remove') : t('product.compare')}</Button>
 
       <Sheet open={!!sheet} onClose={() => setSheet(null)} title={sheet ? sheet.toUpperCase() + (info ? ' · ' + info.name : sItem?.name ? ' · ' + sItem.name : '') : ''}>
         {(sItem?.use || sItem?.found) && <>{sItem.use && <><h3>{t('add.use')}</h3><p>{sItem.use}</p></>}{sItem.found && <><h3>{t('add.found')}</h3><p>{sItem.found}</p></>}</>}

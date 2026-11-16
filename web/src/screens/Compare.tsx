@@ -42,7 +42,7 @@ function Summary({ products }: { products: any[] }) {
 
 export default function Compare() {
   const { go } = useNav();
-  const { compare, addCompare, removeCompare, clearCompare, estimates } = useProfile();
+  const { compare, toggleCompare, removeCompare, clearCompare, estimates } = useProfile();
   const [r, setR] = useState<any>(null);
   const [full, setFull] = useState(false);
   // most recent distinct scans first (stored on this device); a product scanned ten times appears once
@@ -80,9 +80,9 @@ export default function Compare() {
       )}
       <Button primary onPress={() => go(routes.scan, { compare: true })}>{t('compare.scanAnother')}</Button>
       <Section title={t('compare.pickRecent')}>
-        {recent.filter((p) => !compare.includes(p.id)).length
-          ? <Group>{recent.filter((p) => !compare.includes(p.id)).slice(0, 10).map((p) => (
-            <Cell key={p.id} image={p.imageUrl ?? ''} onPress={() => addCompare(p.id)}><b>{p.name}</b><Muted>{[p.brand, p.score ? `${p.score.total}/100` : null].filter(Boolean).join(' · ')}</Muted></Cell>
+        {recent.length
+          ? <Group>{recent.slice(0, 10).map((p) => (
+            <Cell key={p.id} image={p.imageUrl ?? ''} onPress={() => toggleCompare(p.id)}><b>{p.name}</b><Muted>{[p.brand, p.score ? `${p.score.total}/100` : null, compare.includes(p.id) ? '✓' : null].filter(Boolean).join(' · ')}</Muted></Cell>
           ))}</Group>
           : <Card><Muted>{t('compare.noRecent')}</Muted></Card>}
       </Section>
