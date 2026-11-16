@@ -19,6 +19,19 @@ import { getStrict } from '@shared/config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+/** Colour class for a score tone (g excellent, g2 good, y average, w poor, b bad). */
+const zc = (x?: string | null) => 'z-' + (x === 'g2' || x === 'y' || x === 'w' || x === 'b' ? x : 'g');
+/** The barème: a track split into the rating zones (excellent to bad) with a marker where this product sits, and the thresholds listed under it. */
+function ScaleBar({ scale }: { scale: any }) {
+  const zones = (scale.zones ?? []) as any[], max = scale.max || zones[zones.length - 1]?.to || 1;
+  const pos = Math.max(0, Math.min(1, scale.value / max)) * 100;
+  const f = (v: number) => String(Math.round(v * 10) / 10).replace('.', ',');
+  return <div className="scalebar">
+    <div className="zbar" aria-hidden>{zones.map((z, i) => <span key={i} className={zc(z.tone)} style={{ flex: Math.max(0.0001, z.to - z.from) }} />)}<i className="zmark" style={{ left: pos + '%' }} /></div>
+    <div className="zlist">{zones.map((z, i) => <span key={i}><b className={'zdot ' + zc(z.tone)} />{f(z.from)}–{f(z.to)} {scale.unit} · {t('tier.' + z.tier)}</span>)}</div>
+  </div>;
+}
+
 const PRICE_WAIT_MS = 12000;   // longest the quality and value scores stay hidden while the price is looked up
 
 export default function Product() {
@@ -145,23 +158,23 @@ export default function Product() {
       <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
 
       {p.score && (() => {
-        const s = p.score, dims = ((s.dimensions ?? []) as any[]).filter((d) => d.relevant !== false && d.key !== 'micro');
+        const s = p.score, dims = ((s.dimensions ?? []) as any[]).filter((d) => d.relevant !== false && d.key !== 'micro' && !d.missing && d.score != null);
         const num = (v: number) => String(Math.round(v * 10) / 10).replace('.', ',');
-        return <Collapsible open title={`${t('sdim.title')} · ${s.total}${t('score.outOf')}`}>
+        return <Collapsible open={false} title={`${t('sdim.title')} · ${s.total}${t('score.outOf')}`}>
           <p className="mut sm" style={{ margin: '0 0 10px' }}>{t('sdim.profile', { x: t('prof.' + s.profile) })}{s.confidence ? ' · ' + t('sdim.confidence', { x: t('sdim.conf_' + s.confidence.level), p: s.confidence.pct }) : ''}{s.incomplete ? ' · ' + t('sdim.incomplete') : ''}</p>
-          {((s.parts ?? []) as any[]).map((x) => <div key={x.key} style={{ margin: '10px 0' }}><Row spread><b>{t('score.part_' + x.key)}</b><Muted>{num(x.got)} / {x.of} {t('score.pts')}</Muted></Row><Bar value={x.of ? Math.max(0, Math.min(1, x.got / x.of)) : 0} /></div>)}
+          {((s.parts ?? []) as any[]).map((x) => <div key={x.key} style={{ margin: '10px 0' }}><Row spread><b>{t('score.part_' + x.key)}</b><Muted>{num(x.got)} / {x.of} {t('score.pts')}</Muted></Row><div className={'cbar ' + zc(x.of && x.got / x.of >= 0.8 ? 'g' : x.of && x.got / x.of >= 0.6 ? 'g2' : x.of && x.got / x.of >= 0.4 ? 'y' : x.of && x.got / x.of >= 0.2 ? 'w' : 'b')}><i style={{ width: Math.max(2, x.of ? 100 * x.got / x.of : 0) + '%' }} /></div></div>)}
           {s.uncapped != null && s.uncapped !== s.total && <p className="mut sm">{t('score.cappedFrom', { a: s.uncapped, b: s.total })}</p>}
           {((s.caps ?? []) as string[]).map((c) => <p key={c} className="mut sm" style={{ color: 'var(--warn)' }}>{t('cap.' + c)}</p>)}
           <h4 style={{ margin: '16px 0 4px' }}>{t('sdim.nutritional')}</h4>
           {dims.filter((d) => d.group === 'nutrition').map((d) => <div key={d.key} style={{ margin: '10px 0' }}>
-            <Row spread><span>{t('sdim.' + d.key)}{d.scale?.estimated ? ' *' : ''}</span>{d.missing ? <Muted>{t('sdim.missing')}</Muted> : <Muted>{d.scale ? `${num(d.scale.value)} ${d.scale.unit}` : ''}{d.scale?.tier ? ' · ' + t('tier.' + d.scale.tier) : ''}</Muted>}</Row>
-            {!d.missing && d.score != null && <Bar value={Math.max(0, Math.min(1, d.score / 100))} />}
+            <Row spread><span>{t('sdim.' + d.key)}{d.scale?.estimated ? ' *' : ''}</span>{d.missing ? <Muted>{t('sdim.missing')}</Muted> : <b className={'ztxt ' + zc(d.scale?.tone ?? d.tone)}>{d.scale ? `${num(d.scale.value)} ${d.scale.unit}` : ''}{d.scale?.tier ? ' · ' + t('tier.' + d.scale.tier) : ''}</b>}</Row>
+            {!d.missing && d.scale?.zones?.length ? <ScaleBar scale={d.scale} /> : !d.missing && d.score != null ? <div className={'cbar ' + zc(d.tone)}><i style={{ width: Math.max(2, d.score) + '%' }} /></div> : null}
             {d.key === 'fat' && d.detail?.sat != null && <p className="mut sm" style={{ margin: '2px 0 0' }}>{t('sdim.fatDetail', { s: num(d.detail.sat), f: num(d.detail.total ?? 0) })}</p>}
           </div>)}
           <h4 style={{ margin: '16px 0 4px' }}>{t('sdim.ingredient')}</h4>
           {dims.filter((d) => d.group === 'ingredients').map((d) => <div key={d.key} style={{ margin: '10px 0' }}>
-            <Row spread><span>{t('sdim.' + d.key)}</span><Muted>{d.score != null ? `${d.score}/100` : t('sdim.missing')}</Muted></Row>
-            {d.score != null && <Bar value={Math.max(0, Math.min(1, d.score / 100))} />}
+            <Row spread><span>{t('sdim.' + d.key)}</span>{d.score != null ? <b className={'ztxt ' + zc(d.tone)}>{d.score}/100</b> : <Muted>{t('sdim.missing')}</Muted>}</Row>
+            {d.score != null && <div className={'cbar ' + zc(d.tone)}><i style={{ width: Math.max(2, d.score) + '%' }} /></div>}
           </div>)}
           {s.nova?.group != null && <p className="mut sm">{t('sdim.processing')}: NOVA {s.nova.group}{s.nova.estimated ? ' *' : ''}. {t('sdim.processingNote')}</p>}
           <p className="mut sm">{t(s.mode === 'strict' ? 'score.method3' : 'score.method2')}</p>
@@ -174,7 +187,7 @@ export default function Product() {
           ['energy', n.energyKcal100g, 'kcal'], ['fat', n.fat100g, 'g'], ['sat', n.saturatedFat100g, 'g', true], ['carbs', n.carbohydrates100g, 'g'],
           ['sugars', n.sugars100g, 'g', true], ['fibre', n.fiber100g, 'g'], ['protein', n.protein100g, 'g'], ['salt', n.salt100g, 'g'],
         ];
-        return <Collapsible open title={liq ? t('product.nutrition').replace('100g / 100ml', '100ml') : t('product.nutrition')}>
+        return <Collapsible open={false} title={liq ? t('product.nutrition').replace('100g / 100ml', '100ml') : t('product.nutrition')}>
           {rows.map(([k, v, u, sub]) => <Row key={k} spread><span style={{ paddingLeft: sub ? 14 : 0 }} className={sub ? 'mut' : undefined}>{t('product.' + k)}</span><b>{v == null ? '–' : `${Math.round(v * 10) / 10} ${u}`.replace('.', ',')}</b></Row>)}
           <p className="mut sm">{t('product.nutriNote')}</p>
         </Collapsible>;

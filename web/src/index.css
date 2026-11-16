@@ -706,3 +706,15 @@ p.mut{font-size:14.5px; line-height:1.5}
 .aprice{align-self:start; gap:1px}
 .arow .flagbtn{position:absolute; right:-10px; bottom:2px; min-width:44px; min-height:44px; opacity:.55; font-size:14px}
 .arow .flagbtn:hover,.arow .flagbtn:focus-visible{opacity:1}
+
+/* Score breakdown colours: g excellent, g2 good, y average, w poor, b bad */
+.z-g{--zc:#2E9E5B}.z-g2{--zc:#8CC152}.z-y{--zc:#E5B93C}.z-w{--zc:#F08A4B}.z-b{--zc:#D9534F}
+.ztxt{color:var(--zc)}
+.cbar{background:rgba(127,127,127,.18);border-radius:99px;overflow:hidden;height:6px;margin-top:4px}
+.cbar i{display:block;height:100%;border-radius:99px;background:var(--zc)}
+.scalebar{margin-top:6px}
+.zbar{position:relative;display:flex;gap:2px;height:8px}
+.zbar span{background:var(--zc);border-radius:2px;opacity:.9}
+.zmark{position:absolute;top:-4px;width:3px;height:16px;margin-left:-1.5px;border-radius:2px;background:var(--ink);box-shadow:0 0 0 2px var(--bg,#fff)}
+.zlist{display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:6px;font-size:11.5px;color:var(--mut)}
+.zdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--zc);margin-right:5px}
