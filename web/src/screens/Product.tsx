@@ -28,7 +28,7 @@ function ScaleBar({ scale }: { scale: any }) {
   const f = (v: number) => String(Math.round(v * 10) / 10).replace('.', ',');
   return <div className="scalebar">
     <div className="zbar" aria-hidden>{zones.map((z, i) => <span key={i} className={zc(z.tone)} style={{ flex: Math.max(0.0001, z.to - z.from) }} />)}<i className="zmark" style={{ left: pos + '%' }} /></div>
-    <div className="zlist">{zones.map((z, i) => <span key={i}><b className={'zdot ' + zc(z.tone)} />{f(z.from)}–{f(z.to)} {scale.unit} · {t('tier.' + z.tier)}</span>)}</div>
+    <div className="zlist">{zones.map((z, i) => <span key={i}><b className={'zdot ' + zc(z.tone)} />{f(z.from)}–{f(z.to)} {scale.unit}</span>)}</div>
   </div>;
 }
 
