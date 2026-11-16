@@ -18,7 +18,8 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
   const [expanded, setExpanded] = useState(false), [shown, setShown] = useState(false);
   const body = useRef<HTMLDivElement>(null), touch = useRef({ y: 0, top: 0 });
   const expand = () => { setExpanded(true); onExpandedChange?.(true); requestAnimationFrame(() => requestAnimationFrame(() => setShown(true))); };
-  const collapse = () => { setShown(false); onExpandedChange?.(false); setTimeout(() => setExpanded(false), 360); };
+  // Closing the opened product (swipe down, back, ×) closes the card as well: the scanner is clean again, nothing lingers until the next scan.
+  const collapse = () => { setShown(false); onExpandedChange?.(false); setTimeout(() => { setExpanded(false); onClose(); }, 360); };
   useEffect(() => () => onExpandedChange?.(false), []);   // closing the card or scanning another product unlocks the scanner
   // The card waits for the price lookup (started the moment the product is known) before it can be opened:
   // "Recherche du prix…" shows while it runs, then the page opens with the price already cached.
@@ -54,7 +55,6 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
     <div ref={ref} className={'peek' + (expanded ? ' peek-hidden' : '')} role="button" tabIndex={0} aria-label={t('scan.peekOpen')} style={{ cursor: priceDone ? undefined : 'wait' }}
       onTouchStart={(e) => { touch.current.y = e.touches[0].clientY; }} onTouchEnd={(e) => { if (p && touch.current.y - e.changedTouches[0].clientY > 36) expand(); }}
       onClick={() => { if (p && performance.now() - lastDrag.current > 200) expand(); }} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && p) { e.preventDefault(); expand(); } }}>
-      <button className="peek-x" aria-label={t('scan.close')} onClick={(e) => { e.stopPropagation(); onClose(); }}>×</button>
       {failed ? <span className="mut">{t('scan.peekFailed')}</span> : !p ? <><Skeleton h={18} w="60%" /><Skeleton h={14} w="35%" /></> : <>
         <div className="peek-top">
           {p.imageUrl && <img src={p.imageUrl} alt="" />}
@@ -64,7 +64,6 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
           <div><span className="peek-cap">{t('score.quality')}</span><div className="peek-n" style={{ color }}>{sc ? sc.total : '–'}<i>/100</i></div><small>{verdict}</small></div>
           <div><span className="peek-cap">{t('score.value')}</span><div className="peek-n" style={{ color: pq == null ? 'var(--mut)' : pq >= 65 ? 'var(--accent)' : pq >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pq ?? '–'}<i>/100</i></div><small>{t('score.pq')}</small></div>
         </div>
-        <button className="peek-open" onClick={(e) => { e.stopPropagation(); expand(); }}>{t('scan.peekView')}</button>
         <span className="peek-grip" aria-hidden />
       </>}
     </div>
