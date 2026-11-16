@@ -14,7 +14,7 @@ import Where from '../Where';
 import DesktopQRBanner from '../DesktopQRBanner';
 import { countScan } from '../account';
 import { prefetchAlternatives } from '../alternatives';
-import { prodKey, readCache, writeCache } from '../swr';
+import { PRODUCT_CACHE_MS, prodKey, readCache, writeCache } from '../swr';
 import { getStrict } from '@shared/config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -40,10 +40,10 @@ export default function Product() {
   const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare), removeCompare = useProfile((s) => s.removeCompare);
   const country = useProfile((s) => s.country);
   const hist = useHistory();
-  const [d, setD] = useState<any>(() => (barcode ? readCache(prodKey(barcode, estimates, getStrict())) : null)), [err, setErr] = useState<{ kind: 'notfound' | 'notfood' | 'invalid' | 'server' | 'network' | 'rate' | 'auth'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0);
+  const [d, setD] = useState<any>(() => (barcode ? readCache(prodKey(barcode, estimates, getStrict()), PRODUCT_CACHE_MS) : null)), [err, setErr] = useState<{ kind: 'notfound' | 'notfood' | 'invalid' | 'server' | 'network' | 'rate' | 'auth'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0);
   useEffect(() => {
     if (!barcode) return;
-    setD(readCache(prodKey(barcode, estimates, getStrict()))); setErr(null); setOffline(false);   // the scan peek's answer shows at once while this refetches
+    setD(readCache(prodKey(barcode, estimates, getStrict()), PRODUCT_CACHE_MS)); setErr(null); setOffline(false);   // the scan peek's answer shows at once while this refetches
     let cancelled = false, retryTimer: ReturnType<typeof setTimeout> | undefined;
     api.getProduct(barcode, estimates).then((x: any) => { setD(x); writeCache(prodKey(barcode, estimates, getStrict()), x); hist.addScan(x.product); api.addScan(barcode).catch(() => undefined); countScan(barcode); })
       .catch((e: any) => { if (!cancelled && autoTries.current < 2 && e?.response?.status !== 400 && !(e?.response && ![404, 502, 503, 504].includes(e.response.status))) { autoTries.current += 1; retryTimer = setTimeout(() => setAttempt((n) => n + 1), 1200); return; } const snap = useHistory.getState().productById(barcode); if (snap && e?.response?.status !== 404) { setD({ product: snap, fit: [], price_context: null }); setOffline(true); } else setErr(e?.response?.status === 404 ? { kind: e.response.data?.detail === 'not_food' ? 'notfood' : 'notfound', msg: '' } : e?.response?.status === 400 ? { kind: 'invalid', msg: '' } : e?.response?.status === 429 ? { kind: 'rate', msg: '' } : e?.response?.status === 401 ? { kind: 'auth', msg: 'HTTP 401' } : e?.response ? { kind: 'server', msg: `HTTP ${e.response.status}${typeof e.response.data?.detail === 'string' ? ' · ' + e.response.data.detail : ''}` } : { kind: 'network', msg: e.message }); });

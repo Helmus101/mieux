@@ -725,3 +725,8 @@ p.mut{font-size:14.5px; line-height:1.5}
 .navbar .navbrand .brand img{border-radius:6px}
 .brandsign{display:flex;flex-direction:column;align-items:center;gap:4px;margin:28px 0 12px;color:var(--mut);font-size:13px;text-align:center}
 .brandsign .brand{font-size:17px}
+
+/* Native-style press feedback on the product page's main actions */
+.altcta{transition:transform .12s var(--ease-out,ease)}
+.altcta:active{transform:scale(.985)}
+.coll summary:active{background:var(--card)}

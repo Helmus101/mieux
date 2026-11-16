@@ -18,11 +18,15 @@ const withTransition = (f: () => void, dir: 'push' | 'pop' | 'tab') => {
   const clear = () => { delete root.dataset.nav; };
   d.startViewTransition(f).finished.then(clear, clear);
 };
-const TABS = [routes.list, routes.scan, routes.profile];
+const TABS = [routes.list, routes.scan, routes.profile, routes.compare];
+/** Where each top-level tab was scrolled to when the user left it, so coming back lands on the same spot like a native tab bar. */
+const tabScroll = new Map<string, number>();
+export const savedTabScroll = (path: string) => (TABS.includes(path) ? tabScroll.get(path) ?? 0 : 0);
+const rememberScroll = () => { const p = window.location.pathname; if (TABS.includes(p)) tabScroll.set(p, window.scrollY); };
 export function useNav() {
   const n = useNavigate();
   return {
-    go: (p: string, state?: unknown) => withTransition(() => n(p, { state }), TABS.includes(p) ? 'tab' : 'push'),
-    back: () => withTransition(() => n(-1), 'pop'),
+    go: (p: string, state?: unknown) => { rememberScroll(); withTransition(() => n(p, { state }), TABS.includes(p) ? 'tab' : 'push'); },
+    back: () => { rememberScroll(); withTransition(() => n(-1), 'pop'); },
   };
 }

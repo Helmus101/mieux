@@ -4,7 +4,7 @@ import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { useProfile, apiPrefs } from '@shared/stores';
 import { Loader, Screen, haptic } from './ui';
-import { routes, useNav } from './nav';
+import { routes, savedTabScroll, useNav } from './nav';
 import ErrorBoundary from './ErrorBoundary';
 import { ToastHost } from './toast';
 import InstallPrompt from './InstallPrompt';
@@ -71,7 +71,7 @@ function TabBar() {
 /** Each new screen starts at the top (a push); going back keeps the browser's own restored position. */
 function ScrollToTop() {
   const { pathname } = useLocation(), type = useNavigationType();
-  useEffect(() => { if (type !== 'POP') window.scrollTo(0, 0); }, [pathname, type]);
+  useEffect(() => { if (type !== 'POP') { const y = savedTabScroll(pathname); requestAnimationFrame(() => window.scrollTo(0, y)); } }, [pathname, type]);
   return null;
 }
 
