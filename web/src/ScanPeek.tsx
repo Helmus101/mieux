@@ -18,7 +18,8 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
   const [expanded, setExpanded] = useState(false), [shown, setShown] = useState(false);
   const body = useRef<HTMLDivElement>(null), touch = useRef({ y: 0, top: 0 });
   const expand = () => { setExpanded(true); onExpandedChange?.(true); requestAnimationFrame(() => requestAnimationFrame(() => setShown(true))); };
-  const collapse = () => { setShown(false); onExpandedChange?.(false); setTimeout(() => setExpanded(false), 360); };
+  // Closing the opened product (swipe down, back, ×) closes the card as well: the scanner is clean again, nothing lingers until the next scan.
+  const collapse = () => { setShown(false); onExpandedChange?.(false); setTimeout(() => { setExpanded(false); onClose(); }, 360); };
   useEffect(() => () => onExpandedChange?.(false), []);   // closing the card or scanning another product unlocks the scanner
   // The card waits for the price lookup (started the moment the product is known) before it can be opened:
   // "Recherche du prix…" shows while it runs, then the page opens with the price already cached.
@@ -64,7 +65,7 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
           <div><span className="peek-cap">{t('score.quality')}</span><div className="peek-n" style={{ color }}>{sc ? sc.total : '–'}<i>/100</i></div><small>{verdict}</small></div>
           <div><span className="peek-cap">{t('score.value')}</span><div className="peek-n" style={{ color: pq == null ? 'var(--mut)' : pq >= 65 ? 'var(--accent)' : pq >= 40 ? 'var(--warn)' : 'var(--bad)' }}>{pq ?? '–'}<i>/100</i></div><small>{t('score.pq')}</small></div>
         </div>
-        <button className="peek-open" onClick={(e) => { e.stopPropagation(); expand(); }}>{t('scan.peekView')}</button>
+        <button className="peek-open" onClick={(e) => { e.stopPropagation(); expand(); }}><svg viewBox="0 0 24 24" aria-hidden><path d="M6 15l6-6 6 6" /></svg>{t('scan.peekView')}</button>
         <span className="peek-grip" aria-hidden />
       </>}
     </div>
@@ -73,6 +74,7 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
           onTouchStart={(e) => { touch.current = { y: e.touches[0].clientY, top: body.current?.scrollTop ?? 0 }; }}
           onTouchEnd={(e) => { if (touch.current.top <= 0 && e.changedTouches[0].clientY - touch.current.y > 80) collapse(); }}>
           <div className="peek-handle" onClick={collapse} role="button" aria-label={t('common.back')}><i /></div>
+          <button className="peek-x peek-sheet-x" aria-label={t('scan.close')} onClick={collapse}>×</button>
           <div className="peek-body" ref={body}>
             <Suspense fallback={<Loader />}><ProductPage barcode={code} onBack={collapse} /></Suspense>
           </div>

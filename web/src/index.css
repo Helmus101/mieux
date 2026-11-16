@@ -743,3 +743,6 @@ p.mut{font-size:14.5px; line-height:1.5}
 .peek-body .screen{animation:none;padding-top:0}
 @media(prefers-reduced-motion:reduce){.peek-sheet{transition:none}}
 .peek-body .navbar{padding-top:2px}
+
+.peek-sheet-x{position:absolute;top:2px;right:6px;z-index:3;width:44px;height:44px;border:0;background:none;color:var(--mut);font-size:26px;line-height:1;cursor:pointer}
+.peek .peek-open svg{width:18px;height:18px;margin-right:6px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;vertical-align:-4px}
