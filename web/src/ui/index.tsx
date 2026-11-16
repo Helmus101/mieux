@@ -18,7 +18,7 @@ export function NavBar({ title, onBack, right }: { title?: string; onBack?: () =
   useEffect(() => { const f = () => setS(window.scrollY > 36); f(); window.addEventListener('scroll', f, { passive: true }); return () => window.removeEventListener('scroll', f); }, []);
   return (
     <div className={'navbar' + (s ? ' scrolled' : '')}>
-      {onBack ? <button className="back" onClick={() => { haptic('tap'); onBack(); }}><svg viewBox="0 0 24 24" aria-hidden><path d="M15 5l-7 7 7 7" /></svg>{t('common.back')}</button> : <span />}
+      {onBack ? <button className="back" onClick={() => { haptic('tap'); onBack(); }}><svg viewBox="0 0 24 24" aria-hidden><path d="M15 5l-7 7 7 7" /></svg>{t('common.back')}</button> : <span className="navbrand" aria-label="Mieux"><Brand size={22} /></span>}
       <span className="ttl">{title}</span>
       <span style={{ marginLeft: onBack ? 0 : 'auto' }}>{right}</span>
     </div>

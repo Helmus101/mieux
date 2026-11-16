@@ -7,7 +7,7 @@ import { formatCents, isLiquid } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
 import { priceHeadline } from '@shared/verdict';
 import PqExplain from '../PqExplain';
-import { Bar, Button, Card, Collapsible, haptic, Muted, Pill, Row, Screen, NavBar, Sheet, Skeleton, Loader, ChainLogo } from '../ui';
+import { Bar, Brand, Button, Card, Collapsible, haptic, Muted, Pill, Row, Screen, NavBar, Sheet, Skeleton, Loader, ChainLogo } from '../ui';
 import { routes, useNav } from '../nav';
 import SaveButton from '../SaveButton';
 import Where from '../Where';
@@ -57,6 +57,13 @@ export default function Product() {
     prefetchAlternatives(barcode);
   }, [barcode]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
+  const pageName: string | undefined = d?.product?.name;
+  useEffect(() => {   // the browser tab, history and shares carry the product and the brand
+    if (!pageName) return;
+    const prev = document.title;
+    document.title = `${pageName} · mieux.`;
+    return () => { document.title = prev; };
+  }, [pageName]);
   const [webP, setWebP] = useState<any>(null), [webPriceLoading, setWebPriceLoading] = useState(false);       // hooks stay above every early return
   // The scores wait for the price: they appear together once it is found, once the search ends without one, or after PRICE_WAIT_MS at most.
   // Both markers hold the barcode they belong to, so opening another product starts waiting again in the same render (no flash of the scores).
@@ -229,6 +236,8 @@ export default function Product() {
         <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('product.correct')}</a>
       </Collapsible>
       <Button plain onPress={() => { if (inCompare) { removeCompare(p.id); } else { addCompare(p.id); go(routes.compare); } }}>{inCompare ? t('compare.remove') : t('product.compare')}</Button>
+
+      <p className="brandsign"><Brand size={18} /><span>{t('brand.tagline')}</span></p>
 
       <Sheet open={!!sheet} onClose={() => setSheet(null)} title={sheet ? sheet.toUpperCase() + (info ? ' · ' + info.name : sItem?.name ? ' · ' + sItem.name : '') : ''}>
         {(sItem?.use || sItem?.found) && <>{sItem.use && <><h3>{t('add.use')}</h3><p>{sItem.use}</p></>}{sItem.found && <><h3>{t('add.found')}</h3><p>{sItem.found}</p></>}</>}
