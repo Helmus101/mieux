@@ -730,3 +730,30 @@ p.mut{font-size:14.5px; line-height:1.5}
 .altcta{transition:transform .12s var(--ease-out,ease)}
 .altcta:active{transform:scale(.985)}
 .coll summary:active{background:var(--card)}
+
+/* ===== Dark mode refinement (last on purpose: it wins over the earlier dark token blocks) ===== */
+:root{color-scheme:light dark}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0B100E; --surface:#141B17; --card:#19231D; --thumb:#34423A;
+    --ink:#EEF3F0; --mut:#9FAEA6; --line:#2B3831; --sep:rgba(130,150,140,.26); --fill:rgba(140,160,150,.18);
+    --glass:rgba(11,16,14,.82); --tint:rgba(111,207,151,.16);
+  }
+  /* Elevation: each layer a step lighter than the one under it, instead of one flat grey-green */
+  .sheet{background:#1C2721; box-shadow:0 -1px 0 var(--line)}
+  .cmdk{background:#1C2721}
+  .tabbar{border-top-color:var(--line)}
+  .toast{background:rgba(232,240,235,.94); color:#0B100E}
+  /* Thin tracks must stay visible on dark surfaces */
+  .bar{background:rgba(255,255,255,.12)}
+  .cbar{background:rgba(255,255,255,.12)}
+  /* Score tiles: dark ink on the warm tones, white on bright orange is hard to read */
+  .stile.w,.stile.b{color:#1A0F0A}
+  /* Zone colours lifted for dark backgrounds */
+  .z-g{--zc:#55C98A}.z-g2{--zc:#A3D16B}.z-y{--zc:#F0C85A}.z-w{--zc:#FF9A6B}.z-b{--zc:#F2796B}
+  .zmark{background:var(--ink); box-shadow:0 0 0 2px var(--bg)}
+  /* Product photos sit on a light tile (their backgrounds are white): soften the edge so the tile does not glare */
+  .pid img,.arow>img,.cell img,.peek img{border-color:transparent; filter:brightness(.96)}
+  .arow:active,.cell.tap:active{background:rgba(111,207,151,.1)}
+  ::selection{background:rgba(111,207,151,.35)}
+}
