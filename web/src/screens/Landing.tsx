@@ -145,7 +145,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       </main>
 
       <footer className="lp-foot">
-        <span>{t('land.foot')} · <a href="/stats">{t('usage.link')}</a> · <a href="/blog">Blog</a><br /><span className="lp-measure">{t('land.measure')}</span><br />{t('land.contact')} <a href={`mailto:${CONTACT}`}>{CONTACT}</a></span>
+        <span>{t('land.foot')} · <a href="/stats">{t('usage.link')}</a> · <a href="/blog">Blog</a> · <a href="/mentions-legales">Mentions légales</a> · <a href="/confidentialite">Confidentialité</a> · <a href="/cgu">CGU</a><br /><span className="lp-measure">{t('land.measure')}</span><br />{t('land.contact')} <a href={`mailto:${CONTACT}`}>{CONTACT}</a></span>
         <button className="lp-link" onClick={onEnter}>{t('land.cta')}</button>
       </footer>
     </div>

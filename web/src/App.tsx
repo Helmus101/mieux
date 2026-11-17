@@ -30,6 +30,7 @@ const History = lazy(() => import('./screens/History'));
 const List = lazy(() => import('./screens/List'));
 const Blog = lazy(() => import('./screens/Blog'));
 const BlogPost = lazy(() => import('./screens/BlogPost'));
+const Legal = lazy(() => import('./screens/Legal'));
 
 const I = {
   home: <path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" />,
@@ -126,6 +127,9 @@ export default function App() {
         <Route path={APP_PATH + '/*'} element={<Shell />} />
         <Route path="/blog" element={<Suspense fallback={null}><Blog /></Suspense>} />
         <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPost /></Suspense>} />
+        <Route path="/mentions-legales" element={<Suspense fallback={null}><Legal /></Suspense>} />
+        <Route path="/confidentialite" element={<Suspense fallback={null}><Legal /></Suspense>} />
+        <Route path="/cgu" element={<Suspense fallback={null}><Legal /></Suspense>} />
         <Route path="*" element={<ToApp />} />
       </Routes>
     </BrowserRouter>

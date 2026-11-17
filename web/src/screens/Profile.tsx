@@ -50,6 +50,9 @@ export default function Profile() {
         <Group>
           <Cell onPress={exp} chevron>{t('profile.export')}</Cell>
           <Cell onPress={() => setAskErase(true)}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
+          <Cell onPress={() => { location.href = '/confidentialite'; }} chevron>Confidentialité</Cell>
+          <Cell onPress={() => { location.href = '/cgu'; }} chevron>Conditions d'utilisation</Cell>
+          <Cell onPress={() => { location.href = '/mentions-legales'; }} chevron>Mentions légales</Cell>
         </Group>
       </Section>
       <Confirm open={askErase} onClose={() => setAskErase(false)} onConfirm={erase} title={t('profile.erase')} action={t('profile.erase')}>{t('profile.eraseConfirm')}</Confirm>
