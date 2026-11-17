@@ -44,6 +44,7 @@ function seo(siteUrl: string) {
       const urls = [
         `<url><loc>${base}/</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
         `<url><loc>${base}/blog</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
+        ...['mentions-legales', 'confidentialite', 'cgu'].map(s => `<url><loc>${base}/${s}</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>`),
         ...blogPosts.map(post => `<url><loc>${base}/blog/${post.slug}</loc><lastmod>${post.date}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`),
       ];
       this.emitFile({

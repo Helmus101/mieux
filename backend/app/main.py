@@ -2039,7 +2039,7 @@ def _index_pool(s: Session, uid: str, orig: Dict[str, Any], body: "AltReq", alle
 
 
 @app.post("/v1/products/{barcode}/alternatives")
-@limiter.limit("20/minute")
+@limiter.limit("60/minute")   # the product page prefetches and the screen asks again; one mobile network address is shared by many people
 def alternatives(request: Request, background: BackgroundTasks, barcode: str, body: AltReq, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
     _SEARCH_DEADLINE.set(time.time() + 10)
     bad = [p for p in body.priorities if p not in engine.PRIORITIES]

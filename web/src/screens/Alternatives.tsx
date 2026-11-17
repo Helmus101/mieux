@@ -4,7 +4,7 @@ import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
-import { cachedAlternatives, fetchAlternatives, NEAR_KM } from '../alternatives';
+import { cachedAlternatives, fetchAlternatives, hasAlternatives, NEAR_KM } from '../alternatives';
 import { Button, Card, ChainLogo, Muted, NavBar, Screen, Segmented, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
@@ -27,7 +27,8 @@ export default function Alternatives() {
   const [tries, setTry] = useState(0); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const rk = 'value'; const [showMore, setShowMore] = useState(false); const [chain, setChain] = useState<string | null>(null);
   // One recommendation score, weighted by what the shopper says matters (budget first by default). Changing it re-asks the API.
   const vp = useProfile((s) => s.valueProfile) ?? 'budget', setVp = useProfile((s) => s.setValueProfile);
-  const [r, setR] = useState<any>(null), [busy, setBusy] = useState(true), [err, setErr] = useState<{ title: string; why: string } | null>(null);
+  const [r, setR] = useState<any>(null), [busyRaw, setBusy] = useState(true), [rCode, setRCode] = useState<string | undefined>(undefined), [err, setErr] = useState<{ title: string; why: string } | null>(null);
+  const busy = busyRaw || rCode !== barcode;   // loading (never the empty message) until the answer for THIS product is here
   const [note, setNote] = useState<string | null>(null), autoRetry = useRef(0);
   useEffect(() => { autoRetry.current = 0; }, [barcode]);
   useEffect(() => {
@@ -36,9 +37,14 @@ export default function Alternatives() {
     let gone = false, retry: ReturnType<typeof setTimeout> | undefined;
     // The product page usually started this very request already: the answer is in the cache or about to arrive.
     const stale = cachedAlternatives(barcode);
-    if (stale) { setR(stale); setBusy(false); } else setBusy(true);   // show the last answer at once, then refresh it
+    if (stale && hasAlternatives(stale)) { setR(stale); setRCode(barcode); setBusy(false); } else setBusy(true);   // show the last answer at once, then refresh it
     fetchAlternatives(barcode)
-      .then((x: any) => { if (!gone) setR(x); })
+      .then((x: any) => {
+        if (gone) return;
+        // An empty answer is retried once before it is shown as "no alternatives".
+        if (!hasAlternatives(x) && autoRetry.current < 1) { autoRetry.current += 1; retry = setTimeout(() => setTry((n) => n + 1), 800); return; }
+        setR(x); setRCode(barcode);
+      })
       .catch((e: unknown) => {
         if (gone) return;
         // One quiet retry before showing an error: most failures here are a dropped request or a busy moment on the server.

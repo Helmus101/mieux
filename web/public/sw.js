@@ -1,6 +1,6 @@
 // Service worker: the app opens instantly from the cache and updates itself in the background. API calls always go to the network.
 // Bump C on every change to this file: the old cache is dropped on activation.
-const C = 'mieux-shell-v7';
+const C = 'mieux-shell-v8';
 const IMG = 'mieux-img-v1';   // product photos: kept between visits, never dropped with the shell cache
 const IMG_MAX = 300;
 const SHELL = ['/app', '/favicon.svg', '/icon-180.png', '/icon-192.png', '/logo.svg', '/manifest.webmanifest'];
@@ -29,6 +29,8 @@ const refresh = (req) => fetch(req).then((r) => {
   if (r.ok && (isPage || !html)) { const cp = r.clone(); caches.open(C).then((c) => c.put(req, cp)); }
   return r;
 });
+// A navigation must never be answered with a redirected response (the browser turns it into a network error): rebuild it clean.
+const clean = (r) => (r && r.redirected ? r.blob().then((b) => new Response(b, { status: r.status, statusText: r.statusText, headers: r.headers })) : r);
 const offline = () => new Response(OFFLINE_PAGE, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
 
 // Product photos (Open Food Facts): served from the device when seen before, otherwise fetched once and kept.
@@ -49,10 +51,12 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET' || u.origin !== location.origin || u.pathname.startsWith('/v1')) return;
   if (req.mode === 'navigate') {  // the shell: the fresh copy when the network answers quickly (so a new version shows at once), the saved copy when it is slow or offline
     e.respondWith(caches.match('/app').then((m) => {
-      const net = refresh(new Request('/app'));
-      if (!m) return net.catch(offline);
-      return Promise.race([net.catch(() => m), new Promise((ok) => setTimeout(() => ok(m), 1200))]);
-    }));
+      const net = refresh(new Request('/app')).then(clean);
+      const good = (r) => (r && r.type !== 'error' && (r.ok || r.status === 503) ? r : null);
+      if (!m) return net.then((r) => good(r) || offline(), offline);
+      const keep = clean(m);
+      return Promise.race([net.then((r) => good(r) || keep, () => keep), new Promise((ok) => setTimeout(() => ok(keep), 1200))]);
+    }).catch(offline));
     return;
   }
   if (u.pathname.startsWith('/assets/')) {  // hashed files never change: cache first

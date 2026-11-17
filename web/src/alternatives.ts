@@ -21,6 +21,8 @@ export function altRequest(barcode: string) {
   return { key, body, prios, chains };
 }
 
+export const hasAlternatives = (x: any) => !!(x?.rankings?.value?.length || x?.rankings?.match?.length || x?.alternatives?.length);
+
 const inflight = new Map<string, Promise<any>>();
 
 /** Fresh answer for this barcode and the current profile; a request already under way for the same key is reused. */
@@ -28,7 +30,7 @@ export function fetchAlternatives(barcode: string): Promise<any> {
   const { key, body } = altRequest(barcode);
   const running = inflight.get(key);
   if (running) return running;
-  const p = api.getAlternatives(barcode, body).then((x: any) => { writeCache(key, x); return x; }).finally(() => inflight.delete(key));
+  const p = api.getAlternatives(barcode, body).then((x: any) => { if (hasAlternatives(x)) writeCache(key, x); return x; })   // an empty answer (a slow moment on the server) is never kept: it would show "no alternatives" until a reload.finally(() => inflight.delete(key));
   inflight.set(key, p);
   return p;
 }
