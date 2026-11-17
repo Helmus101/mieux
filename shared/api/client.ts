@@ -49,7 +49,18 @@ export class MieuxAPI {
     // The local server can be restarting or briefly busy: retry a few times before giving up, then say so in plain words instead of "Network Error".
     this.client.interceptors.response.use(undefined, async (error) => {
       const cfg = error?.config;
-      if (error?.response || !cfg) throw error;
+      if (!cfg) throw error;
+      const status = error?.response?.status;
+      // Busy or restarting server (429/502/503/504): wait as long as it asks (capped) and try again before reporting a failure.
+      if (status === 429 || status === 502 || status === 503 || status === 504) {
+        cfg.__busy = (cfg.__busy ?? 0) + 1;
+        if (cfg.__busy <= 3) {
+          const ra = Number(error.response.headers?.['retry-after']);
+          await new Promise((r) => setTimeout(r, Math.min(Number.isFinite(ra) && ra > 0 ? ra * 1000 : 800 * cfg.__busy, 8000)));
+          return this.client.request(cfg);
+        }
+      }
+      if (error?.response) throw error;
       cfg.__retries = (cfg.__retries ?? 0) + 1;
       if (cfg.__retries <= 3) {
         await new Promise((r) => setTimeout(r, 600 * cfg.__retries));

@@ -740,6 +740,10 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
 
 # Variants inside one product type: a real difference the shopper should know about, disclosed as a trade-off (never a reason to hide the product).
 _VARIANTS = {
+    "smoked_fish": [("salmon", r"saumon|salmon"), ("trout", r"truite|trout"), ("herring", r"hareng|herring"), ("mackerel", r"maquereau|mackerel"), ("haddock", r"haddock|églefin|eglefin"), ("swordfish", r"espadon|swordfish")],
+    "butter": [("margarine", r"margarine|tartine(?:r|s)?\b|matière grasse|spread"), ("clarified", r"beurre clarifi|ghee")],
+    "spirits": [("whisky", r"whisk|bourbon|scotch"), ("rum", r"\brhum\b|\brum\b"), ("vodka", r"vodka"), ("gin", r"\bgin\b"), ("liqueur", r"liqueur|cr[èe]me de|amaretto|limoncello|cointreau|baileys"), ("brandy", r"cognac|armagnac|brandy|calvados")],
+    "deli_poultry": [("turkey", r"dinde|turkey"), ("chicken", r"poulet|chicken|volaille"), ("nuggets", r"nuggets?|aiguillettes?|panée?s?|cordon bleu")],
     "tapenade": [("tomato", r"tomates?|tomato"), ("eggplant", r"aubergines?|eggplant"), ("bell_pepper", r"poivrons?|pepper"), ("olive_tap", r"olives?|tapenade (?:verte|noire)")],
     "pickles": [("caper", r"c[âa]pres?\b|capers?\b|capucines?"), ("gherkin", r"cornichons?|gherkins?|\bpickles?\b"), ("onion", r"oignons?|onions?|grelots?")],
     "fruits_veg": [("veg_mix", r"m[ée]lange|macédoine|jardini[èe]re|po[êe]l[ée]e|ratatouille|l[ée]gumes? pour|mix de l[ée]gumes|\bmix\b"),
@@ -823,7 +827,7 @@ def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
-_HARD_VARIANT_TYPES = {"tapenade", "pickles", "fruits_veg", "tomato_sauce", "mozzarella_fresh", "mayonnaise", "tea", "dough", "supplement", "pate_terrine", "dried_fruit", "nuts", "peanut_butter", "dip", "syrup", "fresh_fruit", "legumes", "pasta"}
+_HARD_VARIANT_TYPES = {"smoked_fish", "butter", "spirits", "tapenade", "pickles", "fruits_veg", "tomato_sauce", "mozzarella_fresh", "mayonnaise", "tea", "dough", "supplement", "pate_terrine", "dried_fruit", "nuts", "peanut_butter", "dip", "syrup", "fresh_fruit", "legumes", "pasta"}
 
 
 # Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.
