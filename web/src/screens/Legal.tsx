@@ -53,7 +53,7 @@ const pages: Record<string, { title: string; body: JSX.Element }> = {
         <p><strong>Hébergement :</strong> site : Vercel Inc. (vercel.com) ; serveur : Fly.io, Inc. (fly.io).</p>
         <h2>Sources et licences</h2>
         <p>Les données produits viennent d'<a href="https://world.openfoodfacts.org">Open Food Facts</a> (base ouverte sous licence ODbL ; contenu des fiches sous licence CC BY-SA ; photos sous CC BY-SA). Les prix communautaires viennent d'<a href="https://prices.openfoodfacts.org">Open Prices</a> (ODbL). Les cartes et distances utilisent © les contributeurs d'<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> (ODbL). Mieux n'est ni affilié ni approuvé par ces projets.</p>
-        <p>Le nom, le logo et le contenu de Mieux sont protégés ; toute reproduction sans autorisation est interdite, hors données issues des licences ouvertes ci-dessus.</p>
+        <p>© {new Date().getFullYear()} Mieux. Tous droits réservés. Le nom, le logo, le design, les textes et le code de Mieux sont protégés par le droit d'auteur ; toute reproduction sans autorisation est interdite, hors données issues des licences ouvertes ci-dessus.</p>
         <p><Link to="/confidentialite">Confidentialité</Link> · <Link to="/cgu">Conditions</Link></p>
       </>
     ),
