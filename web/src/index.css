@@ -438,10 +438,7 @@ td .nova{padding:4px 8px}
 .scancard b{font-size:19px; letter-spacing:-.2px}
 .scancard small{font-size:14px; line-height:1.3; opacity:.82}
 .scancard em{grid-column:1/-1; font-style:normal; font-weight:600; font-size:15px; margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,.18)}
-.stats{max-width:760px; padding-bottom:28px; display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0}
-.stats div{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 12px 10px}
-.stats b{display:block; font-size:26px; letter-spacing:-.6px; line-height:1.1}
-.stats span{display:block; margin-top:2px; font-size:12px; color:var(--mut); line-height:1.25}
+.stats-page{max-width:760px; margin:0 auto; padding-bottom:40px}
 .sechead{display:flex; align-items:baseline; justify-content:space-between; margin:22px 4px 6px}
 .sechead h2{margin:0}
 .scorepill{min-width:42px; text-align:center; font-weight:700; font-size:15px; padding:5px 8px; border-radius:8px; background:var(--tint)}
@@ -746,3 +743,9 @@ p.mut{font-size:14.5px; line-height:1.5}
 
 .peek-sheet-x{position:absolute;top:2px;right:6px;z-index:3;width:44px;height:44px;border:0;background:none;color:var(--mut);font-size:26px;line-height:1;cursor:pointer}
 .peek .peek-open svg{width:18px;height:18px;margin-right:6px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;vertical-align:-4px}
+
+/* stats page: clear hierarchy, big numbers first */
+.stats-page .stats-block>h2{font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--mut)}
+.stats-page .stats-row{grid-template-columns:repeat(2,1fr)}
+@media(min-width:640px){.stats-page .stats-row{grid-template-columns:repeat(4,1fr)}}
+.stats-page .stats-card.hi .stats-num{font-size:52px}
