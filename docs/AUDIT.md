@@ -6,13 +6,12 @@ Date : 2026-11-01. Périmètre : `foodiq/` (backend FastAPI, web React/Vite, sha
 | Élément | Actuel | Cible du plan | Décision |
 |---|---|---|---|
 | Web | React + Vite + TypeScript | Expo Web | **Conserver** ; la couche `web/src/ui` et `shared/` isolent la plateforme (voir EXPO.md) |
-| Mobile | PWA (web) | React Native + Expo | **Plus tard** : réécrire uniquement `ui/index.tsx`, `nav.ts`, scanner, OCR |
+| Mobile | PWA (web) | React Native + Expo | **Plus tard** : réécrire uniquement `ui/index.tsx`, `nav.ts`, scanner |
 | Backend | FastAPI + SQLAlchemy | FastAPI | **Conserver** |
 | Base | SQLite (PostgreSQL via `DATABASE_URL`) | PostgreSQL / Supabase | **Corriger** : ajouter Alembic avant la mise en production ; migration actuelle = `_add_missing_columns` (provisoire) |
 | Auth | JWT local + session anonyme | Supabase Auth + RLS | **Remplacer en production** ; RLS sans objet tant que la base est locale |
 | Données produit | Open Food Facts | Open Food Facts | **Conserver** (isolé dans `off.py`) |
 | Prix | Open Prices + tickets + saisie ; devise d'origine conservée ; conversion BCE | + catalogues en ligne | **Conserver** ; catalogues non faits (droits d'accès à vérifier) |
-| OCR | Tesseract.js (navigateur) | ML Kit / Vision | **Remplacer** sur mobile |
 | Erreurs | logs | Sentry | **À ajouter** |
 
 ## Ce qui fonctionne et est testé

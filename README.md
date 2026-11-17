@@ -13,7 +13,6 @@ A personalized grocery decision-support product helping users make smarter food 
   - Personalized nutrition assessment with allergen detection
   - Alternative product recommendations
   - Side-by-side product comparison
-  - Receipt OCR parsing (retailer-specific for 9 major French retailers)
   - Purchase history and price tracking
   - Data export and account deletion (GDPR/CNIL compliant)
 
@@ -22,7 +21,6 @@ A personalized grocery decision-support product helping users make smarter food 
 - **Tech Stack**: React 18, TypeScript, Vite, React Router
 - **Features**:
   - Barcode scanning with ZXing
-  - Receipt OCR with Tesseract.js
   - All backend features accessible via shared API client
 
 ### Mobile App (Expo + React Native): planned, not built yet
@@ -33,8 +31,6 @@ The web app (installable PWA) is the product today and covers iOS and Android; `
 - **Platform**: iOS first (managed workflow)
 - **Features**:
   - Barcode scanning with expo-camera
-  - Receipt capture with expo-image-picker
-  - ML Kit Vision OCR (placeholder - needs implementation)
   - All backend features accessible via shared API client
 
 ### Shared Code
@@ -47,7 +43,7 @@ The web app (installable PWA) is the product today and covers iOS and Android; `
 
 Run the root startup script to start the backend server:
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 This will:
@@ -66,7 +62,7 @@ This will:
 
 Run the verification script to check the backend is working:
 ```bash
-./verify.sh
+./scripts/verify.sh
 ```
 
 ### Web App

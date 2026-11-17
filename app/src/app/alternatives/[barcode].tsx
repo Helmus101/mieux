@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
@@ -91,12 +92,20 @@ export default function Alternatives() {
       </ScrollView>}
       {busy && <>{[0, 1, 2, 3].map((n) => <Row key={n}><Skeleton h={60} w={60} /><View style={{ flex: 1, gap: 8 }}><Skeleton h={16} w="80%" /><Skeleton h={13} w="45%" /></View></Row>)}<Loader steps={t('common.stepsAlt').split('|')} slowAfter={30000} onRetry={() => setTry((n) => n + 1)} /></>}
       {err && <Card><H>{err.title}</H><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
-      {none && <Card><H>{t('emptyAlt.noneTitle')}</H><Muted>{t('emptyAlt.noneWhy')}</Muted></Card>}
-      {res && !busy && !none && !shown.length && (chain
-        ? <Card><H>{t('alt.noChainTitle', { c: chainName(chain) })}</H><Muted>{t('alt.noChainWhy')}</Muted><Button small onPress={() => setChain(null)}>{t('alt.allChains')}</Button></Card>
-        : hasHome && !(res.rankings?.value?.length)
-          ? <Card><H>{t('emptyAlt.nearTitle')}</H><Muted>{t('emptyAlt.nearWhy', { r: NEAR_KM })}</Muted><Button small onPress={() => r.push('/profile')}>{t('emptyAlt.nearAction')}</Button></Card>
-          : <Card><H>{t('emptyAlt.valueNoneTitle')}</H><Muted>{t('emptyAlt.valueNoneWhy')}</Muted></Card>)}
+      {!busy && !err && (none || !res || !shown.length) && (() => {
+        const m = chain ? { title: t('alt.noChainTitle', { c: chainName(chain) }), why: t('alt.noChainWhy'), label: t('alt.allChains'), act: () => setChain(null) }
+          : hasHome && res && !(res.rankings?.value?.length) ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: NEAR_KM }), label: t('emptyAlt.nearAction'), act: () => r.push('/profile') }
+          : none || !res ? { title: t('emptyAlt.noneTitle'), why: t('emptyAlt.noneWhy'), label: t('product.nf.scanAgain'), act: () => r.replace('/scan') }
+          : { title: t('emptyAlt.valueNoneTitle'), why: t('emptyAlt.valueNoneWhy'), label: t('common.back'), act: () => r.back() };
+        return (
+          <View style={{ alignItems: 'center', gap: 12, paddingVertical: 36, paddingHorizontal: 12 }}>
+            <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: c.tint, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="search-outline" size={34} color={c.accent} /></View>
+            <Text style={{ color: c.ink, fontSize: 22, fontWeight: '700', textAlign: 'center', letterSpacing: -0.4 }}>{m.title}</Text>
+            <Muted style={{ textAlign: 'center' }}>{m.why}</Muted>
+            <Button primary onPress={m.act}>{m.label}</Button>
+          </View>
+        );
+      })()}
       {res && !busy && shown.map((e: any) => {
         const u = unitPrice(e.price_per_100_cents, e.product?.quantity, isLiquid(e.product)), d = diff(e), vs = e.value_score, q = e.quality_score ?? e.product?.score?.total;
         const cs = (e.product.chains ?? []).filter((id: string) => chainsFor(country).some((x) => x.id === id) && (!myChains.length || myChains.includes(id)));

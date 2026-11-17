@@ -5,7 +5,7 @@
 echo "🚀 Starting Mieux Backend..."
 echo "===================="
 
-cd backend
+cd "$(dirname "$0")/../backend"
 
 # Kill any existing process on port 8010
 if lsof -ti:8010 > /dev/null 2>&1; then

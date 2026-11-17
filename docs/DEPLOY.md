@@ -5,8 +5,8 @@ One server serves both the API and the web app, so any phone or computer just op
 ## 1. Data (no rate limits)
 Open Food Facts and Open Prices both allow live calls only at a few per minute per address and block clients that push. Mieux therefore keeps its own copy:
 
-    ./update_data.sh ~/Downloads/en.openfoodfacts.org.products.csv   # monthly (https://world.openfoodfacts.org/data), also prices
-    ./update_data.sh                                                  # prices only, daily or weekly
+    ./scripts/update_data.sh ~/Downloads/en.openfoodfacts.org.products.csv   # monthly (https://world.openfoodfacts.org/data), also prices
+    ./scripts/update_data.sh                                                  # prices only, daily or weekly
 
 This builds `backend/off_local.db` (about 1,1 million French products) and `backend/op_local.db` (French shop prices). The live APIs are only a fallback for products newer than the export.
 Data: Open Food Facts contributors, ODbL. Keep the attribution in the app.

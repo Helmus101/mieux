@@ -6,12 +6,12 @@
 echo "✓ Mieux Backend Verification"
 echo "================================"
 
-cd backend
+cd "$(dirname "$0")/../backend"
 
 # Check virtual environment
 if [ ! -d ".venv" ]; then
     echo "✗ Virtual environment not found"
-    echo "Run ./start.sh first to set up the environment"
+    echo "Run ./scripts/start.sh first to set up the environment"
     exit 1
 fi
 
@@ -26,7 +26,7 @@ if [ $? -eq 0 ]; then
     echo "✓ All verification checks passed!"
     echo ""
     echo "To start the server:"
-    echo "  ./start.sh"
+    echo "  ./scripts/start.sh"
 else
     echo ""
     echo "✗ Tests failed"

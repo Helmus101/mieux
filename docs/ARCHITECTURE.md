@@ -18,7 +18,7 @@ Web/iOS home-screen app (index.html, PWA)  ──►  FastAPI backend (backend/a
 Auth: anonymous `X-Session-Id` (accounts optional, not blocking scanning).
 Rules enforced in code and tests: no hidden score; allergen/diet conflicts excluded; missing data = "cannot verify"; alternatives from the same category; per-100 g basis only; price claims not made (no reliable data); purchases ≠ consumption; deleting a receipt removes items and price observations.
 
-Run: `./run.sh` → http://localhost:8010. Tests: `cd backend && .venv/bin/python -m pytest`.
+Run: `./scripts/run.sh` → http://localhost:8010. Tests: `cd backend && .venv/bin/python -m pytest`.
 
 ## Not built yet (next steps)
-Expo/React Native client (the PWA covers iOS now), Supabase auth, PostgreSQL migrations (Alembic), on-device ML Kit/Vision OCR (the web app uses Tesseract.js), retailer-specific receipt rules, Open Prices integration, rate limiting, CI.
+Expo/React Native client (the PWA covers iOS now), Supabase auth, PostgreSQL migrations (Alembic), retailer-specific receipt rules, Open Prices integration, rate limiting, CI.

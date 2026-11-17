@@ -1,0 +1,25 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@shared/*": [
+        "../shared/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ],
+      "zustand": [
+        "./node_modules/zustand"
+      ],
+      "axios": [
+        "./node_modules/axios"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "../shared",
+    "*.ts"
+  ]
+}
