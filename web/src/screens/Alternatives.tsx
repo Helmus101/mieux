@@ -88,6 +88,9 @@ export default function Alternatives() {
     const fallback = !rows.length && k === 'value';
     if (fallback) rows = ((r?.rankings?.match ?? r?.alternatives ?? []) as any[]);
     const per = new Map<string, any>(((r?.rankings?.profiles?.[vp] ?? []) as any[]).map((x) => [x.code, x]));
+    // On the Nutrition profile an alternative is only worth showing if its quality score beats the scanned product's.
+    const oq = r?.original?.score?.total;
+    if (vp === 'nutrition' && typeof oq === 'number') rows = rows.filter((e) => { const q = e.quality_score ?? e.product?.score?.total; return typeof q === 'number' && q > oq; });
     if (!per.size || fallback) return rows;
     return rows.filter((e) => per.has(e.product?.barcode)).map((e) => ({ ...e, value_score: per.get(e.product.barcode).value_score, why: per.get(e.product.barcode).why }))
       .sort((a, b) => b.value_score - a.value_score);
