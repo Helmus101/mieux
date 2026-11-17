@@ -35,7 +35,7 @@ export default function Usage({ onBack }: { onBack: () => void }) {
   return (
     <Screen>
       <NavBar title={t('appName')} onBack={onBack} />
-      <div className="stats">
+      <div className="stats-page">
         <header className="stats-head">
           <h1>{t('usage.title')}</h1>
           <p className="stats-lead">{t('usage.how')}</p>
