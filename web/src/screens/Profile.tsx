@@ -2,6 +2,7 @@ import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { clearAll } from '@shared/storage';
 import { wipeLocalData } from '../wipe';
+import { countingOff, setCounting } from '../usage';
 import { useProfile, useHistory } from '@shared/stores';
 import { useState } from 'react';
 import { Screen, NavBar, LargeTitle, Section, Chips, Chip, Group, Cell, Segmented, Confirm } from '../ui';
@@ -50,6 +51,7 @@ export default function Profile() {
         <Group>
           <Cell onPress={exp} chevron>{t('profile.export')}</Cell>
           <Cell onPress={() => setAskErase(true)}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
+          <Cell onPress={() => { setCounting(countingOff()); location.reload(); }}>{countingOff() ? 'Autoriser le comptage anonyme des visites' : 'Ne pas me compter dans les visites'}</Cell>
           <Cell onPress={() => { location.href = '/confidentialite'; }} chevron>Confidentialité</Cell>
           <Cell onPress={() => { location.href = '/cgu'; }} chevron>Conditions d'utilisation</Cell>
           <Cell onPress={() => { location.href = '/mentions-legales'; }} chevron>Mentions légales</Cell>

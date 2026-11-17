@@ -2,6 +2,7 @@
  *  the service worker and its caches. After this the app starts as a fresh install. */
 export async function wipeLocalData(): Promise<void> {
   try { localStorage.clear(); } catch { /* storage unavailable */ }
+  try { document.cookie = 'mx_vid=; Max-Age=0; Path=/'; } catch { /* cookies unavailable */ }
   try { sessionStorage.clear(); } catch { /* storage unavailable */ }
   try { const keys = await caches.keys(); await Promise.all(keys.map((k) => caches.delete(k))); } catch { /* no Cache API */ }
   try { const regs = (await navigator.serviceWorker?.getRegistrations()) ?? []; await Promise.all(regs.map((r) => r.unregister())); } catch { /* no service worker */ }

@@ -17,7 +17,7 @@ const pages: Record<string, { title: string; body: JSX.Element }> = {
           <li>Les codes-barres que vous consultez, pour retrouver le produit, ses alternatives et ses prix.</li>
           <li>Votre régime et vos allergies, uniquement pour filtrer les alternatives ; ils ne sont pas conservés.</li>
           <li>Votre position approximative, seulement si vous la partagez, pour classer les magasins par distance ; elle n'est pas enregistrée.</li>
-          <li>Un compteur de visites anonyme (identifiant haché, sans cookie) et les erreurs techniques de l'application.</li>
+          <li>Un compteur de visites anonyme (un identifiant aléatoire dans un cookie, voir ci-dessous, haché côté serveur) et les erreurs techniques de l'application.</li>
           <li>Votre adresse IP, traitée par nos hébergeurs et utilisée pour limiter les abus.</li>
         </ul>
         <h2>Services tiers</h2>
@@ -25,7 +25,7 @@ const pages: Record<string, { title: string; body: JSX.Element }> = {
         <h2>Vos droits</h2>
         <p>Les données de santé que vous saisissez (allergies, régime) restent sur votre appareil. Vous pouvez les exporter ou les supprimer à tout moment dans Profil. Pour toute demande (accès, effacement, opposition) sur les données de notre serveur, ou pour une réclamation, écrivez à <a href={`mailto:${CONTACT}`}>{CONTACT}</a>. Vous pouvez aussi saisir la CNIL (cnil.fr).</p>
         <h2>Cookies</h2>
-        <p>Mieux n'utilise aucun cookie publicitaire ni de suivi. Le stockage local sert uniquement au fonctionnement (profil, cache, langue).</p>
+        <p>Mieux dépose un seul cookie, « mx_vid » : un identifiant aléatoire de première partie, conservé 13 mois, qui sert uniquement à compter le nombre de visiteurs distincts (mesure d'audience anonyme, exemptée de consentement par la CNIL). Il n'est lié à aucune identité, n'est partagé avec personne et n'est jamais utilisé pour la publicité ni le profilage. Vous pouvez ne pas être compté : activez « Ne pas me compter » dans Profil, ou le signal Do Not Track / GPC de votre navigateur ; « Tout supprimer » efface aussi ce cookie. Le stockage local sert au fonctionnement (profil, cache, langue).</p>
       </>
     ),
   },
