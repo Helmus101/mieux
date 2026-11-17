@@ -295,3 +295,13 @@ def test_branded_bouillon_cubes_and_ramen_win_over_a_generic_soup_or_noodle_tag(
     assert typ("Buldak Spicy Ramen", ["en:pastas", "en:noodles"]) == "asian_noodles"
     assert typ("Nouilles de blé instantanées saveur poulet", ["en:noodles"]) == "asian_noodles"
     assert typ("Spaghetti n°5", ["en:pastas"]) == "pasta"
+
+
+def test_tapenade_variants_are_not_mixed():
+    from app import taxonomy as t
+    def sub(a, b):
+        return t.substitution({"name": a, "brand": "", "categories": []}, {"name": b, "brand": "", "categories": []})
+    tom = "Tapenade de tomates séchées"
+    assert t.classify({"name": tom, "brand": "", "categories": []})["type"] == "tapenade"
+    assert t.classify({"name": "Caviar d'aubergines grillées", "brand": "", "categories": []})["type"] == "tapenade"
+    assert (sub(tom, "Caviar d'aubergines grillées") or {}).get("level", 9) >= 3 or not (sub(tom, "Caviar d'aubergines grillées") or {}).get("ok", False)

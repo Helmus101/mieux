@@ -4,7 +4,7 @@ import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
-import { cachedAlternatives, fetchAlternatives, NEAR_KM } from '../alternatives';
+import { cachedAlternatives, fetchAlternatives, hasAlternatives, NEAR_KM } from '../alternatives';
 import { Button, Card, ChainLogo, Muted, NavBar, Screen, Segmented, Skeleton, Loader, Toast, haptic } from '../ui';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
 import { routes, useNav } from '../nav';
@@ -36,9 +36,14 @@ export default function Alternatives() {
     let gone = false, retry: ReturnType<typeof setTimeout> | undefined;
     // The product page usually started this very request already: the answer is in the cache or about to arrive.
     const stale = cachedAlternatives(barcode);
-    if (stale) { setR(stale); setBusy(false); } else setBusy(true);   // show the last answer at once, then refresh it
+    if (stale && hasAlternatives(stale)) { setR(stale); setBusy(false); } else setBusy(true);   // show the last answer at once, then refresh it
     fetchAlternatives(barcode)
-      .then((x: any) => { if (!gone) setR(x); })
+      .then((x: any) => {
+        if (gone) return;
+        // An empty answer is retried once before it is shown as "no alternatives".
+        if (!hasAlternatives(x) && autoRetry.current < 1) { autoRetry.current += 1; retry = setTimeout(() => setTry((n) => n + 1), 800); return; }
+        setR(x);
+      })
       .catch((e: unknown) => {
         if (gone) return;
         // One quiet retry before showing an error: most failures here are a dropped request or a busy moment on the server.
