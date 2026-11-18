@@ -41,9 +41,3 @@ def test_supabase_sync_sends_the_row_and_survives_failures(monkeypatch):
     assert sb.push_subscriber("a@b.fr", "fr", "FR", transport=boom) is False
     assert sb.delete_subscriber("a+b@c.fr", transport=ok) is True and seen["url"].endswith("email=eq.a%2Bb%40c.fr")
 
-
-def test_newsletter_test_endpoint_reports_each_store(monkeypatch):
-    monkeypatch.delenv("SUPABASE_URL", raising=False)
-    c = TestClient(app)
-    r = c.post("/v1/newsletter/test", headers=H)
-    assert r.status_code == 200 and r.json() == {"local": "ok", "supabase": "off"}

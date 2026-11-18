@@ -110,7 +110,7 @@ function Shell() {
       <ToastHost />
       <InstallPrompt />
       <UpdateToast />
-      <NewsPrompt scans={scanCount} onScanner={sectionOf(pathname) === 'scan'} />
+      <NewsPrompt scans={scanCount} />
       <CommandMenu />
     </div>
   );
