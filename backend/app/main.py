@@ -38,7 +38,7 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-from . import altindex, chains as _chains, taxo1000, webprice, value_index, valuescore, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
+from . import altindex, chains as _chains, taxo1000, supabase_sync, webprice, value_index, valuescore, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
@@ -1378,6 +1378,50 @@ def put_identity(body: MeIdentity, uid: str = Depends(user), s: Session = Depend
     s.merge(row)
     s.commit()
     return _identity(row)
+
+
+class NewsletterIn(BaseModel):
+    email: str
+    consent: bool = False
+
+
+_EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,255}\.[^@\s.]{2,}$")
+
+
+@app.post("/v1/newsletter")
+@limiter.limit("10/minute")
+def newsletter_subscribe(request: Request, background: BackgroundTasks, body: NewsletterIn, s: Session = Depends(get_db), lang: str = Depends(lang_of)):
+    """Optional news by email. Only stored with an explicit tick of the consent box; one row per address."""
+    email = body.email.strip().lower()
+    if not body.consent:
+        raise HTTPException(422, "Consent is required")
+    if len(email) > 320 or not _EMAIL_RE.match(email):
+        raise HTTPException(422, "Invalid email")
+    if not s.query(db.Subscriber).filter(db.Subscriber.email == email).first():
+        s.add(db.Subscriber(email=email, lang=lang, country=request.headers.get("x-country", "FR")[:2].upper()))
+        s.commit()
+    background.add_task(supabase_sync.push_subscriber, email, lang, request.headers.get("x-country", "FR")[:2].upper())
+    return {"ok": True}
+
+
+@app.delete("/v1/newsletter")
+@limiter.limit("10/minute")
+def newsletter_unsubscribe(request: Request, background: BackgroundTasks, email: str, s: Session = Depends(get_db)):
+    s.query(db.Subscriber).filter(db.Subscriber.email == email.strip().lower()).delete()
+    s.commit()
+    background.add_task(supabase_sync.delete_subscriber, email.strip().lower())
+    return {"ok": True}
+
+
+@app.get("/v1/newsletter/subscribers")
+@limiter.limit("10/minute")
+def newsletter_list(request: Request, x_admin_key: Optional[str] = Header(None), s: Session = Depends(get_db)):
+    """The list of addresses: closed (404) unless ADMIN_KEY is set and sent as X-Admin-Key."""
+    key = os.environ.get("ADMIN_KEY")
+    if not key or not x_admin_key or not secrets.compare_digest(x_admin_key, key):
+        raise HTTPException(404, "Not found")
+    rows = s.query(db.Subscriber).order_by(db.Subscriber.consent_at.desc()).all()
+    return {"count": len(rows), "subscribers": [{"email": r.email, "lang": r.lang, "country": r.country, "at": r.consent_at.isoformat() if r.consent_at else None} for r in rows]}
 
 
 @app.get("/v1/people")

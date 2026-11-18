@@ -3,6 +3,7 @@ import { t, setLocale } from '@shared/i18n';
 import { clearAll } from '@shared/storage';
 import { wipeLocalData } from '../wipe';
 import { countingOff, setCounting } from '../usage';
+import NewsSignup from '../NewsSignup';
 import { useProfile, useHistory } from '@shared/stores';
 import { useState } from 'react';
 import { Screen, NavBar, LargeTitle, Section, Chips, Chip, Group, Cell, Segmented, Confirm } from '../ui';
@@ -18,7 +19,7 @@ export default function Profile() {
   const [q, setQ] = useState(''), [sugg, setSugg] = useState<Home[]>([]);
   const type = async (v: string) => { setQ(v); setSugg(await searchAddress(v)); };
   const exp = async () => { const d = { server: await api.exportData().catch(() => null), device: hist.exportAll(), zone: p.zone }; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 1)], { type: 'application/json' })); a.download = 'mieux-donnees.json'; a.click(); };
-  const [askErase, setAskErase] = useState(false);
+  const [askErase, setAskErase] = useState(false), [news, setNews] = useState(false);
   const erase = async () => { await api.deleteAccount().catch(() => undefined); hist.clear(); clearAll(); p.reset(); await wipeLocalData(); location.href = '/'; };
   return (
     <Screen>
@@ -52,12 +53,14 @@ export default function Profile() {
           <Cell onPress={exp} chevron>{t('profile.export')}</Cell>
           <Cell onPress={() => setAskErase(true)}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
           <Cell onPress={() => { setCounting(countingOff()); location.reload(); }}>{countingOff() ? 'Autoriser le comptage anonyme des visites' : 'Ne pas me compter dans les visites'}</Cell>
+          <Cell onPress={() => setNews((v) => !v)} chevron>Recevoir les nouveautés de Mieux</Cell>
           <Cell onPress={() => { location.href = '/confidentialite'; }} chevron>Confidentialité</Cell>
           <Cell onPress={() => { location.href = '/cgu'; }} chevron>Conditions d'utilisation</Cell>
           <Cell onPress={() => { location.href = '/mentions-legales'; }} chevron>Mentions légales</Cell>
           <Cell><span style={{ fontSize: 12, opacity: 0.7 }}>© {new Date().getFullYear()} Mieux. Tous droits réservés.</span></Cell>
         </Group>
       </Section>
+      {news && <NewsSignup />}
       <Confirm open={askErase} onClose={() => setAskErase(false)} onConfirm={erase} title={t('profile.erase')} action={t('profile.erase')}>{t('profile.eraseConfirm')}</Confirm>
       <p className="about-credit">{t('brand.credit')}<br />Mieux {APP_VERSION}</p>
     </Screen>
