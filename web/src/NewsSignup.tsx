@@ -1,56 +1,51 @@
 import { useState } from 'react';
 import { api } from '@shared/api/client';
-import { Button, Card, Muted } from './ui';
 
-const KEY = 'mx_news';   // 'done' (subscribed) | 'no' (dismissed): the prompt is shown at most once
+const KEY = 'mx_news';   // 'done' once an address has been saved
 export const newsState = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
-const setNews = (v: string) => { try { localStorage.setItem(KEY, v); } catch { /* storage unavailable */ } };
+const setDone = () => { try { localStorage.setItem(KEY, 'done'); } catch { /* storage unavailable */ } };
 
-/** Optional news by email. Nothing is sent until the consent box (unticked) is ticked and the person presses the button. */
-export default function NewsSignup({ onDone, dismissible }: { onDone?: () => void; dismissible?: boolean }) {
-  const [email, setEmail] = useState(''), [ok, setOk] = useState(false), [consent, setConsent] = useState(false);
-  const [busy, setBusy] = useState(false), [msg, setMsg] = useState<string | null>(null);
+/** The e-mail popup. `required`: no way to close it until an address is saved (shown after 25 scanned products).
+ *  Otherwise (opened from Profile) it can be closed with the × or by tapping outside. */
+export function NewsModal({ required, onClose }: { required?: boolean; onClose: () => void }) {
+  const [email, setEmail] = useState(''), [busy, setBusy] = useState(false), [msg, setMsg] = useState<string | null>(null), [ok, setOk] = useState(false);
+  const valid = /^[^@\s]+@[^@\s]+\.[^@\s.]{2,}$/.test(email.trim());
 
   const send = async () => {
     setBusy(true); setMsg(null);
-    try { await api.subscribeNews(email.trim(), consent); setNews('done'); setOk(true); onDone?.(); }
+    try { await api.subscribeNews(email.trim(), true); setDone(); setOk(true); setTimeout(onClose, 1400); }
     catch (e: unknown) { setMsg((e as { response?: { status?: number } })?.response?.status === 422 ? 'Vérifiez l\'adresse e-mail.' : 'Impossible d\'enregistrer pour l\'instant, réessayez.'); }
     finally { setBusy(false); }
   };
-  // Really writes a throwaway address on the server and reports where it was saved.
-  const test = async () => {
-    setBusy(true); setMsg(null);
-    try {
-      const r = await api.testNews();
-      setMsg(`Serveur : OK · Supabase : ${r.supabase === 'ok' ? 'OK' : r.supabase === 'off' ? 'non configuré' : 'ÉCHEC'}`);
-    } catch { setMsg('Test échoué : le serveur ne répond pas.'); }
-    finally { setBusy(false); }
-  };
 
-  if (ok) return <Card><b>Merci !</b><Muted>Vous recevrez les nouveautés de Mieux. Désinscription : écrivez-nous.</Muted></Card>;
   return (
-    <Card>
-      <b>Recevoir les nouveautés de Mieux</b>
-      <Muted>Quelques e-mails au plus, pour les nouvelles fonctions. Rien d'autre n'est demandé.</Muted>
-      <input type="email" inputMode="email" autoComplete="email" placeholder="vous@exemple.fr" value={email} onChange={(e) => setEmail(e.target.value)}
-        style={{ width: '100%', boxSizing: 'border-box', margin: '12px 0 8px', padding: '12px 14px', borderRadius: 10, border: '1px solid var(--line)', font: 'inherit', fontSize: 16 }} />
-      <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, margin: '4px 0 12px' }}>
-        <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 3 }} />
-        <span>J'accepte que Mieux enregistre mon adresse pour m'envoyer ses nouveautés. Je peux me désinscrire à tout moment (<a href="/confidentialite">confidentialité</a>).</span>
-      </label>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Button onPress={send} disabled={busy || !consent || !email.includes('@')}>S'inscrire</Button>
-        {dismissible && <Button plain onPress={() => { setNews('no'); onDone?.(); }}>Non merci</Button>}
-        <button type="button" onClick={test} disabled={busy} style={{ marginLeft: 'auto', background: 'none', border: 0, color: 'var(--mut)', fontSize: 12, textDecoration: 'underline' }}>Tester</button>
+    <div role="dialog" aria-modal="true" aria-labelledby="news-title" onClick={() => { if (!required) onClose(); }}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(20,32,26,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 420, background: 'var(--card, #fff)', borderRadius: 18, padding: '24px 20px 20px', boxShadow: '0 20px 60px rgba(0,0,0,.25)' }}>
+        {!required && <button type="button" aria-label="Fermer" onClick={onClose} style={{ position: 'absolute', top: 6, right: 6, width: 44, height: 44, border: 0, background: 'none', fontSize: 26, lineHeight: 1, color: 'var(--mut)', cursor: 'pointer' }}>×</button>}
+        {ok ? (
+          <><b id="news-title" style={{ fontSize: 20 }}>Merci !</b><p style={{ margin: '8px 0 0', color: 'var(--mut)' }}>Votre adresse est enregistrée.</p></>
+        ) : (
+          <>
+            <b id="news-title" style={{ fontSize: 20 }}>{required ? 'Une dernière étape pour continuer' : 'Recevoir les nouveautés de Mieux'}</b>
+            <p style={{ margin: '8px 0 14px', color: 'var(--mut)', fontSize: 14.5, lineHeight: 1.5 }}>
+              {required ? 'Laissez votre e-mail pour continuer à utiliser Mieux. ' : ''}Nous l'utilisons uniquement pour vous écrire quand Mieux évolue, jamais pour autre chose, et nous ne le partageons avec personne. Désinscription à tout moment (<a href="/confidentialite">confidentialité</a>).
+            </p>
+            <input type="email" inputMode="email" autoComplete="email" autoFocus placeholder="vous@exemple.fr" value={email} onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && valid && !busy) send(); }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '13px 14px', borderRadius: 10, border: '1px solid var(--line)', font: 'inherit', fontSize: 16 }} />
+            <button type="button" className="btn primary" disabled={busy || !valid} onClick={send} style={{ width: '100%', marginTop: 12 }}>{required ? 'Continuer' : 'S\'inscrire'}</button>
+            {msg && <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--bad)' }}>{msg}</p>}
+          </>
+        )}
       </div>
-      {msg && <p style={{ margin: '10px 0 0', fontSize: 13 }}>{msg}</p>}
-    </Card>
+    </div>
   );
 }
 
-/** Shown once, after 25 scanned products, never on the scanner. Dismissable; "Non merci" or signing up ends it for good. */
-export function NewsPrompt({ scans, onScanner }: { scans: number; onScanner: boolean }) {
-  const [gone, setGone] = useState(false);
-  if (gone || onScanner || scans < 25 || newsState()) return null;
-  return <div style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(84px + env(safe-area-inset-bottom))', zIndex: 40, maxWidth: 480, margin: '0 auto' }}><NewsSignup dismissible onDone={() => setGone(true)} /></div>;
+/** After 25 scanned products, until an address is saved. Shown on every screen. */
+export function NewsPrompt({ scans }: { scans: number }) {
+  const [done, setDone2] = useState(false);
+  if (done || scans < 25 || newsState()) return null;
+  return <NewsModal required onClose={() => setDone2(true)} />;
 }

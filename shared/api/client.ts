@@ -157,10 +157,6 @@ export class MieuxAPI {
     const response = await this.client.post('/newsletter', { email, consent });
     return response.data;
   }
-  async testNews(): Promise<{ local: string; supabase: 'ok' | 'off' | 'failed' }> {
-    const response = await this.client.post('/newsletter/test');
-    return response.data;
-  }
   async unsubscribeNews(email: string) {
     const response = await this.client.delete('/newsletter', { params: { email } });
     return response.data;
