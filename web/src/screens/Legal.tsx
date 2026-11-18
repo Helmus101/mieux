@@ -21,7 +21,7 @@ const pages: Record<string, { title: string; body: JSX.Element }> = {
           <li>Votre adresse IP, traitée par nos hébergeurs et utilisée pour limiter les abus.</li>
         </ul>
         <h2>Services tiers</h2>
-        <p>Open Food Facts et Open Prices (données produits et prix), OpenStreetMap / Nominatim et l'API Adresse (data.gouv.fr) pour situer une adresse ou un magasin, des services de recherche et d'IA pour estimer un prix en ligne (seul le nom du produit leur est transmis, jamais votre profil), Vercel (site) et Fly.io (serveur) comme hébergeurs.</p>
+        <p>Open Food Facts et Open Prices (données produits et prix), OpenStreetMap / Nominatim et l'API Adresse (data.gouv.fr) pour situer une adresse ou un magasin, Supabase (copie sécurisée des adresses e-mail de la liste de nouveautés), des services de recherche et d'IA pour estimer un prix en ligne (seul le nom du produit leur est transmis, jamais votre profil), Vercel (site) et Fly.io (serveur) comme hébergeurs.</p>
         <h2>Vos droits</h2>
         <p>Les données de santé que vous saisissez (allergies, régime) restent sur votre appareil. Vous pouvez les exporter ou les supprimer à tout moment dans Profil. Pour toute demande (accès, effacement, opposition) sur les données de notre serveur, ou pour une réclamation, écrivez à <a href={`mailto:${CONTACT}`}>{CONTACT}</a>. Vous pouvez aussi saisir la CNIL (cnil.fr).</p>
         <h2>Cookies</h2>

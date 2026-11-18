@@ -152,6 +152,16 @@ export class MieuxAPI {
     return response.data;
   }
 
+  /** Optional news by email: stored only with the consent box ticked. */
+  async subscribeNews(email: string, consent: boolean) {
+    const response = await this.client.post('/newsletter', { email, consent });
+    return response.data;
+  }
+  async unsubscribeNews(email: string) {
+    const response = await this.client.delete('/newsletter', { params: { email } });
+    return response.data;
+  }
+
   async compareProducts(productIds: string[], approximate = false) {
     const response = await this.client.post('/comparisons', { product_ids: productIds, approximate });
     return response.data;

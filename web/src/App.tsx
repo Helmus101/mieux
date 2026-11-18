@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType 
 import { lazy as reactLazy, Suspense, useEffect, type ComponentType } from 'react';
 import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
-import { useProfile, apiPrefs } from '@shared/stores';
+import { useProfile, useHistory, apiPrefs } from '@shared/stores';
 import { Loader, Screen, haptic } from './ui';
 import { routes, savedTabScroll, useNav } from './nav';
 import ErrorBoundary from './ErrorBoundary';
@@ -11,6 +11,7 @@ import InstallPrompt from './InstallPrompt';
 import CommandMenu from './CommandMenu';
 import NetStatus from './NetStatus';
 import UpdateToast from './UpdateToast';
+import { NewsPrompt } from './NewsSignup';
 import { useEdgeSwipeBack } from './gestures';
 import { APP_PATH } from './install';
 import './index.css';
@@ -80,6 +81,7 @@ function Shell() {
   const profile = useProfile();
   const { pathname } = useLocation();
   const { back } = useNav();
+  const scanCount = useHistory((st) => st.scans.length);
   const { onboarded, priorities, diet, allergens, language } = profile;
   useEdgeSwipeBack(back, sectionOf(pathname) !== 'scan');  // the scanner is full screen: no gesture there
   // Set locale on app load
@@ -108,6 +110,7 @@ function Shell() {
       <ToastHost />
       <InstallPrompt />
       <UpdateToast />
+      <NewsPrompt scans={scanCount} onScanner={sectionOf(pathname) === 'scan'} />
       <CommandMenu />
     </div>
   );

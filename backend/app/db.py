@@ -122,6 +122,16 @@ class PriceObservation(Base):  # confirmed prices *paid by the user*; not shop s
     source = Column(String, default="user_receipt")
 
 
+class Subscriber(Base):
+    """An email left on purpose (ticked consent box) to hear about Mieux news. Nothing else is stored with it."""
+    __tablename__ = "subscribers"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    lang = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    consent_at = Column(DateTime, default=now)
+
+
 class Visit(Base):
     """One anonymous visit per person, per surface, per day. No cookie, no user id: only a daily-rotating hash of
     IP + browser is stored, so people can be counted without being followed from one day to the next."""
