@@ -112,3 +112,16 @@ def test_full_store_list_gives_exact_nearest_branch_in_dense_areas():
     near = retail.nearest(s, "carrefour", 48.8566, 2.3522, 15, k=3, refresh=False)
     assert near[0]["name"] == "Carrefour City tout près" and near[0]["distance_m"] < 200 and near[1]["distance_m"] > 3000
     assert [n["distance_m"] for n in near] == sorted(n["distance_m"] for n in near)
+
+
+def test_distance_to_nearest_branch_widens_beyond_the_radius_without_network():
+    s = session()
+    retail.seed(s)
+    s.add(db.Store(chain_id="lidl", store_name="Lidl Moulins", latitude=46.57, longitude=3.33, source_id="far1"))   # ~12 km from the point below
+    s.add(db.Store(chain_id="lidl", store_name="Lidl Vichy", latitude=46.12, longitude=3.42, source_id="far2"))
+    s.commit()
+    lat, lon = 46.47, 3.30
+    assert retail.nearest(s, "lidl", lat, lon, 5.0, k=3, refresh=False, widen=False) == []           # strict: nothing within 5 km
+    wide = retail.nearest(s, "lidl", lat, lon, 5.0, k=3, refresh=False, widen=True)
+    assert [x["name"] for x in wide][:1] == ["Lidl Moulins"] and 8000 < wide[0]["distance_m"] < 16000   # still gives the real distance
+    assert retail.nearest(s, "aldi", lat, lon, 5.0, k=3, refresh=False, widen=True) == []          # a chain with no branch known stays empty
