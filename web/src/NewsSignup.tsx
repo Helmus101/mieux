@@ -17,12 +17,13 @@ export default function NewsSignup({ onDone, dismissible }: { onDone?: () => voi
     catch (e: unknown) { setMsg((e as { response?: { status?: number } })?.response?.status === 422 ? 'Vérifiez l\'adresse e-mail.' : 'Impossible d\'enregistrer pour l\'instant, réessayez.'); }
     finally { setBusy(false); }
   };
-  // Saves a throwaway address, then removes it: proves the server really writes to its database.
+  // Really writes a throwaway address on the server and reports where it was saved.
   const test = async () => {
     setBusy(true); setMsg(null);
-    const probe = `test+${Math.random().toString(36).slice(2, 8)}@example.com`;
-    try { await api.subscribeNews(probe, true); await api.unsubscribeNews(probe); setMsg('Test réussi : l\'enregistrement fonctionne.'); }
-    catch { setMsg('Test échoué : le serveur n\'a pas enregistré.'); }
+    try {
+      const r = await api.testNews();
+      setMsg(`Serveur : OK · Supabase : ${r.supabase === 'ok' ? 'OK' : r.supabase === 'off' ? 'non configuré' : 'ÉCHEC'}`);
+    } catch { setMsg('Test échoué : le serveur ne répond pas.'); }
     finally { setBusy(false); }
   };
 
