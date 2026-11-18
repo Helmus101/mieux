@@ -41,3 +41,12 @@ def test_supabase_sync_sends_the_row_and_survives_failures(monkeypatch):
     assert sb.push_subscriber("a@b.fr", "fr", "FR", transport=boom) is False
     assert sb.delete_subscriber("a+b@c.fr", transport=ok) is True and seen["url"].endswith("email=eq.a%2Bb%40c.fr")
 
+
+
+def test_push_scan_is_anonymous(monkeypatch):
+    from app import supabase_sync
+    monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x")
+    seen = []
+    assert supabase_sync.push_scan("123", "FR", transport=lambda m, u, h, d: seen.append((m, u, d)) or 201)
+    assert seen[0][1].endswith("/rest/v1/scan_events") and b"user" not in seen[0][2]

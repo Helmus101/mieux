@@ -1309,9 +1309,10 @@ def search(q: str, uid: str = Depends(user)):
 
 @app.post("/v1/scans")
 @limiter.limit("30/minute")
-def add_scan(request: Request, body: Dict[str, str], uid: str = Depends(user), s: Session = Depends(get_db)):
+def add_scan(request: Request, body: Dict[str, str], bg: BackgroundTasks, uid: str = Depends(user), s: Session = Depends(get_db)):
     logger.info({"event": "scan_added", "barcode": body.get("barcode"), "user_id": uid})
     p = load_product(s, body["barcode"])
+    bg.add_task(supabase_sync.push_scan, body.get("barcode"), request.headers.get("x-country"))   # anonymous total, no user id
     if not is_account(s, uid):  # a signed-in account stores nothing here: its scan total lives in Supabase
         s.add(db.Scan(user_id=uid, product_id=p["id"]))
         s.commit()
