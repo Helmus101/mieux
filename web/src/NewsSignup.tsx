@@ -48,9 +48,9 @@ export default function NewsSignup({ onDone, dismissible }: { onDone?: () => voi
   );
 }
 
-/** Shown once, after 50 scanned products, never on the scanner. Dismissable; "Non merci" or signing up ends it for good. */
+/** Shown once, after 25 scanned products, never on the scanner. Dismissable; "Non merci" or signing up ends it for good. */
 export function NewsPrompt({ scans, onScanner }: { scans: number; onScanner: boolean }) {
   const [gone, setGone] = useState(false);
-  if (gone || onScanner || scans < 50 || newsState()) return null;
+  if (gone || onScanner || scans < 25 || newsState()) return null;
   return <div style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(84px + env(safe-area-inset-bottom))', zIndex: 40, maxWidth: 480, margin: '0 auto' }}><NewsSignup dismissible onDone={() => setGone(true)} /></div>;
 }
