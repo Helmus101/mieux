@@ -5,7 +5,7 @@ const KEY = 'mx_news';   // 'done' once an address has been saved
 export const newsState = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
 const setDone = () => { try { localStorage.setItem(KEY, 'done'); } catch { /* storage unavailable */ } };
 
-/** The e-mail popup. `required`: no way to close it until an address is saved (shown after 25 scanned products).
+/** The e-mail popup. `required`: no way to close it until an address is saved (shown after 20 scanned products).
  *  Otherwise (opened from Profile) it can be closed with the × or by tapping outside. */
 export function NewsModal({ required, onClose }: { required?: boolean; onClose: () => void }) {
   const [email, setEmail] = useState(''), [busy, setBusy] = useState(false), [msg, setMsg] = useState<string | null>(null), [ok, setOk] = useState(false);
@@ -43,9 +43,9 @@ export function NewsModal({ required, onClose }: { required?: boolean; onClose: 
   );
 }
 
-/** After 25 scanned products, until an address is saved. Shown on every screen. */
+/** After 20 scanned products, until an address is saved. Shown on every screen. */
 export function NewsPrompt({ scans }: { scans: number }) {
   const [done, setDone2] = useState(false);
-  if (done || scans < 25 || newsState()) return null;
+  if (done || scans < 20 || newsState()) return null;
   return <NewsModal required onClose={() => setDone2(true)} />;
 }
