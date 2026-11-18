@@ -1404,6 +1404,20 @@ def newsletter_subscribe(request: Request, background: BackgroundTasks, body: Ne
     return {"ok": True}
 
 
+@app.post("/v1/newsletter/test")
+@limiter.limit("5/minute")
+def newsletter_test(request: Request, s: Session = Depends(get_db)):
+    """The in-app "Tester" button: really writes a throwaway address to the local database (then removes it) and to Supabase
+    (when configured; that copy is insert-only, so the test row stays there and can be deleted from the dashboard)."""
+    probe = f"test+{secrets.token_hex(3)}@example.com"
+    s.add(db.Subscriber(email=probe, lang="fr", country="FR"))
+    s.commit()
+    s.query(db.Subscriber).filter(db.Subscriber.email == probe).delete()
+    s.commit()
+    remote = "off" if not supabase_sync.enabled() else ("ok" if supabase_sync.push_subscriber(probe, "fr", "FR") else "failed")
+    return {"local": "ok", "supabase": remote}
+
+
 @app.delete("/v1/newsletter")
 @limiter.limit("10/minute")
 def newsletter_unsubscribe(request: Request, background: BackgroundTasks, email: str, s: Session = Depends(get_db)):

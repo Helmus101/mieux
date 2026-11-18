@@ -25,14 +25,25 @@ def test_supabase_sync_sends_the_row_and_survives_failures(monkeypatch):
     monkeypatch.delenv("SUPABASE_URL", raising=False)
     assert sb.push_subscriber("a@b.fr", "fr", "FR") is False   # not configured: does nothing
     monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
-    monkeypatch.setenv("SUPABASE_SERVICE_KEY", "svc")
+    monkeypatch.delenv("SUPABASE_SECRET_KEY", raising=False)
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x")
     seen = {}
     def ok(method, url, headers, data):
         seen.update(method=method, url=url, headers=headers, data=data); return 201
     assert sb.push_subscriber("a@b.fr", "fr", "FR", transport=ok) is True
-    assert seen["url"] == "https://x.supabase.co/rest/v1/subscribers?on_conflict=email" and seen["method"] == "POST"
-    assert seen["headers"]["apikey"] == "svc" and b"a@b.fr" in seen["data"]
-    assert "ignore-duplicates" in seen["headers"]["Prefer"]
+    assert seen["url"] == "https://x.supabase.co/rest/v1/subscribers" and seen["method"] == "POST"
+    assert seen["headers"]["apikey"] == "sb_publishable_x" and "Authorization" not in seen["headers"] and b"a@b.fr" in seen["data"]
+    assert seen["headers"]["Prefer"] == "return=minimal"
+    import urllib.error
+    def dup(*a, **k): raise urllib.error.HTTPError("u", 409, "dup", {}, None)
+    assert sb.push_subscriber("a@b.fr", "fr", "FR", transport=dup) is True   # already subscribed
     def boom(*a, **k): raise OSError("down")
     assert sb.push_subscriber("a@b.fr", "fr", "FR", transport=boom) is False
     assert sb.delete_subscriber("a+b@c.fr", transport=ok) is True and seen["url"].endswith("email=eq.a%2Bb%40c.fr")
+
+
+def test_newsletter_test_endpoint_reports_each_store(monkeypatch):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    c = TestClient(app)
+    r = c.post("/v1/newsletter/test", headers=H)
+    assert r.status_code == 200 and r.json() == {"local": "ok", "supabase": "off"}

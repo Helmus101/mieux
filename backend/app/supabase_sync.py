@@ -1,16 +1,22 @@
 """Optional copy of newsletter addresses into Supabase (table `subscribers`), on top of the local database.
 
-Active only when SUPABASE_URL and SUPABASE_SERVICE_KEY are set (the service key stays on the server, never in the web app).
-Best effort: a Supabase outage never breaks the sign-up, the address is already saved locally.
+Active only when SUPABASE_URL and a key are set: SUPABASE_PUBLISHABLE_KEY (sb_publishable_..., insert-only through the
+policy below) or SUPABASE_SECRET_KEY (sb_secret_..., bypasses row-level security). The key is read by the server only. Best effort: a Supabase outage never breaks the sign-up, the
+address is already saved locally.
 Table (run once in the Supabase SQL editor):
 
     create table if not exists subscribers (
       email text primary key, lang text, country text, consent_at timestamptz default now());
-    alter table subscribers enable row level security;   -- no policies: only the service key can read or write
+    alter table subscribers enable row level security;
+    -- the publishable key (role anon) may ADD a row and nothing else: it cannot read, change or delete the list
+    create policy "anyone can subscribe" on subscribers for insert to anon with check (true);
+
+Deleting an address in Supabase is then done from the dashboard (the publishable key is not allowed to delete).
 """
 import json
 import logging
 import os
+import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Optional
@@ -19,13 +25,20 @@ log = logging.getLogger("app.supabase")
 
 
 def enabled() -> bool:
-    return bool(os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_KEY"))
+    return bool(os.environ.get("SUPABASE_URL") and _key())
+
+
+def _key():
+    return os.environ.get("SUPABASE_SECRET_KEY") or os.environ.get("SUPABASE_PUBLISHABLE_KEY")
 
 
 def _call(method, path, body=None, prefer=None, transport=None):
     base = os.environ["SUPABASE_URL"].rstrip("/")
-    key = os.environ["SUPABASE_SERVICE_KEY"]
-    headers = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    key = _key()
+    # New-style keys (sb_...) are not JWTs and go in `apikey` only; a legacy JWT key also goes in Authorization.
+    headers = {"apikey": key, "Content-Type": "application/json"}
+    if key.startswith("eyJ"):
+        headers["Authorization"] = f"Bearer {key}"
     if prefer:
         headers["Prefer"] = prefer
     data = json.dumps(body).encode() if body is not None else None
@@ -40,9 +53,14 @@ def push_subscriber(email: str, lang: Optional[str], country: Optional[str], tra
     if not enabled():
         return False
     try:
-        _call("POST", "subscribers?on_conflict=email", {"email": email, "lang": lang, "country": country},
-              prefer="resolution=ignore-duplicates,return=minimal", transport=transport)
+        # Plain insert: an "upsert" needs read rights, which the insert-only policy deliberately withholds.
+        _call("POST", "subscribers", {"email": email, "lang": lang, "country": country}, prefer="return=minimal", transport=transport)
         return True
+    except urllib.error.HTTPError as e:
+        if e.code == 409:   # already on the list: that is fine
+            return True
+        log.warning("supabase subscriber sync failed: HTTP %s", e.code)
+        return False
     except Exception as e:  # noqa: BLE001 - never let a third party break the sign-up
         log.warning("supabase subscriber sync failed: %s", type(e).__name__)
         return False
