@@ -797,7 +797,7 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
         left = (deadline - time.time()) if deadline else None
         if (left is None or left >= 5) and _budget_left() and _ai_budget_left():
             try:
-                out = _bounded(min(left, 25) if left else 25, _deepseek_lookup, product, transport, timeout=left)
+                out = _bounded(min(left, 25 if product.get("brand") else 12) if left else (25 if product.get("brand") else 12), _deepseek_lookup, product, transport, timeout=left)
             except FuturesTimeoutError:
                 out = None
             if out:
@@ -823,6 +823,32 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
             "no_price": True,
         }
     return None
+
+
+# Country-code domains of other markets: a page on one of them is not a shop of this market, whatever price it shows.
+_FOREIGN_TLD = {"FR": {"de", "it", "es", "nl", "pt", "pl", "be", "ch", "at", "uk", "ie", "ru", "cz", "ro", "gr", "se", "dk", "no", "fi", "tr", "ma", "dz", "tn", "us", "ca", "au", "in", "cn", "jp"},
+                "US": {"fr", "de", "it", "es", "nl", "pt", "pl", "uk", "ie", "ru", "tr", "in", "cn", "jp", "ca", "au"}}
+PLAUSIBLE_BAND = 8.0     # a unit price more than 8x above or below the median of its type is a misread price (a multi-pack, a gift box, a wrong pack), not a bargain
+
+
+def _plausible(product: Dict[str, Any], out: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Last check on any price that leaves the search, whichever provider found it: (1) at least one cited page must not sit on another
+    market's country domain, (2) the unit price must be within 8x of the median of this product's type. A failed check drops the price (never
+    shown rather than shown wrong); a result that only lists stores (no price) passes."""
+    if not out or out.get("per100_cents") is None:
+        return out
+    from . import market, taxonomy, value_index
+    urls = out.get("source_urls") or []
+    foreign = _FOREIGN_TLD.get(market.current(), set())
+    if urls and all(urllib.parse.urlparse(u).netloc.rsplit(".", 1)[-1].lower() in foreign for u in urls):
+        return None
+    ref = (value_index._load() or {}).get((taxonomy.classify(product) or {}).get("type") or "", {})
+    pq = ref.get("price_q") or []
+    if market.current() == "FR" and ref.get("n", 0) >= 15 and len(pq) >= 5:
+        med = pq[len(pq) // 2]
+        if med and not (med / PLAUSIBLE_BAND <= out["per100_cents"] <= med * PLAUSIBLE_BAND):
+            return None
+    return out
 
 
 _conn: Dict[str, Any] = {"path": None, "db": None}
@@ -915,7 +941,7 @@ def lookup(product: Dict[str, Any], transport: Transport = _post, use_cache: boo
             # force=True + cached miss: fall through and retry the search now
         old = data                       # an expired price we found earlier: kept, never thrown away
     if provider():
-        out = _search_lookup(product, http or _http, transport, deadline)
+        out = _plausible(product, _search_lookup(product, http or _http, transport, deadline))
         if use_cache and out:
             _store(barcode, out)
         elif use_cache and not old:

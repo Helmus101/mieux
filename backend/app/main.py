@@ -1235,13 +1235,19 @@ def retailers(request: Request, barcode: str, body: RetailersReq, uid: str = Dep
     for ls in listings:
         if ls.listing_status not in ("listed", "unverified") or (body.chains and ls.chain_id not in body.chains):
             continue
-        near = retail.nearest(s, ls.chain_id, body.lat, body.lon, max(1.0, min(body.radius_km, 50.0)), k=3, refresh=False, widen=False)  # the full store list is loaded: exact, only inside the radius
+        radius = max(1.0, min(body.radius_km, 50.0))
+        near = retail.nearest(s, ls.chain_id, body.lat, body.lon, radius, k=3, refresh=False, widen=False)  # the full store list is loaded: exact, only inside the radius
+        beyond = False
+        if not near:
+            # Nothing inside the radius: still give the distance to the nearest branch (stored branches only, no outside call), flagged as far away
+            near = retail.nearest(s, ls.chain_id, body.lat, body.lon, radius, k=3, refresh=False, widen=True)
+            beyond = bool(near)
         if not near:
             far_chains += 1
             continue
         rows.append({"chain": retail.NAME_OF.get(ls.chain_id, ls.chain_id), "chain_id": ls.chain_id, "listing_status": ls.listing_status, "match_type": ls.match_type, "confidence": ls.match_confidence,
                      "source": ls.source, "note": ls.note, "price_per100_cents": ls.price_per100_cents, "pack_cents": pack_by.get(ls.chain_id), "last_checked": ls.last_checked.date().isoformat() if ls.last_checked else None, "source_url": ls.source_url,
-                     "nearest_store": near[0] if near else None, "second_store": near[1] if len(near) > 1 else None, "stores": near})
+                     "beyond_radius": beyond, "nearest_store": near[0] if near else None, "second_store": near[1] if len(near) > 1 else None, "stores": near})
     rows.sort(key=lambda r: (r["nearest_store"] is None, (r["nearest_store"] or {}).get("distance_m", 0)))
     return {"barcode": barcode, "product": p["name"], "size": q, "retailers": rows, "radius_km": body.radius_km,
             "other_chains": [{"chain": n, "chain_id": i} for n, i in retail.ID_OF.items() if i not in {r["chain_id"] for r in rows} and retail.in_market(i, market.current())],
