@@ -48,5 +48,5 @@ def test_push_scan_is_anonymous(monkeypatch):
     monkeypatch.setenv("SUPABASE_URL", "https://x.supabase.co")
     monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_x")
     seen = []
-    assert supabase_sync.push_scan("123", "FR", transport=lambda m, u, h, d: seen.append((m, u, d)) or 201)
-    assert seen[0][1].endswith("/rest/v1/scan_events") and b"user" not in seen[0][2]
+    assert supabase_sync.push_scan(transport=lambda m, u, h, d: seen.append((m, u, d)) or 204)
+    assert seen[0][1].endswith("/rest/v1/rpc/increment_scans") and seen[0][2] == b"{}"     # only "+1": no barcode, no user

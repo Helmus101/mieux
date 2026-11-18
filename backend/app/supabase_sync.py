@@ -11,14 +11,17 @@ Table (run once in the Supabase SQL editor):
     -- the publishable key (role anon) may ADD a row and nothing else: it cannot read, change or delete the list
     create policy "anyone can subscribe" on subscribers for insert to anon with check (true);
 
-Scan total (no user id, no session: one anonymous row per scanned product; total = count of rows):
+Scan total: ONE row holding the total number of products scanned - no barcode, no user, no row per scan. The publishable key
+cannot update rows, so it calls a function that only adds 1:
 
-    create table if not exists scan_events (
-      id bigint generated always as identity primary key, day date default current_date,
-      barcode text, country text);
-    alter table scan_events enable row level security;
-    create policy "anyone can add a scan" on scan_events for insert to anon with check (true);
-    -- total:  select count(*) from scan_events;   per day:  select day, count(*) from scan_events group by day order by day;
+    create table if not exists scan_total (id int primary key default 1 check (id = 1), total bigint not null default 0, updated_at timestamptz default now());
+    insert into scan_total (id, total) values (1, 0) on conflict (id) do nothing;
+    alter table scan_total enable row level security;
+    create or replace function increment_scans() returns void language sql security definer set search_path = public
+      as $$ update scan_total set total = total + 1, updated_at = now() where id = 1 $$;
+    revoke all on function increment_scans() from public;
+    grant execute on function increment_scans() to anon;
+    -- the total:  select total from scan_total;
 
 Deleting an address in Supabase is then done from the dashboard (the publishable key is not allowed to delete).
 """
@@ -86,13 +89,13 @@ def delete_subscriber(email: str, transport=None) -> bool:
         return False
 
 
-def push_scan(barcode: Optional[str], country: Optional[str], transport=None) -> bool:
-    """One anonymous row per scan, so the TOTAL number of scans lives in Supabase (never per account)."""
+def push_scan(transport=None) -> bool:
+    """Adds 1 to the single scan total in Supabase. Nothing about the product or the person is sent."""
     if not enabled():
         return False
     try:
-        _call("POST", "scan_events", {"barcode": barcode, "country": country}, prefer="return=minimal", transport=transport)
+        _call("POST", "rpc/increment_scans", {}, prefer="return=minimal", transport=transport)
         return True
     except Exception as e:  # noqa: BLE001 - best effort, never slows or breaks a scan
-        log.warning("supabase scan sync failed: %s", type(e).__name__)
+        log.warning("supabase scan count failed: %s", type(e).__name__)
         return False
