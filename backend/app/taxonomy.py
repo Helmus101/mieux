@@ -14,7 +14,7 @@ R = [
     ("burger_buns", "cereals_bakery", "bread", "buns", "bun", "sandwich_making", r"hamburger-buns|burger-buns|hot-dog-buns|bagels", r"burger|hot[- ]?dog|bagel"),
     ("brioche_toast", "cereals_bakery", "bread", "toast", "slice_crisp", "breakfast", r"toasted-brioche|brioche-toast", r"(toast|grill|biscott|tartine).*brioch|brioch.*(toast|grill|biscott|tartine)"),
     ("sliced_brioche", "cereals_bakery", "bread", "sliced_loaf", "slice_soft", "breakfast", r"sliced-brioche|brioche-bread", r"(tranch|pain de mie|mie).*brioch|brioch.*(tranch|pain de mie|mie)"),
-    ("viennoiserie", "cereals_bakery", "pastry", "pastry", "pastry", "breakfast", r"viennoiseries|brioches|croissants|pains-au-chocolat|pains-aux-raisins", r"brioche|croissant|pain au chocolat|pain aux raisins"),
+    ("viennoiserie", "cereals_bakery", "pastry", "pastry", "pastry", "breakfast", r"viennoiseries|brioches|croissants|pains-au-chocolat|pains-aux-raisins", r"brioche|croissant|pain au chocolat|pain aux raisins|pains? au lait"),
     ("rusks", "cereals_bakery", "bread", "rusk", "slice_crisp", "breakfast", r"rusks|biscottes", r"biscotte|grilletine|rusk"),
     # Bare "grill" (grilled) alone must never classify a product as toast: "Pistaches grillées", "Poulet grillé" and
     # countless other grilled foods have nothing to do with toasted bread when there is no category tag to rule it out.
@@ -85,10 +85,10 @@ R = [
     ("plant_drink", "drinks", "plant_drink", "liquid", "drink", "breakfast", r"plant-based-milks|milk-substitutes|rice-based-drinks|oat-based-drinks|soy-milks|almond-milks|hazelnut-based-drinks|plant-milks|coconut-milks", r"boisson (v[ée]g[ée]tale|au riz|[àa] l.avoine|soja|amande|coco|avoine)|lait (d.|de )?(amande|avoine|soja|coco|riz)|bevande"),
     ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"\bjus\b|nectar|pur jus|tropico|capri.?sun|oasis\b|boisson aux fruits|fruit shoot|smoothie|cocktail (?:de )?fruits?|cocktail multifruits?"),
     ("soda", "drinks", "soda", "liquid", "drink", "any", r"sodas|carbonated-drinks|colas|lemonades|energy-drinks", r"\bcola\b|\bcoca.?cola\b|limonade|\bsoda\b|boissons? gazeuses?|orangina|fanta|sprite|energy drink|boissons? [ée]nerg[ée]tisantes?"),
-    ("water", "drinks", "water", "liquid", "drink", "any", r"waters|spring-waters|mineral-waters", r"^eau\b|eau (min[ée]rale|de source|gazeuse|plate)"),
+    ("water", "drinks", "water", "liquid", "drink", "any", r"waters|spring-waters|mineral-waters", r"^eau\b|eau (min[ée]rale|de source|gazeuse|plate)|^(?:perrier|badoit|salvetat|la salvetat|s\.? ?pellegrino|san pellegrino|quezac|rozana|vichy c[ée]lestins|st[- ]yorre|saint[- ]yorre|qu[ée]zac|carola|ste? marguerite|sainte[- ]marguerite|oulm[eè]s|contrex|evian|volvic|vittel|cristaline|h[ée]par|courmayeur|wattwiller|thonon)\b(?!.*(?:saveur|aromatis|citron|framboise|p[êe]che|fraise|menthe|juicy|th[ée]\b))"),
     # Alcohol: a beer, a wine and a spirit are three different purchases and never substitute each other.
     ("beer", "drinks", "beer", "beer", "liquid", "drink", r"beers|craft-beers|non-alcoholic-beers|ales|lagers|radlers", r"bi[èe]re|\bbeer\b|pale ale|\bipa\b|stout|lager|panach[ée]|grimbergen|heineken|leffe"),
-    ("wine", "drinks", "wine", "wine", "liquid", "drink", r"wines|red-wines|white-wines|rose-wines|sparkling-wines|champagnes", r"\bvin\b|\bwine\b|ros[ée]|champagne|prosecco|cr[ée]mant|bordeaux|bourguignon|sauvignon|merlot"),
+    ("wine", "drinks", "wine", "wine", "liquid", "drink", r"wines|red-wines|white-wines|rose-wines|sparkling-wines|champagnes", r"\bvin\b|\bwine\b|\bros[ée]s?\b|champagne|prosecco|cr[ée]mant|bordeaux|bourguignon|sauvignon|merlot"),
     ("spirits", "drinks", "spirits", "spirits", "liquid", "drink", r"spirits|vodkas|whiskies|whisky|rums|gins|liqueurs|brandies|pastis|tequilas", r"vodka|whisk(?:y|ies)|rhum|\brum\b|\bgin\b|liqueur|pastis|calvados|cognac|armagnac|tequila"),
     # A cordial to dilute ("sirop de citron") is a drink, not a cough syrup.
     ("drink_syrup", "drinks", "syrup", "cordial", "liquid", "drink", r"syrups|drink-syrups|cordials|fruit-syrups", r"^(?!.*\bau sirop\b)(?!.*\btoux\b).*\bsirops?\b|\bcordial\b|\bdiluant\b"),
@@ -350,6 +350,11 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
         if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast", "stock_cube", "asian_noodles") and nr.search(name):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
 
+    # A name that says "barre(s) de céréales" / "barre céréalière" is a cereal bar whatever its coating (chocolate, nuts) or its tags
+    # (they often say breakfast cereals or nuts): without this, a chocolate cereal bar was typed as a cereal or a nut and got muesli or fruit bread as alternatives.
+    if _CEREAL_BAR_NAME.search(name) and not _PROTEIN_BAR_NAME.search(name):
+        return {"type": "cereal_bar", **_META["cereal_bar"], "source": "name_specific", "confidence": "high", "reason": "the name says cereal bar"}
+
     # Priority 1: High-specificity product type tags + name agreement (highest confidence)
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
         if not _guard(tid, fam):
@@ -405,6 +410,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             "reason": "no rule and no usable category tag: uncategorised, so only a shared distinctive name word can match"}
 
 
+_CEREAL_BAR_NAME = re.compile(r"\bbarres?\s+(?:de\s+|aux\s+(?:\d+\s+)?)?c[ée]r[ée]al(?:es?|i[eè]res?)\b|\bbarres?\s+c[ée]r[ée]ali[eè]res?\b|\b(?:cereal|granola)\s+bars?\b|\bbarres?\s+(?:de\s+)?granola\b", re.I)
+_PROTEIN_BAR_NAME = re.compile(r"prot[ée]in", re.I)
 _NOT_DRIED_TAGS = re.compile(r"(?:^|\s)en:(?:compotes?|apple-compotes|fruit-compotes|purees|fruit-purees|desserts|meals|plant-based-meals|dishes)(?:\s|$)|fr:compotes")
 _LEAF_SALAD = re.compile(r"\b(?:m[âa]che|roquette|laitue|batavia|mesclun|jeunes? pousses?|feuilles? de ch[êe]ne|romaine|[ée]pinards?|lollo|scarole|frisée)\b", re.I)
 _SALAD_DISH = re.compile(r"poulet|thon|saumon|jambon|crevettes?|[oœ]eufs?|fromage|ch[èe]vre|lardons?|taboul|\briz\b|p[âa]tes|quinoa|lentilles|c[ée]r[ée]ales|surimi|pizza|quiche|sandwich|wrap|compos[ée]e|repas|\bbol\b|bowl|c[ée]sar|vinaigrette|croûtons|croutons", re.I)
@@ -477,6 +484,69 @@ _TYPE_REJECTS = {
     # "Pois chiches très peu de jus" is chickpeas canned in juice, not a juice.
     "fruit_juice": re.compile(r"pois chiches?|lentilles?|haricots?|l[ée]gumes?|conserves?|au jus|dans son jus|ma[ïi]s\b", re.I),
 }
+# Name-level exclusions found by auditing alternatives for the 1,000 most-scanned products (scripts/audit_alternatives.py): a name that
+# says the product is something else keeps it out of the type, so it neither gets nor is offered as that type's alternatives.
+_MORE_REJECTS = {
+    "flour": r"\bflan\b|bioflan",
+    "fresh_fruit": r"instant douceur|\bth[ée]\b|\btea\b|kombucha",
+    "spirits": r"poulet|manchons?|mexicaine",
+    "crackers": r"bolognaise|cr[êe]pes?",
+    "syrup": r"[ée]dulcor",
+    "corn": r"f[ée]cule|ma[ïi]zena|soufl[ée]s|cracky|corn dog|tartine|semoule|[ée]clater",
+    "dried_fruit": r"panettone",
+    "instant_coffee": r"cappuccino|latte",
+    "tea": r"glac[ée]|\bice\b|\bpet\b|fuze|kombucha|fresh tea",
+    "rice": r"poulet|basquaise|tikka|lentilles|m[ée]lange",
+    "hard_cheese": r"\bcmo\b|pizza",
+    "mayonnaise": r"vinaigrette|rouille",
+    "fromage_blanc": r"salakis|\bfeta\b",
+    "nuts": r"enrob|chocolat|\bchoco|kar[ée]\b|crocks",
+    "fish_canned": r"viennois|sandwich|wraps?|salades?",
+    "viennoiserie": r"\bthon\b|jambon|fromage|pr[ée]paration",
+    "soda": r"\beaux?\b|\bwater\b|perrier|badoit|salvetat|pellegrino|vichy|quezac|rozana|oulm[eè]s|energy|monster|red ?bull|powerade|nocco|gatorade|isotoni|qu[ée]zac|marguerite|carola|kombucha|(?:finement|fortement) p[ée]tillante|haribo|croco|\boeufs?\b|bonbons?",
+    "water": r"juicy|\bjus\b|\bcoco\b|k[ée]fir|\bth[ée]\b|kombucha|saveurs?\b|aromatis|citron|framboise|p[êe]che|fraise|menthe|pamplemousse|essentiel",
+    "sweet_biscuits": r"\bflan\b|\btartes?\b|\bbarres?\b|sal[ée]s?\b|ap[ée]ritifs?|fromage|bbq",
+    "chocolate_bar": r"carob|caroube|pulver|poudre|p[âa]te [àa] tartiner|boisson|\bdrink\b",
+    "muesli": r"cacahu|peanut|\bbeurre\b|\bcream\b|cr[èe]me|\bfava\b|snack|galettes?|bissli|bbq|barbecue",
+    "breakfast_cereal": r"hemp|chanvre|graines? de|\bseeds?\b",
+    "plant_drink": r"cr[èe]me|crema|\bcream\b|lait de coco|coconut milk|cuisine",
+    "chips": r"\bfrites?\b|allumettes|pommes? noisettes|surgel|mc ?cain|c[ôo]t[ée] (?:brasserie|comptoir|resto)",
+    "cream_cheese": r"tartares? (?:de|d['’])|saumon|algues?|escarg|noix de coco",
+    "dessert": r"fromage blanc|ribot|macarons?|prot[ée]in|skyr|k[ée]fir|lait ferment|activia|bifidus|saint agur|cacao noir|au sirop|corne de gazelle",
+    "baguette": r"gluten de bl[ée]|farine",
+    "veggie_patty": r"\btofu\b|prot[ée]ines? de|gros vrac",
+    "ready_meal": r"corned|sprats|\bmoules\b|maquereaux?|sardines?|\bthon\b|mac[ée]doine|brochettes|couscous (?:moyen|fin|grain)|graine",
+    "pasta": r"fromages? r[âa]p|r[âa]p[ée]s?\b|emmental",
+    "ham": r"petits pots|\bbols?\b|coquillettes|pizzas?|\bcmo\b|pi[ée]montaise|salades?|croques?|monster munch|\bchips\b|salad|paniers?|fromage|emmental",
+    "cakes": r"jambon|emmental|champignons?|fromages?|l[ée]gumes|lentilles|saucisson|panciotti|galettes? (?:de|aux|[àa] base|[ée]peautre)|\bflan\b|g[âa]teau de (?:riz|semoule)|bolognaise|\bbarres?\b|prot[ée]in",
+    "jam": r"confiture (?:de|au) lait|maggi|mad[èe]re",
+    "sugar": r"\bflan\b|desserts?|cr[èe]me|go[ûu]ter|[ée]dulcor|stevia|bioflan|s[iy]?rop|yacon",
+    "oil": r"om[ée]ga|capsules?|foie de morue|pur[ée]e|cr[èe]me de|\bforte\b",
+    "cheese": r"fromage (?:frais|blanc)|viande|instant douceur|fromage fruits|aux fruits|biscuits?|crackers?|ap[ée]ritifs?",
+    "dough": r"friands?|petits fours|viande|jambon|saucisses?|saumons?|fromage|emmental|paniers?",
+    "fresh_goat_cheese": r"brass[ée]|yaourts?|fromage blanc|seitan|lardons|viande|\bcroc|involtini|biscuits?",
+    "deli_poultry": r"nuggets?|pan[ée]s?\b|tenders|pommes? de terre|cordons?|beignets?|donuts?|manchons?|cuisses?|mexicaine",
+    "cream": r"anglaise|[ée]pinards|mascarpone|biscoff",
+    "burger_buns": r"steak|hach[ée]|raclette|leerdammer|sensational|\bmeat\b|pollo|frites|v[ée]g[ée]|garden gourmet|hamburger|cheddar|emmental|bbq|\bmg\b|montagnarde|beyond|coeur de burger|instant burger",
+    "salt": r"\bchips\b|goma",
+    "stock_cube": r"ap[ée]ricube",
+    "candy": r"citrons? confits|sp[ée]cialit[ée] v[ée]g[ée]tale|\bbarres?\b|pulver|caroube|carob",
+    "beer": r"levure|pommes? de terre|pur[ée]e",
+    "sausage": r"lentilles|saucissons?|s[èe]ches?\b|viande s[ée]ch[ée]e|prot[ée]ines de pois",
+    "mozzarella_fresh": r"\bfeta\b|ricotta|[ée]pinards|\bcmo\b|fromages\b|fingers|r[âa]p[ée]e?s?\b",
+    "supplement": r"yaourts?|\bbarres?\b|shaker",
+    "fruit_nut_bar": r"\bpains?\b",
+    "soup": r"danone|velout[ée] nature|papillotes",
+    "compote": r"paillasson|pommes? de terre",
+    "milk": r"pur[ée]e|\bcoco\b|coconut|poudre|concentr[ée]",
+    "ground_coffee": r"con leche|instant|soluble|lyophilis",
+    "sauce": r"anglaise|papillotes|soja cuisine",
+    "tomato_sauce": r"\bchili\b",
+    "cereal_bar": r"\brepas\b",
+}
+for _t, _pat in _MORE_REJECTS.items():
+    _old = _TYPE_REJECTS.get(_t)
+    _TYPE_REJECTS[_t] = re.compile((_old.pattern + "|" if _old else "") + _pat, re.I)
 # OFF's broad "en:meals" tag also lands on dry couscous, quinoa and bagged salads. A ready meal needs a tag that names a
 # prepared dish; raw grain/produce tags without one keep the product out of ready_meal.
 _READY_DISH_TAG = re.compile(
