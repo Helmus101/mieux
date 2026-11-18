@@ -8,7 +8,7 @@ const pages: Record<string, { title: string; body: JSX.Element }> = {
     title: 'Politique de confidentialité',
     body: (
       <>
-        <p>Dernière mise à jour : 17 novembre 2026. Mieux n'a pas de compte : aucun nom, e-mail ni mot de passe n'est demandé.</p>
+        <p>Dernière mise à jour : 17 novembre 2026. Mieux n'a pas de compte ni de mot de passe. Une adresse e-mail est demandée après 25 produits scannés (voir ci-dessous).</p>
         <h2>Ce qui reste sur votre appareil</h2>
         <p>Votre profil (régime, allergies, préférences), vos scans, votre liste, vos tickets et votre domicile sont stockés dans le navigateur ou l'application. « Tout supprimer » dans Profil les efface.</p>
         <h2>Ce qui est envoyé à nos serveurs</h2>
@@ -18,6 +18,7 @@ const pages: Record<string, { title: string; body: JSX.Element }> = {
           <li>Votre régime et vos allergies, uniquement pour filtrer les alternatives ; ils ne sont pas conservés.</li>
           <li>Votre position approximative, seulement si vous la partagez, pour classer les magasins par distance ; elle n'est pas enregistrée.</li>
           <li>Un compteur de visites anonyme (un identifiant aléatoire dans un cookie, voir ci-dessous, haché côté serveur) et les erreurs techniques de l'application.</li>
+          <li>Votre adresse e-mail, que vous nous laissez après 25 produits scannés pour continuer à utiliser l'application (ou à tout moment dans Profil). Nous l'utilisons uniquement pour vous écrire quand Mieux évolue ; elle est conservée jusqu'à votre désinscription (écrivez-nous), copiée chez Supabase et n'est partagée avec personne d'autre.</li>
           <li>Votre adresse IP, traitée par nos hébergeurs et utilisée pour limiter les abus.</li>
         </ul>
         <h2>Services tiers</h2>
