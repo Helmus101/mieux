@@ -11,6 +11,15 @@ Table (run once in the Supabase SQL editor):
     -- the publishable key (role anon) may ADD a row and nothing else: it cannot read, change or delete the list
     create policy "anyone can subscribe" on subscribers for insert to anon with check (true);
 
+Scan total (no user id, no session: one anonymous row per scanned product; total = count of rows):
+
+    create table if not exists scan_events (
+      id bigint generated always as identity primary key, day date default current_date,
+      barcode text, country text);
+    alter table scan_events enable row level security;
+    create policy "anyone can add a scan" on scan_events for insert to anon with check (true);
+    -- total:  select count(*) from scan_events;   per day:  select day, count(*) from scan_events group by day order by day;
+
 Deleting an address in Supabase is then done from the dashboard (the publishable key is not allowed to delete).
 """
 import json
@@ -74,4 +83,16 @@ def delete_subscriber(email: str, transport=None) -> bool:
         return True
     except Exception as e:  # noqa: BLE001
         log.warning("supabase subscriber delete failed: %s", type(e).__name__)
+        return False
+
+
+def push_scan(barcode: Optional[str], country: Optional[str], transport=None) -> bool:
+    """One anonymous row per scan, so the TOTAL number of scans lives in Supabase (never per account)."""
+    if not enabled():
+        return False
+    try:
+        _call("POST", "scan_events", {"barcode": barcode, "country": country}, prefer="return=minimal", transport=transport)
+        return True
+    except Exception as e:  # noqa: BLE001 - best effort, never slows or breaks a scan
+        log.warning("supabase scan sync failed: %s", type(e).__name__)
         return False
