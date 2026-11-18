@@ -266,9 +266,13 @@ def test_house_brands_point_to_their_chain():
         assert chains.own_brand_chain(brand) == chain, brand
 
 
-def test_repeated_idempotency_key_replays_the_first_answer():
+def test_repeated_idempotency_key_replays_the_first_answer(monkeypatch):
+    import httpx
     from fastapi.testclient import TestClient
     from app import main
+    class _Resp:  # the public geo API is replaced: this test is about the replay, not about the network
+        def json(self): return [{"nom": "Paris", "centre": {"coordinates": [2.35, 48.85]}}]
+    monkeypatch.setattr(httpx, "get", lambda *a, **k: _Resp())
     c = TestClient(main.app)
     h = {"X-Session-Id": "idem-session-1", "Idempotency-Key": "k-1"}
     body = {"postcode": "75001"}
