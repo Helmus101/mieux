@@ -83,3 +83,20 @@ ROUND4_NOT = [("Biscuits Salés au Fromage de Chèvre", "fresh_goat_cheese"), ("
 @pytest.mark.parametrize("name,bad", ROUND4_NOT)
 def test_never_this_type_4(name, bad):
     assert taxonomy.classify({"name": name, "categories": []}).get("type") != bad
+
+
+ROUND5_NOT = [("Crème cuisine végétale avoine BIO", "beer"), ("NESTLE Lait Concentré Sucré", "cream"), ("Skyr Stracciatella", "mozzarella_fresh"),
+              ("2 Mini-Calzones Jambon Mozzarella", "ham"), ("Mélange de fromages râpés Spécial pizza", "pizza"), ("Boisson Latte Gourmande", "ground_coffee"),
+              ("Honey roasted nuts and sea salt", "salt"), ("Bille maïs enrobée chocolat lait", "corn"), ("Semoule au poulet", "chicken"),
+              ("Grignottes de poulet Barbecue", "deli_poultry"), ("Noir noisettes entières", "nuts"), ("Thé vert glacé saveur citron vert", "fresh_fruit")]
+ROUND5_IS = [("Maïs doux en grains", "corn"), ("Pizza margherita", "pizza"), ("Mozzarella", "mozzarella_fresh"), ("Noisettes", "nuts"), ("Café moulu pur arabica", "ground_coffee")]
+
+
+@pytest.mark.parametrize("name,bad", ROUND5_NOT)
+def test_never_this_type_5(name, bad):
+    assert taxonomy.classify({"name": name, "categories": []}).get("type") != bad
+
+
+@pytest.mark.parametrize("name,good", ROUND5_IS)
+def test_is_this_type_5(name, good):
+    assert taxonomy.classify({"name": name, "categories": []}).get("type") == good
