@@ -12,6 +12,7 @@ R = [
     # ---- bakery and cereals
     ("breadsticks", "cereals_bakery", "bread", "breadsticks", "stick", "snacking", r"breadsticks|grissini|gressins", r"grissini|gressin|breadstick|(?:pizza|salt(?:ed)?|sel|pretzel|bretzel|ap[ée]ro|snack|cracker)[ -]?sticks?\b|\bsticks? (?:de |au |à la )?(?:pizza|pain|bretzel|ap[ée]ritif|sel)|b[âa]tonnets? (?:sal[ée]s?|croustillants|ap[ée]ritif|de pain)"),
     ("burger_buns", "cereals_bakery", "bread", "buns", "bun", "sandwich_making", r"hamburger-buns|burger-buns|hot-dog-buns|bagels", r"burger|hot[- ]?dog|bagel"),
+    ("english_muffin", "cereals_bakery", "bread", "buns", "bun", "sandwich_making", r"english-muffins", r"english muffins?|muffins? anglais|muffins? [àa] toaster"),
     ("brioche_toast", "cereals_bakery", "bread", "toast", "slice_crisp", "breakfast", r"toasted-brioche|brioche-toast", r"(toast|grill|biscott|tartine).*brioch|brioch.*(toast|grill|biscott|tartine)"),
     ("sliced_brioche", "cereals_bakery", "bread", "sliced_loaf", "slice_soft", "breakfast", r"sliced-brioche|brioche-bread", r"(tranch|pain de mie|mie).*brioch|brioch.*(tranch|pain de mie|mie)"),
     ("viennoiserie", "cereals_bakery", "pastry", "pastry", "pastry", "breakfast", r"viennoiseries|brioches|croissants|pains-au-chocolat|pains-aux-raisins", r"brioche|croissant|pain au chocolat|pain aux raisins|pains? au lait"),
@@ -196,7 +197,7 @@ CLUSTERS: Dict[str, Dict[str, int]] = {
     "breakfast_slices": {"rusks": 1, "toasted_bread": 2, "brioche_toast": 2, "sliced_brioche": 3, "sandwich_bread": 5},
     "table_bread": {"baguette": 1, "sandwich_bread": 4},   # sliced sandwich bread is not a baguette
     "sticks_and_crackers": {"breadsticks": 1, "crackers": 2},
-    "buns": {"burger_buns": 1},
+    "buns": {"burger_buns": 1, "english_muffin": 1},
     "pastry_breakfast": {"viennoiserie": 1, "sliced_brioche": 3},  # REMOVED: cakes are not breakfast pastry substitutes
     "cereals": {"breakfast_cereal": 1, "muesli": 2},
     "pasta_grains": {"pasta": 1, "rice": 3},
@@ -365,7 +366,7 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
             return {"type": tid, **_META[tid], "source": "tags_and_name", "confidence": "high", "reason": f"specific category tag '{tr.pattern[:30]}' and name '{nr.pattern[:30]}' agree"}
 
     # Priority 2: Explicit product-name and generic-name signals for specific forms (high confidence)
-    specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
+    specific = ("dip", "peanut_butter", "tapenade", "brioche_toast", "sliced_brioche", "breadsticks", "burger_buns", "english_muffin", "capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "coffee_beans", "instant_coffee", "herbal_lozenge", "chewing_gum", "licorice", "speculoos",
                 "cream_cheese", "chips", "soup", "fruit_juice", "fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar", "grilled_vegetables", "vegetable_puree", "pizza_dough", "mushrooms", "rice_pudding", "corn", "asian_noodles", "stock_cube", "pickles",
                 "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese", "olives", "ham", "muesli", "legumes", "fried_onions", "dried_fruit")
     for tid, fam, cat, sub, form, use, tr, nr in RULES:
@@ -520,7 +521,7 @@ _MORE_REJECTS = {
     "ready_meal": r"corned|sprats|\bmoules\b|maquereaux?|sardines?|\bthon\b|mac[ée]doine|brochettes|couscous (?:moyen|fin|grain)|graine",
     "pasta": r"fromages? r[âa]p|r[âa]p[ée]s?\b|emmental",
     "ham": r"petits pots|\bbols?\b|coquillettes|pizzas?|\bcmo\b|pi[ée]montaise|salades?|croques?|monster munch|\bchips\b|salad|paniers?|fromage|emmental|calzones?",
-    "cakes": r"jambon|emmental|champignons?|fromages?|l[ée]gumes|lentilles|saucisson|panciotti|galettes? (?:de|aux|[àa] base|[ée]peautre)|\bflan\b|g[âa]teau de (?:riz|semoule)|bolognaise|\bbarres?\b|prot[ée]in",
+    "cakes": r"jambon|emmental|champignons?|fromages?|l[ée]gumes|lentilles|saucisson|panciotti|galettes? (?:de|aux|[àa] base|[ée]peautre)|\bflan\b|g[âa]teau de (?:riz|semoule)|bolognaise|\bbarres?\b|prot[ée]in|english|anglais",
     "jam": r"confiture (?:de|au) lait|maggi|mad[èe]re",
     "sugar": r"\bflan\b|desserts?|cr[èe]me|go[ûu]ter|[ée]dulcor|stevia|bioflan|s[iy]?rop|yacon",
     "oil": r"om[ée]ga|capsules?|foie de morue|pur[ée]e|cr[èe]me de|\bforte\b",
