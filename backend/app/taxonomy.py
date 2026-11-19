@@ -179,7 +179,7 @@ R = [
     ("mayonnaise", "condiments", "sauce", "sauce", "sauce", "any", r"mayonnaises|dressings|vinaigrettes", r"mayonnaise|vinaigrette|mayo"),
     ("tomato_sauce", "condiments", "sauce", "sauce", "cooking_sauce", "meal", r"tomato-sauces|pasta-sauces|bolognese", r"sauce (tomate|bolognaise|pesto)|coulis"),
     ("mustard", "condiments", "sauce", "sauce", "sauce", "any", r"mustards", r"moutarde"),
-    ("pickles", "condiments", "condiment", "pickles", "jar", "seasoning", r"capers?|gherkins?|cornichons?|pickles?|pickled-[a-z-]+|capucines?", r"c[âa]pres?\b|capers?\b|cornichons?|gherkins?|\bpickles?\b|oignons? (?:grelots? )?au vinaigre|oignons? grelots?|capucines? au vinaigre"),
+    ("pickles", "condiments", "condiment", "pickles", "jar", "seasoning", r"capers?|gherkins?|cornichons?|pickles?(?![a-z])|pickled-(?!herring|fish|eggs?|meat|sausages?|salmon|mackerel|anchov)[a-z-]+|capucines?", r"c[âa]pres?\b|capers?\b|cornichons?|gherkins?|\bpickles?\b|oignons? (?:grelots? )?au vinaigre|oignons? grelots?|capucines? au vinaigre"),
     ("vinegar", "condiments", "condiment", "vinegar", "liquid", "seasoning", r"vinegars|balsamic-vinegars|balsamic-vinegars-of-modena|wine-vinegars|apple-cider-vinegars", r"vinaigre|vinegar|balsamique"),
     ("protein_powder", "supplements", "supplement", "powder", "powder", "sports_energy", r"protein-powders|whey-proteins|protein-supplements", r"whey|isolat|casein|cas[ée]ine|prot[ée]ine.{0,12}(?:poudre|powder)|protein powder"),
     ("supplement", "supplements", "supplement", "supplement", "capsule", "health", r"dietary-supplements|food-supplements|vitamins|minerals|spirulina|herbal-supplements", r"compl[ée]ment alimentaire|\bsuppl[ée]ment\b|vitamines?\b|magn[ée]sium|collag[èe]ne|spiruline|om[ée]ga.?3|\bgelules?\b|\bcapsules?\b"),
@@ -351,6 +351,17 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
         if tid in ("capsule_nespresso", "capsule_dolce_gusto", "capsule_tassimo", "pods_senseo", "sliced_brioche", "brioche_toast", "stock_cube", "asian_noodles") and nr.search(name):
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"machine system named in the product name: {nr.pattern[:30]}"}
 
+    # "Granola" is also LU's chocolate-chip biscuit brand: a Granola from LU, or any "granola" that the tags call a biscuit, is a biscuit, not oat muesli
+    # (it used to be offered oatmeal as its alternative).
+    if re.search(r"\bgranola\b", name, re.I) and (re.search(r"(?:^|,\s*)(?:lu|granola)(?:\s*,|$)", brand.strip(), re.I) or re.search(r"biscuits?|cookies|sweet-snacks|biscuits-and-cakes", tags)) \
+            and not re.search(r"\bbarres?\b|\bbars?\b", name, re.I) and not re.search(r"-bars|breakfast-cereals|:muesli|:granola(?:s)?(?:\s|$)|cereal-flakes|:mueslis", tags):
+        return {"type": "sweet_biscuits", **_META["sweet_biscuits"], "source": "name_specific", "confidence": "high", "reason": "Granola is a biscuit (LU) or tagged as one"}
+
+    # A product tagged as gherkins/pickled cucumbers is a pickle even when its name says nothing ("Original"): the generic tags it also carries
+    # (vegetables, preserves) used to win and gave it endives and other vegetables as alternatives.
+    if _GHERKIN_TAG.search(tags) and not _GHERKIN_DISH.search(name):
+        return {"type": "pickles", **_META["pickles"], "source": "tags_specific", "confidence": "high", "reason": "tagged as gherkins / pickled cucumbers"}
+
     # A name that says "barre(s) de céréales" / "barre céréalière" is a cereal bar whatever its coating (chocolate, nuts) or its tags
     # (they often say breakfast cereals or nuts): without this, a chocolate cereal bar was typed as a cereal or a nut and got muesli or fruit bread as alternatives.
     if _CEREAL_BAR_NAME.search(name) and not _PROTEIN_BAR_NAME.search(name):
@@ -413,6 +424,8 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
 
 _CEREAL_BAR_NAME = re.compile(r"\bbarres?\s+(?:de\s+|aux\s+(?:\d+\s+)?)?c[ée]r[ée]al(?:es?|i[eè]res?)\b|\bbarres?\s+c[ée]r[ée]ali[eè]res?\b|\b(?:cereal|granola)\s+bars?\b|\bbarres?\s+(?:de\s+)?granola\b", re.I)
 _PROTEIN_BAR_NAME = re.compile(r"prot[ée]in", re.I)
+_GHERKIN_TAG = re.compile(r"(?:^|\s)(?:en|fr):(?:[a-z-]*gherkins?[a-z-]*|pickled-cucumbers?|pickled-vegetables|pickled-(?:onions?|cabbages?|carrots?|cauliflowers?|beetroots?|peppers?|chillies|capers)|cornichons?[a-z-]*)(?:\s|$)")
+_GHERKIN_DISH = re.compile(r"sandwich|club|p[âa]t[ée]|mayonnaise|moutarde|mustard|sauce|soupe|salade|burger|hot ?dog|rosette|jambon|joues|saucisson|chips|biscuit|craquantes|tartare|aspic|wrap|pizza|quiche", re.I)
 _NOT_DRIED_TAGS = re.compile(r"(?:^|\s)en:(?:compotes?|apple-compotes|fruit-compotes|purees|fruit-purees|desserts|meals|plant-based-meals|dishes)(?:\s|$)|fr:compotes")
 _LEAF_SALAD = re.compile(r"\b(?:m[âa]che|roquette|laitue|batavia|mesclun|jeunes? pousses?|feuilles? de ch[êe]ne|romaine|[ée]pinards?|lollo|scarole|frisée)\b", re.I)
 _SALAD_DISH = re.compile(r"poulet|thon|saumon|jambon|crevettes?|[oœ]eufs?|fromage|ch[èe]vre|lardons?|taboul|\briz\b|p[âa]tes|quinoa|lentilles|c[ée]r[ée]ales|surimi|pizza|quiche|sandwich|wrap|compos[ée]e|repas|\bbol\b|bowl|c[ée]sar|vinaigrette|croûtons|croutons", re.I)
@@ -488,6 +501,7 @@ _TYPE_REJECTS = {
 # Name-level exclusions found by auditing alternatives for the 1,000 most-scanned products (scripts/audit_alternatives.py): a name that
 # says the product is something else keeps it out of the type, so it neither gets nor is offered as that type's alternatives.
 _MORE_REJECTS = {
+    "pickles": r"couscous|joues?|rosette|lay'?s|craquantes|saveur|chips|sandwich|jambon|saucisson|p[âa]t[ée]|bacon|porc|burger",
     "chicken": r"semoule|\briz\b|basquaise",
     "pizza": r"sp[ée]cial pizza|r[âa]p[ée]s?\b",
     "flour": r"\bflan\b|bioflan",
@@ -508,7 +522,7 @@ _MORE_REJECTS = {
     "viennoiserie": r"\bthon\b|jambon|fromage|pr[ée]paration",
     "soda": r"\beaux?\b|\bwater\b|perrier|badoit|salvetat|pellegrino|vichy|quezac|rozana|oulm[eè]s|energy|monster|red ?bull|powerade|nocco|gatorade|isotoni|qu[ée]zac|marguerite|carola|kombucha|(?:finement|fortement) p[ée]tillante|haribo|croco|\boeufs?\b|bonbons?",
     "water": r"juicy|\bjus\b|\bcoco\b|k[ée]fir|\bth[ée]\b|kombucha|saveurs?\b|aromatis|citron|framboise|p[êe]che|fraise|menthe|pamplemousse|essentiel",
-    "sweet_biscuits": r"\bflan\b|\btartes?\b|\bbarres?\b|sal[ée]s?\b|ap[ée]ritifs?|fromage|bbq",
+    "sweet_biscuits": r"\bflan\b|\btartes?\b|\bbarres?\b|sal[ée]s?\b|ap[ée]ritifs?|fromage|bbq|^\s*(?:flocons?|porridge|muesli)\b|galettes? (?:[ée]peautre|de riz|lentilles|pois|sarrasin)",
     "chocolate_bar": r"carob|caroube|pulver|poudre|p[âa]te [àa] tartiner|boisson|\bdrink\b",
     "muesli": r"cacahu|peanut|\bbeurre\b|\bcream\b|cr[èe]me|\bfava\b|snack|galettes?|bissli|bbq|barbecue",
     "breakfast_cereal": r"hemp|chanvre|graines? de|\bseeds?\b",

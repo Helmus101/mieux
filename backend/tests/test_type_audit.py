@@ -107,3 +107,27 @@ def test_english_muffins_are_buns_not_cakes():
         assert taxonomy.classify({"name": n, "categories": []}).get("type") == "english_muffin"
     assert taxonomy.classify({"name": "Muffin chocolat", "categories": []}).get("type") == "cakes"
     assert taxonomy.classify({"name": "Madeleines", "categories": []}).get("type") == "cakes"
+
+
+def test_gherkin_tags_make_a_pickle_whatever_the_name():
+    for tags in (["en:vegetables", "en:preserved-vegetables", "en:gherkins"], ["en:vegetables", "en:pickled-vegetables"], ["en:vegetables", "en:pickles", "en:pickled-cucumbers"]):
+        assert taxonomy.classify({"name": "Original", "categories": tags}).get("type") == "pickles"
+    assert taxonomy.classify({"name": "Endives", "categories": ["en:vegetables", "en:fresh-vegetables"]}).get("type") != "pickles"
+    assert taxonomy.classify({"name": "Original", "categories": ["en:fishes", "en:pickled-herring"]}).get("type") != "pickles"
+
+
+def test_lu_granola_is_a_biscuit_not_muesli():
+    t = lambda n, b, c: taxonomy.classify({"name": n, "brand": b, "categories": c}).get("type")   # noqa: E731
+    assert t("Granola Gros éclats de Chocolat", "Lu, Granola", []) == "sweet_biscuits"
+    assert t("Granola Original", "Lu", []) == "sweet_biscuits"
+    assert t("Granola croustillant", "Jordans", ["en:breakfast-cereals", "en:granola"]) == "muesli"
+    assert t("Granola bar", "Nature Valley", []) == "cereal_bar"
+
+
+def test_biscuits_never_oatmeal():
+    from app import taxonomy as t
+    lu = {"name": "Granola Gros éclats de Chocolat", "brand": "Lu, Granola", "categories": []}
+    for oat in ({"name": "Flocons d'avoine", "categories": []}, {"name": "Muesli croustillant", "categories": []}, {"name": "Porridge avoine", "categories": []}):
+        assert t.substitution(lu, oat) is None
+    assert t.classify({"name": "Galette Épeautre Son d'Avoine", "categories": ["en:biscuits"]}).get("type") != "sweet_biscuits"
+    assert t.classify({"name": "Biscuits à l'avoine et chocolat", "categories": ["en:biscuits"]}).get("type") == "sweet_biscuits"
