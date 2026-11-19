@@ -532,6 +532,7 @@ _TYPE_REJECTS = {
 # Name-level exclusions found by auditing alternatives for the 1,000 most-scanned products (scripts/audit_alternatives.py): a name that
 # says the product is something else keeps it out of the type, so it neither gets nor is offered as that type's alternatives.
 _MORE_REJECTS = {
+    "vinegar": r"oignons?|cornichons?|l[ée]gumes?|c[âa]pres|piments?",
     "wine": r"saumon|pav[ée]s?|poisson|truite",
     "duck": r"frites?|pommes? de terre",
     "spices": r"^\s*(?:noix de cajou|amandes?|noisettes?|cacahu|th[ée]s? (?:vert|noir)|gel[ée]e|sorbet)",
@@ -539,8 +540,8 @@ _MORE_REJECTS = {
     "pickles": r"couscous|joues?|rosette|lay'?s|craquantes|saveur|chips|sandwich|jambon|saucisson|p[âa]t[ée]|bacon|porc|burger",
     "chicken": r"semoule|\briz\b|basquaise",
     "pizza": r"sp[ée]cial pizza|r[âa]p[ée]s?\b",
-    "flour": r"\bflan\b|bioflan",
-    "fresh_fruit": r"instant douceur|\bth[ée]\b|\btea\b|kombucha|skyr|bulles|boisson|cocktail|aloe|[ée]corce|\bpet\b|maytea|fuzetea|ice ?tea|th[ée] glac",
+    "flour": r"\bflan\b|bioflan|oignon|l[ée]gumes?|poulet|boeuf|bœuf|saumon|poisson",
+    "fresh_fruit": r"truite|saumon|poisson|cabillaud|thon\b|poulet|filets? de|pav[ée]s? de|crevette|instant douceur|\bth[ée]\b|\btea\b|kombucha|skyr|bulles|boisson|cocktail|aloe|[ée]corce|\bpet\b|maytea|fuzetea|ice ?tea|th[ée] glac",
     "spirits": r"poulet|manchons?|mexicaine",
     "crackers": r"bolognaise|cr[êe]pes?",
     "syrup": r"[ée]dulcor",
@@ -677,6 +678,27 @@ _HEAD_SKIP = {"les", "des", "une", "the", "and", "with", "pour", "dans", "aux", 
 _GENERIC_HEADS = set("filet filets confit boisson boissons legumes légumes legume légume plat plats sauce sauces préparation preparation melange mélange assortiment duo trio cocktail pate pâte tranche tranches cuisse cuisses aile ailes escalope escalopes pavé pave pavés morceaux dés des mini maxi spécialité specialite produit gamme coffret lot pack panier salade salades garniture accompagnement".split())
 
 
+def _load_cat_groups() -> Dict[str, str]:
+    try:
+        import json, os
+        with open(os.path.join(os.path.dirname(__file__), "data", "cat_groups.json")) as f:
+            return json.load(f)
+    except Exception:  # noqa: BLE001 - optional table (scripts/build_cat_groups.py); without it the old rules apply
+        return {}
+
+
+_CAT_GROUPS = _load_cat_groups()
+
+
+def _group(t: Optional[str]) -> Optional[str]:
+    """The named type a product belongs to: itself when a rule typed it, the dominant named type of its category tag otherwise."""
+    if not t:
+        return None
+    if not str(t).startswith(_CATEGORY_TYPE):
+        return t
+    return _CAT_GROUPS.get(t)
+
+
 def _head_word(p: Dict[str, Any]) -> Optional[str]:
     """The product's head noun: the FIRST word of its name that is not an article or a filler.
     It must be the first word on both sides, so a brand ("SOJASUN myrtilles") or a flavour never stands in for the product."""
@@ -782,12 +804,16 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
         # Otherwise the two sides are described differently (a rule on one side, a tag or nothing on the other). The
         # product's head noun - the first distinctive word of its name, which is how grocery names are built - is then
         # the smallest category they provably share: "Myrtilles sauvages au sirop" and "Myrtilles sauvages".
+        go, gc = _group(co["type"]), _group(cc["type"])
+        if go and gc and go != gc:      # both sides resolve to a named group and the groups differ: never alternatives
+            return None
         hw = _head_word(orig)
         if hw and hw == _head_word(cand) and hw not in _GENERIC_HEADS:
             ol = [c for c in (orig.get("categories") or []) if c not in _GENERIC_LEAF]
             cl = [c for c in (cand.get("categories") or []) if c not in _GENERIC_LEAF]
             # both categorised and the categories differ: "Filet de crocodile" is not "Filet de poulet"
-            if not (ol and cl and not (set(ol[-2:]) & set(cl[-2:]))):
+            # same OFF category tree: the specific side's own category (or its parent) is among the other's categories
+            if ol and cl and (set(ol[-3:]) & set(cl) or set(cl[-3:]) & set(ol)):
                 return _category_alternative(cc["type"], False, co, cc)
         return _untyped_substitute(orig, cand)
     if not co["type"] and not cc["type"]:
