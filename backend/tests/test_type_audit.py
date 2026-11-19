@@ -193,3 +193,13 @@ def test_generic_head_word_is_not_a_substitute():
 def test_ingredient_word_does_not_set_the_type(name, cats, bad):
     from app.taxonomy import classify
     assert classify({"name": name, "categories": cats})["type"] != bad
+
+
+def test_rocher_coco_has_its_own_type_and_no_biscuit_alternatives():
+    from app.taxonomy import classify, substitution
+    rc = {"name": "Rocher coco", "brand": "Carrefour", "categories": ["en:snacks", "en:biscuits-and-cakes", "en:pastries", "en:coconut-macaroons"]}
+    assert classify(rc)["type"] == "coconut_macaroon"
+    other = {"name": "Goûter aux raisins", "categories": ["en:biscuits-and-cakes", "en:biscuits"]}
+    assert substitution(rc, other) is None
+    lindt = {"name": "Rocher coco", "brand": "Lindt", "categories": ["en:snacks", "en:chocolates", "en:white-chocolates"]}
+    assert classify(lindt)["type"] != "coconut_macaroon"
