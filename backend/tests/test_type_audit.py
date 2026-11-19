@@ -176,3 +176,10 @@ def test_round8_fixes():
     assert t("Pavés de saumon Rose du Pacifique") != "wine"
     assert t("PET 1.2L MAYTEA PECHE") != "fresh_fruit"
     assert t("Vin rosé de Provence") == "wine"
+
+
+def test_generic_head_word_is_not_a_substitute():
+    from app.taxonomy import substitution
+    a = {"name": "Filet de crocodile", "categories": ["en:meats", "en:crocodile-meats"]}
+    b = {"name": "Filet de poulet", "categories": ["en:meats", "en:poultry"]}
+    assert substitution(a, b) is None

@@ -673,6 +673,10 @@ def classify(p: Dict[str, Any]) -> Dict[str, Any]:
 _HEAD_SKIP = {"les", "des", "une", "the", "and", "with", "pour", "dans", "aux", "nos", "notre", "mon", "mes", "ses", "son", "sa"}
 
 
+# First words that name a cut, a form or a whole aisle, not a product: sharing one says nothing about being a substitute.
+_GENERIC_HEADS = set("filet filets confit boisson boissons legumes légumes legume légume plat plats sauce sauces préparation preparation melange mélange assortiment duo trio cocktail pate pâte tranche tranches cuisse cuisses aile ailes escalope escalopes pavé pave pavés morceaux dés des mini maxi spécialité specialite produit gamme coffret lot pack panier salade salades garniture accompagnement".split())
+
+
 def _head_word(p: Dict[str, Any]) -> Optional[str]:
     """The product's head noun: the FIRST word of its name that is not an article or a filler.
     It must be the first word on both sides, so a brand ("SOJASUN myrtilles") or a flavour never stands in for the product."""
@@ -778,8 +782,13 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
         # Otherwise the two sides are described differently (a rule on one side, a tag or nothing on the other). The
         # product's head noun - the first distinctive word of its name, which is how grocery names are built - is then
         # the smallest category they provably share: "Myrtilles sauvages au sirop" and "Myrtilles sauvages".
-        if _head_word(orig) and _head_word(orig) == _head_word(cand):
-            return _category_alternative(cc["type"], False, co, cc)
+        hw = _head_word(orig)
+        if hw and hw == _head_word(cand) and hw not in _GENERIC_HEADS:
+            ol = [c for c in (orig.get("categories") or []) if c not in _GENERIC_LEAF]
+            cl = [c for c in (cand.get("categories") or []) if c not in _GENERIC_LEAF]
+            # both categorised and the categories differ: "Filet de crocodile" is not "Filet de poulet"
+            if not (ol and cl and not (set(ol[-2:]) & set(cl[-2:]))):
+                return _category_alternative(cc["type"], False, co, cc)
         return _untyped_substitute(orig, cand)
     if not co["type"] and not cc["type"]:
         return _untyped_substitute(orig, cand)
