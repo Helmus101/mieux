@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import qrcode from 'qrcode-generator';
 import { t, setLocale } from '@shared/i18n';
 import { load } from '@shared/storage';
@@ -34,6 +34,15 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
   const lang = document.documentElement.lang || 'fr';
   const desktop = isDesktop();
   const root = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState<number>(ex.scanned.score);
+  // The score counts up to its value once, so the first thing that moves is the answer a scan gives.
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const to = ex.scanned.score, t0 = performance.now(); let raf = 0;
+    const tick = (n: number) => { const k = Math.min(1, (n - t0 - 500) / 900); setShown(Math.round(to * (k <= 0 ? 0 : 1 - Math.pow(1 - k, 3)))); if (k < 1) raf = requestAnimationFrame(tick); };
+    setShown(0); raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
   // Sections ease in as they scroll into view; the hidden state only exists once this runs, so without JS nothing is hidden.
   useEffect(() => {
     const el = root.current; if (!el || !('IntersectionObserver' in window)) return;
@@ -65,7 +74,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           <div className="lp-scan">
             <img src={ex.scanned.img} alt="" width={56} height={56} />
             <div className="lp-scan-l"><small>{t('land.ex.scanned')}</small><b>{ex.scanned.name}</b><span>{ex.scanned.brand} · {eur(ex.scanned.packCents)} · {ex.scanned.size} · {eur(ex.scanned.perKgCents)}/kg</span></div>
-            <div className="lp-score"><b>{ex.scanned.score}</b><small>/100</small></div>
+            <div className="lp-score"><b>{shown}</b><small>/100</small></div>
           </div>
           <ul className="lp-alts">
             {ex.alts.map((a) => (
