@@ -1221,3 +1221,26 @@ def test_name_only_recall():
     for a, b in [("Spaghetti", "Tortellini"), ("Coca-Cola", "Pepsi"), ("Sel fin", "Gros sel"), ("Saucisson sec", "Chorizo"),
                  ("Croissants", "Pains au chocolat"), ("Sauce tomate", "Purée de tomates")]:
         assert sub(P(a, []), P(b, [])) is not None and sub(P(b, []), P(a, [])) is not None, (a, b)
+
+
+def test_english_names_do_not_leak():
+    for a, b in [("Peanut butter", "Peanut butter cookies"), ("Chicken broth", "Chicken breast"), ("Ground beef", "Beef jerky"),
+                 ("Hot dog buns", "Hot dogs"), ("Sea salt", "Sea salt caramels"), ("Olive oil", "Olive oil spray"),
+                 ("Pizza sauce", "Pizza"), ("Root beer", "Beer"), ("Green tea", "Green beans"), ("Ginger ale", "Ginger root"),
+                 ("Sour cream", "Sour cream chips"), ("Butter", "Peanut butter"), ("Bacon bits", "Bacon")]:
+        for x, y in ((a, b), (b, a)):
+            r = sub(P(x, []), P(y, []))
+            assert r is None or r["level"] >= 3, (x, y)
+
+
+def test_english_true_alternatives():
+    for a, b in [("Whole milk", "Skim milk"), ("Orange juice", "Apple juice"), ("Cheddar cheese", "Swiss cheese"), ("Potato chips", "Tortilla chips"),
+                 ("Olive oil", "Canola oil"), ("Ground beef", "Beef steak")]:
+        assert sub(P(a, []), P(b, [])) is not None, (a, b)
+
+
+def test_english_names_are_typed_without_category_tags():
+    for a, b in [("Apple juice", "Orange juice"), ("Eggs", "Large eggs"), ("White bread", "Whole wheat bread"), ("Cheerios", "Frosted flakes"),
+                 ("Hot dogs", "Sausage links"), ("Brownies", "Cupcakes"), ("Whole milk", "Skim milk")]:
+        assert sub(P(a, []), P(b, [])) is not None, (a, b)
+    assert sub(P("Apple juice", []), P("Apple sauce", [])) is None

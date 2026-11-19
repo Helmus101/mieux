@@ -76,16 +76,16 @@ R = [
     ("fresh_goat_cheese", "dairy", "cheese", "goat", "soft", "meal", r"goat-cheeses|goats-cheeses", r"(?:fromage de |bûche |crottin de )?ch[èe]vres?\b(?!\s+chaud)|crottin(?: de chavignol)?|picodon|rocamadour|valen[çc]ay"),
     ("mozzarella_fresh", "dairy", "cheese", "fresh_pasta", "soft", "meal", r"mozzarellas?|fresh-cheeses|burratas?", r"mozzarella|burrata|ricotta|feta\b|buffala|stracciatella"),
     # Short names need word boundaries: "edam" is inside "edamamé", "gouda" inside "goudale" - neither is a cheese.
-    ("hard_cheese", "dairy", "cheese", "hard", "hard", "meal", r"hard-cheeses|semi-hard-cheeses", r"emmental|comt[ée]s?\b|gruy[èe]res?\b|parmesan|parmigiano|cheddar|\bgouda\b|beaufort|appenzell|raclette\b|\btomme?\b|abondance|cantal|mimolette|\bedam\b|manchego|pecorino"),
+    ("hard_cheese", "dairy", "cheese", "hard", "hard", "meal", r"hard-cheeses|semi-hard-cheeses", r"emmental|comt[ée]s?\b|gruy[èe]res?\b|parmesan|parmigiano|cheddar|\bgouda\b|beaufort|appenzell|raclette\b|\btomme?\b|abondance|cantal|mimolette|\bedam\b|manchego|pecorino|\bswiss cheese\b|\bprovolone\b|\bmonterey jack\b|colby|\bhavarti\b|pepper jack|jarlsberg|\bemmentaler?\b|\bgrana padano\b"),
     ("cheese", "dairy", "cheese", "cheese", "cheese", "meal", r"cheeses|fromages", r"fromage|camembert|emmental|comt[ée]s?\b|\bbrie\b|\bgouda\b|mozzarella|ch[èe]vres?\b"),
     ("eggs", "dairy", "eggs", "eggs", "eggs", "cooking", r"eggs|oeufs", r"\bu?[oœ]e?ufs?\b(?!.*(chocolat|p[âa]ques|plat|mayonnaise|brouill))"),
-    ("milk", "dairy", "milk", "liquid", "drink", "breakfast", r"^en:milks$|whole-milks|semi-skimmed-milks|skimmed-milks|uht-milks|cow-milks", r"^lait\b|lait (demi|entier|écrém|ecrem|uht)"),
+    ("milk", "dairy", "milk", "liquid", "drink", "breakfast", r"^en:milks$|whole-milks|semi-skimmed-milks|skimmed-milks|uht-milks|cow-milks", r"^lait\b|lait (demi|entier|écrém|ecrem|uht)|^(?:whole|skim(?:med)?|(?:1|2|reduced[- ]fat|low[- ]fat|fat[- ]free|lactose[- ]free|organic|semi[- ]skimmed) ?%?) milk\b|^milk\b(?! ?(?:chocolate|bar|shake|powder|thistle))"),
     ("cream", "dairy", "cream", "liquid", "cooking", "cooking", r"(?:^|\s)en:(?:creams|fresh-creams|whipping-creams|double-creams|cr[èe]mes-fra[iî]ches)(?:\s|$)", r"cr[èe]me (fra[iî]che|liquide|enti[èe]re)|cr[èe]me fra"),
-    ("butter", "dairy", "fat", "fat", "spread", "spread_cook", r"(?:^|\s)en:(?:butters|margarines)\b|matieres-grasses-vegetales", r"^beurre\b|margarine|\bflora\b|\bbecel\b|\bproactiv\b|v[ée]g[ée]tal doux|plant.?based butter"),
+    ("butter", "dairy", "fat", "fat", "spread", "spread_cook", r"(?:^|\s)en:(?:butters|margarines)\b|matieres-grasses-vegetales", r"^beurre\b|^butter\b(?! ?(?:cookies?|popcorn|beans?|chicken|cups?|biscuits?|croissants?|puff))|^(?:salted|unsalted|sweet cream|cultured) butter\b|margarine|\bflora\b|\bbecel\b|\bproactiv\b|v[ée]g[ée]tal doux|plant.?based butter"),
     # ---- drinks
     ("plant_drink", "drinks", "plant_drink", "liquid", "drink", "breakfast", r"plant-based-milks|milk-substitutes|rice-based-drinks|oat-based-drinks|soy-milks|almond-milks|hazelnut-based-drinks|plant-milks|coconut-milks", r"boisson (v[ée]g[ée]tale|au riz|[àa] l.avoine|soja|amande|coco|avoine)|lait (d.|de )?(amande|avoine|soja|coco|riz)|bevande"),
     ("fruit_juice", "drinks", "juice", "liquid", "drink", "any", r"fruit-juices|fruit-nectars|juices|orange-juices", r"\bjus\b|nectar|pur jus|tropico|capri.?sun|oasis\b|boisson aux fruits|fruit shoot|smoothie|cocktail (?:de )?fruits?|cocktail multifruits?"),
-    ("soda", "drinks", "soda", "liquid", "drink", "any", r"sodas|carbonated-drinks|colas|lemonades|energy-drinks", r"\bcola\b|\bcoca.?cola\b|pepsi|schweppes|7[- ]?up|mountain dew|dr\.? pepper|red bull|fritz-?kola|limonade|\bsoda\b|boissons? gazeuses?|orangina|fanta|sprite|energy drink|boissons? [ée]nerg[ée]tisantes?"),
+    ("soda", "drinks", "soda", "liquid", "drink", "any", r"sodas|carbonated-drinks|colas|lemonades|energy-drinks", r"\bcola\b|\bcoca.?cola\b|pepsi|schweppes|7[- ]?up|mountain dew|dr\.? pepper|red bull|fritz-?kola|limonade|\bsoda\b|boissons? gazeuses?|orangina|fanta|sprite|energy drink|ginger ale|cream soda|root beer|ginger beer|boissons? [ée]nerg[ée]tisantes?"),
     ("water", "drinks", "water", "liquid", "drink", "any", r"waters|spring-waters|mineral-waters", r"^eau\b|eau (min[ée]rale|de source|gazeuse|plate)|^(?:perrier|badoit|salvetat|la salvetat|s\.? ?pellegrino|san pellegrino|quezac|rozana|vichy c[ée]lestins|st[- ]yorre|saint[- ]yorre|qu[ée]zac|carola|ste? marguerite|sainte[- ]marguerite|oulm[eè]s|contrex|evian|volvic|vittel|cristaline|h[ée]par|courmayeur|wattwiller|thonon)\b(?!.*(?:saveur|aromatis|citron|framboise|p[êe]che|fraise|menthe|juicy|th[ée]\b))"),
     # Alcohol: a beer, a wine and a spirit are three different purchases and never substitute each other.
     ("beer", "drinks", "beer", "beer", "liquid", "drink", r"beers|craft-beers|non-alcoholic-beers|ales|lagers|radlers", r"bi[èe]re|\bbeer\b|pale ale|\bipa\b|stout|lager|panach[ée]|grimbergen|heineken|leffe"),
@@ -189,9 +189,92 @@ R = [
     ("supplement", "supplements", "supplement", "supplement", "capsule", "health", r"dietary-supplements|food-supplements|vitamins|minerals|spirulina|herbal-supplements", r"compl[ée]ment alimentaire|\bsuppl[ée]ment\b|vitamines?\b|magn[ée]sium|collag[èe]ne|spiruline|om[ée]ga.?3|\bgelules?\b|\bcapsules?\b"),
     # Generic sauces last among the sauces: a marinade, a curry sauce or a nems sauce is still a sauce, never a "meal".
     ("sauce", "condiments", "sauce", "sauce", "sauce", "seasoning", r"(?:^|\s)en:(?:sauces|meal-sauces|cooking-sauces|vegetable-sauces|olive-sauces|sauce)(?:\s|$)", r"\bsauces?\b|\bsalsa\b|\bchutney\b|\brelish\b|\bmarinade\b|\bcondiment\b"),
-    ("oil", "fats_oils", "oil", "oil", "oil", "cooking", r"vegetable-oils|olive-oils|sunflower-oils|rapeseed-oils|oils", r"huile"),
+    ("oil", "fats_oils", "oil", "oil", "oil", "cooking", r"vegetable-oils|olive-oils|sunflower-oils|rapeseed-oils|oils", r"huile|\b(?:olive|sunflower|canola|rapeseed|vegetable|avocado|sesame|coconut|peanut|grapeseed|corn|walnut) oil\b"),
 ]
-RULES = [(tid, fam, cat, sub, form, use, re.compile(tr, re.I), re.compile(nr, re.I)) for tid, fam, cat, sub, form, use, tr, nr in R]
+# English product names (US market). Added to each type's name regex, so a product whose Open Food Facts record has no usable category tag is still typed.
+_EN_NAMES = {
+    "fruit_juice": r"\b(?:apple|orange|grape|cranberry|pineapple|prune|tomato|grapefruit|pomegranate|cherry|mango|lemon|lime|carrot|vegetable|fruit) juice\b|\b100% juice\b",
+    "soda": r"\blemon[- ]lime\b|\bsoda pop\b|\blemonade\b(?! mix)|\borange soda\b|\bgrape soda\b|\bdiet (?:coke|pepsi|cola)\b|\bsparkling (?:flavou?red )?(?:drink|beverage)s?\b",
+    "water": r"\b(?:sparkling|mineral|spring|purified|distilled|alkaline|seltzer)(?: mineral| spring)? water\b|\bseltzer\b|\bclub soda\b",
+    "eggs": r"^\s*(?:large |medium |organic |cage[- ]free |free[- ]range |brown |white )*eggs?\b(?! (?:nog|noodles?|rolls?|salad|substitute|white powder))",
+    "cream": r"\bhalf (?:and|&) half\b|\bheavy (?:whipping )?cream\b|\bwhipping cream\b|\blight cream\b|\bcoffee creamer\b|\bcreamer\b",
+    "cream_cheese": r"\bcream cheese\b",
+    "fromage_blanc": r"\bcottage cheese\b|\bquark\b|\bricotta\b(?! (?:ravioli|stuffed))",
+    "hard_cheese": r"\bshredded (?:cheddar|mozzarella|parmesan|cheese|mexican|italian)\b|\bcheese slices\b|\bsliced (?:cheddar|swiss|provolone|cheese)\b|\bcheese (?:block|stick|cubes)\b|\bstring cheese\b",
+    "plain_yogurt": r"\bplain (?:greek )?yogh?urt\b|^\s*greek yogh?urt\b|^\s*yogh?urt\b(?! (?:covered|coated|raisins|pretzels|chips|bites?))",
+    "plant_drink": r"\b(?:almond|oat|soy|coconut|rice|cashew|hemp|pea|macadamia|hazelnut) milk\b",
+    "honey": r"^\s*(?:organic |raw |pure |wildflower |clover |manuka )*honey\b(?! (?:nut|bunches|graham|roasted|mustard|bbq|barbecue|ham|wheat|bun))",
+    "jam": r"\b(?:strawberry|raspberry|grape|apricot|blackberry|blueberry|peach|cherry|fruit) (?:jam|jelly|preserves?|spread)\b|^\s*(?:jam|jelly|marmalade|preserves)\b",
+    "chocolate_bar": r"\bchocolate bars?\b|\b(?:dark|milk|white) chocolate\b(?! (?:chips?|chunks?|covered|coated|cake|chip|syrup|milk|drink|almonds|raisins|pretzels))",
+    "candy": r"\bgumm(?:y|ies)\b|\bjelly beans\b|\bhard candy\b|\blollipops?\b|\bcandy (?:canes?|corn)\b|\bmarshmallows?\b|\bcaramels?\b(?! (?:sauce|popcorn|apple|latte|macchiato|syrup|creamer))|\btaffy\b|\bsour (?:patch|worms|belts)\b",
+    "sweet_biscuits": r"\bcookies?\b(?! (?:dough|butter|mix|crumbs?))|\bshortbread\b|\bwafers?\b|\bgraham crackers\b",
+    "cakes": r"\bbrownies?\b|\bcupcakes?\b|\bpound cake\b|\bwaffles?\b|\bpancakes?\b(?! (?:mix|syrup))|\bmuffins?\b(?<!english muffins)|\bdonuts?\b|\bdoughnuts?\b|\bsnack cakes?\b|\bcoffee cake\b",
+    "breakfast_cereal": r"\bcheerios\b|\bfrosted flakes\b|\bfroot loops\b|\bcocoa puffs\b|\blucky charms\b|\bcap'?n crunch\b|\brice krispies\b|\bcorn flakes\b|\boatmeal\b|\brolled oats\b|\binstant oats\b|\bbreakfast cereal\b|\braisin bran\b|\bwheaties\b",
+    "sandwich_bread": r"\b(?:white|whole wheat|whole grain|multigrain|sourdough|rye|sandwich|potato|honey wheat|wheat) bread\b|\bsliced bread\b",
+    "burger_buns": r"\bhamburger buns?\b|\bhot dog buns?\b|\bbrioche buns?\b|\bslider buns?\b",
+    "rice": r"^\s*(?:white|brown|jasmine|basmati|long[- ]grain|wild|arborio|sushi|instant|parboiled|converted)? ?rice\b(?! (?:cakes?|crackers?|milk|noodles?|pudding|krispies|vinegar|paper|chips|flour))",
+    "legumes": r"\b(?:black|pinto|kidney|navy|garbanzo|cannellini|white|refried|baked|lima|great northern) beans\b|\bchickpeas\b|\blentils\b|\bsplit peas\b",
+    "corn": r"\b(?:canned|whole kernel|sweet|cream style|frozen) corn\b|\bcorn kernels\b",
+    "fruits_veg": r"\bgreen beans\b|\bfrozen (?:broccoli|spinach|peas|carrots|vegetables|mixed vegetables|cauliflower|corn|green beans)\b|\bmixed vegetables\b|\bcanned (?:vegetables|peas|carrots|beets|tomatoes|green beans)\b|\bdiced tomatoes\b|\bcrushed tomatoes\b",
+    "mustard": r"\b(?:yellow|dijon|honey|spicy brown|deli|stone ground) mustard\b|^\s*mustard\b",
+    "mayonnaise": r"\branch dressing\b|\bitalian dressing\b|\bcaesar dressing\b|\bsalad dressing\b|\bthousand island\b|\bblue cheese dressing\b|\bballsamic vinaigrette\b|\bvinaigrette dressing\b|\bfrench dressing\b",
+    "pork": r"\bpork (?:chops?|loin|tenderloin|ribs|shoulder|roast|belly)\b|\bbaby back ribs\b",
+    "sausage": r"\bhot dogs?\b(?! buns?)|\bfrankfurters?\b|\bwieners?\b|\bbratwurst\b|\bsausage (?:links|patties)\b|\bbreakfast sausage\b|\bitalian sausage\b|\bkielbasa\b|\bcorn dogs?\b",
+    "fish_canned": r"\bcanned (?:tuna|salmon|sardines|mackerel)\b|\b(?:chunk|solid|albacore|light) (?:white )?tuna\b|\btuna (?:in|packed in) (?:water|oil)\b|\btuna pouch\b|^\s*tuna\b|^\s*sardines\b",
+    "tofu": r"\btofu\b|\btempeh\b",
+    "ice_cream": r"\bpopsicles?\b|\bice pops?\b|\bfrozen yogh?urt\b|\bgelato\b|\bice cream (?:bars?|sandwich(?:es)?|cones?|cups?)\b|\bsorbet\b",
+    "chips": r"\bpotato chips\b|\btortilla chips\b|\bcorn chips\b|\bpita chips\b|\bkettle (?:cooked )?chips\b|\bcheese puffs\b|\bcheese curls\b|\bpork rinds\b",
+    "popcorn": r"\bpopcorn\b|\bpretzels?\b",
+    "nuts": r"\b(?:almonds?|walnuts?|pecans?|cashews?|pistachios?|macadamias?|hazelnuts?|brazil nuts?|mixed nuts|peanuts?)\b(?! (?:butter|milk|oil|flour|sauce))|\btrail mix\b",
+    "dried_fruit": r"\b(?:dried|sweetened dried) (?:cranberries|mango|apricots?|cherries|blueberries|apples?|figs|dates|pineapple|fruit|bananas?|plums)\b|\braisins\b|\bcraisins\b|\bprunes\b",
+    "soup": r"\b(?:chicken noodle|tomato|vegetable|cream of \w+|clam chowder|minestrone|lentil|split pea|french onion|broccoli cheddar) soup\b|^\s*soup\b|\bchowder\b|\bbisque\b",
+    "ready_meal": r"\bchili\b(?! (?:sauce|powder|oil|crisp|flakes|garlic))|\bburritos?\b|\benchiladas?\b|\btamales?\b|\bpot pie\b|\bmac(?:aroni)? (?:and|&|n') cheese\b|\bmeatloaf\b|\bpot roast\b|\bstuffed (?:peppers|shells)\b|\bfrozen (?:dinner|meal|entree)s?\b|\bhot pockets?\b|\bcorn dogs?\b|\bpierogi\b|\bpot stickers?\b|\bdumplings\b|\begg rolls?\b",
+    "potatoes": r"\bfrench fries\b|\btater tots\b|\bhash browns?\b|\bwaffle fries\b|\bcurly fries\b|\bmashed potatoes\b|\bpotato wedges\b",
+    "chicken": r"\bchicken (?:breasts?|thighs?|wings?|drumsticks?|tenders?|nuggets?|strips?|legs?|fillets?|cutlets?)\b|\bwhole chicken\b|\brotisserie chicken\b|\bfish sticks\b",
+    "turkey": r"\bground turkey\b|\bturkey (?:breast|burgers?|bacon|sausage|slices|deli)\b|\bdeli turkey\b",
+    "ham": r"\b(?:sliced|deli|honey|black forest|smoked|spiral) ham\b|^\s*ham\b|\bprosciutto\b|\bcanadian bacon\b|\bspam\b",
+    "dry_sausage": r"\bpepperoni\b|\bsalami\b|\bsummer sausage\b|\bbeef (?:stick|sticks)\b|\bsoppressata\b",
+    "supplement": r"\bmulti[- ]?vitamins?\b|\bomega[- ]3\b|\bfish oil\b|\bprobiotics?\b|\bcreatine\b|\bcollagen\b|\bmelatonin\b|\bvitamin [a-ek]\b|\bpre[- ]workout\b",
+    "protein_powder": r"\bprotein (?:powder|shake|drink)\b|\bwhey\b|\bmeal replacement\b",
+    "coffee_beans": r"\bwhole bean coffee\b|\bcoffee beans\b|\bwhole beans?\b",
+    "ground_coffee": r"\bground coffee\b|\bdrip coffee\b|\bbreakfast blend\b|\bdark roast\b|\bmedium roast\b|\blight roast\b|^\s*coffee\b(?! (?:creamer|cake|ice|liqueur|mate|syrup|filters?|mug|candy|beans?))",
+    "cocoa_powder": r"\bhot cocoa\b|\bhot chocolate\b|\bcocoa (?:mix|powder)\b|\bunsweetened cocoa\b|\bchocolate milk mix\b|\bswiss miss\b",
+    "sugar": r"\b(?:granulated|powdered|brown|cane|confectioners'?|caster|coconut) sugar\b|^\s*sugar\b(?! (?:cookies?|snap|free|cereal|wafers?))",
+    "flour": r"\b(?:all[- ]purpose|bread|cake|self[- ]rising|whole wheat|almond|coconut|oat|rice|corn) flour\b|^\s*flour\b",
+    "vinegar": r"\b(?:apple cider|white|red wine|balsamic|rice|malt|distilled|white wine) vinegar\b|^\s*vinegar\b",
+    "ketchup": r"\bketchup\b|\bcatsup\b",
+    "hot_sauce": r"\bhot sauce\b|\bsriracha\b|\btabasco\b|\bbuffalo sauce\b|\bchili sauce\b",
+    "sauce": r"\bbbq sauce\b|\bbarbecue sauce\b|\bsoy sauce\b|\bteriyaki\b|\bworcestershire\b|\bhoisin\b|\bsteak sauce\b|\bcocktail sauce\b|\btartar sauce\b|\balfredo\b|\benchilada sauce\b|\bgravy\b|\bsalsa\b",
+    "tomato_sauce": r"\bmarinara\b|\bpasta sauce\b|\bspaghetti sauce\b|\btomato sauce\b|\btomato paste\b|\bpizza sauce\b|\bvodka sauce\b",
+    "pizza": r"\bfrozen pizza\b|\b(?:pepperoni|cheese|supreme|meat lovers|margherita|hawaiian) pizza\b|^\s*pizza\b",
+    "tea": r"\btea bags?\b|\b(?:black|green|white|oolong|chai|earl grey|english breakfast) tea\b|\bsweet tea\b",
+    "herbal_tea": r"\b(?:chamomile|peppermint|herbal|rooibos|hibiscus|ginger) tea\b",
+    "beer": r"\b(?:ipa|pilsner|lager|stout|porter|hefeweizen|pale ale|light beer|amber ale|craft beer)\b|\bhard seltzers?\b",
+    "wine": r"\b(?:cabernet|merlot|chardonnay|pinot (?:noir|grigio)|sauvignon blanc|riesling|zinfandel|moscato|malbec|rose wine|red wine|white wine|sparkling wine|champagne|prosecco)\b",
+    "spirits": r"\b(?:vodka|whiskey|whisky|bourbon|tequila|rum|gin|brandy|cognac|scotch)\b(?! (?:sauce|barrel|glaze))",
+    "pesto": r"\bpesto\b",
+    "dip": r"\bguacamole\b|\bhummus\b|\bspinach dip\b|\bqueso dip\b|\bonion dip\b|\bsalsa dip\b",
+    "pickles": r"\bdill pickles?\b|\bpickle (?:spears|chips|slices)\b|\bsweet pickles?\b|\bpickled (?:jalape\w+|beets|onions|cucumbers)\b|^\s*pickles\b",
+    "olives": r"^\s*(?:green |black |kalamata |pitted |stuffed |sliced )*olives\b",
+    "compote": r"\bapplesauce\b|\bfruit cups?\b|\bfruit cocktail\b|\bmandarin oranges\b",
+    "flan": r"\bpudding cups?\b|\bgelatin\b|\bjell-?o\b|\bcustard\b",
+    "crackers": r"\bsaltines?\b|\bcrackers\b(?! (?:crumbs))|\britz\b|\bcheez-?its?\b|\bgoldfish\b|\brice crackers\b|\bwheat thins\b|\btriscuits?\b",
+    "cereal_bar": r"\bgranola bars?\b|\bcereal bars?\b|\bbreakfast bars?\b|\bchewy bars?\b|\bfruit (?:snacks?|leather|bars?)\b|\bnature valley\b",
+    "protein_bar": r"\bprotein bars?\b|\bprotein snacks?\b|\bclif\b|\bquest bars?\b|\bkind bars?\b|\bluna bars?\b",
+    "sports_energy_bar": r"\benergy bars?\b",
+    "dough": r"\bpie crust\b|\bcrescent rolls?\b|\bbiscuit dough\b|\bcookie dough\b|\bpuff pastry\b|\bphyllo\b|\bfilo\b",
+    "pizza_dough": r"\bpizza (?:dough|crust)\b",
+    "english_muffin": r"\benglish muffins?\b",
+    "baguette": r"\bbaguettes?\b|\bciabatta\b|\bfrench bread\b|\bitalian bread\b",
+    "breadsticks": r"\bbreadsticks?\b",
+    "viennoiserie": r"\bcroissants?\b|\bdanish\b|\bcinnamon rolls?\b|\bsweet rolls?\b",
+}
+RULES = []
+for tid, fam, cat, sub, form, use, tr, nr in R:
+    if tid in _EN_NAMES:
+        nr = nr + "|" + _EN_NAMES[tid]
+    RULES.append((tid, fam, cat, sub, form, use, re.compile(tr, re.I), re.compile(nr, re.I)))
+
 _META = {tid: {"family": fam, "category": cat, "subcategory": sub, "form": form, "use": use} for tid, fam, cat, sub, form, use, *_ in R}
 
 # Clusters of interchangeable types for one purchase decision, ordered by closeness (rank). Types in no common cluster never substitute each other.
@@ -453,7 +536,7 @@ _HEAD_FIRST = [(re.compile(p, re.I), t, re.compile(v, re.I) if v else None) for 
     (r"^\s*farines?\b", "flour", None), (r"^\s*(?:infusions?|tisanes?)\b", "herbal_tea", None),
     (r"^\s*m[uü]e?sli\b", "muesli", None),
     (r"^\s*th[ée]s? (?:vert|noir|blanc|rouge|oolong|matcha|earl|ceylan|jasmin|menthe|gingembre)\b", "tea", r"glac[ée]|\bice\b"),
-    (r"^\s*olives?\b", "olives", r"huile|sauce|pistou|tapenade|pizza|pain|biscuit|cake"),
+    (r"^\s*olives?\b", "olives", r"huile|oil|spray|mayo|sauce|pistou|tapenade|pizza|pain|biscuit|cake"),
     (r"^\s*sels?\b(?! de bain)", "salt", None), (r"^\s*sucres?\b(?! d.orge| d’orge| glace)", "sugar", None), (r"^\s*pickles?\b", "pickles", None),
     (r"^\s*sorbets?\b", "ice_cream", None), (r"^\s*dattes?\b", "dried_fruit", r"fourr|p[âa]te d|chocolat"),
     (r"^\s*mousses? (?:pur |de |d.)?(?:canard|foie|saumon|truite|poisson|c[èe]pes?|volaille)", "pate_terrine", None))]
@@ -590,6 +673,7 @@ _MORE_REJECTS = {
     "beer": r"levure|pommes? de terre|pur[ée]e|cr[èe]me|cuisine",
     "sausage": r"lentilles|saucissons?|s[èe]ches?\b|viande s[ée]ch[ée]e|prot[ée]ines de pois",
     "mozzarella_fresh": r"\bfeta\b|ricotta|[ée]pinards|\bcmo\b|fromages\b|fingers|r[âa]p[ée]e?s?\b|skyr|stracciatella|girasoli|v[ée]g[ée]tal",
+    "peanut_butter": r"cookies?|\bcups?\b|biscuits?|crackers?|pretzels?|\bbars?\b|cereals?|ice cream|\bfilled\b|sandwich|granola|balls?\b|bites?\b",
     "supplement": r"yaourts?|\bbarres?\b|shaker",
     "fruit_nut_bar": r"\bpains?\b",
     "soup": r"danone|velout[ée] nature|papillotes",
@@ -601,6 +685,25 @@ _MORE_REJECTS = {
     "cereal_bar": r"\brepas\b",
 }
 for _t, _pat in _MORE_REJECTS.items():
+    _old = _TYPE_REJECTS.get(_t)
+    _TYPE_REJECTS[_t] = re.compile((_old.pattern + "|" if _old else "") + _pat, re.I)
+# English-language names (the US market): a prepared product that merely names its main ingredient is not that ingredient.
+_EN_REJECTS = {
+    "chicken": r"broth|stock|soup|bouillon|noodles?|ramen|seasoning|flavou?red",
+    "beef": r"jerky|broth|stock|stew|soup|bouillon|seasoning|ramen|noodles?|ravioli|burrito|bourguignon|gravy",
+    "lardons": r"\bbits\b|bacos|crumbles?|bacon[- ]flavou?red|bacon[- ]wrapped",
+    "burger_buns": r"^\s*(?:hot ?dogs?|franks?|wieners?|hamburger patt\w+|patties|burgers?)\b(?!.*\bbuns?\b)|\bpatt(?:y|ies)\b(?!.*\bbuns?\b)",
+    "salt": r"caramels?|chocolates?|chips|vinegar|pretzels?|nuts|almonds|popcorn|crackers?|seasoning blend",
+    "pizza": r"\b(?:sauce|dough|crust|seasoning|rolls?|cutters?|stone)\b",
+    "pasta": r"^\s*(?:pasta )?sauces?\b|pasta sauce|pasta salad|pasta bake|salad",
+    "cakes": r"syrup|sirop|\bmix\b|rice cakes?|\bcakes? mix",
+    "beer": r"root beer|ginger beer|birch beer|beer bread|beer cheese|beer batter",
+    "oil": r"spray cooking|cooking spray|olive oil spray|mayo",
+    "sweet_biscuits": r"\bbutter(?:ed)? (?:popcorn|beans)",
+    "chips": r"sour cream (?:&|and) onion dip|\bdip\b",
+    "tea": r"green beans?|green peas|tea tree",
+}
+for _t, _pat in _EN_REJECTS.items():
     _old = _TYPE_REJECTS.get(_t)
     _TYPE_REJECTS[_t] = re.compile((_old.pattern + "|" if _old else "") + _pat, re.I)
 # OFF's broad "en:meals" tag also lands on dry couscous, quinoa and bagged salads. A ready meal needs a tag that names a
@@ -678,7 +781,7 @@ _HEAD_SKIP = {"les", "des", "une", "the", "and", "with", "pour", "dans", "aux", 
 
 
 # First words that name a cut, a form or a whole aisle, not a product: sharing one says nothing about being a substitute.
-_GENERIC_HEADS = set("filet filets confit boisson boissons legumes légumes legume légume plat plats sauce sauces préparation preparation melange mélange assortiment duo trio cocktail pate pâte tranche tranches cuisse cuisses aile ailes escalope escalopes pavé pave pavés morceaux dés des mini maxi spécialité specialite produit gamme coffret lot pack panier salade salades garniture accompagnement".split())
+_GENERIC_HEADS = set("filet filets confit boisson boissons legumes légumes legume légume plat plats sauce sauces préparation preparation melange mélange assortiment duo trio cocktail pate pâte tranche tranches cuisse cuisses aile ailes escalope escalopes pavé pave pavés morceaux dés des mini maxi spécialité specialite produit gamme coffret lot pack panier salade salades garniture accompagnement green black red white sweet hot cold sea energy sour salted spicy wild".split())
 
 
 def _load_cat_groups() -> Dict[str, str]:
@@ -830,6 +933,8 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
             # same OFF category tree: the specific side's own category (or its parent) is among the other's categories
             if ol and cl and (set(ol[-3:]) & set(cl) or set(cl[-3:]) & set(ol)):
                 return _category_alternative(cc["type"], False, co, cc)
+        if cat_o != cat_c and UNCATEGORISED in (co["type"], cc["type"]) and not (orig.get("categories") or cand.get("categories")):
+            return None     # a typed product and one with no category to compare: a shared first word ("green tea", "green beans") proves nothing
         return _untyped_substitute(orig, cand)
     if not co["type"] and not cc["type"]:
         return _untyped_substitute(orig, cand)
