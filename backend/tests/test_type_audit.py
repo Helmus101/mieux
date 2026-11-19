@@ -183,3 +183,13 @@ def test_generic_head_word_is_not_a_substitute():
     a = {"name": "Filet de crocodile", "categories": ["en:meats", "en:crocodile-meats"]}
     b = {"name": "Filet de poulet", "categories": ["en:meats", "en:poultry"]}
     assert substitution(a, b) is None
+
+
+@pytest.mark.parametrize("name,cats,bad", [
+    ("Filets de truite citron et herbes", ["en:trouts"], "fresh_fruit"),
+    ("Oignon semoule BIO", ["en:red-onions"], "flour"),
+    ("Oignons blancs au vinaigre", [], "vinegar"),
+])
+def test_ingredient_word_does_not_set_the_type(name, cats, bad):
+    from app.taxonomy import classify
+    assert classify({"name": name, "categories": cats})["type"] != bad
