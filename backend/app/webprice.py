@@ -5,6 +5,7 @@ asked for one last cited answer.
 Never an observed price: callers must label it ("~", source "web_search") and keep it out of the cheapest / best-value winners. Off unless
 DEEPSEEK_API_KEY or GEMINI_API_KEY is set. Results (and misses) are cached per barcode so a product is looked up once, not on every scan."""
 import json
+import logging
 import os
 import re
 import sqlite3
@@ -104,6 +105,8 @@ def providers() -> list:
     out = []
     if os.environ.get("DEEPSEEK_API_KEY"):
         out.append("deepseek")
+    if os.environ.get("PARALLEL_API_KEY") and time.time() >= _down.get("parallel", 0):
+        out.append("parallel")             # Parallel's search runs right after DeepSeek: it is the reliable one when Gemini's quota or Serper's credits are used up
     if os.environ.get("GEMINI_API_KEY"):
         out.append("gemini")
     if time.time() < _gemini["down_until"] or time.time() < _down.get("deepseek", 0):
@@ -111,6 +114,15 @@ def providers() -> list:
             if os.environ.get(key) and name not in out:
                 out.append(name)          # the configured search APIs come last, in that order
     return out
+
+
+def paused_providers() -> list:
+    """Names of providers currently skipped (quota or credits used up), so a silent "no price" can be traced to a dead provider."""
+    now = time.time()
+    out = [k for k, t in _down.items() if t > now]
+    if _gemini["down_until"] > now:
+        out.append("gemini")
+    return sorted(set(out))
 
 
 def provider() -> Optional[str]:
@@ -175,7 +187,7 @@ def _fetch_results(name: str, product: Dict[str, Any], http: Http, variant: int 
         pages = ((data.get("data") or data).get("webPages") or {}).get("value", [])
         return [(r.get("url") or "", " ".join([r.get("name") or "", r.get("snippet") or "", r.get("summary") or ""])) for r in pages]
     data = http("POST", PARALLEL, {"Content-Type": "application/json", "x-api-key": os.environ["PARALLEL_API_KEY"]},
-                {"objective": f"Prix actuel en euros en supermarché en France de : {query}. Donne les pages de supermarchés ou comparateurs qui indiquent ce prix.", "search_queries": [query], "mode": "turbo"})
+                {"objective": f"Prix actuel en euros en supermarché en France de : {query}. Donne les pages de supermarchés ou comparateurs qui indiquent ce prix.", "search_queries": [query], "mode": "basic"})
     return [(r.get("url") or "", " ".join([r.get("title") or ""] + list(r.get("excerpts") or []))) for r in data.get("results", [])]
 
 
@@ -248,7 +260,7 @@ _LISTING = re.compile(r"[?&](?:q|s|search|query|k)=|/search|/recherche|/categor|
 _NOT_A_SHOP = re.compile(
     r"facebook\.com|instagram\.com|twitter\.com|\bx\.com|tiktok\.com|youtube\.com|pinterest\.|reddit\.com|linkedin\.com"
     r"|idealo\.|nedostavka\.|leguide\.com|kelkoo|shopping\.google|prix\.net|lesnumeriques\.|cherchons\.com"
-    r"|lsa-conso\.fr|ad-hoc-news\.|wikipedia\.org|miaspesa\.it",
+    r"|lsa-conso\.fr|ad-hoc-news\.|wikipedia\.org|miaspesa\.it|deliveroo\.|ubereats\.|just-?eat\.|foodora\.|glovo\.|frichti\.",
     re.I,
 )
 
@@ -335,6 +347,7 @@ def _price_from(product: Dict[str, Any], results: list) -> Optional[Dict[str, An
             "date": time.strftime("%Y-%m-%d"), "source": "web_search", "approximate": True}
 
 
+log = logging.getLogger("app.webprice")
 _UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 _PAGE_PRICE = re.compile(
     r'"price"\s*:\s*"?(\d{1,3}(?:[.,]\d{1,2})?)"?'
@@ -626,6 +639,8 @@ def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]
     name_w = _name_words(product, brand_w)
     if not name_w or not _budget_left():
         return None
+    code = str(product.get("barcode") or "")
+    weight: Dict[Tuple[int, str], int] = {}
     for prov in providers():
         if prov == "gemini":
             continue
@@ -634,18 +649,25 @@ def _guess_size(product: Dict[str, Any], http: Http) -> Optional[Dict[str, Any]]
         except Exception as e:
             _set_error(e)
             continue
-        sizes = []
         for url, text in results:
+            if _NOT_A_SHOP.search(url):
+                continue                       # a delivery app or an aggregator lists dishes and portions, not this pack
             slug = _words(urllib.parse.unquote(urllib.parse.urlparse(url).path).replace("-", " ").replace("/", " "))      # the page path, not the site name
             need = len(name_w) if len(name_w) <= 2 else max(2, -(-len(name_w) * 3 // 5))      # most of the name, not every word: "au citron et épices" is often shortened in a page address
-            if (brand_w and not (brand_w & (slug | _words(text)))) or len(name_w & slug) < need:
+            exact = len(code) >= 8 and code in url
+            if not exact and ((brand_w and not (brand_w & (slug | _words(text)))) or len(name_w & slug) < need):
                 continue
             found = _sizes_in(text)
             if found:
-                sizes.append(max(set(found), key=found.count))        # the size this page repeats most
-        if sizes:
-            amount, unit = max(sorted(set(sizes)), key=lambda z: (sizes.count(z), -z[0]))           # the pages disagree: take the size most pages give (the price stays marked approximate)
-            return {"amount": float(amount), "unit": unit}
+                size = max(set(found), key=found.count)        # the size this page repeats most
+                weight[size] = weight.get(size, 0) + (3 if exact else 1)
+        if weight and max(weight.values()) >= 3:
+            break                              # a page of this exact barcode names the size: no need to ask more providers
+    if weight:
+        # Every provider's pages vote (a page of this exact barcode counts 3). The pack size is the one with the most votes, the smaller one on a tie.
+        ranked = sorted(weight.items(), key=lambda kv: (-kv[1], kv[0][0]))
+        (amount, unit), _ = ranked[0]
+        return {"amount": float(amount), "unit": unit}
     return None
 
 
@@ -757,8 +779,8 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 continue
             if time.time() < _down.get(name, 0):
                 continue                    # this provider just said "quota used up": skip it for a few minutes
-            if name == "parallel" and variant > 0:
-                continue                    # the priciest fallback: tried once per lookup, never retried across wordings
+            if name == "parallel" and variant > 1:
+                continue                    # the priciest provider: the first two wordings only, never the third
             try:
                 left = (deadline - time.time()) if deadline else None
                 cap = min(left, 12) if left else 12          # a hard wall-clock cap: a slow provider must never outrun the budget
@@ -780,6 +802,9 @@ def _search_lookup(product: Dict[str, Any], http: Http, transport: Transport = _
                 _set_error(e)
                 if getattr(e, "code", None) == 429:
                     _down[name] = time.time() + 600
+                elif getattr(e, "code", None) in (400, 401, 402, 403):
+                    _down[name] = time.time() + 3600     # out of credits / bad key (Serper answers 400 "Not enough credits"): stop paying a failing call, retry in an hour
+                    log.warning("web price provider %s paused for an hour: HTTP %s", name, getattr(e, "code", None))
                 continue
             if out:
                 out["provider"] = name

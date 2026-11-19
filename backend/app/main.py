@@ -2525,7 +2525,7 @@ def readiness_check(request: Request):
     except Exception as e:
         logger.error("readiness check failed: %s", e)      # the detail goes to the log, not to whoever calls the endpoint
         raise HTTPException(503, "Not ready")
-    return {"status": "ready", "database": "connected", "price_search": {"enabled": webprice.enabled(), "searches_today": webprice._day["n"], "daily_cap": webprice.DAILY_CAP}}
+    return {"status": "ready", "database": "connected", "price_search": {"enabled": webprice.enabled(), "searches_today": webprice._day["n"], "daily_cap": webprice.DAILY_CAP, "paused": webprice.paused_providers()}}
 
 
 DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "web", "dist"))  # the built web app (npm run build): one server, one address, any device

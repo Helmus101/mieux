@@ -757,16 +757,18 @@ def test_a_price_from_another_flavour_or_a_listing_page_is_never_used():
     assert webprice._price_from(prod, [right])["pack_cents"] == 565          # a supermarket's own page for exactly this variant
 
 
-def test_the_default_is_gemini_only_even_with_other_provider_keys_set(monkeypatch):
-    """Gemini is the one price search used in production: another provider's key being present (left over, or set for some
-    other reason) must never pull it back in on its own. WEBPRICE_PROVIDERS is the only way to use it, for tests or for a
-    deliberate, explicit override."""
+def test_default_providers_are_deepseek_then_parallel_then_gemini(monkeypatch):
+    """Parallel's search runs right after DeepSeek (Gemini's quota and Serper's credits run out); Serper and the other search APIs stay out
+    unless the first ones are paused. WEBPRICE_PROVIDERS is the explicit override, for tests or a deliberate re-enable."""
     from app import webprice
-    monkeypatch.delenv("WEBPRICE_PROVIDERS", raising=False)
+    monkeypatch.delenv("WEBPRICE_PROVIDERS", raising=False); monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    webprice._down.clear(); monkeypatch.setattr(webprice, "_gemini", {"down_until": 0.0, "error": None})
     monkeypatch.setenv("PARALLEL_API_KEY", "p"); monkeypatch.setenv("SERPER_API_KEY", "s"); monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    assert webprice.providers() == []
+    assert webprice.providers() == ["parallel"]
     monkeypatch.setenv("GEMINI_API_KEY", "g")
-    assert webprice.providers() == ["gemini"]
+    assert webprice.providers() == ["parallel", "gemini"]
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "d")
+    assert webprice.providers() == ["deepseek", "parallel", "gemini"]
     monkeypatch.setenv("WEBPRICE_PROVIDERS", "serper,parallel")
     assert webprice.providers() == ["serper", "parallel"]                       # an explicit override still works, for tests or a deliberate re-enable
 
@@ -1172,3 +1174,15 @@ def test_cooked_deli_poultry_is_not_a_raw_chicken_cut():
     # A raw bird that happens to carry a cooked-sounding name stays raw: the OFF tags decide, not the name alone.
     roti_raw = P("Rôti de dinde", ["en:turkeys", "en:turkey"])
     assert taxonomy.classify(roti_raw)["type"] == "turkey" and sub(blanc, roti_raw) is None
+
+
+def test_size_guess_ignores_delivery_apps_and_trusts_the_barcode_page(monkeypatch):
+    """A Carrefour smoked salmon (100 g) was priced for 23 g: a delivery-app page mentioning a portion won the size guess."""
+    from app import webprice
+    monkeypatch.setenv("PARALLEL_API_KEY", "k"); monkeypatch.setenv("WEBPRICE_PROVIDERS", "parallel"); monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setattr(webprice, "_day", {"d": "", "n": 0})
+    prod = {"barcode": "3560071548834", "name": "Petites tranches de saumon fumé", "brand": "Carrefour", "quantity": None}
+    pages = [("https://deliveroo.fr/menu/saumon-fume-petites-tranches-carrefour", "saumon fumé petites tranches Carrefour 23 g 2,50 €"),
+             ("https://www.carrefour.fr/p/saumon-fume-petites-tranches-asc-carrefour-extra-3560071548834", "Poids net : 100 g Saumon fumé petites tranches")]
+    t = lambda method, url, headers, body: {"results": [{"title": "", "excerpts": [x], "url": u} for u, x in pages]}      # noqa: E731
+    assert webprice._guess_size(prod, t) == {"amount": 100.0, "unit": "g"}
