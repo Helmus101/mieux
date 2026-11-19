@@ -100,3 +100,10 @@ def test_never_this_type_5(name, bad):
 @pytest.mark.parametrize("name,good", ROUND5_IS)
 def test_is_this_type_5(name, good):
     assert taxonomy.classify({"name": name, "categories": []}).get("type") == good
+
+
+def test_english_muffins_are_buns_not_cakes():
+    for n in ("English Muffins", "Muffins anglais", "Thomas' English Muffins"):
+        assert taxonomy.classify({"name": n, "categories": []}).get("type") == "english_muffin"
+    assert taxonomy.classify({"name": "Muffin chocolat", "categories": []}).get("type") == "cakes"
+    assert taxonomy.classify({"name": "Madeleines", "categories": []}).get("type") == "cakes"
