@@ -1186,3 +1186,13 @@ def test_size_guess_ignores_delivery_apps_and_trusts_the_barcode_page(monkeypatc
              ("https://www.carrefour.fr/p/saumon-fume-petites-tranches-asc-carrefour-extra-3560071548834", "Poids net : 100 g Saumon fumé petites tranches")]
     t = lambda method, url, headers, body: {"results": [{"title": "", "excerpts": [x], "url": u} for u, x in pages]}      # noqa: E731
     assert webprice._guess_size(prod, t) == {"amount": 100.0, "unit": "g"}
+
+
+def test_lookalike_names_are_not_alternatives():
+    """Probe-found leaks: a shared head word must not make a spread, dressing, iced coffee or body milk a substitute."""
+    assert sub(P("Pâtes fraîches", ["en:pastas"]), P("Pâtes à tartiner noisettes", [])) is None
+    assert sub(P("Vinaigre balsamique", ["en:vinegars"]), P("Vinaigrette balsamique", ["en:vinaigrettes"])) is None
+    assert sub(P("Café moulu", ["en:ground-coffees"]), P("Café glacé", [])) is None
+    assert sub(P("Lait demi-écrémé", ["en:milks"]), P("Lait de toilette", [])) is None
+    wheat, coco = P("Farine de blé T55", ["en:wheat-flours"]), P("Farine de coco", ["en:flours"])
+    assert sub(wheat, coco) is None or sub(wheat, coco)["level"] >= 3

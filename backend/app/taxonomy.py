@@ -532,7 +532,7 @@ _TYPE_REJECTS = {
 # Name-level exclusions found by auditing alternatives for the 1,000 most-scanned products (scripts/audit_alternatives.py): a name that
 # says the product is something else keeps it out of the type, so it neither gets nor is offered as that type's alternatives.
 _MORE_REJECTS = {
-    "vinegar": r"oignons?|cornichons?|l[ée]gumes?|c[âa]pres|piments?",
+    "vinegar": r"oignons?|cornichons?|l[ée]gumes?|c[âa]pres|piments?|vinaigrettes?|assaisonnements?",
     "wine": r"saumon|pav[ée]s?|poisson|truite",
     "duck": r"frites?|pommes? de terre",
     "spices": r"^\s*(?:noix de cajou|amandes?|noisettes?|cacahu|th[ée]s? (?:vert|noir)|gel[ée]e|sorbet)",
@@ -569,7 +569,7 @@ _MORE_REJECTS = {
     "baguette": r"gluten de bl[ée]|farine",
     "veggie_patty": r"\btofu\b|prot[ée]ines? de|gros vrac",
     "ready_meal": r"corned|sprats|\bmoules\b|maquereaux?|sardines?|\bthon\b|mac[ée]doine|brochettes|couscous (?:moyen|fin|grain)|graine",
-    "pasta": r"fromages? r[âa]p|r[âa]p[ée]s?\b|emmental",
+    "pasta": r"fromages? r[âa]p|r[âa]p[ée]s?\b|emmental|p[âa]tes? [àa] (?:tartiner|sandwich|pizza|tarte|cr[êe]pes?|g[âa]teau)|p[âa]te? (?:feuillet|bris|sabl)",
     "ham": r"petits pots|\bbols?\b|coquillettes|pizzas?|\bcmo\b|pi[ée]montaise|salades?|croques?|monster munch|\bchips\b|salad|paniers?|fromage|emmental|calzones?|croissants?",
     "cakes": r"jambon|emmental|champignons?|fromages?|l[ée]gumes|lentilles|saucisson|panciotti|galettes? (?:de|aux|[àa] base|[ée]peautre)|\bflan\b|g[âa]teau de (?:riz|semoule)|bolognaise|\bbarres?\b|prot[ée]in|english|anglais",
     "jam": r"confiture (?:de|au) lait|maggi|mad[èe]re",
@@ -591,8 +591,8 @@ _MORE_REJECTS = {
     "fruit_nut_bar": r"\bpains?\b",
     "soup": r"danone|velout[ée] nature|papillotes",
     "compote": r"paillasson|pommes? de terre",
-    "milk": r"pur[ée]e|\bcoco\b|coconut|poudre|concentr[ée]|lait d.(?:amande|avoine|soja|riz|noisette|coco)|lait (?:de )?(?:amande|avoine|soja|riz|noisette)|poudre|concentr",
-    "ground_coffee": r"con leche|instant|soluble|lyophilis|latte|cappuccino|\bsticks?\b|boisson",
+    "milk": r"toilette|corporel|body|d[ée]maquillant|hydratant|nettoyant|pur[ée]e|\bcoco\b|coconut|poudre|concentr[ée]|lait d.(?:amande|avoine|soja|riz|noisette|coco)|lait (?:de )?(?:amande|avoine|soja|riz|noisette)|poudre|concentr",
+    "ground_coffee": r"con leche|instant|soluble|lyophilis|latte|cappuccino|\bsticks?\b|boisson|glac[ée]|iced|\bice\b|cold brew|frapp[ée]|liqueur",
     "sauce": r"anglaise|papillotes|soja cuisine",
     "tomato_sauce": r"\bchili\b",
     "cereal_bar": r"\brepas\b",
@@ -929,6 +929,8 @@ _VARIANTS = {
                     ("date", r"datte|date\b"), ("avocado", r"avocat|avocado")],
     "baguette": [("wholemeal", r"complet|int[ée]gral|wholemeal|whole[- ]?wheat|seigle|c[ée]r[ée]ales|graines")],
     "sandwich_bread": [("wholemeal", r"complet|int[ée]gral|wholemeal|whole[- ]?wheat|seigle|c[ée]r[ée]ales|graines")],
+    "flour": [("coconut", r"coco"), ("almond", r"amande|almond"), ("rice", r"\briz\b|\brice\b"), ("chestnut", r"ch[âa]taigne|chestnut"), ("buckwheat", r"sarrasin|buckwheat"),
+              ("chickpea", r"pois chiche|chickpea"), ("corn", r"ma[ïi]s|corn"), ("spelt", r"[ée]peautre|spelt"), ("semolina", r"semoule|semolina")],   # coconut or almond flour is not wheat flour
     "oil": [("olive", r"olive|oliva")],
     "nuts": [("hazelnut", r"noisette|hazelnut"), ("almond", r"amande|almond"), ("walnut", r"\bnoix\b(?! de (coco|cajou|p[ée]can))|walnut"), ("peanut", r"cacahu|peanut|arachide"),
              ("cashew", r"cajou|cashew"), ("pistachio", r"pistache|pistachio"), ("pecan", r"p[ée]can|pecan"), ("coconut", r"noix de coco|coconut"),
@@ -984,7 +986,7 @@ def nut_prep(p: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # Types where a different variant is a different product, not a trade-off: hazelnuts are not almonds, almonds are not raisins.
-_HARD_VARIANT_TYPES = {"smoked_fish", "butter", "spirits", "tapenade", "pickles", "fruits_veg", "tomato_sauce", "mozzarella_fresh", "mayonnaise", "tea", "dough", "supplement", "pate_terrine", "dried_fruit", "nuts", "peanut_butter", "dip", "syrup", "fresh_fruit", "legumes", "pasta"}
+_HARD_VARIANT_TYPES = {"smoked_fish", "butter", "spirits", "tapenade", "pickles", "fruits_veg", "tomato_sauce", "mozzarella_fresh", "mayonnaise", "tea", "dough", "supplement", "pate_terrine", "dried_fruit", "nuts", "peanut_butter", "dip", "syrup", "fresh_fruit", "legumes", "pasta", "flour"}
 
 
 # Words that find a product type by name in a full-text index (OR, accent-free), so a competing brand is found whatever it calls its product.
