@@ -181,47 +181,54 @@ body:has(.landing){margin:0}   /* the landing does not load the app stylesheet: 
 .lp-final .lp-cta{margin-top:24px}
 
 
-/* ===== Editorial pass: a serif that owns the page, warm paper, one tomato-red spark, an asymmetric hero ===== */
-.landing{--bg:#F6F1E7;--bg2:#EDE6D6;--ink:#14211A;--soft:#5B6359;--leaf:#1F4D3A;--spark:#D9441E;--line:rgba(20,33,26,.14);--glass:rgba(246,241,231,.82);
-  --display:"Fraunces","Iowan Old Style","Palatino Linotype",Georgia,serif;--ease:cubic-bezier(.16,1,.3,1)}
-.landing ::selection{background:var(--spark);color:#fff}
-.landing .lp-h1,.landing h2{font-family:var(--display);font-variation-settings:"opsz" 144;font-weight:380;letter-spacing:-.035em}
-.landing .lp-word{font-family:var(--display);font-weight:600;letter-spacing:-.04em;font-size:22px}
-.landing .lp-h1 .lp-h1-tail{font-family:var(--display);font-style:italic;font-weight:340;color:var(--spark);letter-spacing:-.02em}
-/* hero: copy left and large, the real example overlapping on the right */
+/* ===== Shelf pass: the supermarket shelf-edge label. Cool shelf white, bottle-green ink, tag yellow only on price tags. One family: Archivo, condensed for figures and headlines. ===== */
+.landing{--bg:#F1F3EF;--bg2:#E6EAE3;--ink:#0E2A1F;--soft:#53625A;--leaf:#0E2A1F;--tag:#F4D21F;--paper:#FBFBF8;--line:rgba(14,42,31,.16);--glass:rgba(241,243,239,.86);--warn:#B8421B;
+  --f:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--ease:cubic-bezier(.16,1,.3,1);font-family:var(--f)}
+.landing ::selection{background:var(--tag);color:var(--ink)}
+.landing .lp-h1,.landing h2,.landing .lp-word,.landing .lp-fig strong,.landing .lp-score b{font-family:var(--f);font-stretch:68%;font-variation-settings:"wdth" 68}
+.landing .lp-h1,.landing h2{font-weight:800;letter-spacing:-.01em;line-height:.95}
+.landing .lp-word{font-weight:800;font-size:22px;letter-spacing:0}
+.landing .lp-h1 .lp-h1-tail{font-family:var(--f);font-stretch:100%;font-variation-settings:"wdth" 100;font-style:normal;font-weight:500;color:var(--soft);letter-spacing:-.01em}
+/* hero: copy left, the shelf strip right */
 @media (min-width:861px){
-  .lp-hero{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);justify-items:stretch;text-align:left;align-items:center;gap:clamp(24px,5vw,72px)}
+  .lp-hero{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);justify-items:stretch;text-align:left;align-items:center;gap:clamp(24px,5vw,72px)}
   .lp-hero-copy{align-items:flex-start;max-width:none}
-  .lp-h1{font-size:clamp(56px,8.2vw,124px);line-height:.96}
-  .lp-h1 .lp-h1-tail{font-size:clamp(22px,2.4vw,34px);margin-top:22px;line-height:1.15}
+  .lp-h1{font-size:clamp(52px,7vw,100px)}
+  .lp-h1 .lp-h1-tail{font-size:clamp(20px,2.2vw,30px);margin-top:20px;line-height:1.2;max-width:24ch}
   .lp-cta{justify-content:flex-start}
-  .lp-demo{width:100%;justify-self:end;transform:rotate(1.4deg);transition:transform .7s var(--ease)}
-  .lp-demo:hover{transform:rotate(0)}
+  .lp-demo{width:100%;justify-self:end}
 }
-.lp-demo{background:#FBF8F1;box-shadow:0 40px 90px -40px rgba(20,33,26,.45),0 0 0 .5px var(--line)}
-.lp-score{background:var(--spark)}
-.lp-btn{background:var(--ink);color:var(--bg);transition:transform .3s var(--ease),background .3s var(--ease)}
-@media (hover:hover) and (pointer:fine){.lp-btn:hover{opacity:1;background:var(--leaf);transform:translateY(-2px)}}
-.lp-more,.lp-alt small,.lp-us span{color:var(--leaf)}
-.lp-sec h2{font-size:clamp(34px,6vw,76px);line-height:1;max-width:16ch}
-.lp-lead{font-family:var(--display);font-weight:340;font-size:clamp(19px,2.1vw,26px);line-height:1.35;color:var(--soft)}
+/* the example reads as a shelf: receipt-paper surface, tag-yellow price figures */
+.lp-demo{background:var(--paper);border-radius:10px;box-shadow:0 0 0 1px var(--line),0 24px 60px -34px rgba(14,42,31,.4);padding:4px 22px 16px}
+.lp-demo img{border-radius:6px}
+.lp-score{background:var(--ink);border-radius:8px}
+.lp-score b{font-size:34px;font-weight:800}
+.lp-fig strong{display:inline-block;background:var(--tag);color:var(--ink);padding:3px 9px 2px;border-radius:4px;font-size:22px;font-weight:800;line-height:1.1}
+.lp-fig strong small{font-size:13px;font-weight:600;color:var(--ink);font-family:var(--f);font-stretch:100%}
+.lp-fig strong small:only-child{background:none}
+.lp-diff.down{color:var(--ink);background:rgba(14,42,31,.1)}
+.lp-alt small,.lp-more,.lp-us span{color:var(--ink)}
+.lp-alt small{font-weight:700}
+.lp-btn,.lp-btn-lg,.lp-nav .lp-btn-sm{background:var(--ink);color:var(--bg);border-radius:8px}
+.lp-btn{transition:transform .3s var(--ease),background .3s var(--ease)}
+@media (hover:hover) and (pointer:fine){.lp-btn:hover{opacity:1;background:#15412F}}
+/* sections: flat, left-aligned, ruled like shelf edges */
 .lp-sec{text-align:left}
-.lp-sec h2,.lp-sec .lp-lead{margin-inline:0}
-.lp-final,.lp-phone{text-align:left}
+.lp-sec h2{font-size:clamp(40px,6.4vw,88px);max-width:14ch;margin-inline:0}
+.lp-lead{margin-inline:0;font-family:var(--f);font-weight:400;font-size:clamp(18px,1.8vw,22px);line-height:1.4;color:var(--soft);max-width:44ch}
 #how,#phone{background:var(--bg2)}
 #uvp,#difference{background:var(--bg)}
-.lp-rule{background:#FBF8F1;box-shadow:0 0 0 .5px var(--line);transition:transform .5s var(--ease)}
-@media (hover:hover) and (pointer:fine){.lp-rule:hover{transform:translateY(-4px)}}
-.lp-rule>b{font-family:var(--display);font-weight:500;font-size:24px}
-.lp-n{background:var(--spark);font-family:var(--display);font-size:16px}
-.lp-steps b{font-family:var(--display);font-weight:500;font-size:22px}
-.lp-vs-row dt{font-family:var(--display);font-weight:500;font-size:21px}
-.lp-vs{border-top:1px solid var(--ink)}
-.lp-final{background:var(--ink);color:var(--bg)}
-.lp-final .lp-lead{color:rgba(246,241,231,.7)}
-.lp-final .lp-btn{background:var(--spark);color:#fff}
-.lp-nav .lp-btn-sm{background:var(--ink)}
-/* the headline arrives line by line */
+.lp-rule{background:var(--paper);border-radius:10px;box-shadow:0 0 0 1px var(--line);padding:24px}
+.lp-rule>b{font-family:var(--f);font-weight:700;font-size:22px}
+.lp-n{background:var(--tag);color:var(--ink);border-radius:4px;font-family:var(--f);font-weight:800}
+.lp-steps b,.lp-vs-row dt{font-family:var(--f);font-weight:700;font-size:21px}
+.lp-vs{border-top:2px solid var(--ink)}
+.lp-uvp-eg{border-top:1px solid var(--line)}
+.lp-final{background:var(--ink);color:var(--bg);text-align:left}
+.lp-final .lp-lead{color:rgba(241,243,239,.72)}
+.lp-final .lp-btn{background:var(--tag);color:var(--ink)}
 .lp-hero-copy>*{animation-timing-function:var(--ease)}
-@media (prefers-reduced-motion:reduce){.lp-demo,.lp-rule{transition:none;transform:none!important}}
-@media (max-width:860px){.lp-hero{text-align:left;justify-items:stretch}.lp-hero-copy{align-items:flex-start}.lp-cta{justify-content:flex-start}.lp-h1{font-size:clamp(44px,13vw,64px);line-height:.98}}
+@media (max-width:860px){.lp-hero{text-align:left;justify-items:stretch}.lp-hero-copy{align-items:flex-start}.lp-cta{justify-content:flex-start}.lp-h1{font-size:clamp(38px,12vw,64px)}.lp-h1 .lp-h1-tail{max-width:none}}
+
+.lp-hero>*,.lp-hero-copy{min-width:0}
+.lp-h1{overflow-wrap:anywhere}
