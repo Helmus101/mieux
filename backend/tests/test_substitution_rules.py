@@ -1186,3 +1186,38 @@ def test_size_guess_ignores_delivery_apps_and_trusts_the_barcode_page(monkeypatc
              ("https://www.carrefour.fr/p/saumon-fume-petites-tranches-asc-carrefour-extra-3560071548834", "Poids net : 100 g Saumon fumé petites tranches")]
     t = lambda method, url, headers, body: {"results": [{"title": "", "excerpts": [x], "url": u} for u, x in pages]}      # noqa: E731
     assert webprice._guess_size(prod, t) == {"amount": 100.0, "unit": "g"}
+
+
+def test_lookalike_names_are_not_alternatives():
+    """Probe-found leaks: a shared head word must not make a spread, dressing, iced coffee or body milk a substitute."""
+    assert sub(P("Pâtes fraîches", ["en:pastas"]), P("Pâtes à tartiner noisettes", [])) is None
+    assert sub(P("Vinaigre balsamique", ["en:vinegars"]), P("Vinaigrette balsamique", ["en:vinaigrettes"])) is None
+    assert sub(P("Café moulu", ["en:ground-coffees"]), P("Café glacé", [])) is None
+    assert sub(P("Lait demi-écrémé", ["en:milks"]), P("Lait de toilette", [])) is None
+    wheat, coco = P("Farine de blé T55", ["en:wheat-flours"]), P("Farine de coco", ["en:flours"])
+    assert sub(wheat, coco) is None or sub(wheat, coco)["level"] >= 3
+
+
+def test_nonfood_and_plant_based_never_cross_over():
+    assert sub(P("Huile d'olive vierge", ["en:olive-oils"]), P("Huile de massage", [])) is None
+    assert sub(P("Eau minérale", ["en:waters"]), P("Eau de toilette", [])) is None
+    assert sub(P("Beurre doux", ["en:butters"]), P("Beurre de karité", [])) is None
+    assert sub(P("Pâté de campagne", ["en:pates"]), P("Pâté pour chien", [])) is None
+    assert sub(P("Jambon blanc", ["en:hams"]), P("Jambon végétal", ["en:hams"])) is None
+    assert sub(P("Pizza margherita", ["en:pizzas"]), P("Sauce pizza", [])) is None
+    assert sub(P("Pâtes spaghetti", ["en:pastas"]), P("Spaghetti bolognaise", [])) is None
+    assert sub(P("Pommes de terre", ["en:potatoes"]), P("Purée de pommes de terre", ["en:potatoes"])) is None
+
+
+def test_true_alternatives_still_found():
+    assert sub(P("Spaghetti n°5", ["en:pastas"]), P("Penne rigate", ["en:pastas"]))["level"] <= 2
+    assert sub(P("Jambon blanc", ["en:hams"]), P("Jambon blanc supérieur", ["en:hams"]))["level"] == 1
+    assert sub(P("Beurre doux", ["en:butters"]), P("Beurre demi-sel", ["en:butters"]))["level"] <= 2
+    assert sub(P("Thon naturel", ["en:tunas"]), P("Thon à l'huile", ["en:tunas"]))["level"] <= 2
+
+
+def test_name_only_recall():
+    """Products whose Open Food Facts record has no category tag must still find obvious siblings."""
+    for a, b in [("Spaghetti", "Tortellini"), ("Coca-Cola", "Pepsi"), ("Sel fin", "Gros sel"), ("Saucisson sec", "Chorizo"),
+                 ("Croissants", "Pains au chocolat"), ("Sauce tomate", "Purée de tomates")]:
+        assert sub(P(a, []), P(b, [])) is not None and sub(P(b, []), P(a, [])) is not None, (a, b)
