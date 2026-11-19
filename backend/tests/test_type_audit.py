@@ -131,3 +131,48 @@ def test_biscuits_never_oatmeal():
         assert t.substitution(lu, oat) is None
     assert t.classify({"name": "Galette Épeautre Son d'Avoine", "categories": ["en:biscuits"]}).get("type") != "sweet_biscuits"
     assert t.classify({"name": "Biscuits à l'avoine et chocolat", "categories": ["en:biscuits"]}).get("type") == "sweet_biscuits"
+
+
+HEAD_IS = [("Miel de thym", "honey"), ("Huile d'olive au basilic", "oil"), ("Moutarde au miel", "mustard"), ("Thon à l'eau", "fish_canned"),
+           ("Saucisson sec", "dry_sausage"), ("Rosette de Lyon", "dry_sausage"), ("Lardons fumés", "lardons"), ("Allumettes fumées", "lardons"), ("Tofu fumé", "tofu"),
+           ("Pop-corn sucré", "popcorn"), ("The vert", "tea"), ("Skyr fraise", "flavoured_yogurt"), ("Skyr nature", "plain_yogurt"), ("Lait d'amande", "plant_drink"),
+           ("Soupe de poissons", "soup"), ("Vinaigre de vin rouge", "vinegar"), ("Ketchup aux épices", "ketchup"), ("Madeleines au miel", "cakes")]
+HEAD_NOT = [("Miel Pops Kellogg's", "honey"), ("Chocolat noir au miel", "honey"), ("Thon tartare", "cream_cheese"), ("Lait d'amande", "milk"), ("Soupe pho", "soup")]
+
+
+@pytest.mark.parametrize("name,good", HEAD_IS)
+def test_head_word_decides_6(name, good):
+    assert taxonomy.classify({"name": name, "categories": []}).get("type") == good
+
+
+@pytest.mark.parametrize("name,bad", HEAD_NOT)
+def test_head_word_not_6(name, bad):
+    assert taxonomy.classify({"name": name, "categories": []}).get("type") != bad
+
+
+HEAD2_IS = [("Noix de cajou thym romarin", "nuts"), ("Noix de jambon Aoste", "ham"), ("COMTE EXTRA CARREFOUR", "hard_cheese"), ("emmental français rapé", "hard_cheese"),
+            ("Farine de coco", "flour"), ("Farine de pois chiche", "flour"), ("Müesli 4 noix", "muesli"), ("Infusion Curcuma Gingembre", "herbal_tea"),
+            ("Thé vert gingembre curcuma", "tea"), ("Gelée de piment d'Espelette", "jam"), ("Sorbet Fraise Basilic", "ice_cream"), ("Sel aux cèpes", "salt"),
+            ("Dattes", "dried_fruit"), ("Skyr fraise", "flavoured_yogurt"), ("Mousse pur canard armagnac", "pate_terrine"), ("Pickles de champignons", "pickles"),
+            ("Huile pimentée pour pizza", "oil"), ("Olives vertes", "olives")]
+HEAD2_NOT = [("Noix de cajou thym romarin", "spices"), ("Lentilles assaisonnées au saucisson", "dry_sausage"), ("Brioche au saucisson", "dry_sausage"),
+             ("Lentilles aux Lardons", "lardons"), ("Baguette maïs", "corn"), ("Croissant jambon", "ham"), ("Petits sablés parmesan", "hard_cheese"),
+             ("Mousse pur canard armagnac", "spirits"), ("Gelée royale", "spices")]
+
+
+@pytest.mark.parametrize("name,good", HEAD2_IS)
+def test_head_word_decides_7(name, good):
+    assert taxonomy.classify({"name": name, "categories": []}).get("type") == good
+
+
+@pytest.mark.parametrize("name,bad", HEAD2_NOT)
+def test_head_word_not_7(name, bad):
+    assert taxonomy.classify({"name": name, "categories": []}).get("type") != bad
+
+
+def test_round8_fixes():
+    t = lambda n: taxonomy.classify({"name": n, "categories": []}).get("type")   # noqa: E731
+    assert t("Frites à la graisse de canard") != "duck"
+    assert t("Pavés de saumon Rose du Pacifique") != "wine"
+    assert t("PET 1.2L MAYTEA PECHE") != "fresh_fruit"
+    assert t("Vin rosé de Provence") == "wine"

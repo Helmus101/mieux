@@ -37,7 +37,12 @@ def run(n, out, offset=0):
     from app import taxonomy
     from app.products import normalize
     con = sqlite3.connect('off_local.db')
-    codes = [r[0] for r in con.execute("select code from off_products where code glob '[0-9]*' and length(code)>=8 order by scans desc limit ? offset ?", (N, OFFSET))]
+    if os.environ.get("BYTYPE"):   # the K most-scanned products of EVERY type (K = BYTYPE), so no type is left out; N/OFFSET slice the resulting list
+        k = int(os.environ["BYTYPE"])
+        allc = [r[0] for r in con.execute("select code from (select code, type, row_number() over (partition by type order by scans desc) rn from off_type where code glob '[0-9]*' and length(code)>=8 and type in (select type from off_type group by type having count(*) >= 40)) where rn <= ? order by type, rn", (k,))]
+        codes = allc[OFFSET:OFFSET + N]
+    else:
+        codes = [r[0] for r in con.execute("select code from off_products where code glob '[0-9]*' and length(code)>=8 order by scans desc limit ? offset ?", (N, OFFSET))]
     out = []
     with TestClient(app) as c:
         H = {"X-Session-Id": "audit-session-000001", "X-Country": "FR"}
@@ -71,8 +76,30 @@ def run(n, out, offset=0):
     print("done", len(out))
 
 
+def cross_type(path):
+    """Per original type: share of alternatives that sit in ANOTHER type, with the commonest ones. Run after an audit."""
+    import collections
+    res = json.load(open(path))
+    g = collections.defaultdict(lambda: [0, 0, collections.Counter()])
+    for r in res:
+        if r.get("err") or not r.get("t"):
+            continue
+        for a in r["alts"]:
+            g[r["t"]][0] += 1
+            if a["t"] != r["t"]:
+                g[r["t"]][1] += 1
+                g[r["t"]][2][(a["t"], a["n"][:30])] += 1
+    tot = sum(v[0] for v in g.values()); off = sum(v[1] for v in g.values())
+    for t, (n, bad, c) in sorted(g.items(), key=lambda kv: -kv[1][1])[:60]:
+        if bad:
+            print(f"{t:28} {bad:4}/{n:<4} other-type  " + " | ".join(f"{tt}:{nm}" for (tt, nm), _ in c.most_common(3)))
+    print(f"\n{off} of {tot} alternatives ({100 * off / max(1, tot):.1f}%) are in another type; empty lists: {sum(1 for r in res if not r.get('alts'))} of {len(res)}")
+
+
 if __name__ == '__main__':
     if sys.argv[1] == '--review':
         review(sys.argv[2])
+    elif sys.argv[1] == '--cross':
+        cross_type(sys.argv[2])
     else:
         run(sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else 0)
