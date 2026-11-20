@@ -273,6 +273,10 @@ _JAM_WORDS = re.compile(r"confiture|confettura|marmellata|mermelada|confitura|ko
 _CHEESE_TYPES = {"cheese", "blue_cheese", "soft_ripened_cheese", "fresh_goat_cheese", "mozzarella_fresh", "hard_cheese"}
 
 
+_BAR_TYPES = {"fruit_nut_bar", "cereal_bar", "protein_bar", "sports_energy_bar"}
+_NOT_A_BAR_TAG = re.compile(r"en:chocolates|en:dark-chocolates|en:milk-chocolates|en:chocolate-tablets|en:biscuits|en:cookies|en:breakfast-cereals|en:cereal-flakes|en:extruded-cereals|en:muesli|en:granolas?\b|en:cakes\b")
+
+
 def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
     """Structured classification with improved priority: specific category tags first, then explicit name signals, then broad tags, then fallback name matches.
     Classification confidence is now explicitly tracked. Low-confidence products should not enter strict rankings."""
@@ -397,6 +401,10 @@ def _classify(p: Dict[str, Any]) -> Dict[str, Any]:
         if not _guard(tid, fam):
             continue
         if tid in specific and _nr(tid, nr):
+            # "cranberry saveur amande" on a biscuit, "fruits et noix" on a breakfast cereal: the tags say what the product is, a bar
+            # type never comes from the flavour words alone.
+            if tid in _BAR_TYPES and _NOT_A_BAR_TAG.search(tags) and not re.search(r"\bbarres?\b|\bbars?\b", name, re.I):
+                continue
             return {"type": tid, **_META[tid], "source": "name_specific", "confidence": "high", "reason": f"name matches specific form: {nr.pattern[:40]}"}
 
     # Priority 3: Broad category tags with supporting name evidence (medium confidence)
@@ -533,7 +541,7 @@ _TYPE_REJECTS = {
 # Name-level exclusions found by auditing alternatives for the 1,000 most-scanned products (scripts/audit_alternatives.py): a name that
 # says the product is something else keeps it out of the type, so it neither gets nor is offered as that type's alternatives.
 _MORE_REJECTS = {
-    "vinegar": r"oignons?|cornichons?|l[ée]gumes?|c[âa]pres|piments?|vinaigrettes?|assaisonnements?",
+    "vinegar": r"rollmops|harengs?|maquereaux?|anchois|oignons?|cornichons?|l[ée]gumes?|c[âa]pres|piments?|vinaigrettes?|assaisonnements?",
     "wine": r"saumon|pav[ée]s?|poisson|truite",
     "duck": r"frites?|pommes? de terre",
     "spices": r"^\s*(?:noix de cajou|amandes?|noisettes?|cacahu|th[ée]s? (?:vert|noir)|gel[ée]e|sorbet)",
@@ -544,7 +552,7 @@ _MORE_REJECTS = {
     "potatoes": r"pur[ée]e|flocons|gratin|chips|frites|dauphine|r[öo]sti|galette",
     "plain_yogurt": r"[àa] boire|\bdrink|drinkable|brass[ée] [àa] boire",
 
-    "flour": r"\bflan\b|bioflan|oignon|l[ée]gumes?|poulet|boeuf|bœuf|saumon|poisson",
+    "flour": r"\bflan\b|bioflan|\bail\b|oignon|l[ée]gumes?|poulet|boeuf|bœuf|saumon|poisson",
     "fresh_fruit": r"truite|saumon|poisson|cabillaud|thon\b|poulet|filets? de|pav[ée]s? de|crevette|instant douceur|\bth[ée]\b|\btea\b|kombucha|skyr|bulles|boisson|cocktail|aloe|[ée]corce|\bpet\b|maytea|fuzetea|ice ?tea|th[ée] glac",
     "spirits": r"poulet|manchons?|mexicaine",
     "crackers": r"bolognaise|cr[êe]pes?",
@@ -567,7 +575,7 @@ _MORE_REJECTS = {
     "muesli": r"cacahu|peanut|\bbeurre\b|\bcream\b|cr[èe]me|\bfava\b|snack|galettes?|bissli|bbq|barbecue",
     "breakfast_cereal": r"hemp|chanvre|graines? de|\bseeds?\b",
     "plant_drink": r"cr[èe]me|crema|\bcream\b|lait de coco|coconut milk|cuisine",
-    "chips": r"\bfrites?\b|allumettes|pommes? noisettes|surgel|mc ?cain|c[ôo]t[ée] (?:brasserie|comptoir|resto)",
+    "chips": r"\bfilets?\b|poisson|merlu|colin|cabillaud|fish ?(?:&|and|n') ?chips|\bfrites?\b|allumettes|pommes? noisettes|surgel|mc ?cain|c[ôo]t[ée] (?:brasserie|comptoir|resto)",
     "cream_cheese": r"tartares? (?:de|d['’])|saumon|algues?|escarg|noix de coco|\bthon\b|saumon|crevettes?|surimi",
     "dessert": r"fromage blanc|ribot|macarons?|prot[ée]in|skyr|k[ée]fir|lait ferment|activia|bifidus|saint agur|cacao noir|au sirop|corne de gazelle",
     "baguette": r"gluten de bl[ée]|farine",
@@ -679,7 +687,7 @@ _HEAD_SKIP = {"les", "des", "une", "the", "and", "with", "pour", "dans", "aux", 
 
 
 # First words that name a cut, a form or a whole aisle, not a product: sharing one says nothing about being a substitute.
-_GENERIC_HEADS = set("filet filets confit boisson boissons legumes légumes legume légume plat plats sauce sauces préparation preparation melange mélange assortiment duo trio cocktail pate pâte tranche tranches cuisse cuisses aile ailes escalope escalopes pavé pave pavés morceaux dés des mini maxi spécialité specialite produit gamme coffret lot pack panier salade salades garniture accompagnement".split())
+_GENERIC_HEADS = set("bon bonne hot cold petit petite ptit filet filets confit boisson boissons legumes légumes legume légume plat plats sauce sauces préparation preparation melange mélange assortiment duo trio cocktail pate pâte tranche tranches cuisse cuisses aile ailes escalope escalopes pavé pave pavés morceaux dés des mini maxi spécialité specialite produit gamme coffret lot pack panier salade salades garniture accompagnement".split())
 
 
 def _load_cat_groups() -> Dict[str, str]:
@@ -799,6 +807,57 @@ _ANIMAL_TYPES = {"ham", "chicken", "deli_poultry", "sausage", "dry_sausage", "pa
                  "mozzarella_fresh", "fresh_goat_cheese", "cream_cheese", "mayonnaise", "plain_yogurt", "flavoured_yogurt", "milk", "duck", "fish_canned", "smoked_fish", "burger_patty"}
 
 
+_FLAVOURED_WATER = re.compile(r"saveur|aromatis|ar[ôo]mes?|fruit[ée]e?s?\b|\beau de coco|\bcoco\b|k[ée]fir|citron|menthe|fraise|p[êe]che|pomme|framboise|gazeuse au", re.I)
+_ICED_TEA = re.compile(r"\bice ?tea\b|th[ée]s? glac|infus[ée]e? glac|\bglac[ée]e?\b.*\bth[ée]\b", re.I)
+# One side says it, the other does not: not a substitute, whatever type the two share ("confiture de lait" is not a fruit jam).
+_KIND_MARKERS = [re.compile(x, re.I) for x in (
+    r"confiture de lait|dulce de leche",
+    r"chicor[ée]e",
+    r"levure (?:chimique|de p[âa]tisserie|p[âa]tissi[èe]re)|levure p[âa]tisserie|poudre (?:[àa] lever|levante)",
+    r"\bfarcie?s?\b",
+    r"p[âa]t[ée] en cro[ûu]te",
+    r"rollmops",
+    r"chantilly|cr[èe]me (?:fouett[ée]e|en spray)|a[ée]rosol",
+    r"\bsorbets?\b",
+    r"\bs[ée]ch[ée]e?s?\b|d[ée]shydrat",
+    r"\bhot cocoa|chocolat (?:chaud|en poudre)|cacao (?:en poudre|maigre)",
+)]
+_SPECIES = [(re.compile(x, re.I), k) for x, k in (
+    (r"\bveau\b|\bveal\b", "veau"), (r"\bb(?:œ|oe)ufs?\b|\bbeef\b", "boeuf"), (r"\bporc\b|\bpork\b", "porc"), (r"\bagneau\b|\blamb\b", "agneau"),
+    (r"\bdinde\b|\bturkey\b|\bpoulet\b|\bchicken\b|\bchapon\b|\bpintade\b", "volaille"), (r"\blapin\b", "lapin"))]
+_PREPARED_MEAT = re.compile(r"p[âa]t[ée]|terrine|rillettes?|saucisse?|saucisson|jambon|nuggets?|burger|boulettes?|plat|cuisin|lasagne|ravioli|soupe|bouillon|fond de|sauce|farci|brochette|marin[ée]|saveur|go[ûu]t|chips|biscuit", re.I)
+
+
+_POULTRY = {"chicken", "turkey", "duck"}
+_MEAT_TYPES = {"beef", "pork", "veal", "lamb", "chicken", "duck", "turkey", "rabbit"}
+
+
+def _species(name: str) -> Optional[str]:
+    found = {k for rx, k in _SPECIES if rx.search(name)}
+    return next(iter(found)) if len(found) == 1 else None
+
+
+def _pair_veto(orig: Dict[str, Any], cand: Dict[str, Any]) -> bool:
+    """Name-level reasons two products of the same or related type are still not substitutes."""
+    on, cn = orig.get("name") or "", cand.get("name") or ""
+    for rx in _KIND_MARKERS:
+        if bool(rx.search(on)) != bool(rx.search(cn)):
+            return True
+    if bool(_ICED_TEA.search(on)) != bool(_ICED_TEA.search(cn)):
+        return True
+    to, tc = classify(orig).get("type"), classify(cand).get("type")
+    go, gc = _group(to), _group(tc)
+    is_water = lambda n, g: g == "water" or bool(re.match(r"\s*(?:\d+\s*x\s*\d*\s*)?eau\b|\s*water\b", n, re.I))
+    if is_water(on, go) and is_water(cn, gc) and bool(_FLAVOURED_WATER.search(on)) != bool(_FLAVOURED_WATER.search(cn)):
+        return True     # flavoured or coconut water vs plain mineral water
+    if to in _MEAT_TYPES and tc in _MEAT_TYPES and to != tc and not (to in _POULTRY and tc in _POULTRY):
+        return True     # veal escalopes are not minced beef, a pork roast is not a chicken roast
+    so, sc = _species(on), _species(cn)
+    if so and sc and so != sc and not _PREPARED_MEAT.search(on) and not _PREPARED_MEAT.search(cn):
+        return True     # veal escalopes are not minced beef, a capon roast is not a pork roast
+    return False
+
+
 def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """HARD COMPATIBILITY GATE: Level 1-4 and why, or None when the candidate is not a substitute.
     Independent of nutrition and price. Enforces strict rules:
@@ -807,6 +866,8 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
     - Level 3/4 products can enter closest tab but not price/quality/value rankings
     """
     if _NONFOOD.search(orig.get("name") or "") or _NONFOOD.search(cand.get("name") or ""):
+        return None
+    if _pair_veto(orig, cand):
         return None
     co, cc = classify(orig), classify(cand)  # always computed fresh: a rule change must reach products that are already cached
     # A product typed only by its category ("cat:..."): the category itself is the small category. Two products of the same

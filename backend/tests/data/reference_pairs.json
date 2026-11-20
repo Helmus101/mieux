@@ -1,0 +1,2273 @@
+[
+ {
+  "a": {
+   "name": "Yaourt nature",
+   "categories": [
+    "en:dairies",
+    "en:fermented-milk-products",
+    "en:yogurts",
+    "en:plain-yogurts"
+   ]
+  },
+  "b": {
+   "name": "Yaourt brassé nature bio",
+   "categories": [
+    "en:dairies",
+    "en:fermented-milk-products",
+    "en:yogurts",
+    "en:plain-yogurts"
+   ]
+  },
+  "label": "valid",
+  "why": "plain yogurts"
+ },
+ {
+  "a": {
+   "name": "Yaourt à la fraise",
+   "categories": [
+    "en:dairies",
+    "en:yogurts",
+    "en:fruit-yogurts"
+   ]
+  },
+  "b": {
+   "name": "Lait fraise",
+   "categories": [
+    "en:dairies",
+    "en:milks",
+    "en:flavoured-milks"
+   ]
+  },
+  "label": "invalid",
+  "why": "yogurt vs strawberry milk"
+ },
+ {
+  "a": {
+   "name": "Yaourt nature",
+   "categories": [
+    "en:dairies",
+    "en:yogurts",
+    "en:plain-yogurts"
+   ]
+  },
+  "b": {
+   "name": "Lait demi-écrémé",
+   "categories": [
+    "en:dairies",
+    "en:milks"
+   ]
+  },
+  "label": "invalid",
+  "why": "yogurt vs milk"
+ },
+ {
+  "a": {
+   "name": "Lait demi-écrémé",
+   "categories": [
+    "en:dairies",
+    "en:milks",
+    "en:semi-skimmed-milks"
+   ]
+  },
+  "b": {
+   "name": "Lait demi-écrémé UHT",
+   "categories": [
+    "en:dairies",
+    "en:milks",
+    "en:semi-skimmed-milks"
+   ]
+  },
+  "label": "valid",
+  "why": "milk"
+ },
+ {
+  "a": {
+   "name": "Crème fraîche épaisse",
+   "categories": [
+    "en:dairies",
+    "en:creams"
+   ]
+  },
+  "b": {
+   "name": "Crème chantilly en spray",
+   "categories": [
+    "en:dairies",
+    "en:creams",
+    "en:whipped-creams"
+   ]
+  },
+  "label": "invalid",
+  "why": "cooking cream vs whipped"
+ },
+ {
+  "a": {
+   "name": "Beurre doux",
+   "categories": [
+    "en:dairies",
+    "en:butters"
+   ]
+  },
+  "b": {
+   "name": "Beurre demi-sel",
+   "categories": [
+    "en:dairies",
+    "en:butters"
+   ]
+  },
+  "label": "valid",
+  "why": "butter"
+ },
+ {
+  "a": {
+   "name": "Beurre doux",
+   "categories": [
+    "en:dairies",
+    "en:butters"
+   ]
+  },
+  "b": {
+   "name": "Beurre de cacahuète",
+   "categories": [
+    "en:spreads",
+    "en:peanut-butters"
+   ]
+  },
+  "label": "invalid",
+  "why": "butter vs peanut butter"
+ },
+ {
+  "a": {
+   "name": "Camembert de Normandie",
+   "categories": [
+    "en:dairies",
+    "en:cheeses",
+    "en:soft-cheeses",
+    "en:camemberts"
+   ]
+  },
+  "b": {
+   "name": "Brie de Meaux",
+   "categories": [
+    "en:dairies",
+    "en:cheeses",
+    "en:soft-cheeses",
+    "en:bries"
+   ]
+  },
+  "label": "valid",
+  "why": "soft cheeses"
+ },
+ {
+  "a": {
+   "name": "Emmental râpé",
+   "categories": [
+    "en:dairies",
+    "en:cheeses",
+    "en:grated-cheeses"
+   ]
+  },
+  "b": {
+   "name": "Röstis de légumes et cheddar",
+   "categories": [
+    "en:meals",
+    "en:prepared-meals"
+   ]
+  },
+  "label": "invalid",
+  "why": "cheese vs dish"
+ },
+ {
+  "a": {
+   "name": "Mozzarella",
+   "categories": [
+    "en:dairies",
+    "en:cheeses",
+    "en:mozzarella"
+   ]
+  },
+  "b": {
+   "name": "Mozzarella di bufala",
+   "categories": [
+    "en:dairies",
+    "en:cheeses",
+    "en:mozzarella"
+   ]
+  },
+  "label": "valid",
+  "why": "mozzarella"
+ },
+ {
+  "a": {
+   "name": "Fromage blanc nature",
+   "categories": [
+    "en:dairies",
+    "en:fromages-blancs"
+   ]
+  },
+  "b": {
+   "name": "Fromage à raclette",
+   "categories": [
+    "en:dairies",
+    "en:cheeses",
+    "en:raclette-cheeses"
+   ]
+  },
+  "label": "invalid",
+  "why": "fromage blanc vs raclette"
+ },
+ {
+  "a": {
+   "name": "Skyr nature",
+   "categories": [
+    "en:dairies",
+    "en:fermented-milk-products",
+    "en:skyr"
+   ]
+  },
+  "b": {
+   "name": "Skyr vanille",
+   "categories": [
+    "en:dairies",
+    "en:fermented-milk-products",
+    "en:skyr"
+   ]
+  },
+  "label": "variant",
+  "why": "skyr"
+ },
+ {
+  "a": {
+   "name": "Pesto basilic",
+   "categories": [
+    "en:sauces",
+    "en:pesto-sauces"
+   ]
+  },
+  "b": {
+   "name": "Pesto alla genovese",
+   "categories": [
+    "en:sauces",
+    "en:pesto-sauces"
+   ]
+  },
+  "label": "valid",
+  "why": "pesto"
+ },
+ {
+  "a": {
+   "name": "Pesto basilic",
+   "categories": [
+    "en:sauces",
+    "en:pesto-sauces"
+   ]
+  },
+  "b": {
+   "name": "Sauce tomate basilic",
+   "categories": [
+    "en:sauces",
+    "en:tomato-sauces"
+   ]
+  },
+  "label": "invalid",
+  "why": "pesto vs tomato sauce"
+ },
+ {
+  "a": {
+   "name": "Pesto basilic",
+   "categories": [
+    "en:sauces",
+    "en:pesto-sauces"
+   ]
+  },
+  "b": {
+   "name": "Basilic séché",
+   "categories": [
+    "en:spices",
+    "en:herbs"
+   ]
+  },
+  "label": "invalid",
+  "why": "pesto vs dried basil"
+ },
+ {
+  "a": {
+   "name": "Sauce tomate basilic",
+   "categories": [
+    "en:sauces",
+    "en:tomato-sauces"
+   ]
+  },
+  "b": {
+   "name": "Sauce tomate cuisinée à l'italienne",
+   "categories": [
+    "en:sauces",
+    "en:tomato-sauces"
+   ]
+  },
+  "label": "valid",
+  "why": "tomato sauce"
+ },
+ {
+  "a": {
+   "name": "Moutarde de Dijon",
+   "categories": [
+    "en:condiments",
+    "en:mustards"
+   ]
+  },
+  "b": {
+   "name": "Moutarde à l'ancienne",
+   "categories": [
+    "en:condiments",
+    "en:mustards"
+   ]
+  },
+  "label": "valid",
+  "why": "mustard"
+ },
+ {
+  "a": {
+   "name": "Moutarde de Dijon",
+   "categories": [
+    "en:condiments",
+    "en:mustards"
+   ]
+  },
+  "b": {
+   "name": "Vinaigrette à la moutarde",
+   "categories": [
+    "en:sauces",
+    "en:salad-dressings"
+   ]
+  },
+  "label": "invalid",
+  "why": "mustard vs vinaigrette"
+ },
+ {
+  "a": {
+   "name": "Mayonnaise",
+   "categories": [
+    "en:sauces",
+    "en:mayonnaises"
+   ]
+  },
+  "b": {
+   "name": "Mayonnaise allégée",
+   "categories": [
+    "en:sauces",
+    "en:mayonnaises"
+   ]
+  },
+  "label": "valid",
+  "why": "mayo"
+ },
+ {
+  "a": {
+   "name": "Ketchup",
+   "categories": [
+    "en:sauces",
+    "en:ketchups"
+   ]
+  },
+  "b": {
+   "name": "Tomato ketchup bio",
+   "categories": [
+    "en:sauces",
+    "en:ketchups"
+   ]
+  },
+  "label": "valid",
+  "why": "ketchup"
+ },
+ {
+  "a": {
+   "name": "Ketchup",
+   "categories": [
+    "en:sauces",
+    "en:ketchups"
+   ]
+  },
+  "b": {
+   "name": "Concentré de tomates",
+   "categories": [
+    "en:sauces",
+    "en:tomato-pastes"
+   ]
+  },
+  "label": "invalid",
+  "why": "ketchup vs paste"
+ },
+ {
+  "a": {
+   "name": "Vinaigre balsamique",
+   "categories": [
+    "en:condiments",
+    "en:vinegars"
+   ]
+  },
+  "b": {
+   "name": "Vinaigre de vin rouge",
+   "categories": [
+    "en:condiments",
+    "en:vinegars"
+   ]
+  },
+  "label": "valid",
+  "why": "vinegar"
+ },
+ {
+  "a": {
+   "name": "Vinaigre balsamique",
+   "categories": [
+    "en:condiments",
+    "en:vinegars"
+   ]
+  },
+  "b": {
+   "name": "Rollmops au vinaigre",
+   "categories": [
+    "en:fishes",
+    "en:marinated-fish"
+   ]
+  },
+  "label": "invalid",
+  "why": "vinegar vs rollmops"
+ },
+ {
+  "a": {
+   "name": "Cornichons au vinaigre",
+   "categories": [
+    "en:pickles",
+    "en:gherkins"
+   ]
+  },
+  "b": {
+   "name": "Cornichons extra-fins",
+   "categories": [
+    "en:pickles",
+    "en:gherkins"
+   ]
+  },
+  "label": "valid",
+  "why": "gherkins"
+ },
+ {
+  "a": {
+   "name": "Cornichons au vinaigre",
+   "categories": [
+    "en:pickles",
+    "en:gherkins"
+   ]
+  },
+  "b": {
+   "name": "Endives",
+   "categories": [
+    "en:vegetables",
+    "en:endives"
+   ]
+  },
+  "label": "invalid",
+  "why": "gherkin vs endive"
+ },
+ {
+  "a": {
+   "name": "Huile d'olive vierge extra",
+   "categories": [
+    "en:fats",
+    "en:vegetable-oils",
+    "en:olive-oils"
+   ]
+  },
+  "b": {
+   "name": "Huile d'olive",
+   "categories": [
+    "en:fats",
+    "en:vegetable-oils",
+    "en:olive-oils"
+   ]
+  },
+  "label": "valid",
+  "why": "olive oil"
+ },
+ {
+  "a": {
+   "name": "Huile d'olive vierge extra",
+   "categories": [
+    "en:fats",
+    "en:vegetable-oils",
+    "en:olive-oils"
+   ]
+  },
+  "b": {
+   "name": "Olives vertes",
+   "categories": [
+    "en:olives"
+   ]
+  },
+  "label": "invalid",
+  "why": "oil vs olives"
+ },
+ {
+  "a": {
+   "name": "Madeleines",
+   "categories": [
+    "en:snacks",
+    "en:biscuits-and-cakes",
+    "en:cakes",
+    "en:madeleines"
+   ]
+  },
+  "b": {
+   "name": "Madeleines pur beurre",
+   "categories": [
+    "en:snacks",
+    "en:biscuits-and-cakes",
+    "en:cakes",
+    "en:madeleines"
+   ]
+  },
+  "label": "valid",
+  "why": "madeleines"
+ },
+ {
+  "a": {
+   "name": "English muffins",
+   "categories": [
+    "en:breads",
+    "en:english-muffins"
+   ]
+  },
+  "b": {
+   "name": "Madeleines",
+   "categories": [
+    "en:snacks",
+    "en:cakes",
+    "en:madeleines"
+   ]
+  },
+  "label": "invalid",
+  "why": "muffin vs madeleine"
+ },
+ {
+  "a": {
+   "name": "Cookies pépites de chocolat",
+   "categories": [
+    "en:snacks",
+    "en:biscuits-and-cakes",
+    "en:biscuits",
+    "en:cookies"
+   ]
+  },
+  "b": {
+   "name": "Cookies chocolat noisettes",
+   "categories": [
+    "en:snacks",
+    "en:biscuits",
+    "en:cookies"
+   ]
+  },
+  "label": "valid",
+  "why": "cookies"
+ },
+ {
+  "a": {
+   "name": "Cookies pépites de chocolat",
+   "categories": [
+    "en:snacks",
+    "en:biscuits",
+    "en:cookies"
+   ]
+  },
+  "b": {
+   "name": "Céréales Cookie Crisp",
+   "categories": [
+    "en:breakfasts",
+    "en:cereals-and-their-products",
+    "en:breakfast-cereals"
+   ]
+  },
+  "label": "invalid",
+  "why": "cookie vs cereal"
+ },
+ {
+  "a": {
+   "name": "Cookies pépites de chocolat",
+   "categories": [
+    "en:snacks",
+    "en:biscuits",
+    "en:cookies"
+   ]
+  },
+  "b": {
+   "name": "Lait au chocolat",
+   "categories": [
+    "en:dairies",
+    "en:milks",
+    "en:chocolate-milks"
+   ]
+  },
+  "label": "invalid",
+  "why": "cookie vs chocolate milk"
+ },
+ {
+  "a": {
+   "name": "Biscuits au chocolat",
+   "categories": [
+    "en:snacks",
+    "en:biscuits"
+   ]
+  },
+  "b": {
+   "name": "Pâte à tartiner chocolat noisettes",
+   "categories": [
+    "en:spreads",
+    "en:chocolate-spreads"
+   ]
+  },
+  "label": "invalid",
+  "why": "biscuit vs spread"
+ },
+ {
+  "a": {
+   "name": "Biscuits au chocolat",
+   "categories": [
+    "en:snacks",
+    "en:biscuits"
+   ]
+  },
+  "b": {
+   "name": "Muesli croustillant chocolat",
+   "categories": [
+    "en:breakfasts",
+    "en:cereals-and-their-products",
+    "en:mueslis"
+   ]
+  },
+  "label": "invalid",
+  "why": "biscuit vs muesli"
+ },
+ {
+  "a": {
+   "name": "Corn flakes",
+   "categories": [
+    "en:breakfasts",
+    "en:cereals-and-their-products",
+    "en:breakfast-cereals"
+   ]
+  },
+  "b": {
+   "name": "Céréales pétales de maïs",
+   "categories": [
+    "en:breakfasts",
+    "en:breakfast-cereals"
+   ]
+  },
+  "label": "valid",
+  "why": "cereals"
+ },
+ {
+  "a": {
+   "name": "Muesli",
+   "categories": [
+    "en:breakfasts",
+    "en:cereals-and-their-products",
+    "en:mueslis"
+   ]
+  },
+  "b": {
+   "name": "Muesli fruits secs",
+   "categories": [
+    "en:breakfasts",
+    "en:mueslis"
+   ]
+  },
+  "label": "valid",
+  "why": "muesli"
+ },
+ {
+  "a": {
+   "name": "Barre de céréales chocolat",
+   "categories": [
+    "en:snacks",
+    "en:bars",
+    "en:cereal-bars"
+   ]
+  },
+  "b": {
+   "name": "Barres céréales miel",
+   "categories": [
+    "en:snacks",
+    "en:bars",
+    "en:cereal-bars"
+   ]
+  },
+  "label": "valid",
+  "why": "cereal bars"
+ },
+ {
+  "a": {
+   "name": "Barre de céréales chocolat",
+   "categories": [
+    "en:snacks",
+    "en:bars",
+    "en:cereal-bars"
+   ]
+  },
+  "b": {
+   "name": "Pain aux fruits",
+   "categories": [
+    "en:breads",
+    "en:fruit-breads"
+   ]
+  },
+  "label": "invalid",
+  "why": "cereal bar vs fruit bread"
+ },
+ {
+  "a": {
+   "name": "Barre de céréales chocolat",
+   "categories": [
+    "en:snacks",
+    "en:bars",
+    "en:cereal-bars"
+   ]
+  },
+  "b": {
+   "name": "Tablette de chocolat noir",
+   "categories": [
+    "en:snacks",
+    "en:chocolates",
+    "en:dark-chocolates"
+   ]
+  },
+  "label": "invalid",
+  "why": "cereal bar vs chocolate bar"
+ },
+ {
+  "a": {
+   "name": "Baguette tradition",
+   "categories": [
+    "en:breads",
+    "en:baguettes"
+   ]
+  },
+  "b": {
+   "name": "Baguette",
+   "categories": [
+    "en:breads",
+    "en:baguettes"
+   ]
+  },
+  "label": "valid",
+  "why": "baguette"
+ },
+ {
+  "a": {
+   "name": "Pain de mie nature",
+   "categories": [
+    "en:breads",
+    "en:sliced-breads"
+   ]
+  },
+  "b": {
+   "name": "Pain de mie complet",
+   "categories": [
+    "en:breads",
+    "en:sliced-breads"
+   ]
+  },
+  "label": "valid",
+  "why": "sliced bread"
+ },
+ {
+  "a": {
+   "name": "Pain de mie nature",
+   "categories": [
+    "en:breads",
+    "en:sliced-breads"
+   ]
+  },
+  "b": {
+   "name": "Chapelure",
+   "categories": [
+    "en:breads",
+    "en:breadcrumbs"
+   ]
+  },
+  "label": "invalid",
+  "why": "bread vs breadcrumbs"
+ },
+ {
+  "a": {
+   "name": "Croissants",
+   "categories": [
+    "en:viennoiseries",
+    "en:croissants"
+   ]
+  },
+  "b": {
+   "name": "Croissants pur beurre",
+   "categories": [
+    "en:viennoiseries",
+    "en:croissants"
+   ]
+  },
+  "label": "valid",
+  "why": "croissants"
+ },
+ {
+  "a": {
+   "name": "Rocher coco",
+   "categories": [
+    "en:snacks",
+    "en:biscuits-and-cakes",
+    "en:pastries",
+    "en:coconut-macaroons"
+   ]
+  },
+  "b": {
+   "name": "Rochers coco",
+   "categories": [
+    "en:snacks",
+    "en:pastries",
+    "en:coconut-macaroons"
+   ]
+  },
+  "label": "valid",
+  "why": "coconut rocks"
+ },
+ {
+  "a": {
+   "name": "Rocher coco",
+   "categories": [
+    "en:snacks",
+    "en:pastries",
+    "en:coconut-macaroons"
+   ]
+  },
+  "b": {
+   "name": "Biscuits hyperprotéinés orange",
+   "categories": [
+    "en:snacks",
+    "en:biscuits"
+   ]
+  },
+  "label": "invalid",
+  "why": "coconut rock vs protein biscuit"
+ },
+ {
+  "a": {
+   "name": "Spaghetti",
+   "categories": [
+    "en:pastas",
+    "en:dry-pastas",
+    "en:spaghetti"
+   ]
+  },
+  "b": {
+   "name": "Spaghetti complets",
+   "categories": [
+    "en:pastas",
+    "en:dry-pastas",
+    "en:spaghetti"
+   ]
+  },
+  "label": "valid",
+  "why": "spaghetti"
+ },
+ {
+  "a": {
+   "name": "Spaghetti",
+   "categories": [
+    "en:pastas",
+    "en:dry-pastas",
+    "en:spaghetti"
+   ]
+  },
+  "b": {
+   "name": "Penne rigate",
+   "categories": [
+    "en:pastas",
+    "en:dry-pastas",
+    "en:penne"
+   ]
+  },
+  "label": "valid",
+  "why": "dry pasta shapes"
+ },
+ {
+  "a": {
+   "name": "Spaghetti",
+   "categories": [
+    "en:pastas",
+    "en:dry-pastas",
+    "en:spaghetti"
+   ]
+  },
+  "b": {
+   "name": "Sauce bolognaise",
+   "categories": [
+    "en:sauces",
+    "en:meat-sauces"
+   ]
+  },
+  "label": "invalid",
+  "why": "pasta vs pasta sauce"
+ },
+ {
+  "a": {
+   "name": "Riz basmati",
+   "categories": [
+    "en:cereals-and-potatoes",
+    "en:rices",
+    "en:basmati-rices"
+   ]
+  },
+  "b": {
+   "name": "Riz long grain",
+   "categories": [
+    "en:cereals-and-potatoes",
+    "en:rices"
+   ]
+  },
+  "label": "valid",
+  "why": "rice"
+ },
+ {
+  "a": {
+   "name": "Riz basmati",
+   "categories": [
+    "en:rices",
+    "en:basmati-rices"
+   ]
+  },
+  "b": {
+   "name": "Gâteaux de riz soufflé",
+   "categories": [
+    "en:snacks",
+    "en:puffed-rice-cakes"
+   ]
+  },
+  "label": "invalid",
+  "why": "rice vs rice cakes"
+ },
+ {
+  "a": {
+   "name": "Galettes de riz soufflé",
+   "categories": [
+    "en:snacks",
+    "en:puffed-rice-cakes"
+   ]
+  },
+  "b": {
+   "name": "Riz au lait",
+   "categories": [
+    "en:desserts",
+    "en:rice-puddings"
+   ]
+  },
+  "label": "invalid",
+  "why": "rice cakes vs rice pudding"
+ },
+ {
+  "a": {
+   "name": "Lentilles vertes",
+   "categories": [
+    "en:legumes",
+    "en:lentils"
+   ]
+  },
+  "b": {
+   "name": "Lentilles corail",
+   "categories": [
+    "en:legumes",
+    "en:lentils"
+   ]
+  },
+  "label": "valid",
+  "why": "lentils"
+ },
+ {
+  "a": {
+   "name": "Farine de blé T55",
+   "categories": [
+    "en:flours",
+    "en:wheat-flours"
+   ]
+  },
+  "b": {
+   "name": "Farine T45",
+   "categories": [
+    "en:flours",
+    "en:wheat-flours"
+   ]
+  },
+  "label": "valid",
+  "why": "flour"
+ },
+ {
+  "a": {
+   "name": "Farine de blé T55",
+   "categories": [
+    "en:flours",
+    "en:wheat-flours"
+   ]
+  },
+  "b": {
+   "name": "Ail semoule",
+   "categories": [
+    "en:spices",
+    "en:garlic"
+   ]
+  },
+  "label": "invalid",
+  "why": "flour vs garlic granules"
+ },
+ {
+  "a": {
+   "name": "Sucre en poudre",
+   "categories": [
+    "en:sugars"
+   ]
+  },
+  "b": {
+   "name": "Sucre blanc",
+   "categories": [
+    "en:sugars"
+   ]
+  },
+  "label": "valid",
+  "why": "sugar"
+ },
+ {
+  "a": {
+   "name": "Sel fin",
+   "categories": [
+    "en:salts"
+   ]
+  },
+  "b": {
+   "name": "Gros sel",
+   "categories": [
+    "en:salts"
+   ]
+  },
+  "label": "valid",
+  "why": "salt"
+ },
+ {
+  "a": {
+   "name": "Confiture de fraises",
+   "categories": [
+    "en:spreads",
+    "en:jams",
+    "en:strawberry-jams"
+   ]
+  },
+  "b": {
+   "name": "Confiture d'abricots",
+   "categories": [
+    "en:spreads",
+    "en:jams",
+    "en:apricot-jams"
+   ]
+  },
+  "label": "valid",
+  "why": "jams"
+ },
+ {
+  "a": {
+   "name": "Confiture de fraises",
+   "categories": [
+    "en:spreads",
+    "en:jams",
+    "en:strawberry-jams"
+   ]
+  },
+  "b": {
+   "name": "Confiture de lait",
+   "categories": [
+    "en:spreads",
+    "en:milk-jams"
+   ]
+  },
+  "label": "invalid",
+  "why": "jam vs dulce de leche"
+ },
+ {
+  "a": {
+   "name": "Miel de fleurs",
+   "categories": [
+    "en:honeys"
+   ]
+  },
+  "b": {
+   "name": "Miel d'acacia",
+   "categories": [
+    "en:honeys"
+   ]
+  },
+  "label": "valid",
+  "why": "honey"
+ },
+ {
+  "a": {
+   "name": "Pâte à tartiner noisettes",
+   "categories": [
+    "en:spreads",
+    "en:chocolate-spreads"
+   ]
+  },
+  "b": {
+   "name": "Nutella",
+   "categories": [
+    "en:spreads",
+    "en:chocolate-spreads"
+   ]
+  },
+  "label": "valid",
+  "why": "spreads"
+ },
+ {
+  "a": {
+   "name": "Chocolat noir 70%",
+   "categories": [
+    "en:snacks",
+    "en:chocolates",
+    "en:dark-chocolates"
+   ]
+  },
+  "b": {
+   "name": "Chocolat noir dégustation 85% cacao",
+   "categories": [
+    "en:snacks",
+    "en:chocolates",
+    "en:dark-chocolates"
+   ]
+  },
+  "label": "valid",
+  "why": "dark chocolate"
+ },
+ {
+  "a": {
+   "name": "Chocolat noir 70%",
+   "categories": [
+    "en:chocolates",
+    "en:dark-chocolates"
+   ]
+  },
+  "b": {
+   "name": "Barres gourmandes cranberries amandes",
+   "categories": [
+    "en:bars",
+    "en:cereal-bars"
+   ]
+  },
+  "label": "invalid",
+  "why": "chocolate vs fruit nut bar"
+ },
+ {
+  "a": {
+   "name": "Chips nature",
+   "categories": [
+    "en:snacks",
+    "en:salty-snacks",
+    "en:chips-and-fries",
+    "en:potato-crisps"
+   ]
+  },
+  "b": {
+   "name": "Chips à l'ancienne",
+   "categories": [
+    "en:snacks",
+    "en:potato-crisps"
+   ]
+  },
+  "label": "valid",
+  "why": "chips"
+ },
+ {
+  "a": {
+   "name": "Chips nature",
+   "categories": [
+    "en:snacks",
+    "en:potato-crisps"
+   ]
+  },
+  "b": {
+   "name": "Filets de merlu façon fish & chips",
+   "categories": [
+    "en:fishes",
+    "en:breaded-fish"
+   ]
+  },
+  "label": "invalid",
+  "why": "crisps vs fish"
+ },
+ {
+  "a": {
+   "name": "Compote pomme",
+   "categories": [
+    "en:desserts",
+    "en:fruit-compotes"
+   ]
+  },
+  "b": {
+   "name": "Compote pomme fraise",
+   "categories": [
+    "en:desserts",
+    "en:fruit-compotes"
+   ]
+  },
+  "label": "valid",
+  "why": "compote"
+ },
+ {
+  "a": {
+   "name": "Soupe de légumes",
+   "categories": [
+    "en:meals",
+    "en:soups"
+   ]
+  },
+  "b": {
+   "name": "Velouté de potiron",
+   "categories": [
+    "en:meals",
+    "en:soups"
+   ]
+  },
+  "label": "valid",
+  "why": "soup"
+ },
+ {
+  "a": {
+   "name": "Thon au naturel",
+   "categories": [
+    "en:fishes",
+    "en:canned-fishes",
+    "en:tunas"
+   ]
+  },
+  "b": {
+   "name": "Thon à l'huile",
+   "categories": [
+    "en:fishes",
+    "en:canned-fishes",
+    "en:tunas"
+   ]
+  },
+  "label": "valid",
+  "why": "canned tuna"
+ },
+ {
+  "a": {
+   "name": "Thon au naturel",
+   "categories": [
+    "en:fishes",
+    "en:canned-fishes",
+    "en:tunas"
+   ]
+  },
+  "b": {
+   "name": "Steak de thon frais",
+   "categories": [
+    "en:fishes",
+    "en:fresh-fishes"
+   ]
+  },
+  "label": "invalid",
+  "why": "canned vs fresh tuna"
+ },
+ {
+  "a": {
+   "name": "Saumon fumé",
+   "categories": [
+    "en:fishes",
+    "en:smoked-fishes",
+    "en:smoked-salmons"
+   ]
+  },
+  "b": {
+   "name": "Truite fumée",
+   "categories": [
+    "en:fishes",
+    "en:smoked-fishes"
+   ]
+  },
+  "label": "variant",
+  "why": "smoked fish"
+ },
+ {
+  "a": {
+   "name": "Saumon fumé",
+   "categories": [
+    "en:fishes",
+    "en:smoked-fishes",
+    "en:smoked-salmons"
+   ]
+  },
+  "b": {
+   "name": "Filets de saumon surgelés",
+   "categories": [
+    "en:fishes",
+    "en:frozen-fishes",
+    "en:salmon-fillets"
+   ]
+  },
+  "label": "invalid",
+  "why": "smoked vs frozen salmon"
+ },
+ {
+  "a": {
+   "name": "Escalopes de poulet",
+   "categories": [
+    "en:meats",
+    "en:poultry",
+    "en:chicken"
+   ]
+  },
+  "b": {
+   "name": "Filets de poulet",
+   "categories": [
+    "en:meats",
+    "en:poultry",
+    "en:chicken"
+   ]
+  },
+  "label": "valid",
+  "why": "chicken"
+ },
+ {
+  "a": {
+   "name": "Escalopes de poulet",
+   "categories": [
+    "en:meats",
+    "en:poultry",
+    "en:chicken"
+   ]
+  },
+  "b": {
+   "name": "Escalopes de dinde",
+   "categories": [
+    "en:meats",
+    "en:poultry",
+    "en:turkey"
+   ]
+  },
+  "label": "valid",
+  "why": "poultry cuts"
+ },
+ {
+  "a": {
+   "name": "Escalopes de veau",
+   "categories": [
+    "en:meats",
+    "en:veal"
+   ]
+  },
+  "b": {
+   "name": "Viande hachée pur bœuf 5% MG",
+   "categories": [
+    "en:meats",
+    "en:beef",
+    "en:minced-beef"
+   ]
+  },
+  "label": "invalid",
+  "why": "veal vs minced beef"
+ },
+ {
+  "a": {
+   "name": "Rôti de porc",
+   "categories": [
+    "en:meats",
+    "en:pork"
+   ]
+  },
+  "b": {
+   "name": "Rôti de chapon",
+   "categories": [
+    "en:meats",
+    "en:poultry",
+    "en:capons"
+   ]
+  },
+  "label": "invalid",
+  "why": "pork roast vs capon"
+ },
+ {
+  "a": {
+   "name": "Steak haché pur bœuf",
+   "categories": [
+    "en:meats",
+    "en:beef",
+    "en:minced-beef"
+   ]
+  },
+  "b": {
+   "name": "Viande hachée pur bœuf",
+   "categories": [
+    "en:meats",
+    "en:beef",
+    "en:minced-beef"
+   ]
+  },
+  "label": "valid",
+  "why": "minced beef"
+ },
+ {
+  "a": {
+   "name": "Jambon blanc",
+   "categories": [
+    "en:meats",
+    "en:hams",
+    "en:white-hams"
+   ]
+  },
+  "b": {
+   "name": "Jambon supérieur",
+   "categories": [
+    "en:meats",
+    "en:hams"
+   ]
+  },
+  "label": "valid",
+  "why": "ham"
+ },
+ {
+  "a": {
+   "name": "Jambon blanc",
+   "categories": [
+    "en:meats",
+    "en:hams"
+   ]
+  },
+  "b": {
+   "name": "Les bon asticot",
+   "categories": [
+    "en:insects"
+   ]
+  },
+  "label": "invalid",
+  "why": "ham vs insects"
+ },
+ {
+  "a": {
+   "name": "Saucisson sec",
+   "categories": [
+    "en:meats",
+    "en:dry-sausages"
+   ]
+  },
+  "b": {
+   "name": "Saucisse sèche",
+   "categories": [
+    "en:meats",
+    "en:dry-sausages"
+   ]
+  },
+  "label": "valid",
+  "why": "dry sausage"
+ },
+ {
+  "a": {
+   "name": "Lardons fumés",
+   "categories": [
+    "en:meats",
+    "en:lardons"
+   ]
+  },
+  "b": {
+   "name": "Lardons nature",
+   "categories": [
+    "en:meats",
+    "en:lardons"
+   ]
+  },
+  "label": "valid",
+  "why": "lardons"
+ },
+ {
+  "a": {
+   "name": "Lardons fumés",
+   "categories": [
+    "en:meats",
+    "en:lardons"
+   ]
+  },
+  "b": {
+   "name": "Saucisses de Strasbourg",
+   "categories": [
+    "en:meats",
+    "en:sausages"
+   ]
+  },
+  "label": "invalid",
+  "why": "lardons vs sausages"
+ },
+ {
+  "a": {
+   "name": "Cordons bleus de poulet",
+   "categories": [
+    "en:meats",
+    "en:poultry",
+    "en:cordons-bleus"
+   ]
+  },
+  "b": {
+   "name": "Cordon bleu de dinde",
+   "categories": [
+    "en:meats",
+    "en:cordons-bleus"
+   ]
+  },
+  "label": "valid",
+  "why": "cordon bleu"
+ },
+ {
+  "a": {
+   "name": "Cordons bleus de poulet",
+   "categories": [
+    "en:meats",
+    "en:cordons-bleus"
+   ]
+  },
+  "b": {
+   "name": "Filet de poulet cru",
+   "categories": [
+    "en:meats",
+    "en:chicken"
+   ]
+  },
+  "label": "invalid",
+  "why": "breaded vs raw chicken"
+ },
+ {
+  "a": {
+   "name": "Eau minérale naturelle",
+   "categories": [
+    "en:beverages",
+    "en:waters",
+    "en:mineral-waters"
+   ]
+  },
+  "b": {
+   "name": "Eau de source",
+   "categories": [
+    "en:beverages",
+    "en:waters",
+    "en:spring-waters"
+   ]
+  },
+  "label": "valid",
+  "why": "plain water"
+ },
+ {
+  "a": {
+   "name": "Eau pétillante saveur menthe",
+   "categories": [
+    "en:beverages",
+    "en:waters",
+    "en:flavored-waters"
+   ]
+  },
+  "b": {
+   "name": "Eau minérale naturelle",
+   "categories": [
+    "en:beverages",
+    "en:waters",
+    "en:mineral-waters"
+   ]
+  },
+  "label": "invalid",
+  "why": "flavoured vs plain water"
+ },
+ {
+  "a": {
+   "name": "Eau de coco",
+   "categories": [
+    "en:beverages",
+    "en:coconut-waters"
+   ]
+  },
+  "b": {
+   "name": "Eau minérale naturelle",
+   "categories": [
+    "en:beverages",
+    "en:waters",
+    "en:mineral-waters"
+   ]
+  },
+  "label": "invalid",
+  "why": "coconut vs mineral water"
+ },
+ {
+  "a": {
+   "name": "Cola",
+   "categories": [
+    "en:beverages",
+    "en:sodas",
+    "en:colas"
+   ]
+  },
+  "b": {
+   "name": "Coca-Cola Zero",
+   "categories": [
+    "en:beverages",
+    "en:sodas",
+    "en:colas"
+   ]
+  },
+  "label": "valid",
+  "why": "cola"
+ },
+ {
+  "a": {
+   "name": "Cola",
+   "categories": [
+    "en:beverages",
+    "en:sodas",
+    "en:colas"
+   ]
+  },
+  "b": {
+   "name": "Eau pétillante",
+   "categories": [
+    "en:beverages",
+    "en:waters"
+   ]
+  },
+  "label": "invalid",
+  "why": "cola vs sparkling water"
+ },
+ {
+  "a": {
+   "name": "Jus d'orange",
+   "categories": [
+    "en:beverages",
+    "en:fruit-juices",
+    "en:orange-juices"
+   ]
+  },
+  "b": {
+   "name": "Jus de pomme",
+   "categories": [
+    "en:beverages",
+    "en:fruit-juices"
+   ]
+  },
+  "label": "valid",
+  "why": "juices"
+ },
+ {
+  "a": {
+   "name": "Jus d'orange",
+   "categories": [
+    "en:beverages",
+    "en:fruit-juices"
+   ]
+  },
+  "b": {
+   "name": "Orange fraîche",
+   "categories": [
+    "en:fruits",
+    "en:oranges"
+   ]
+  },
+  "label": "invalid",
+  "why": "juice vs fruit"
+ },
+ {
+  "a": {
+   "name": "Thé glacé pêche",
+   "categories": [
+    "en:beverages",
+    "en:iced-teas"
+   ]
+  },
+  "b": {
+   "name": "Ice tea citron",
+   "categories": [
+    "en:beverages",
+    "en:iced-teas"
+   ]
+  },
+  "label": "valid",
+  "why": "iced tea"
+ },
+ {
+  "a": {
+   "name": "Thé glacé pêche",
+   "categories": [
+    "en:beverages",
+    "en:iced-teas"
+   ]
+  },
+  "b": {
+   "name": "Thé noir gingembre",
+   "categories": [
+    "en:beverages",
+    "en:teas",
+    "en:black-teas"
+   ]
+  },
+  "label": "invalid",
+  "why": "iced tea vs tea bags"
+ },
+ {
+  "a": {
+   "name": "Thé vert",
+   "categories": [
+    "en:beverages",
+    "en:teas",
+    "en:green-teas"
+   ]
+  },
+  "b": {
+   "name": "Thé vert menthe",
+   "categories": [
+    "en:beverages",
+    "en:teas",
+    "en:green-teas"
+   ]
+  },
+  "label": "valid",
+  "why": "tea"
+ },
+ {
+  "a": {
+   "name": "Café moulu",
+   "categories": [
+    "en:beverages",
+    "en:coffees",
+    "en:ground-coffees"
+   ]
+  },
+  "b": {
+   "name": "Café moulu arabica",
+   "categories": [
+    "en:beverages",
+    "en:coffees",
+    "en:ground-coffees"
+   ]
+  },
+  "label": "valid",
+  "why": "coffee"
+ },
+ {
+  "a": {
+   "name": "Café moulu",
+   "categories": [
+    "en:beverages",
+    "en:coffees",
+    "en:ground-coffees"
+   ]
+  },
+  "b": {
+   "name": "Chicorée nature",
+   "categories": [
+    "en:beverages",
+    "en:chicory"
+   ]
+  },
+  "label": "invalid",
+  "why": "coffee vs chicory"
+ },
+ {
+  "a": {
+   "name": "Bière blonde",
+   "categories": [
+    "en:beverages",
+    "en:alcoholic-beverages",
+    "en:beers"
+   ]
+  },
+  "b": {
+   "name": "Lager",
+   "categories": [
+    "en:beverages",
+    "en:alcoholic-beverages",
+    "en:beers"
+   ]
+  },
+  "label": "valid",
+  "why": "beer"
+ },
+ {
+  "a": {
+   "name": "Bière blonde",
+   "categories": [
+    "en:alcoholic-beverages",
+    "en:beers"
+   ]
+  },
+  "b": {
+   "name": "Vin rouge",
+   "categories": [
+    "en:alcoholic-beverages",
+    "en:wines"
+   ]
+  },
+  "label": "invalid",
+  "why": "beer vs wine"
+ },
+ {
+  "a": {
+   "name": "Lait d'amande",
+   "categories": [
+    "en:beverages",
+    "en:plant-based-milk",
+    "en:almond-milks"
+   ]
+  },
+  "b": {
+   "name": "Boisson avoine",
+   "categories": [
+    "en:beverages",
+    "en:plant-based-milk",
+    "en:oat-milks"
+   ]
+  },
+  "label": "variant",
+  "why": "plant drinks"
+ },
+ {
+  "a": {
+   "name": "Pommes Gala",
+   "categories": [
+    "en:fruits",
+    "en:apples"
+   ]
+  },
+  "b": {
+   "name": "Pommes Golden",
+   "categories": [
+    "en:fruits",
+    "en:apples"
+   ]
+  },
+  "label": "valid",
+  "why": "apples"
+ },
+ {
+  "a": {
+   "name": "Tomates grappe",
+   "categories": [
+    "en:vegetables",
+    "en:tomatoes",
+    "en:fresh-tomatoes"
+   ]
+  },
+  "b": {
+   "name": "Tomates cerises",
+   "categories": [
+    "en:vegetables",
+    "en:tomatoes",
+    "en:fresh-tomatoes"
+   ]
+  },
+  "label": "valid",
+  "why": "fresh tomatoes"
+ },
+ {
+  "a": {
+   "name": "Tomates grappe",
+   "categories": [
+    "en:vegetables",
+    "en:tomatoes",
+    "en:fresh-tomatoes"
+   ]
+  },
+  "b": {
+   "name": "Tomates séchées en poudre",
+   "categories": [
+    "en:vegetables",
+    "en:dried-tomatoes"
+   ]
+  },
+  "label": "invalid",
+  "why": "fresh vs dried"
+ },
+ {
+  "a": {
+   "name": "Tomates farcies",
+   "categories": [
+    "en:meals",
+    "en:stuffed-tomatoes"
+   ]
+  },
+  "b": {
+   "name": "Tomates entières pelées",
+   "categories": [
+    "en:vegetables",
+    "en:canned-tomatoes"
+   ]
+  },
+  "label": "invalid",
+  "why": "stuffed vs peeled"
+ },
+ {
+  "a": {
+   "name": "Pommes de terre",
+   "categories": [
+    "en:vegetables",
+    "en:potatoes"
+   ]
+  },
+  "b": {
+   "name": "Pommes de terre nouvelles",
+   "categories": [
+    "en:vegetables",
+    "en:potatoes"
+   ]
+  },
+  "label": "valid",
+  "why": "potatoes"
+ },
+ {
+  "a": {
+   "name": "Pommes de terre",
+   "categories": [
+    "en:vegetables",
+    "en:potatoes"
+   ]
+  },
+  "b": {
+   "name": "Frites surgelées",
+   "categories": [
+    "en:frozen-foods",
+    "en:frozen-fries"
+   ]
+  },
+  "label": "invalid",
+  "why": "raw vs frozen fries"
+ },
+ {
+  "a": {
+   "name": "Petits pois",
+   "categories": [
+    "en:vegetables",
+    "en:canned-vegetables",
+    "en:peas"
+   ]
+  },
+  "b": {
+   "name": "Petits pois carottes",
+   "categories": [
+    "en:vegetables",
+    "en:canned-vegetables"
+   ]
+  },
+  "label": "variant",
+  "why": "canned veg"
+ },
+ {
+  "a": {
+   "name": "Ail",
+   "categories": [
+    "en:vegetables",
+    "en:garlic"
+   ]
+  },
+  "b": {
+   "name": "Ail en poudre",
+   "categories": [
+    "en:spices",
+    "en:garlic-powder"
+   ]
+  },
+  "label": "invalid",
+  "why": "fresh garlic vs powder"
+ },
+ {
+  "a": {
+   "name": "Amandes",
+   "categories": [
+    "en:nuts",
+    "en:almonds"
+   ]
+  },
+  "b": {
+   "name": "Amandes entières grillées",
+   "categories": [
+    "en:nuts",
+    "en:almonds"
+   ]
+  },
+  "label": "valid",
+  "why": "almonds"
+ },
+ {
+  "a": {
+   "name": "Amandes",
+   "categories": [
+    "en:nuts",
+    "en:almonds"
+   ]
+  },
+  "b": {
+   "name": "Lait d'amande",
+   "categories": [
+    "en:plant-based-milk",
+    "en:almond-milks"
+   ]
+  },
+  "label": "invalid",
+  "why": "almonds vs almond milk"
+ },
+ {
+  "a": {
+   "name": "Cacahuètes grillées",
+   "categories": [
+    "en:nuts",
+    "en:peanuts"
+   ]
+  },
+  "b": {
+   "name": "Cacahuètes salées",
+   "categories": [
+    "en:nuts",
+    "en:peanuts"
+   ]
+  },
+  "label": "valid",
+  "why": "peanuts"
+ },
+ {
+  "a": {
+   "name": "Raisins secs",
+   "categories": [
+    "en:dried-fruits"
+   ]
+  },
+  "b": {
+   "name": "Abricots secs",
+   "categories": [
+    "en:dried-fruits"
+   ]
+  },
+  "label": "variant",
+  "why": "dried fruit"
+ },
+ {
+  "a": {
+   "name": "Pâtes fraîches",
+   "categories": [
+    "en:pastas",
+    "en:fresh-pastas"
+   ]
+  },
+  "b": {
+   "name": "Pâtes à tartiner",
+   "categories": [
+    "en:spreads",
+    "en:chocolate-spreads"
+   ]
+  },
+  "label": "invalid",
+  "why": "pâtes à tartiner vs pasta"
+ },
+ {
+  "a": {
+   "name": "Café glacé",
+   "categories": [
+    "en:beverages",
+    "en:iced-coffees"
+   ]
+  },
+  "b": {
+   "name": "Café en grains",
+   "categories": [
+    "en:beverages",
+    "en:coffees",
+    "en:coffee-beans"
+   ]
+  },
+  "label": "invalid",
+  "why": "iced vs beans"
+ },
+ {
+  "a": {
+   "name": "Lait de toilette",
+   "categories": [
+    "en:cosmetics"
+   ]
+  },
+  "b": {
+   "name": "Lait demi-écrémé",
+   "categories": [
+    "en:dairies",
+    "en:milks"
+   ]
+  },
+  "label": "invalid",
+  "why": "cosmetic vs milk"
+ },
+ {
+  "a": {
+   "name": "Vinaigrette",
+   "categories": [
+    "en:sauces",
+    "en:salad-dressings"
+   ]
+  },
+  "b": {
+   "name": "Vinaigre",
+   "categories": [
+    "en:condiments",
+    "en:vinegars"
+   ]
+  },
+  "label": "invalid",
+  "why": "dressing vs vinegar"
+ },
+ {
+  "a": {
+   "name": "Pizza margherita surgelée",
+   "categories": [
+    "en:meals",
+    "en:pizzas",
+    "en:frozen-pizzas"
+   ]
+  },
+  "b": {
+   "name": "Pizza reine",
+   "categories": [
+    "en:meals",
+    "en:pizzas",
+    "en:frozen-pizzas"
+   ]
+  },
+  "label": "valid",
+  "why": "pizza"
+ },
+ {
+  "a": {
+   "name": "Pizza margherita surgelée",
+   "categories": [
+    "en:meals",
+    "en:pizzas"
+   ]
+  },
+  "b": {
+   "name": "Pâte à pizza",
+   "categories": [
+    "en:doughs",
+    "en:pizza-doughs"
+   ]
+  },
+  "label": "invalid",
+  "why": "pizza vs dough"
+ },
+ {
+  "a": {
+   "name": "Houmous",
+   "categories": [
+    "en:spreads",
+    "en:dips",
+    "en:hummus"
+   ]
+  },
+  "b": {
+   "name": "Houmous nature bio",
+   "categories": [
+    "en:spreads",
+    "en:dips",
+    "en:hummus"
+   ]
+  },
+  "label": "valid",
+  "why": "hummus"
+ },
+ {
+  "a": {
+   "name": "Pois chiches en conserve",
+   "categories": [
+    "en:legumes",
+    "en:chickpeas"
+   ]
+  },
+  "b": {
+   "name": "Houmous",
+   "categories": [
+    "en:spreads",
+    "en:hummus"
+   ]
+  },
+  "label": "invalid",
+  "why": "chickpeas vs hummus"
+ },
+ {
+  "a": {
+   "name": "Glace vanille",
+   "categories": [
+    "en:frozen-desserts",
+    "en:ice-creams"
+   ]
+  },
+  "b": {
+   "name": "Glace chocolat",
+   "categories": [
+    "en:frozen-desserts",
+    "en:ice-creams"
+   ]
+  },
+  "label": "valid",
+  "why": "ice cream"
+ },
+ {
+  "a": {
+   "name": "Glace vanille",
+   "categories": [
+    "en:frozen-desserts",
+    "en:ice-creams"
+   ]
+  },
+  "b": {
+   "name": "Sorbet citron",
+   "categories": [
+    "en:frozen-desserts",
+    "en:sorbets"
+   ]
+  },
+  "label": "invalid",
+  "why": "ice cream vs sorbet (broader)"
+ },
+ {
+  "a": {
+   "name": "Capsules café compatibles Nespresso",
+   "categories": [
+    "en:beverages",
+    "en:coffees",
+    "en:coffee-capsules"
+   ]
+  },
+  "b": {
+   "name": "Capsules Nespresso espresso",
+   "categories": [
+    "en:beverages",
+    "en:coffee-capsules"
+   ]
+  },
+  "label": "valid",
+  "why": "capsules"
+ },
+ {
+  "a": {
+   "name": "Capsules café compatibles Nespresso",
+   "categories": [
+    "en:coffee-capsules"
+   ]
+  },
+  "b": {
+   "name": "Café moulu",
+   "categories": [
+    "en:beverages",
+    "en:ground-coffees"
+   ]
+  },
+  "label": "invalid",
+  "why": "capsules vs ground coffee"
+ }
+]

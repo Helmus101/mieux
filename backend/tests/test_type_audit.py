@@ -203,3 +203,51 @@ def test_rocher_coco_has_its_own_type_and_no_biscuit_alternatives():
     assert substitution(rc, other) is None
     lindt = {"name": "Rocher coco", "brand": "Lindt", "categories": ["en:snacks", "en:chocolates", "en:white-chocolates"]}
     assert classify(lindt)["type"] != "coconut_macaroon"
+
+
+@pytest.mark.parametrize("name,cats,want", [
+    ("Cranberry saveur amande", ["en:snacks", "en:biscuits-and-cakes", "en:biscuits-and-crackers", "en:biscuits"], "sweet_biscuits"),
+    ("Country crisp fruits et noix", ["en:breakfasts", "en:cereals-and-their-products", "en:breakfast-cereals"], "breakfast_cereal"),
+])
+def test_flavour_words_do_not_make_a_biscuit_or_cereal_a_bar(name, cats, want):
+    from app.taxonomy import classify
+    assert classify({"name": name, "categories": cats})["type"] == want
+
+
+def _sub(a, b):
+    from app.taxonomy import substitution
+    return substitution({"name": a[0], "categories": a[1]}, {"name": b[0], "categories": b[1]})
+
+
+@pytest.mark.parametrize("a,b", [
+    (("Eau pétillante saveur menthe", ["en:flavored-waters"]), ("Eau de source de montagne", ["en:spring-waters", "en:waters"])),
+    (("Eau de coco", ["en:coconut-waters"]), ("Eau minérale naturelle", ["en:mineral-waters", "en:waters"])),
+    (("2 Escalopes de Veau", ["en:veal"]), ("Viande hachée pur bœuf 5% MG", ["en:beef"])),
+    (("Roti de Chapon", ["en:capon"]), ("Roti de porc herbes", ["en:pork"])),
+    (("confiture de lait", ["en:milk-jams"]), ("Confiture de fraise", ["en:jams", "en:strawberry-jams"])),
+    (("Thé glacé saveur pêche", ["en:iced-teas"]), ("Thé noir gingembre", ["en:teas"])),
+    (("Tomates farcies", ["en:stuffed-tomatoes"]), ("Tomates entières pelées", ["en:canned-tomatoes"])),
+    (("Insecte Les bon asticot", ["en:insects"]), ("Le Bon Paris jambon", ["en:hams"])),
+])
+def test_known_look_alike_pairs_are_not_substitutes(a, b):
+    assert _sub(a, b) is None
+
+
+@pytest.mark.parametrize("a,b", [
+    (("Steak haché pur boeuf", ["en:beef"]), ("Viande hachée pur bœuf 5% MG", ["en:beef"])),
+    (("Escalopes de veau", ["en:veal"]), ("Escalope de veau panée", ["en:veal"])),
+    (("Eau pétillante saveur menthe", ["en:flavored-waters"]), ("Eau fruitée fraise", ["en:flavored-waters"])),
+])
+def test_real_substitutes_still_match(a, b):
+    assert _sub(a, b) is not None
+
+
+@pytest.mark.parametrize("name,cats,bad", [
+    ("Noir 71 noix de cajou fruits rouges", ["en:snacks", "en:chocolates", "en:dark-chocolates"], "fruit_nut_bar"),
+    ("Filets de Merlu blanc façon fish & chips", ["en:fishes", "en:breaded-fish"], "chips"),
+    ("Rollmops au Vinaigre", [], "vinegar"),
+    ("Ail semoule", [], "flour"),
+])
+def test_more_ingredient_word_mistypes(name, cats, bad):
+    from app.taxonomy import classify
+    assert classify({"name": name, "categories": cats})["type"] != bad
