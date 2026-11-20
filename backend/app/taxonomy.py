@@ -720,11 +720,14 @@ def _head_word(p: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def _category_alternative(type_id: Optional[str], same_type: bool, co: Dict[str, Any], cc: Dict[str, Any]) -> Dict[str, Any]:
-    """Two products the taxonomy relates only by category or by the same head noun: a real but broader alternative (level 2)."""
-    return {"level": 2, "label": LABELS[2], "type": type_id, "same_type": same_type, "variant_diff": None,
-            "confidence": "medium", "orig_confidence": co["confidence"], "cand_confidence": cc["confidence"],
-            "form_match": True, "use_match": True}
+def _category_alternative(type_id: Optional[str], same_type: bool, co: Dict[str, Any], cc: Dict[str, Any], level: int = 2) -> Dict[str, Any]:
+    """Two products the taxonomy relates only by category or by the same head noun. The same specific category tag is a real but
+    broader alternative (level 2). A shared head word with only a parent category in common is level 3: shown as a broader
+    suggestion, never in the strict lists, and its form and use are NOT assumed to match."""
+    verified = level <= 2
+    return {"level": level, "label": LABELS[level], "type": type_id, "same_type": same_type, "variant_diff": None,
+            "confidence": "medium" if verified else "low", "orig_confidence": co["confidence"], "cand_confidence": cc["confidence"],
+            "form_match": verified, "use_match": verified}
 
 
 def is_category_only(p: Dict[str, Any]) -> bool:
@@ -819,9 +822,10 @@ _KIND_MARKERS = [re.compile(x, re.I) for x in (
     r"rollmops",
     r"chantilly|cr[èe]me (?:fouett[ée]e|en spray)|a[ée]rosol",
     r"\bsorbets?\b",
-    r"\bs[ée]ch[ée]e?s?\b|d[ée]shydrat",
     r"\bhot cocoa|chocolat (?:chaud|en poudre)|cacao (?:en poudre|maigre)",
 )]
+_DRIED = re.compile(r"\bs[ée]ch[ée]e?s?\b|d[ée]shydrat", re.I)
+_SPREADY = re.compile(r"d[ée]lices?|tartinade|tapenade|pesto|cr[èe]me|sauce|rillettes?|houmous|pur[ée]e|huile|caviar|confit|po[êe]l[ée]e|m[ée]lange", re.I)
 _SPECIES = [(re.compile(x, re.I), k) for x, k in (
     (r"\bveau\b|\bveal\b", "veau"), (r"\bb(?:œ|oe)ufs?\b|\bbeef\b", "boeuf"), (r"\bporc\b|\bpork\b", "porc"), (r"\bagneau\b|\blamb\b", "agneau"),
     (r"\bdinde\b|\bturkey\b|\bpoulet\b|\bchicken\b|\bchapon\b|\bpintade\b", "volaille"), (r"\blapin\b", "lapin"))]
@@ -840,6 +844,8 @@ def _species(name: str) -> Optional[str]:
 def _pair_veto(orig: Dict[str, Any], cand: Dict[str, Any]) -> bool:
     """Name-level reasons two products of the same or related type are still not substitutes."""
     on, cn = orig.get("name") or "", cand.get("name") or ""
+    if bool(_DRIED.search(on)) != bool(_DRIED.search(cn)) and not (_SPREADY.search(on) or _SPREADY.search(cn)):
+        return True     # dried / dehydrated vs fresh produce (a spread made of dried tomatoes is a spread, not a dried tomato)
     for rx in _KIND_MARKERS:
         if bool(rx.search(on)) != bool(rx.search(cn)):
             return True
@@ -890,8 +896,10 @@ def substitution(orig: Dict[str, Any], cand: Dict[str, Any]) -> Optional[Dict[st
             cl = [c for c in (cand.get("categories") or []) if c not in _GENERIC_LEAF]
             # both categorised and the categories differ: "Filet de crocodile" is not "Filet de poulet"
             # same OFF category tree: the specific side's own category (or its parent) is among the other's categories
+            if ol and cl and (ol[-1] in cl or cl[-1] in ol):
+                return _category_alternative(cc["type"], False, co, cc)          # one carries the other's own specific category
             if ol and cl and (set(ol[-3:]) & set(cl) or set(cl[-3:]) & set(ol)):
-                return _category_alternative(cc["type"], False, co, cc)
+                return _category_alternative(cc["type"], False, co, cc, level=3)  # only a parent category in common: broader, unverified
         return _untyped_substitute(orig, cand)
     if not co["type"] and not cc["type"]:
         return _untyped_substitute(orig, cand)

@@ -52,7 +52,8 @@ def test_products_without_a_rule_are_typed_by_their_own_small_category():
     a, b = P("Mystère alpha", ["en:odd", "en:odd-leaf"]), P("Énigme beta", ["en:odd", "en:odd-leaf"])
     assert sub(a, b)["level"] == 2                                                # same specific category: its own kind
     assert sub(a, P("Gamma mystère", ["en:odd", "en:other-leaf"])) is None      # another category, another head noun
-    assert sub(a, P("Mystère gamma", ["en:odd", "en:other-leaf"]))["level"] == 2  # same head noun: one small category
+    # same head noun, only the parent category in common: a broader suggestion (level 3), never a strict alternative
+    assert sub(a, P("Mystère gamma", ["en:odd", "en:other-leaf"]))["level"] == 3
 
 
 def test_implausible_data_is_caught():
