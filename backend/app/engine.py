@@ -480,6 +480,10 @@ def reference_price(prices, orig_price=None):
     return _median([p for p in prices if p])
 
 
+# A scanned product that already scores above this on the value score needs no alternative: showing one would only be noise.
+GREAT_ALREADY = 90
+
+
 def value_scores(items, orig_price=None):
     """Quality-price score /100 for items = [(key, quality_total, price100)].
     Weighted geometric mean of quality (65 %) and price position (35 %): both must be decent, so cheap junk (low quality) and overpriced premium both score below a solid,
@@ -1004,10 +1008,12 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
     # Every profile is ranked now, so the client switches between them without another request: the rows are the same
     # products, only the order and the score differ, and that is all each profile's list carries.
     profiles = {}
+    orig_scores = {}
     for pf in valuescore.PROFILES:
         rk = best_val if pf == profile else rank_best_value(orig, high_confidence, prices, orig_price, points, estimated, orig_estimated, lang,
                                                             max_items=max_items, profile=pf, budget_cents=budget_cents)
         profiles[pf] = [{"code": r["product"]["barcode"], "value_score": r["value_score"], "why": r["why"]} for r in rk["items"]]
+        orig_scores[pf] = rk.get("original_value_score")
     
     no_baseline = bool(orig_price is None or orig_estimated)
     
@@ -1018,6 +1024,7 @@ def build_rankings(orig: Dict[str, Any], pool: List[Dict[str, Any]], prices: Dic
         "closest": closest_items,
         "match": match_list[:max_items],
         "original_value_score": best_val.get("original_value_score"),
+        "original_value_scores": orig_scores,
         "profile": profile,
         "profiles": profiles,
         "no_baseline": no_baseline,

@@ -87,6 +87,9 @@ export default function Alternatives() {
     // match list still has real alternatives: show those rather than claiming there is nothing.
     const fallback = !rows.length && k === 'value';
     if (fallback) rows = ((r?.rankings?.match ?? r?.alternatives ?? []) as any[]);
+    // The scanned product already scores above 90 on value for this profile: nothing is worth suggesting instead.
+    const ov = r?.rankings?.original_value_scores?.[vp];
+    if (typeof ov === 'number' && ov > 90) return [];
     const per = new Map<string, any>(((r?.rankings?.profiles?.[vp] ?? []) as any[]).map((x) => [x.code, x]));
     // On the Nutrition profile an alternative is only worth showing if its quality score beats the scanned product's.
     const oq = r?.original?.score?.total;
@@ -171,8 +174,8 @@ export default function Alternatives() {
       )}
       {busy && <>
         <div className="skel-seg" aria-hidden><Skeleton h={44} /></div>
-        <div className="alist" aria-hidden>{[0, 1, 2, 3].map((n) => (
-          <div key={n} className="arow skel-arow"><Skeleton h={60} w={60} /><div><Skeleton h={16} w="80%" /><Skeleton h={13} w="45%" /><Skeleton h={28} w={44} /></div><Skeleton h={20} w={64} /></div>
+        <div className="agrid" aria-hidden>{[0, 1, 2, 3].map((n) => (
+          <div key={n} className="acard"><Skeleton h={200} /><div className="atext"><Skeleton h={16} w="70%" /><Skeleton h={13} w="50%" /><Skeleton h={18} w="30%" /></div></div>
         ))}</div>
         <Loader quiet slowAfter={30000} steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />
       </>}
@@ -181,40 +184,40 @@ export default function Alternatives() {
       {r && !busy && !none && !shown.length && (() => {
         const os = r?.original?.score?.total;
         const m = chain ? { title: t('alt.noChainTitle', { c: chainName(chain) }), why: t('alt.noChainWhy'), action: <Button small onPress={() => setChain(null)}>{t('alt.allChains')}</Button> }
+          : (r?.rankings?.original_value_scores?.[vp] ?? 0) > 90 ? { title: t('emptyAlt.greatTitle'), why: t('emptyAlt.greatWhy') }
           : nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : { title: t('emptyAlt.valueNoneTitle'), why: t('emptyAlt.valueNoneWhy') };
         void os;
         return <Card><b>{m.title}</b><p className="mut" style={{ margin: '10px 0 0' }}>{m.why}</p>{m.action && <div style={{ marginTop: 14 }}>{m.action}</div>}</Card>;
       })()}
-      {r && !busy && <div className="alist">{shown.map((e: any, i: number) => {
+      {r && !busy && <div className="agrid">{shown.map((e: any, i: number) => {
         const u = unitPrice(e.price100, e.product?.quantity, isLiquid(e.product));
         const d = diffOf(e);
+        const cs = (e.product.chains ?? []).filter((id: string) => chainsFor(country).some((c) => c.id === id) && (!myChains.length || myChains.includes(id)));
+        const at = cs.length ? `${t('alt.seenAt')} ${cs.slice(0, 2).map(chainName).join(' · ')}${cs.length > 2 ? ` +${cs.length - 2}` : ''}` : t('alt.chainUnknown');
+        const open = () => { haptic('tap'); go(routes.product(e.product.id)); };
         return (
-          <div key={e.product.id} className="arow" role="button" tabIndex={0} aria-label={e.product.name}
-            onClick={() => { haptic('tap'); go(routes.product(e.product.id)); }}
-            onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); haptic('tap'); go(routes.product(e.product.id)); } }}>
-            {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading={i < 4 ? 'eager' : 'lazy'} decoding="async" width={60} height={60} /> : <span className="noimg" />}
-            <div className="amain">
-              <div className="aname">{e.product.name}</div>
-              {(() => {
-                // Availability is only shown for stores from Settings, and only the chosen ones when a selection exists.
-                const cs = (e.product.chains ?? []).filter((id: string) => chainsFor(country).some((c) => c.id === id) && (!myChains.length || myChains.includes(id)));
-                const at = cs.length ? `${t('alt.seenAt')} ${cs.slice(0, 2).map(chainName).join(' · ')}${cs.length > 2 ? ` +${cs.length - 2}` : ''}` : t('alt.chainUnknown');
-                return <div className="abrand" title={cs.map(chainName).join(', ')}>{[e.product.brand, at].filter(Boolean).join(' · ')}</div>;
-              })()}
-              <div className="ameta">
-                {e.vs != null && <span className={'av ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')} title={e.why}><b>{e.vs}</b> {t('alt.valueShort')}</span>}
-                {e.q != null && <span className="aq" title={t('alt.qualityTip')}>{t('alt.quality')} {Math.max(0, Math.min(100, Math.round(e.q)))}</span>}
-              </div>
-            </div>
-            <div className="aprice">
-              {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small>/{u.unit}</small></b>
-                : e.pack != null ? <b>{e.ps_web ? '~ ' : ''}{formatCents(e.pack)}</b> : null}
-              {u == null && e.pack == null && <span className="mut sm">{t('alt.noPrice')}</span>}
-              {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
+          <article key={e.product.id} className="acard" role="button" tabIndex={0} aria-label={e.product.name}
+            onClick={open}
+            onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); open(); } }}>
+            <div className="aphoto">
+              {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading={i < 4 ? 'eager' : 'lazy'} decoding="async" /> : <span className="noimg" />}
+              {e.vs != null && <span className={'abadge ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')} title={e.why}>{e.vs} {t('alt.valueShort')}</span>}
               <button className="flagbtn" aria-label={t('sub.notComparable')} title={t('sub.notComparable')} onClick={async (ev) => { ev.stopPropagation(); try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}>⚑</button>
             </div>
-          </div>);
+            <div className="atext">
+              <div className="atop">
+                <div className="aname">{e.product.name}</div>
+                {e.q != null && <span className="aq" title={t('alt.qualityTip')}>★ {Math.max(0, Math.min(100, Math.round(e.q)))}</span>}
+              </div>
+              <div className="abrand" title={cs.map(chainName).join(', ')}>{[e.product.brand, at].filter(Boolean).join(' · ')}</div>
+              <div className="aprice">
+                {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small> /{u.unit}</small></b>
+                  : e.pack != null ? <b>{e.ps_web ? '~ ' : ''}{formatCents(e.pack)}</b> : <span className="mut sm">{t('alt.noPrice')}</span>}
+                {d && rk === 'value' && <span className="sm adiff" style={{ color: d.tone }}>{d.text}</span>}
+              </div>
+            </div>
+          </article>);
       })}</div>}
       {r && !busy && !showMore && ranked.length > 3 && <Button small plain onPress={() => { haptic('tap'); setShowMore(true); }}>{t('alt.showMore')}</Button>}
       <Toast text={note} />

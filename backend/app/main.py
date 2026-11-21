@@ -2340,6 +2340,15 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         a["price_source"] = _with_confidence(points.get(a["product"]["barcode"]))
         a["stores"] = shops.get(a["product"]["barcode"], [])
     oq = orig.get("quantity")
+    ovs_ = (res.get("rankings") or {}).get("original_value_score")
+    if ovs_ is not None and ovs_ > engine.GREAT_ALREADY:
+        # The scanned product already scores above 90 for this shopper's profile: no alternative beats that by enough to be worth showing.
+        res["alternatives"] = []
+        for _k, _v in list((res.get("rankings") or {}).items()):
+            if isinstance(_v, list):
+                res["rankings"][_k] = []
+        res["already_great"] = True
+        res["no_recommendation_reason"] = tr(lang, "already_great")
     res["original_price"] = None if orig_price is None else {"per100_cents": round(orig_price, 1), "pack_cents": round(orig_price * oq["amount"] / 100) if oq else None, "source": points.get(orig["barcode"])}
     if orig_price is None:
         note = tr(lang, "price_note_none")
