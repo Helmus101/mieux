@@ -61,3 +61,35 @@ def test_golden_products_land_in_their_type():
         if got != expected:
             misses.append(f"{name!r}: expected {expected!r}, got {got!r}")
     assert not misses, "\n".join(misses)
+
+
+class _FakeOff:
+    """Stands in for the OFF layer: placements by barcode, as off_taxo would return them."""
+    def __init__(self, places): self._p = places
+    def taxo_places(self, codes): return {c: self._p[c] for c in codes if c in self._p}
+
+
+def _cand(bc): return {"barcode": bc, "id": bc}
+
+
+def test_mieux_gate_keeps_the_category_and_prefers_the_exact_type(monkeypatch):
+    from app import main
+    cat = "C_20_BOISSONS_SODAS"
+    cola = [f"c{i}" for i in range(12)]
+    places = {b: {"type": "P1053", "category": cat, "department": "D_20_BOISSONS", "level": 3, "source": "name"} for b in cola}
+    places["lim"] = {"type": "P0813", "category": cat, "department": "D_20_BOISSONS", "level": 3, "source": "name"}        # limonade: same category, other type
+    places["choc"] = {"type": "P0663", "category": "C_15_CHOCOLATS_CONFISERIES_CHOCOLAT", "department": "D_15", "level": 3, "source": "name"}
+    places["unk"] = {"type": None, "category": None, "department": None, "level": 0, "source": None}
+    monkeypatch.setattr(main.app.state, "off", _FakeOff(places), raising=False)
+    orig = {"name": "Coca-Cola Zero 1,5 L", "brand": "Coca-Cola", "categories": []}
+    kept = [_cand(b) for b in cola + ["lim", "choc", "unk"]]
+    got = main._mieux_gate(orig, kept)
+    assert got is not None and {c["barcode"] for c in got} == set(cola)           # 12 cola: neighbours are not offered; chocolate and unclassified never
+    got = main._mieux_gate(orig, [_cand(b) for b in cola[:5] + ["lim", "choc", "unk"]])
+    assert {c["barcode"] for c in got} == set(cola[:5]) | {"lim"}                  # thin type: the category's siblings fill in, nothing outside it
+
+
+def test_mieux_gate_does_not_apply_to_an_unplaced_product(monkeypatch):
+    from app import main
+    monkeypatch.setattr(main.app.state, "off", _FakeOff({"a": {"type": "P1", "category": "C_x", "department": "D_x", "level": 3, "source": "name"}}), raising=False)
+    assert main._mieux_gate({"name": "Qwerty Zxcv", "brand": "", "categories": []}, [_cand("a")]) is None
