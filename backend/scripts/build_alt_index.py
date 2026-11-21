@@ -98,7 +98,7 @@ def main() -> None:
                 skip("no_chain")
                 continue
             tx = taxonomy.classify(p).get("type")
-            groups = (taxo1000.classify(name, None, brand).get("groups") or [])[:3]
+            groups = (taxo1000.classify(name, None, brand, p.get("categories")).get("groups") or [])[:3]
             dst.execute("insert into alt values (?,?,?,?,?,?,?,?,?,?,?,?)",
                         (code, brand, name, tx, pt["per100_cents"], pt.get("pack_cents"), q["amount"], q["unit"], pt["date"],
                          1 if pt.get("stale") else 0, json.dumps(chains), row[0] or 0))
