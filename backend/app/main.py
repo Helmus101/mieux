@@ -2089,6 +2089,33 @@ def _index_pool(s: Session, uid: str, orig: Dict[str, Any], body: "AltReq", alle
     return peers, orig_price, prices, points, shops
 
 
+MIN_SAME_MIEUX_TYPE = 12   # with at least this many same-type candidates, sibling types of the category are not offered
+
+
+def _mieux_gate(orig: Dict[str, Any], kept: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
+    """The Mieux taxonomy gate. Only products placed at a specific type take part: a candidate must be in the scanned product's
+    category, and in its exact type whenever enough of those exist. Returns None when the gate does not apply (the scanned
+    product is not placed at a specific type, or the index is missing): the older gates alone decide then.
+
+    A placement made from the product's own name is trusted: a thin category then simply yields few or no alternatives rather than
+    wrong ones. A placement made only from tags is a softer gate: it is used when it leaves at least 3 candidates."""
+    fn = getattr(app.state.off, "taxo_places", None)
+    if fn is None or not kept:
+        return None
+    o = taxo1000.classify(orig.get("name"), None, orig.get("brand"), orig.get("categories"))
+    if o.get("level") != 3 or not o.get("type"):
+        return None
+    places = fn([c["barcode"] for c in kept])
+    if not places:
+        return None
+    in_cat = [c for c in kept if (places.get(c["barcode"]) or {}).get("level") == 3 and places[c["barcode"]]["category"] == o["category"]]
+    same_type = [c for c in in_cat if places[c["barcode"]]["type"] == o["type"]]
+    pool = same_type if len(same_type) >= MIN_SAME_MIEUX_TYPE else in_cat
+    if o.get("source") == "name" or len(pool) >= 3:
+        return pool
+    return None
+
+
 @app.post("/v1/products/{barcode}/alternatives")
 @limiter.limit("60/minute")   # the product page prefetches and the screen asks again; one mobile network address is shared by many people
 def alternatives(request: Request, background: BackgroundTasks, barcode: str, body: AltReq, uid: str = Depends(user), s: Session = Depends(get_db), lang: str = Depends(lang_of)):
@@ -2179,6 +2206,10 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         # Maple syrup leads to maple syrups, not to fruit syrups; a neighbour only appears when the type itself is thin.
         same_type = [c for c in kept if c["substitution"]["level"] == 1]
         peers = same_type if len(same_type) >= engine.MIN_SAME_TYPE else kept
+        gated = _mieux_gate(orig, peers)
+        if gated is not None:
+            stages["before_mieux_type"] = len(peers)
+            peers = gated
     stages["comparable"] = len(peers)
 
     # Strict additive rescoring is the expensive part of preparing a candidate (full score recompute), so it runs

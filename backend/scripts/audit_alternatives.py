@@ -1,105 +1,114 @@
-"""Audit alternatives for the most-scanned products: runs the real /alternatives endpoint in-process (web price search off, no
-network) and prints, per product type, the originals and the alternatives they got, so wrong pools stand out by name.
+"""Audit the alternatives of every specific Mieux type.
 
-    cd backend && .venv/bin/python scripts/audit_alternatives.py 1000 /tmp/audit.json
-    cd backend && .venv/bin/python scripts/audit_alternatives.py --review /tmp/audit.json
+For each product type that has a priced product in alt_index.db, scan its most-scanned priced product through the real
+alternatives endpoint and look at the top 100 alternatives (value ranking; the match list when there is no price ranking).
+Each alternative is placed with the taxonomy index (off_taxo): how many are the same type, the same category, another
+department? Types whose alternatives drift out of the category are the ones to fix.
+
+    cd backend && .venv/bin/python -m scripts.audit_alternatives [--workers 4] [--limit 0] [--out alt_audit.jsonl]
+    cd backend && .venv/bin/python -m scripts.audit_alternatives --report alt_audit.jsonl [--top 40]
 """
-import collections, json, sys
+import argparse, collections, json, multiprocessing as mp, os, sqlite3, sys, time
+
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OFF = os.environ.get("OFF_LOCAL", os.path.join(HERE, "off_local.db"))
+ALT = os.environ.get("ALT_INDEX", os.path.join(HERE, "alt_index.db"))
+PAYLOAD = {"priorities": ["protein"], "profile": "balanced"}
 
 
-def review(path):
-    res = json.load(open(path))
-    by = collections.defaultdict(lambda: {"orig": [], "alts": collections.Counter(), "empty": 0})
-    errs = [r for r in res if r.get("err") or r.get("status") != 200]
-    for r in res:
-        if r.get("err"): continue
-        g = by[r["t"]]
-        g["orig"].append((r.get("n") or "")[:30])
-        if not r["alts"]: g["empty"] += 1
-        for a in r["alts"]:
-            g["alts"][(a["n"][:34], a["t"] if a["t"] != r["t"] else "=")] += 1
-    print("products", len(res), "errors", len(errs), "types", len(by), "empty", sum(g["empty"] for g in by.values()))
-    for t, g in sorted(by.items(), key=lambda kv: -len(kv[1]["orig"])):
-        print(f"\n## {t}  n={len(g['orig'])} empty={g['empty']}  e.g. {g['orig'][:4]}")
-        print("   ", " · ".join(f"{n}{'' if tt == '=' else ' ['+str(tt)+']'}" for (n, tt), c in g["alts"].most_common(14)))
+def reps(limit):
+    db = sqlite3.connect(OFF)
+    db.execute("attach database ? as a", (f"file:{ALT}?mode=ro",))
+    rows = db.execute("""select t.type, t.code, al.scans from off_taxo t join a.alt al on al.code = t.code
+                         where t.level = 3 and t.type is not null order by al.scans desc""").fetchall()
+    best = {}
+    for typ, code, scans in rows:
+        best.setdefault(typ, code)
+    out = sorted(best.items())
+    return out[:limit] if limit else out
 
 
-def run(n, out, offset=0):
-    import os, sys, json, time, sqlite3
-    sys.path.insert(0, '.')
-    for k in ("DEEPSEEK_API_KEY","GEMINI_API_KEY","SERPER_API_KEY","LANGSEARCH_API_KEY","PARALLEL_API_KEY","BRAVE_API_KEY","SUPABASE_URL"):
-        os.environ[k] = ""
-    os.environ.setdefault("DATABASE_URL", "sqlite:///./audit.db")
-    os.environ.setdefault("JWT_SECRET_KEY", "x"*40)
-    N, OUT, OFFSET = int(n), out, int(offset)
+def work(args):
+    wid, items = args
+    os.environ["DATABASE_URL"] = f"sqlite:////private/tmp/audit_app_{wid}.db"
+    os.environ.setdefault("JWT_SECRET_KEY", "audit")
+    if os.path.exists(f"/private/tmp/audit_app_{wid}.db"):
+        os.remove(f"/private/tmp/audit_app_{wid}.db")
+    sys.path.insert(0, HERE)
     from fastapi.testclient import TestClient
-    from app.main import app
-    from app import taxonomy
-    from app.products import normalize
-    con = sqlite3.connect('off_local.db')
-    if os.environ.get("BYTYPE"):   # the K most-scanned products of EVERY type (K = BYTYPE), so no type is left out; N/OFFSET slice the resulting list
-        k = int(os.environ["BYTYPE"])
-        allc = [r[0] for r in con.execute("select code from (select code, type, row_number() over (partition by type order by scans desc) rn from off_type where code glob '[0-9]*' and length(code)>=8 and type in (select type from off_type group by type having count(*) >= 40)) where rn <= ? order by type, rn", (k,))]
-        codes = allc[OFFSET:OFFSET + N]
-    else:
-        codes = [r[0] for r in con.execute("select code from off_products where code glob '[0-9]*' and length(code)>=8 order by scans desc limit ? offset ?", (N, OFFSET))]
-    out = []
-    with TestClient(app) as c:
-        H = {"X-Session-Id": "audit-session-000001", "X-Country": "FR"}
-        t0 = time.time()
-        for i, b in enumerate(codes):
-            try:
-                r = c.post(f"/v1/products/{b}/alternatives", headers=H, json={"priorities": ["protein"]})
-                d = r.json()
-            except Exception as e:
-                out.append({"b": b, "err": repr(e)[:100]}); continue
-            o = None
-            try:
-                raw = json.loads(con.execute("select data from off_products where code=?", (b,)).fetchone()[0])
-                o = normalize(raw)
-            except Exception:
-                pass
-            ot = taxonomy.classify(o).get("type") if o else None
-            alts = []
-            seen = set()
-            for k in ("value", "match"):
-                for e in ((d.get("rankings") or {}).get(k) or [])[:5]:
-                    p = e.get("product") or {}
-                    if p.get("barcode") in seen: continue
-                    seen.add(p.get("barcode"))
-                    alts.append({"k": k, "b": p.get("barcode"), "n": (p.get("name") or "")[:60], "t": taxonomy.classify(p).get("type"), "lvl": (e.get("substitution") or {}).get("level")})
-            out.append({"b": b, "n": (o or {}).get("name"), "t": ot, "status": r.status_code, "alts": alts, "reason": d.get("no_recommendation_reason")})
-            if i % 50 == 0:
-                print(i, round(time.time()-t0), flush=True)
-                json.dump(out, open(OUT, "w"))
-    json.dump(out, open(OUT, "w"))
-    print("done", len(out))
-
-
-def cross_type(path):
-    """Per original type: share of alternatives that sit in ANOTHER type, with the commonest ones. Run after an audit."""
-    import collections
-    res = json.load(open(path))
-    g = collections.defaultdict(lambda: [0, 0, collections.Counter()])
-    for r in res:
-        if r.get("err") or not r.get("t"):
+    from app import main
+    c = TestClient(main.app)
+    off = sqlite3.connect(OFF)
+    H = {"X-Session-Id": f"audit-session-{wid:04d}", "X-Country": "FR"}
+    res = []
+    for typ, code in items:
+        o = off.execute("select type, category, department from off_taxo where code=?", (code,)).fetchone()
+        try:
+            r = c.post(f"/v1/products/{code}/alternatives", json=PAYLOAD, headers=H)
+            j = r.json()
+        except Exception as e:  # noqa: BLE001
+            res.append({"type": typ, "code": code, "error": str(e)[:100]})
             continue
-        for a in r["alts"]:
-            g[r["t"]][0] += 1
-            if a["t"] != r["t"]:
-                g[r["t"]][1] += 1
-                g[r["t"]][2][(a["t"], a["n"][:30])] += 1
-    tot = sum(v[0] for v in g.values()); off = sum(v[1] for v in g.values())
-    for t, (n, bad, c) in sorted(g.items(), key=lambda kv: -kv[1][1])[:60]:
-        if bad:
-            print(f"{t:28} {bad:4}/{n:<4} other-type  " + " | ".join(f"{tt}:{nm}" for (tt, nm), _ in c.most_common(3)))
-    print(f"\n{off} of {tot} alternatives ({100 * off / max(1, tot):.1f}%) are in another type; empty lists: {sum(1 for r in res if not r.get('alts'))} of {len(res)}")
+        if r.status_code != 200:
+            res.append({"type": typ, "code": code, "error": f"http {r.status_code}"})
+            continue
+        rk = j.get("rankings") or {}
+        lst = rk.get("value") or rk.get("match") or j.get("alternatives") or []
+        source = "value" if rk.get("value") else "match"
+        same_t = same_c = same_d = 0
+        off_examples = []
+        for it in lst[:100]:
+            bc = (it.get("product") or {}).get("barcode")
+            x = off.execute("select type, category, department from off_taxo where code=?", (bc,)).fetchone()
+            if not x:
+                continue
+            same_t += x[0] == o[0]
+            same_c += x[1] == o[1]
+            same_d += x[2] == o[2]
+            if x[1] != o[1] and len(off_examples) < 6:
+                off_examples.append([(it.get("product") or {}).get("name", "")[:50], x[0]])
+        n = len(lst[:100])
+        res.append({"type": typ, "code": code, "orig": (j.get("original") or {}).get("name"), "orig_cat": o[1], "n": n, "source": source,
+                    "same_type": same_t, "same_cat": same_c, "same_dept": same_d, "off": off_examples, "already_great": bool(j.get("already_great"))})
+    return res
 
 
-if __name__ == '__main__':
-    if sys.argv[1] == '--review':
-        review(sys.argv[2])
-    elif sys.argv[1] == '--cross':
-        cross_type(sys.argv[2])
-    else:
-        run(sys.argv[1], sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else 0)
+def report(path, top):
+    sys.path.insert(0, HERE)
+    from app import taxorules
+    N = taxorules.load()["nodes"]
+    rows = [json.loads(l) for l in open(path)]
+    ok = [r for r in rows if "error" not in r and r["n"] > 0]
+    print(f"{len(rows)} types audited, {len(ok)} with alternatives, {sum(1 for r in rows if 'error' in r)} errors, {sum(1 for r in rows if r.get('n') == 0)} with none")
+    if ok:
+        tot = sum(r["n"] for r in ok)
+        print(f"overall over {tot} alternatives: same type {100 * sum(r['same_type'] for r in ok) / tot:.1f}%, same category {100 * sum(r['same_cat'] for r in ok) / tot:.1f}%, same department {100 * sum(r['same_dept'] for r in ok) / tot:.1f}%")
+    bad = sorted(ok, key=lambda r: (r["same_cat"] / r["n"], r["same_type"] / r["n"]))
+    print(f"\nworst {top} types by share of alternatives in the same category:")
+    for r in bad[:top]:
+        print(f"  cat {100 * r['same_cat'] / r['n']:3.0f}% type {100 * r['same_type'] / r['n']:3.0f}% (n={r['n']}, {r['source']})  {N[r['type']]['name_fr']}  <- {str(r['orig'])[:40]}")
+        for nm, t in r["off"][:3]:
+            print(f"        off-category: {nm} [{N[t]['name_fr'] if t in N else t}]")
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--out", default=os.path.join(HERE, "alt_audit.jsonl"))
+    ap.add_argument("--report", default="")
+    ap.add_argument("--top", type=int, default=40)
+    a = ap.parse_args()
+    if a.report:
+        report(a.report, a.top)
+        sys.exit()
+    items = reps(a.limit)
+    print(len(items), "types to audit", flush=True)
+    chunks = [(i, items[i::a.workers]) for i in range(a.workers)]
+    t0 = time.time()
+    with open(a.out, "w") as fh, mp.Pool(a.workers) as pool:
+        for res in pool.imap_unordered(work, chunks):
+            for r in res:
+                fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+            fh.flush()
+    print(f"done in {time.time() - t0:.0f} s -> {a.out}")

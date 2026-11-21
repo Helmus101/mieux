@@ -208,6 +208,17 @@ class _Local:
                     out.append(code)
         return out[:total]
 
+    def taxo_places(self, codes: List[str]) -> Dict[str, Dict[str, Any]]:
+        """Mieux taxonomy placement (type / category / department / level / source) of these codes, from off_taxo
+        (scripts/build_taxonomy_index.py). Empty when the index has not been built: callers then skip the type gate."""
+        out: Dict[str, Dict[str, Any]] = {}
+        for i in range(0, len(codes), 400):
+            chunk = list(codes[i:i + 400])
+            rows = self._q("select code, type, category, department, level, source from off_taxo where code in (%s)" % ",".join("?" * len(chunk)), tuple(chunk))
+            for r in rows or []:
+                out[r[0]] = {"type": r[1], "category": r[2], "department": r[3], "level": r[4], "source": r[5]}
+        return out
+
     def quick_products(self, codes: List[str]) -> List[Dict[str, Any]]:
         """Full records for these codes (only these are parsed): the expensive step happens on the final shortlist."""
         out: List[Dict[str, Any]] = []
@@ -400,6 +411,9 @@ class OFFClient:
                              per_tag: Optional[int] = None, total: Optional[int] = None) -> List[str]:
         """Codes of one Mieux 1000+ substitution group from the local taxonomy index (scripts/build_taxonomy_index.py)."""
         return self.local.tax_group_candidates(group, field, low, required, ingredients, per_tag, total)
+
+    def taxo_places(self, codes: List[str]) -> Dict[str, Dict[str, Any]]:
+        return self.local.taxo_places(codes)
 
     def quick_products(self, codes: List[str]) -> List[Dict[str, Any]]:
         """Full records for the final shortlist only."""
