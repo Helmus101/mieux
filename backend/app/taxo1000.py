@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple
 _PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mieux_taxonomy.json")
 _STOP = {"de", "la", "le", "les", "des", "du", "d", "l", "en", "et", "a", "au", "aux", "un", "une", "the", "of", "and", "for", "with", "sur", "dans", "par", "pour"}
 _MAX_TYPES = 8
+_COLOURS = {"noir", "blanc", "vert", "rouge", "rose", "jaune", "bleu", "gris", "brun", "dore", "black", "white", "green", "red", "yellow", "blue"}
 
 
 def _norm(s: Optional[str]) -> str:
@@ -59,9 +60,43 @@ def _load() -> Dict[str, Any]:
     return {"index": index, "types": types}
 
 
-def classify(name: Optional[str], generic_name: Optional[str] = None, brand: Optional[str] = None) -> Dict[str, Any]:
-    """Product type assignment for one product. Returns primary type id, all matching type ids, substitution groups,
-    and the level-2 category / department ids. Empty lists when nothing matches confidently."""
+def classify(name: Optional[str], generic_name: Optional[str] = None, brand: Optional[str] = None, categories: Optional[List[str]] = None) -> Dict[str, Any]:
+    """Placement of one product in the Mieux taxonomy: department > category > product type.
+
+    The rule layer (taxorules: multilingual name rules plus the product's OFF category tags) decides first. It returns the deepest
+    level it can justify: a specific product type (level 3), else a category (level 2), else a department (level 1). Only when no
+    rule fires does the older alias matcher below try; if that finds nothing too the product is reported as level 0 (unclassified)
+    rather than forced into a wrong box. Returns type id, all matching type ids, substitution groups, category and department ids."""
+    from . import taxorules
+    hit = taxorules.match(name, generic_name, categories)
+    idx = _load()
+    if hit:
+        t = idx["types"].get(hit["type"]) if hit["type"] else None
+        node_ = taxorules.load()["nodes"]
+        group = (t or {}).get("group") or (node_[hit["category"]].get("substitution_group") or ("SG_" + hit["category"][2:]) if hit.get("category") else None)
+        types = [hit["type"]] if hit["type"] else []
+        groups = [group] if group else []
+        # Other types the alias matcher also finds stay in `types` / `groups` as retrieval hints (the primary stays first).
+        extra = _classify_alias(name, generic_name)
+        for tid in extra.get("types") or []:
+            if tid not in types:
+                types.append(tid)
+        for g in extra.get("groups") or []:
+            if g not in groups:
+                groups.append(g)
+        if hit["level"] < 3:
+            # Alternatives compare products of one specific type: a category-only or department-only placement carries no substitution group.
+            types, groups = [], []
+        return {"type": hit["type"], "types": types[:_MAX_TYPES], "groups": groups, "category": hit["category"],
+                "department": hit["department"], "level": hit["level"], "source": hit["source"], "primary": t}
+    out = _classify_alias(name, generic_name)
+    out.setdefault("level", 3 if out.get("type") else 0)
+    out.setdefault("source", "alias" if out.get("type") else None)
+    return out
+
+
+def _classify_alias(name: Optional[str], generic_name: Optional[str] = None) -> Dict[str, Any]:
+    """The original keyword-alias matcher: every content token of a type's name (or example) must appear in the product name."""
     idx = _load()
     prod_tokens = frozenset(_tokens(" ".join(x for x in (name, generic_name) if x)))
     if not prod_tokens:
@@ -71,7 +106,8 @@ def classify(name: Optional[str], generic_name: Optional[str] = None, brand: Opt
         candidates.update(idx["index"].get(t, ()))
     matched: Dict[str, int] = {}
     for nid, toks in candidates:
-        if toks <= prod_tokens:
+        # A single leftover word ("noir", "vert", "blanc", "orange") is a colour or flavour, not a product type: it only counts when it IS the product name.
+        if toks <= prod_tokens and (len(toks) >= 2 or (prod_tokens == toks and not (toks & _COLOURS))):
             matched[nid] = max(matched.get(nid, 0), len(toks))
     if not matched:
         return {"type": None, "types": [], "groups": [], "category": None, "department": None}
@@ -82,6 +118,8 @@ def classify(name: Optional[str], generic_name: Optional[str] = None, brand: Opt
     return {"type": primary["id"] if primary else None, "types": [t["id"] for t in types], "groups": groups,
             "category": primary.get("parent") if primary else None, "department": primary.get("department") if primary else None,
             "primary": primary}
+
+
 
 
 def node(node_id: str) -> Optional[Dict[str, Any]]:

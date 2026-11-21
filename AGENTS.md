@@ -121,3 +121,22 @@ OFF_LOCAL=$PWD/off_local_us.db OFF_QUICK=$PWD/off_quick_us.db .venv/bin/python3.
 `OP_COUNTRY=US OP_LOCAL=$PWD/op_local_us.db .venv/bin/python3.9 -m scripts.import_prices_dump data/prices.jsonl.gz data/locations.jsonl.gz`.
 Prices are held in the market's currency (`market.currency()`), sentences are localised with `market.localize_money`, and category price estimates exist for France only.
 Code that fans out to a `ThreadPoolExecutor` must use `_ctx_map` so worker threads keep the request's market.
+
+
+## Mieux taxonomy and classifier (departments > categories > product types)
+
+`backend/app/mieux_taxonomy.json` is generated: `app/data/taxonomy_base.json` + `app/data/taxonomy_ext.txt`, compiled by
+`python -m scripts.build_taxonomy` (also writes `docs/TAXONOMY.md`). Edit the ext file to add departments (`D|`), categories (`C|`)
+or types (`T|`), never the JSON.
+
+`taxo1000.classify(name, generic_name, brand, categories)` places a product with `app/taxorules.py` + `app/data/taxo_rules.txt`
+(`TARGET<TAB>NAME_REGEX<TAB>TAG_REGEX[<TAB>NAME_VETO]`, text lowercase/accent-free; `pâté` is normalised to `patee` so it never mixes
+with `pâte`). Rules are ordered specific -> general; `python -m scripts.order_taxo_rules` keeps "non précisé" and broad `C:`/`D:` rules last.
+Matching: the earliest-named rule wins, tags decide when the name only mentions an ingredient, catch-all tags never beat a specific name,
+and ingredient/dish/chocolate/alcohol/sauce guards stop a flavour word from claiming the product. The result is the deepest justified
+level: 3 = type, 2 = category, 1 = department, 0 = unclassified (never forced).
+
+Tools: `scripts.eval_taxonomy` (coverage, name-vs-tag agreement), `scripts.review_taxonomy D_16` (examples per type in a department),
+`scripts.audit_types` (suspicious placements per type), `scripts.make_taxonomy_sheet` / `scripts.score_taxonomy_sheet` (hand-labelled accuracy),
+`scripts.build_taxonomy_index` (parallel, ~20 min for 1.1 M products; writes `off_taxo` + `off_tax`). Tests: `tests/test_taxonomy_rules.py`
+(rules resolve + `tests/data/taxonomy_golden.json`). Add a golden case for every misplacement you fix.
