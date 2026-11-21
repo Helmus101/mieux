@@ -1704,7 +1704,7 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
         fn = getattr(app.state.off, "tax_group_candidates", None)
         if not (local and fn):
             return []
-        groups = (taxo1000.classify(orig.get("name"), None, orig.get("brand")).get("groups") or [])[:2]
+        groups = (taxo1000.classify(orig.get("name"), None, orig.get("brand"), orig.get("categories")).get("groups") or [])[:2]
         if not groups:
             return []
         field, low, required, ingredients = _quick_args()
@@ -2061,7 +2061,7 @@ def _index_pool(s: Session, uid: str, orig: Dict[str, Any], body: "AltReq", alle
     if body.category_mode != "similar":
         tags = tags[2:] or tags
     otype = taxonomy.classify(orig).get("type")
-    groups = (taxo1000.classify(orig.get("name"), None, orig.get("brand")).get("groups") or [])[:2]
+    groups = (taxo1000.classify(orig.get("name"), None, orig.get("brand"), orig.get("categories")).get("groups") or [])[:2]
     rows = app.state.alt.candidates(tags[:3], otype, groups)
     if len(rows) < 30 and len(tags) > 3:
         rows = app.state.alt.candidates(tags[:8], otype, groups)   # a thin leaf category: also read the next levels
