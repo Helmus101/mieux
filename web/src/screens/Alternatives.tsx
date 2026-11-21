@@ -87,6 +87,9 @@ export default function Alternatives() {
     // match list still has real alternatives: show those rather than claiming there is nothing.
     const fallback = !rows.length && k === 'value';
     if (fallback) rows = ((r?.rankings?.match ?? r?.alternatives ?? []) as any[]);
+    // The scanned product already scores above 90 on value for this profile: nothing is worth suggesting instead.
+    const ov = r?.rankings?.original_value_scores?.[vp];
+    if (typeof ov === 'number' && ov > 90) return [];
     const per = new Map<string, any>(((r?.rankings?.profiles?.[vp] ?? []) as any[]).map((x) => [x.code, x]));
     // On the Nutrition profile an alternative is only worth showing if its quality score beats the scanned product's.
     const oq = r?.original?.score?.total;
@@ -181,6 +184,7 @@ export default function Alternatives() {
       {r && !busy && !none && !shown.length && (() => {
         const os = r?.original?.score?.total;
         const m = chain ? { title: t('alt.noChainTitle', { c: chainName(chain) }), why: t('alt.noChainWhy'), action: <Button small onPress={() => setChain(null)}>{t('alt.allChains')}</Button> }
+          : (r?.rankings?.original_value_scores?.[vp] ?? 0) > 90 ? { title: t('emptyAlt.greatTitle'), why: t('emptyAlt.greatWhy') }
           : nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : { title: t('emptyAlt.valueNoneTitle'), why: t('emptyAlt.valueNoneWhy') };
         void os;

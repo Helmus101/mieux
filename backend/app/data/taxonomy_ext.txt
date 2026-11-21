@@ -1,0 +1,703 @@
+# Extension of the base taxonomy (data/taxonomy_base.json). Compiled into app/mieux_taxonomy.json by scripts/build_taxonomy.py.
+# D|<NN>|<french>|<english>                       new department
+# C|<NN>|<key>|<french>|<english>                 new category in department NN (id C_<NN>_<DEPTKEY>_<key>, or give it under an existing dept)
+# T|<category id suffix after C_NN_ e.g. VIANDES_VOLAILLES_VEAU>|<french type>|<english type>|<unit>
+D|25|Boissons alcoolisées|Alcoholic beverages
+D|26|Non alimentaire et hors périmètre|Non-food and out of scope
+C|25|VINS|Vins|Wine
+C|25|BIERES|Bières|Beer
+C|25|SPIRITUEUX|Spiritueux et liqueurs|Spirits and liqueurs
+C|25|CIDRES|Cidres et poirés|Cider and perry
+C|25|APERITIFS|Apéritifs et vins aromatisés|Aperitifs and fortified wines
+C|26|ANIMAUX|Alimentation animale|Pet and animal food
+C|26|MENAGE|Entretien et maison|Household
+C|26|HYGIENE|Hygiène et beauté|Hygiene and beauty
+C|26|AUTRES|Autres produits non alimentaires|Other non-food
+C|02|VEAU|Veau|Veal
+C|02|LAPIN_GIBIER|Lapin, gibier et viandes diverses|Rabbit, game and other meats
+C|02|ABATS|Abats|Offal
+C|02|SAUCISSES_PREPAREES|Saucisses et viandes préparées|Sausages and prepared meats
+C|02|FOIE_GRAS|Foie gras et produits festifs|Foie gras and festive products
+C|10|BEURRE|Beurre et produits barattés|Butter
+C|04|DESSERTS_LAITIERS|Desserts lactés et crèmes|Dairy desserts
+C|04|FROMAGES_SPECIAUX|Fromages par famille|Cheese by family
+C|01|FRUITS_EXOTIQUES|Fruits exotiques et fruits à coque frais|Exotic fruit
+C|01|CHAMPIGNONS_SALADES|Champignons, salades et herbes fraîches|Mushrooms, salad leaves and fresh herbs
+C|01|POMMES_DE_TERRE|Pommes de terre et tubercules|Potatoes and tubers
+C|01|LEGUMES_RACINES_CHOUX|Légumes secondaires frais|Other fresh vegetables
+C|06|SANDWICHS_PIZZA|Pizzas, tartes et sandwichs de boulangerie|Bakery pizza and sandwiches
+C|06|PAINS_SPECIAUX|Pains spéciaux|Specialty breads
+C|07|BARRES|Barres céréalières et petit-déjeuner|Cereal and breakfast bars
+C|08|PATES_FARCIES|Pâtes farcies et spécialités|Filled and special pasta
+C|08|POMMES_TERRE_TRANSFORMEES|Pommes de terre transformées|Processed potato
+C|10|OLEAGINEUX|Huiles supplémentaires|More oils
+C|11|SAUCES_ASIATIQUES|Sauces du monde|World sauces
+C|13|OLIVES_APERO|Olives et amuse-bouches|Olives and aperitif nibbles
+C|13|FRUITS_COQUE_TRANSFORMES|Fruits à coque transformés|Processed nuts
+C|14|COMPOTES_DESSERTS_FRUITS|Compotes et fruits préparés|Compotes and prepared fruit
+C|15|CHOCOLAT_FESTIF|Chocolats fourrés et festifs|Filled and festive chocolate
+C|15|CHEWING_GUM|Chewing-gums et pastilles|Gum and mints
+C|16|PATISSERIES_INDUSTRIELLES|Pâtisseries et viennoiseries industrielles|Packaged pastries
+C|16|PATE_CUISSON|Pâtes à tarte et préparations sucrées|Dough and sweet preparations
+C|17|APERO|Biscuits et feuilletés apéritifs|Aperitif biscuits and pastries
+C|17|FRUITS_SECS_SALES|Noix et cacahuètes salées|Salted nuts
+C|18|TRAITEUR|Traiteur frais|Deli
+C|18|SANDWICHS|Sandwichs, wraps et snacking|Sandwiches and wraps
+C|18|PLATS_ETHNIQUES|Plats du monde|World dishes
+C|19|CONSERVES_POISSON|Conserves de poisson|Canned fish
+C|19|CONSERVES_LEGUMES|Légumes en conserve|Canned vegetables
+C|20|ENERGIE_SPORT|Boissons énergisantes et sport|Energy and sport drinks
+C|20|LAIT_VEGETAL_AROMATISE|Laits aromatisés et boissons lactées|Flavoured milk drinks
+C|20|ALCOOL_ZERO|Boissons sans alcool imitant l’alcool|Alcohol-free alternatives
+C|21|PREPARATIONS|Préparations et mélanges|Mixes
+C|21|CONDIMENTS_SECS|Bouillons, cubes et fonds|Stock and bouillon
+C|21|CAPSULES_CAFE|Capsules et dosettes de café|Coffee capsules
+C|22|FRITES_POMMES_TERRE|Pommes de terre surgelées|Frozen potato
+C|22|PAINS_PATISSERIES|Pains et pâtisseries surgelés|Frozen bakery
+C|22|PIZZAS_SNACKS|Pizzas et snacks surgelés|Frozen pizza and snacks
+C|23|COMPLEMENTS|Compléments alimentaires|Dietary supplements
+C|23|SPORT|Nutrition sportive|Sports nutrition
+C|23|REGIMES_SPECIAUX|Régimes spéciaux et diététique|Special diets
+C|23|FOOD_FOR_SPECIAL|Nutrition clinique|Clinical nutrition
+C|24|ITALIEN|Épicerie italienne|Italian
+C|24|ESPAGNOL|Épicerie espagnole|Spanish
+C|24|ALLEMAND_NORD|Épicerie d’Europe du Nord et de l’Est|Northern and Eastern European
+C|24|INDIEN|Épicerie indienne|Indian
+C|24|AFRICAIN|Épicerie africaine et antillaise|African and Caribbean
+C|24|AMERICAIN|Épicerie américaine|American
+# ------- types: T|<existing or new category id suffix>|fr|en|unit
+# ===== 25 alcoholic beverages
+T|25_BOISSONS_ALCOOLISEES_VINS|Vin rouge|Red wine|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Vin blanc|White wine|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Vin blanc moelleux ou liquoreux|Sweet white wine|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Vin rosé|Rosé wine|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Champagne|Champagne|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Crémant|Crémant|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Prosecco et vins mousseux italiens|Prosecco and Italian sparkling|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Cava et vins mousseux espagnols|Cava|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Vin mousseux|Sparkling wine|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Vin en cubi ou en brique|Boxed wine|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Vin sans alcool|Alcohol-free wine|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Sangria|Sangria|€/L
+T|25_BOISSONS_ALCOOLISEES_VINS|Vin chaud et vin de Noël|Mulled wine|€/L
+T|25_BOISSONS_ALCOOLISEES_BIERES|Bière blonde|Lager|€/L
+T|25_BOISSONS_ALCOOLISEES_BIERES|Bière blanche|Wheat beer|€/L
+T|25_BOISSONS_ALCOOLISEES_BIERES|Bière brune|Dark beer|€/L
+T|25_BOISSONS_ALCOOLISEES_BIERES|Bière ambrée|Amber beer|€/L
+T|25_BOISSONS_ALCOOLISEES_BIERES|Bière IPA et pale ale|IPA and pale ale|€/L
+T|25_BOISSONS_ALCOOLISEES_BIERES|Bière stout et porter|Stout and porter|€/L
+T|25_BOISSONS_ALCOOLISEES_BIERES|Bière d’abbaye et de spécialité|Abbey and specialty beer|€/L
+T|25_BOISSONS_ALCOOLISEES_BIERES|Bière sans alcool|Non-alcoholic beer|€/L
+T|25_BOISSONS_ALCOOLISEES_BIERES|Bière aromatisée et panaché|Flavoured beer and shandy|€/L
+T|25_BOISSONS_ALCOOLISEES_SPIRITUEUX|Whisky|Whisky|€/L
+T|25_BOISSONS_ALCOOLISEES_SPIRITUEUX|Rhum|Rum|€/L
+T|25_BOISSONS_ALCOOLISEES_SPIRITUEUX|Vodka|Vodka|€/L
+T|25_BOISSONS_ALCOOLISEES_SPIRITUEUX|Gin|Gin|€/L
+T|25_BOISSONS_ALCOOLISEES_SPIRITUEUX|Tequila et mezcal|Tequila and mezcal|€/L
+T|25_BOISSONS_ALCOOLISEES_SPIRITUEUX|Cognac et armagnac|Cognac and armagnac|€/L
+T|25_BOISSONS_ALCOOLISEES_SPIRITUEUX|Calvados et eau-de-vie de fruits|Calvados and fruit brandy|€/L
+T|25_BOISSONS_ALCOOLISEES_SPIRITUEUX|Liqueur|Liqueur|€/L
+T|25_BOISSONS_ALCOOLISEES_SPIRITUEUX|Cocktail et premix alcoolisé|Ready-to-drink cocktail|€/L
+T|25_BOISSONS_ALCOOLISEES_SPIRITUEUX|Autre spiritueux|Other spirits|€/L
+T|25_BOISSONS_ALCOOLISEES_CIDRES|Cidre brut|Dry cider|€/L
+T|25_BOISSONS_ALCOOLISEES_CIDRES|Cidre doux|Sweet cider|€/L
+T|25_BOISSONS_ALCOOLISEES_CIDRES|Poiré|Perry|€/L
+T|25_BOISSONS_ALCOOLISEES_CIDRES|Cidre aromatisé|Flavoured cider|€/L
+T|25_BOISSONS_ALCOOLISEES_APERITIFS|Pastis et anisés|Pastis and anise spirits|€/L
+T|25_BOISSONS_ALCOOLISEES_APERITIFS|Porto et vins doux naturels|Port and fortified wines|€/L
+T|25_BOISSONS_ALCOOLISEES_APERITIFS|Vermouth et apéritifs à base de vin|Vermouth|€/L
+T|25_BOISSONS_ALCOOLISEES_APERITIFS|Apéritif amer et spritz|Bitter aperitif and spritz|€/L
+# ===== 26 non-food
+T|26_NON_ALIMENTAIRE_ET_HORS_PERIMETRE_ANIMAUX|Aliment pour chien|Dog food|€/kg
+T|26_NON_ALIMENTAIRE_ET_HORS_PERIMETRE_ANIMAUX|Aliment pour chat|Cat food|€/kg
+T|26_NON_ALIMENTAIRE_ET_HORS_PERIMETRE_ANIMAUX|Aliment pour oiseaux et rongeurs|Bird and small-animal food|€/kg
+T|26_NON_ALIMENTAIRE_ET_HORS_PERIMETRE_ANIMAUX|Friandise pour animaux|Pet treat|€/kg
+T|26_NON_ALIMENTAIRE_ET_HORS_PERIMETRE_MENAGE|Produit d’entretien et lessive|Cleaning and laundry|€/unité
+T|26_NON_ALIMENTAIRE_ET_HORS_PERIMETRE_MENAGE|Papier, sacs et emballage|Paper, bags and packaging|€/unité
+T|26_NON_ALIMENTAIRE_ET_HORS_PERIMETRE_HYGIENE|Soin, cosmétique et hygiène|Care and cosmetics|€/unité
+T|26_NON_ALIMENTAIRE_ET_HORS_PERIMETRE_AUTRES|Tabac et articles divers|Tobacco and other|€/unité
+T|26_NON_ALIMENTAIRE_ET_HORS_PERIMETRE_AUTRES|Produit non alimentaire non précisé|Unspecified non-food|€/unité
+# ===== 02 meats additions
+T|02_VIANDES_VOLAILLES_VEAU|Escalope de veau|Veal escalope|€/kg
+T|02_VIANDES_VOLAILLES_VEAU|Côte de veau|Veal chop|€/kg
+T|02_VIANDES_VOLAILLES_VEAU|Rôti de veau|Veal roast|€/kg
+T|02_VIANDES_VOLAILLES_VEAU|Blanquette et sauté de veau|Veal stew meat|€/kg
+T|02_VIANDES_VOLAILLES_VEAU|Osso buco et jarret de veau|Veal shank|€/kg
+T|02_VIANDES_VOLAILLES_VEAU|Veau haché|Ground veal|€/kg
+T|02_VIANDES_VOLAILLES_LAPIN_GIBIER|Lapin|Rabbit|€/kg
+T|02_VIANDES_VOLAILLES_LAPIN_GIBIER|Gibier|Game meat|€/kg
+T|02_VIANDES_VOLAILLES_LAPIN_GIBIER|Cheval et viandes rares|Horse and other meats|€/kg
+T|02_VIANDES_VOLAILLES_LAPIN_GIBIER|Viande rouge non précisée (agneau, mouton)|Unspecified red meat|€/kg
+T|02_VIANDES_VOLAILLES_ABATS|Foie de veau ou d’agneau|Calf or lamb liver|€/kg
+T|02_VIANDES_VOLAILLES_ABATS|Rognons, cœur, tripes|Kidneys, heart, tripe|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Saucisse fraîche de porc|Fresh pork sausage|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Chipolata|Chipolata|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Merguez|Merguez|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Saucisse de volaille|Poultry sausage|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Saucisse cuite type Strasbourg ou Francfort|Frankfurter|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Knacki et saucisse à réchauffer|Hot-dog sausage|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Cordon bleu|Cordon bleu|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Burger et steak préparé|Prepared burger|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Brochette et viande marinée|Skewer and marinated meat|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Kebab et viande à griller|Kebab meat|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Viande farcie ou cuisinée|Stuffed or cooked meat|€/kg
+T|02_VIANDES_VOLAILLES_SAUCISSES_PREPAREES|Panée de porc ou de bœuf|Breaded red meat|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Jambon sec et jambon de Bayonne|Dry-cured ham|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Jambon cuit à l’os ou de Paris|Cooked ham|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Jambon cuit non précisé|Cooked ham unspecified|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Bresaola et viande séchée|Cured beef|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Pâté de foie et mousse de foie|Liver pâté|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Pâté et terrine de volaille ou gibier|Poultry and game pâté|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Fromage de tête et charcuterie cuite|Head cheese and cooked deli|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Saucisse sèche et petit salami|Dry sausage|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Rillettes de volaille ou de canard|Poultry rillettes|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Saucisse à tartiner et charcuterie à tartiner|Spreadable sausage|€/kg
+T|02_VIANDES_VOLAILLES_CHARCUTERIE|Charcuterie non précisée|Unspecified cold cuts|€/kg
+T|02_VIANDES_VOLAILLES_FOIE_GRAS|Foie gras de canard|Duck foie gras|€/kg
+T|02_VIANDES_VOLAILLES_FOIE_GRAS|Foie gras d’oie|Goose foie gras|€/kg
+T|02_VIANDES_VOLAILLES_FOIE_GRAS|Bloc, médaillon et mousse de foie gras|Foie gras block|€/kg
+T|02_VIANDES_VOLAILLES_FOIE_GRAS|Escargots|Snails|€/kg
+T|02_VIANDES_VOLAILLES_VOLAILLE|Poulet en morceaux|Chicken pieces|€/kg
+T|02_VIANDES_VOLAILLES_VOLAILLE|Volaille cuisinée ou rôtie|Cooked poultry|€/kg
+T|02_VIANDES_VOLAILLES_VOLAILLE|Dinde en morceaux|Turkey pieces|€/kg
+T|02_VIANDES_VOLAILLES_VOLAILLE|Volaille non précisée|Unspecified poultry|€/kg
+T|02_VIANDES_VOLAILLES_BOEUF|Viande de bœuf non précisée|Unspecified beef|€/kg
+T|02_VIANDES_VOLAILLES_BOEUF|Bœuf à braiser|Braising beef|€/kg
+T|02_VIANDES_VOLAILLES_PORC|Porc non précisé|Unspecified pork|€/kg
+T|02_VIANDES_VOLAILLES_PORC|Rôti ou côte de porc cuit|Cooked pork|€/kg
+# ===== 03 fish additions
+T|03_POISSONS_FRUITS_MER_POISSONS_FRAIS|Poisson frais non précisé|Unspecified fresh fish|€/kg
+T|03_POISSONS_FRUITS_MER_POISSONS_FRAIS|Saumon en pavé ou en filet surgelé|Frozen salmon|€/kg
+T|03_POISSONS_FRUITS_MER_POISSONS_FRAIS|Poisson d’élevage divers|Farmed fish|€/kg
+T|03_POISSONS_FRUITS_MER_POISSONS_TRANSFORMES|Saumon en conserve|Canned salmon|€/kg
+T|03_POISSONS_FRUITS_MER_POISSONS_TRANSFORMES|Poisson cuisiné en sauce|Fish in sauce|€/kg
+T|03_POISSONS_FRUITS_MER_POISSONS_TRANSFORMES|Foie de morue|Cod liver|€/kg
+T|03_POISSONS_FRUITS_MER_POISSONS_TRANSFORMES|Morue salée|Salt cod|€/kg
+T|03_POISSONS_FRUITS_MER_POISSONS_TRANSFORMES|Poisson mariné ou gravlax|Marinated fish|€/kg
+T|03_POISSONS_FRUITS_MER_POISSONS_TRANSFORMES|Poisson non précisé transformé|Unspecified processed fish|€/kg
+T|03_POISSONS_FRUITS_MER_FRUITS_MER|Seiche et calamar préparés|Prepared squid|€/kg
+T|03_POISSONS_FRUITS_MER_FRUITS_MER|Coquillages divers|Other shellfish|€/kg
+T|03_POISSONS_FRUITS_MER_FRUITS_MER|Crevettes en sauce ou en salade|Prepared shrimp|€/kg
+T|03_POISSONS_FRUITS_MER_FRUITS_MER|Fruits de mer non précisés|Unspecified seafood|€/kg
+# ===== 04 dairy additions
+T|10_HUILES_MATIERES_GRASSES_BEURRE|Beurre de baratte|Churned butter|€/kg
+T|10_HUILES_MATIERES_GRASSES_BEURRE|Beurre AOP|Protected-origin butter|€/kg
+T|10_HUILES_MATIERES_GRASSES_BEURRE|Beurre aromatisé ou cuisiné|Flavoured butter|€/kg
+T|10_HUILES_MATIERES_GRASSES_BEURRE|Beurre non précisé|Unspecified butter|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_DESSERTS_LAITIERS|Crème dessert non précisée|Unspecified cream dessert|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_DESSERTS_LAITIERS|Dessert gourmand lacté|Indulgent dairy dessert|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_DESSERTS_LAITIERS|Yaourt gourmand et dessert au yaourt|Dessert yogurt|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_DESSERTS_LAITIERS|Dessert lacté au chocolat|Chocolate dairy dessert|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_DESSERTS_LAITIERS|Crème brûlée, crème caramel|Crème brûlée and caramel cream|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_DESSERTS_LAITIERS|Liégeois et viennois|Liégeois|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_DESSERTS_LAITIERS|Fromage blanc gourmand|Indulgent fromage blanc|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_DESSERTS_LAITIERS|Mousse laitière|Dairy mousse|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_DESSERTS_LAITIERS|Dessert laitier végétal|Plant dairy dessert|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_CREMES|Chantilly|Whipped cream|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_CREMES|Crème non précisée|Unspecified cream|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_LAITS|Lait aromatisé|Flavoured milk|€/L
+T|04_PRODUITS_LAITIERS_OEUFS_LAITS|Lait non précisé|Unspecified milk|€/L
+T|04_PRODUITS_LAITIERS_OEUFS_LAITS|Lait de vache bio|Organic cow milk|€/L
+T|04_PRODUITS_LAITIERS_OEUFS_LAITS|Lait de vache UHT|UHT cow milk|€/L
+T|04_PRODUITS_LAITIERS_OEUFS_YAOURTS|Yaourt non précisé|Unspecified yogurt|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_YAOURTS|Yaourt de brebis ou de chèvre|Sheep or goat yogurt|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_YAOURTS|Yaourt sans lactose ou sans sucre ajouté|Lactose-free yogurt|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_YAOURTS|Yaourt aux céréales ou muesli|Cereal yogurt|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_YAOURTS|Yaourt maigre 0 %|Fat-free yogurt|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_YAOURTS|Yaourt protéiné|High-protein yogurt|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage de chèvre affiné|Aged goat cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage de brebis|Sheep cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage à pâte persillée|Blue cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage à croûte lavée|Washed-rind cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage à pâte molle à croûte fleurie|Bloomy-rind cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage à pâte pressée cuite|Cooked pressed cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage à pâte pressée non cuite|Uncooked pressed cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage frit, pané ou cuisiné|Breaded and cooked cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage fondu et spécialité fromagère|Processed cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage à pâte filée|Pasta filata cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage non précisé|Unspecified cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage italien (provolone, grana, taleggio)|Italian cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage espagnol, néerlandais ou allemand|Other European cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage à raclette nature|Raclette cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_FROMAGES_SPECIAUX|Fromage à griller|Grilling cheese|€/kg
+T|04_PRODUITS_LAITIERS_OEUFS_OEUFS|Œufs plein air ou bio|Free-range or organic eggs|€/unité
+T|04_PRODUITS_LAITIERS_OEUFS_OEUFS|Œufs de caille|Quail eggs|€/unité
+# ===== 01 fruit and veg additions
+T|01_FRUITS_LEGUMES_FRUITS_EXOTIQUES|Goyave, litchi et fruits tropicaux|Tropical fruit|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_EXOTIQUES|Banane plantain|Plantain|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_EXOTIQUES|Figue de Barbarie, fruit du dragon, ramboutan|Specialty exotic fruit|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_EXOTIQUES|Fruits frais non précisés|Unspecified fresh fruit|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_EXOTIQUES|Salade de fruits fraîche|Fresh fruit salad|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_EXOTIQUES|Agrumes divers|Citrus other|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_EXOTIQUES|Fruits rouges frais|Fresh berries|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_EXOTIQUES|Châtaigne et marron frais|Fresh chestnut|€/kg
+T|01_FRUITS_LEGUMES_CHAMPIGNONS_SALADES|Champignons frais divers (pleurote, shiitake)|Specialty mushrooms|€/kg
+T|01_FRUITS_LEGUMES_CHAMPIGNONS_SALADES|Salade verte (batavia, frisée, romaine, scarole)|Salad greens|€/kg
+T|01_FRUITS_LEGUMES_CHAMPIGNONS_SALADES|Mélange de jeunes pousses|Baby leaf mix|€/kg
+T|01_FRUITS_LEGUMES_CHAMPIGNONS_SALADES|Germes et pousses|Sprouts|€/kg
+T|01_FRUITS_LEGUMES_CHAMPIGNONS_SALADES|Herbes aromatiques fraîches diverses|Other fresh herbs|€/kg
+T|01_FRUITS_LEGUMES_POMMES_DE_TERRE|Pomme de terre nouvelle|New potato|€/kg
+T|01_FRUITS_LEGUMES_POMMES_DE_TERRE|Manioc, igname, taro|Cassava, yam, taro|€/kg
+T|01_FRUITS_LEGUMES_POMMES_DE_TERRE|Pomme de terre cuisinée fraîche|Prepared fresh potato|€/kg
+T|01_FRUITS_LEGUMES_LEGUMES_RACINES_CHOUX|Potiron et courge|Pumpkin and squash|€/kg
+T|01_FRUITS_LEGUMES_LEGUMES_RACINES_CHOUX|Légumes asiatiques frais (pak choï)|Asian vegetables|€/kg
+T|01_FRUITS_LEGUMES_LEGUMES_RACINES_CHOUX|Chou pointu et chou vert|Other cabbage|€/kg
+T|01_FRUITS_LEGUMES_LEGUMES_RACINES_CHOUX|Légumes frais non précisés|Unspecified fresh vegetables|€/kg
+T|01_FRUITS_LEGUMES_LEGUMES_RACINES_CHOUX|Légumes à rôtir ou à poêler frais|Fresh roasting veg|€/kg
+T|01_FRUITS_LEGUMES_LEGUMES_RACINES_CHOUX|Poivrons et piments divers|Other peppers|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_LEGUMES_TRANSFORMES|Jus de fruits pressé frais|Fresh juice|€/L
+T|01_FRUITS_LEGUMES_FRUITS_LEGUMES_TRANSFORMES|Coulis de fruits|Fruit coulis|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_LEGUMES_TRANSFORMES|Légumes grillés ou marinés|Grilled marinated vegetables|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_LEGUMES_TRANSFORMES|Salade de crudités préparée|Prepared raw salad|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_LEGUMES_TRANSFORMES|Fruits ou légumes transformés non précisés|Unspecified processed produce|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_LEGUMES_TRANSFORMES|Compote en pot (hors pomme)|Fruit compote|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_LEGUMES_TRANSFORMES|Fruits secs en barquette|Dried fruit mix|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_LEGUMES_TRANSFORMES|Légumes surgelés non précisés|Unspecified frozen vegetables|€/kg
+T|01_FRUITS_LEGUMES_FRUITS_LEGUMES_TRANSFORMES|Fruits surgelés non précisés|Unspecified frozen fruit|€/kg
+# ===== 06-07-08 bakery / cereals additions
+T|06_BOULANGERIE_PAINS_SANDWICHS_PIZZA|Pizza de boulangerie|Bakery pizza|€/kg
+T|06_BOULANGERIE_PAINS_SANDWICHS_PIZZA|Quiche et tarte salée de boulangerie|Bakery quiche|€/kg
+T|06_BOULANGERIE_PAINS_SANDWICHS_PIZZA|Feuilleté salé|Savory puff pastry|€/kg
+T|06_BOULANGERIE_PAINS_SANDWICHS_PIZZA|Panini, croque-monsieur, hot-dog|Panini and croque|€/kg
+T|06_BOULANGERIE_PAINS_SANDWICHS_PIZZA|Galette et crêpe salée|Savory galette|€/kg
+T|06_BOULANGERIE_PAINS_PAINS_SPECIAUX|Pain bagel et muffin anglais|Bagel and English muffin|€/kg
+T|06_BOULANGERIE_PAINS_PAINS_SPECIAUX|Pain aux noix, olives ou lardons|Flavoured bread|€/kg
+T|06_BOULANGERIE_PAINS_PAINS_SPECIAUX|Pain polaire, pain suédois, galette de pain|Flatbreads and wraps|€/kg
+T|06_BOULANGERIE_PAINS_PAINS_SPECIAUX|Pain de mie brioché ou sucré|Sweet sliced bread|€/kg
+T|06_BOULANGERIE_PAINS_PAINS_SPECIAUX|Pain tranché divers|Other sliced bread|€/kg
+T|06_BOULANGERIE_PAINS_PAINS_SPECIAUX|Petit pain ou pain individuel|Bread roll|€/kg
+T|06_BOULANGERIE_PAINS_PAINS_SPECIAUX|Pain à garnir (tortillas, wraps)|Wrap bread|€/kg
+T|06_BOULANGERIE_PAINS_PAINS_SPECIAUX|Pain non précisé|Unspecified bread|€/kg
+T|06_BOULANGERIE_PAINS_VIENNOISERIES|Viennoiserie fourrée|Filled pastry|€/kg
+T|06_BOULANGERIE_PAINS_VIENNOISERIES|Pain viennois et pain au lait|Milk bread|€/kg
+T|06_BOULANGERIE_PAINS_VIENNOISERIES|Gaufre, crêpe et pancake sucré|Waffle and crêpe|€/kg
+T|06_BOULANGERIE_PAINS_VIENNOISERIES|Galette des rois et gâteau festif|Festive cake|€/kg
+T|06_BOULANGERIE_PAINS_VIENNOISERIES|Kouign-amann, palmier et spécialités|Specialty pastry|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_BARRES|Barre de céréales|Cereal bar|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_BARRES|Barre aux fruits|Fruit bar|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_BARRES|Barre aux noix et graines|Nut and seed bar|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_BARRES|Barre énergétique|Energy bar|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_BARRES|Barre de céréales chocolatée|Chocolate cereal bar|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_BARRES|Barre hyperprotéinée|High-protein bar|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_BARRES|Barre de petit-déjeuner|Breakfast bar|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_CEREALES|Céréales petit-déjeuner non précisées|Unspecified breakfast cereal|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_CEREALES|Céréales au miel ou caramélisées|Honey cereals|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_CEREALES|Céréales pour enfants|Kids cereal|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_CEREALES|Mélange de flocons|Flake blend|€/kg
+T|07_CEREALES_PETIT_DEJEUNER_CEREALES|Muesli croustillant|Crunchy muesli|€/kg
+T|08_PATES_RIZ_CEREALES_PATES|Pâtes non précisées|Unspecified pasta|€/kg
+T|08_PATES_RIZ_CEREALES_PATES|Pâtes en nid ou longues (vermicelles, cheveux d’ange)|Nest and fine pasta|€/kg
+T|08_PATES_RIZ_CEREALES_PATES|Pâtes pour soupe et petites pâtes|Soup pasta|€/kg
+T|08_PATES_RIZ_CEREALES_PATES|Lasagnes sèches et cannelloni|Dry lasagna|€/kg
+T|08_PATES_RIZ_CEREALES_PATES|Pâtes alimentaires colorées ou aux œufs|Egg pasta|€/kg
+T|08_PATES_RIZ_CEREALES_PATES|Pâtes italiennes diverses (orecchiette, conchiglie)|Specialty pasta|€/kg
+T|08_PATES_RIZ_CEREALES_PATES_FARCIES|Raviolis et tortellinis secs ou frais|Filled pasta|€/kg
+T|08_PATES_RIZ_CEREALES_PATES_FARCIES|Gnocchi et quenelles|Gnocchi|€/kg
+T|08_PATES_RIZ_CEREALES_PATES_FARCIES|Nouilles et vermicelles asiatiques|Asian noodles|€/kg
+T|08_PATES_RIZ_CEREALES_PATES_FARCIES|Pâtes cuisinées prêtes à consommer|Ready pasta|€/kg
+T|08_PATES_RIZ_CEREALES_PATES_FARCIES|Couscous et semoule préparés|Prepared couscous|€/kg
+T|08_PATES_RIZ_CEREALES_RIZ|Riz non précisé|Unspecified rice|€/kg
+T|08_PATES_RIZ_CEREALES_RIZ|Riz cuisiné|Prepared rice|€/kg
+T|08_PATES_RIZ_CEREALES_RIZ|Riz étuvé|Parboiled rice|€/kg
+T|08_PATES_RIZ_CEREALES_RIZ|Riz gluant et riz noir|Glutinous and black rice|€/kg
+T|08_PATES_RIZ_CEREALES_RIZ|Riz pour risotto|Risotto rice|€/kg
+T|08_PATES_RIZ_CEREALES_POMMES_TERRE_TRANSFORMEES|Purée de pomme de terre déshydratée|Instant mash|€/kg
+T|08_PATES_RIZ_CEREALES_POMMES_TERRE_TRANSFORMEES|Flocons de pomme de terre et gnocchi secs|Potato flakes|€/kg
+T|08_PATES_RIZ_CEREALES_POMMES_TERRE_TRANSFORMEES|Pommes de terre en conserve|Canned potatoes|€/kg
+T|08_PATES_RIZ_CEREALES_POMMES_TERRE_TRANSFORMEES|Rösti, croquettes, noisettes de pomme de terre|Potato specialties|€/kg
+T|08_PATES_RIZ_CEREALES_CEREALES_GRAINES|Couscous|Couscous|€/kg
+T|08_PATES_RIZ_CEREALES_CEREALES_GRAINES|Mélange de céréales et graines|Grain mix|€/kg
+T|08_PATES_RIZ_CEREALES_CEREALES_GRAINES|Maïs en grains sec ou pop-corn à éclater|Popping corn|€/kg
+T|08_PATES_RIZ_CEREALES_CEREALES_GRAINES|Semoule fine ou grosse|Semolina|€/kg
+# ===== 10 11 oils sauces
+T|10_HUILES_MATIERES_GRASSES_OLEAGINEUX|Huile de palme et végétale non précisée|Vegetable oil|€/L
+T|10_HUILES_MATIERES_GRASSES_OLEAGINEUX|Huile d’arachide|Peanut oil|€/L
+T|10_HUILES_MATIERES_GRASSES_OLEAGINEUX|Huile de maïs|Corn oil|€/L
+T|10_HUILES_MATIERES_GRASSES_OLEAGINEUX|Huile de soja|Soybean oil|€/L
+T|10_HUILES_MATIERES_GRASSES_OLEAGINEUX|Huile aromatisée|Flavoured oil|€/L
+T|10_HUILES_MATIERES_GRASSES_OLEAGINEUX|Huile en spray|Oil spray|€/L
+T|10_HUILES_MATIERES_GRASSES_OLEAGINEUX|Huile de friture|Frying oil|€/L
+T|10_HUILES_MATIERES_GRASSES_OLEAGINEUX|Huile non précisée|Unspecified oil|€/L
+T|10_HUILES_MATIERES_GRASSES_MATIERES_GRASSES|Margarine végétale pour la cuisson|Cooking margarine|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_ASIATIQUES|Sauce soja (toutes)|Soy sauce|€/L
+T|11_SAUCES_CONDIMENTS_SAUCES_ASIATIQUES|Sauce sriracha et sauce pimentée asiatique|Sriracha|€/L
+T|11_SAUCES_CONDIMENTS_SAUCES_ASIATIQUES|Sauce aigre-douce et sauce pour wok|Sweet-sour and stir-fry sauce|€/L
+T|11_SAUCES_CONDIMENTS_SAUCES_ASIATIQUES|Sauce huître et sauce poisson|Oyster and fish sauce|€/L
+T|11_SAUCES_CONDIMENTS_SAUCES_ASIATIQUES|Sauce tikka, korma et sauce indienne|Indian sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_ASIATIQUES|Sauce mexicaine, fajita et enchilada|Mexican cooking sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_ASIATIQUES|Sauce tahini, tzatziki et sauce orientale|Middle-Eastern sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_ASIATIQUES|Sauce non précisée|Unspecified sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_CUISINE|Sauce tomate cuisinée aux légumes|Tomato vegetable sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_CUISINE|Sauce à la crème et sauce blanche|Cream sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_CUISINE|Sauce fromage, 4 fromages, roquefort|Cheese sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_CUISINE|Sauce champignons, poivre, échalote|Pepper and mushroom sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_CUISINE|Sauce pour pizza|Pizza sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_CUISINE|Sauce au vin et jus de viande|Gravy and wine sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_CUISINE|Sauce brune et fond|Brown sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_FROIDES|Sauce pour fondue et dips|Fondue and dip sauce|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_FROIDES|Mayonnaise aromatisée|Flavoured mayonnaise|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_FROIDES|Moutarde aromatisée et moutarde non précisée|Flavoured mustard|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_FROIDES|Ketchup aromatisé|Flavoured ketchup|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_FROIDES|Sauce pour salade crémeuse|Creamy dressing|€/kg
+T|11_SAUCES_CONDIMENTS_SAUCES_FROIDES|Aïoli et rouille|Aioli|€/kg
+T|11_SAUCES_CONDIMENTS_CONDIMENTS|Vinaigre non précisé et vinaigre aromatisé|Other vinegar|€/L
+T|11_SAUCES_CONDIMENTS_CONDIMENTS|Glaçage et crème de balsamique|Balsamic glaze|€/L
+T|11_SAUCES_CONDIMENTS_CONDIMENTS|Cornichons et condiments au vinaigre divers|Pickled condiments|€/kg
+T|11_SAUCES_CONDIMENTS_CONDIMENTS|Olives en conserve non précisées|Unspecified olives|€/kg
+T|11_SAUCES_CONDIMENTS_CONDIMENTS|Aromate et condiment non précisé|Unspecified condiment|€/kg
+T|11_SAUCES_CONDIMENTS_CONDIMENTS|Ail, oignons et échalotes frits|Fried onions|€/kg
+T|11_SAUCES_CONDIMENTS_CONDIMENTS|Sel|Salt|€/kg
+T|11_SAUCES_CONDIMENTS_CONDIMENTS|Mélange pour assaisonnement|Seasoning blend|€/kg
+T|12_EPICES_HERBES_EPICES|Épices non précisées|Unspecified spices|€/kg
+T|12_EPICES_HERBES_EPICES|Mélange d’épices pour viande ou poisson|Rubs and spice blends|€/kg
+T|12_EPICES_HERBES_EPICES|Poivre en grains avec moulin|Peppercorns in mill|€/kg
+T|12_EPICES_HERBES_EPICES|Piment d’Espelette et piment moulu|Espelette and chili|€/kg
+T|12_EPICES_HERBES_EPICES|Paprika|Paprika|€/kg
+T|12_EPICES_HERBES_EPICES|Cannelle et vanille en bâton|Cinnamon and vanilla sticks|€/kg
+T|12_EPICES_HERBES_EPICES|Vanille en gousse|Vanilla pod|€/kg
+T|12_EPICES_HERBES_EPICES|Ail et oignon en poudre ou granulés|Garlic and onion powder|€/kg
+T|12_EPICES_HERBES_HERBES|Persil, ail, ciboulette surgelés|Frozen herbs|€/kg
+T|12_EPICES_HERBES_HERBES|Herbes en pot ou en tube|Paste herbs|€/kg
+# ===== 13 nuts
+T|13_NOIX_GRAINES_FRUITS_COQUE_TRANSFORMES|Cacahuètes grillées salées|Roasted salted peanuts|€/kg
+T|13_NOIX_GRAINES_FRUITS_COQUE_TRANSFORMES|Amandes grillées ou salées|Roasted almonds|€/kg
+T|13_NOIX_GRAINES_FRUITS_COQUE_TRANSFORMES|Noix de cajou grillées|Roasted cashews|€/kg
+T|13_NOIX_GRAINES_FRUITS_COQUE_TRANSFORMES|Mélange de noix et fruits secs|Trail mix|€/kg
+T|13_NOIX_GRAINES_FRUITS_COQUE_TRANSFORMES|Noix enrobées (chocolat, sucre, yaourt)|Coated nuts|€/kg
+T|13_NOIX_GRAINES_FRUITS_COQUE_TRANSFORMES|Fruits à coque non précisés|Unspecified nuts|€/kg
+T|13_NOIX_GRAINES_FRUITS_COQUE_TRANSFORMES|Noix de coco râpée et copeaux|Coconut flakes|€/kg
+T|13_NOIX_GRAINES_FRUITS_COQUE_TRANSFORMES|Châtaignes et marrons cuits|Cooked chestnuts|€/kg
+T|13_NOIX_GRAINES_OLIVES_APERO|Olives marinées ou farcies|Marinated olives|€/kg
+T|13_NOIX_GRAINES_OLIVES_APERO|Tapenade|Tapenade|€/kg
+T|13_NOIX_GRAINES_OLIVES_APERO|Antipasti et légumes à l’huile|Antipasti|€/kg
+T|13_NOIX_GRAINES_OLIVES_APERO|Légumes secs grillés (pois chiches, edamame)|Roasted pulses|€/kg
+T|13_NOIX_GRAINES_FRUITS_SECS|Dattes Medjool et dattes farcies|Medjool dates|€/kg
+T|13_NOIX_GRAINES_FRUITS_SECS|Fruits secs non précisés|Unspecified dried fruit|€/kg
+T|13_NOIX_GRAINES_FRUITS_SECS|Goji, baies et fruits séchés exotiques|Goji and berries|€/kg
+T|13_NOIX_GRAINES_FRUITS_SECS|Pomme séchée, poire séchée, ananas séché|Dried apple and pineapple|€/kg
+T|13_NOIX_GRAINES_NOIX_GRAINES|Graines germées et mélange de graines|Seed mix|€/kg
+T|13_NOIX_GRAINES_NOIX_GRAINES|Graines de chanvre, de cumin et divers|Other seeds|€/kg
+# ===== 14 15 16 sweet
+T|14_CONFITURES_MIELS_PATES_TARTINER_CONFITURES|Confiture de prunes, pêches et poires|Stone fruit jam|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_CONFITURES|Confiture de fruits exotiques ou d’agrumes|Exotic and citrus jam|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_CONFITURES|Confiture de lait et crème de marrons|Milk jam and chestnut spread|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_CONFITURES|Confiture non précisée|Unspecified jam|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_CONFITURES|Gelée de fruits|Fruit jelly|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_CONFITURES|Marmelade|Marmalade|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_MIELS_SIROPS|Miel non précisé|Unspecified honey|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_MIELS_SIROPS|Miel crémeux ou de fleurs sauvages|Creamed honey|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_MIELS_SIROPS|Miel de sapin, de bruyère ou de forêt|Forest honey|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_MIELS_SIROPS|Gelée royale et produits de la ruche|Royal jelly and hive products|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_MIELS_SIROPS|Sirop de glucose et sirop sucré|Sugar syrup|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_PATES_TARTINER|Pâte à tartiner non chocolatée|Other spread|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_PATES_TARTINER|Pâte à tartiner spéculoos|Speculoos spread|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_PATES_TARTINER|Beurre de cacahuète|Peanut butter|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_PATES_TARTINER|Pâte à tartiner salée ou végétale|Savory spread|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_COMPOTES_DESSERTS_FRUITS|Compote de fruits en pot|Fruit compote pot|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_COMPOTES_DESSERTS_FRUITS|Compote en gourde|Compote pouch|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_COMPOTES_DESSERTS_FRUITS|Compote de pommes aux fruits|Apple blend compote|€/kg
+T|14_CONFITURES_MIELS_PATES_TARTINER_COMPOTES_DESSERTS_FRUITS|Fruits cuits ou en dessert|Cooked fruit dessert|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT|Chocolat noir aux fruits ou éclats|Dark chocolate with inclusions|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT|Chocolat au lait fourré|Filled milk chocolate|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT|Tablette de chocolat aux noix|Chocolate with nuts|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT|Chocolat non précisé|Unspecified chocolate|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT|Chocolat de couverture|Couverture chocolate|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT|Barre chocolatée fourrée|Chocolate candy bar|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT|Bouchée et bille chocolatée|Chocolate bite|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT_FESTIF|Boîte de chocolats assortis|Chocolate box|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT_FESTIF|Truffes et bouchées pralinées|Truffles|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT_FESTIF|Œufs, lapins et figurines en chocolat|Chocolate figures|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT_FESTIF|Chocolat de Noël et calendrier|Advent and festive chocolate|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT_FESTIF|Mendiants et orangettes|Mendiants|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHOCOLAT_FESTIF|Fruits secs enrobés de chocolat|Chocolate-coated fruit and nuts|€/kg
+T|15_CHOCOLATS_CONFISERIES_CONFISERIES|Bonbons non précisés|Unspecified sweets|€/kg
+T|15_CHOCOLATS_CONFISERIES_CONFISERIES|Bonbons à mâcher et caramels mous|Chewy candy|€/kg
+T|15_CHOCOLATS_CONFISERIES_CONFISERIES|Bonbons fourrés|Filled candy|€/kg
+T|15_CHOCOLATS_CONFISERIES_CONFISERIES|Bonbons chocolatés et dragéifiés|Chocolate candy|€/kg
+T|15_CHOCOLATS_CONFISERIES_CONFISERIES|Sucre d’orge et bonbons de fête|Festive candy|€/kg
+T|15_CHOCOLATS_CONFISERIES_CONFISERIES|Fondants et pâtes d’amande|Fondant and marzipan|€/kg
+T|15_CHOCOLATS_CONFISERIES_CONFISERIES|Fruits confits et calissons|Candied fruit|€/kg
+T|15_CHOCOLATS_CONFISERIES_CONFISERIES|Bonbons gélifiés avec ou sans sucre|Gummies|€/kg
+T|15_CHOCOLATS_CONFISERIES_CONFISERIES|Barbe à papa, sucre filé|Candy floss|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHEWING_GUM|Chewing-gum sans sucre|Sugar-free gum|€/kg
+T|15_CHOCOLATS_CONFISERIES_CHEWING_GUM|Bonbons à la menthe|Mints|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Biscuits non précisés|Unspecified biscuits|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Biscuits aux céréales ou à l’avoine|Oat biscuits|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Biscuits pour enfants et mini biscuits|Kids biscuits|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Biscuits fourrés à la crème ou aux noisettes|Cream-filled biscuits|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Biscuits sablés au chocolat ou aux pépites|Chocolate chip biscuits|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Biscuits tendres|Soft baked biscuits|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Biscuits pour thé (shortbread)|Shortbread|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Spéculoos fourré ou biscuit aux épices|Spiced biscuits|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Biscuits au gingembre et pain d’épices|Gingerbread|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Biscuits glacés ou fourrés de glace|Ice cream sandwiches|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Digestive|Digestive|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_BISCUITS|Gaufre, galette et crêpe dentelle|Wafers and lace crêpe|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATISSERIES_INDUSTRIELLES|Gâteau fourré ou nappé emballé|Packaged cake|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATISSERIES_INDUSTRIELLES|Cake, financier et gâteau aux fruits|Cake and financier|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATISSERIES_INDUSTRIELLES|Gâteau roulé ou bûche|Swiss roll|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATISSERIES_INDUSTRIELLES|Cupcake et muffin|Cupcake and muffin|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATISSERIES_INDUSTRIELLES|Tarte et tartelette emballées|Packaged tart|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATISSERIES_INDUSTRIELLES|Gâteau au chocolat et fondant|Chocolate cake|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATISSERIES_INDUSTRIELLES|Gâteau non précisé|Unspecified cake|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATISSERIES_INDUSTRIELLES|Pâtisserie fraîche (entremets, opéra, fraisier)|Fresh pastry cake|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATISSERIES_INDUSTRIELLES|Crêpes et gaufres préemballées|Packaged crêpes and waffles|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATISSERIES_INDUSTRIELLES|Beignets, chouquettes et churros|Fritters|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATE_CUISSON|Pâte feuilletée, brisée, sablée|Pastry dough|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATE_CUISSON|Pâte à pizza|Pizza dough|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATE_CUISSON|Fond de tarte et fonds de pâtisserie|Tart base|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATE_CUISSON|Décoration et nappage pâtissier|Cake decoration|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_PATE_CUISSON|Pâte à cookies et à gâteaux prête à cuire|Ready cookie dough|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_DESSERTS|Dessert non précisé|Unspecified dessert|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_DESSERTS|Compote-dessert et dessert aux fruits|Fruit dessert|€/kg
+T|16_BISCUITS_GATEAUX_DESSERTS_DESSERTS|Entremets en préparation à cuire|Cook-in dessert|€/kg
+# ===== 17 savory snacks
+T|17_SNACKS_SALES_CHIPS|Chips au four|Baked chips|€/kg
+T|17_SNACKS_SALES_CHIPS|Chips de légumes|Veg chips|€/kg
+T|17_SNACKS_SALES_CHIPS|Chips non précisées|Unspecified crisps|€/kg
+T|17_SNACKS_SALES_CHIPS|Chips de maïs et de tortilla|Corn chips|€/kg
+T|17_SNACKS_SALES_CHIPS|Chips épaisses ou kettle|Kettle chips|€/kg
+T|17_SNACKS_SALES_CHIPS|Chips de crevettes et chips exotiques|Prawn crackers|€/kg
+T|17_SNACKS_SALES_APERO|Biscuits apéritifs salés non précisés|Unspecified aperitif biscuits|€/kg
+T|17_SNACKS_SALES_APERO|Feuilletés et palmiers salés|Savory puffs|€/kg
+T|17_SNACKS_SALES_APERO|Cacahuètes apéritif enrobées|Coated peanuts|€/kg
+T|17_SNACKS_SALES_APERO|Bretzels et sticks apéritifs|Pretzels and sticks|€/kg
+T|17_SNACKS_SALES_APERO|Soufflés apéritifs de maïs ou de pomme de terre|Puffed snacks|€/kg
+T|17_SNACKS_SALES_APERO|Mini crackers et gressins|Mini crackers|€/kg
+T|17_SNACKS_SALES_APERO|Snacks de viande séchée|Meat snacks|€/kg
+T|17_SNACKS_SALES_APERO|Snack au fromage|Cheese snacks|€/kg
+T|17_SNACKS_SALES_APERO|Pop-corn micro-ondes|Microwave popcorn|€/kg
+T|17_SNACKS_SALES_SNACKS|Snack salé non précisé|Unspecified salty snack|€/kg
+# ===== 18 prepared meals
+T|18_PLATS_PREPARES_TRAITEUR|Salade composée traiteur|Deli salad|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Entrée froide et feuilleté traiteur|Deli starters|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Poisson et fruits de mer traiteur|Deli fish|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Salade de carottes, céleri et crudités|Deli raw salad|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Pâté en croûte et charcuterie traiteur|Deli pâté|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Plat cuisiné de viande|Cooked meat dish|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Plat cuisiné de volaille|Cooked poultry dish|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Plat cuisiné de poisson|Cooked fish dish|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Plat cuisiné végétarien|Cooked vegetarian dish|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Plat cuisiné non précisé|Unspecified prepared dish|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Accompagnement cuisiné (purée, gratin)|Cooked side dish|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Galette, crêpe ou tourte garnie|Filled crêpe|€/kg
+T|18_PLATS_PREPARES_TRAITEUR|Pâtes cuisinées et pâtes à garnir|Cooked pasta dish|€/kg
+T|18_PLATS_PREPARES_SANDWICHS|Sandwich jambon-fromage ou jambon-beurre|Ham sandwich|€/kg
+T|18_PLATS_PREPARES_SANDWICHS|Sandwich poulet, thon ou crudités|Chicken and tuna sandwich|€/kg
+T|18_PLATS_PREPARES_SANDWICHS|Wrap, burrito et kebab prêts à manger|Wraps|€/kg
+T|18_PLATS_PREPARES_SANDWICHS|Burger et panini prêts à manger|Ready burger|€/kg
+T|18_PLATS_PREPARES_SANDWICHS|Sushi, maki et plateau|Sushi|€/kg
+T|18_PLATS_PREPARES_PLATS_ETHNIQUES|Plat asiatique cuisiné|Asian dish|€/kg
+T|18_PLATS_PREPARES_PLATS_ETHNIQUES|Plat indien cuisiné|Indian dish|€/kg
+T|18_PLATS_PREPARES_PLATS_ETHNIQUES|Plat italien cuisiné|Italian dish|€/kg
+T|18_PLATS_PREPARES_PLATS_ETHNIQUES|Plat mexicain cuisiné|Mexican dish|€/kg
+T|18_PLATS_PREPARES_PLATS_ETHNIQUES|Plat oriental cuisiné (tajine, couscous)|Oriental dish|€/kg
+T|18_PLATS_PREPARES_PLATS_ETHNIQUES|Plat antillais ou africain cuisiné|Caribbean dish|€/kg
+T|18_PLATS_PREPARES_PLATS_FRAIS|Pizza non précisée|Unspecified pizza|€/kg
+T|18_PLATS_PREPARES_PLATS_FRAIS|Plat à base de viande hachée|Minced meat dish|€/kg
+T|18_PLATS_PREPARES_PLATS_FRAIS|Nuggets, tenders et poulet pané|Chicken nuggets|€/kg
+T|18_PLATS_PREPARES_PLATS_FRAIS|Légumes farcis et gratins|Stuffed vegetables|€/kg
+T|18_PLATS_PREPARES_PLATS_CONSERVES|Plat cuisiné en conserve non précisé|Canned meal|€/kg
+T|18_PLATS_PREPARES_PLATS_CONSERVES|Pâté et rillettes en conserve|Canned pâté|€/kg
+T|18_PLATS_PREPARES_PLATS_CONSERVES|Plat en conserve végétarien|Canned vegetarian dish|€/kg
+# ===== 19 soups & canned
+T|19_SOUPES_CONSERVES_CONSERVES_POISSON|Thon en conserve non précisé|Canned tuna|€/kg
+T|19_SOUPES_CONSERVES_CONSERVES_POISSON|Sardines non précisées|Canned sardines|€/kg
+T|19_SOUPES_CONSERVES_CONSERVES_POISSON|Maquereau en conserve|Canned mackerel|€/kg
+T|19_SOUPES_CONSERVES_CONSERVES_POISSON|Anchois et filets d’anchois|Anchovies|€/kg
+T|19_SOUPES_CONSERVES_CONSERVES_POISSON|Fruits de mer en conserve|Canned seafood|€/kg
+T|19_SOUPES_CONSERVES_CONSERVES_LEGUMES|Tomates en conserve non précisées|Canned tomatoes|€/kg
+T|19_SOUPES_CONSERVES_CONSERVES_LEGUMES|Haricots blancs, rouges ou beurre en conserve|Canned beans|€/kg
+T|19_SOUPES_CONSERVES_CONSERVES_LEGUMES|Légumes en conserve non précisés|Canned vegetables|€/kg
+T|19_SOUPES_CONSERVES_CONSERVES_LEGUMES|Petits pois et carottes en conserve|Canned peas and carrots|€/kg
+T|19_SOUPES_CONSERVES_CONSERVES_LEGUMES|Fonds d’artichaut, champignons, salsifis|Canned specialty vegetables|€/kg
+T|19_SOUPES_CONSERVES_CONSERVES_LEGUMES|Maïs doux et mélange de légumes en conserve|Canned corn|€/kg
+T|19_SOUPES_CONSERVES_SOUPES|Soupe non précisée|Unspecified soup|€/kg
+T|19_SOUPES_CONSERVES_SOUPES|Soupe de légumes verts|Green vegetable soup|€/kg
+T|19_SOUPES_CONSERVES_SOUPES|Soupe de viande et de poule|Meat soup|€/kg
+T|19_SOUPES_CONSERVES_SOUPES|Soupe asiatique et nouilles|Asian soup|€/kg
+T|19_SOUPES_CONSERVES_SOUPES|Soupe froide et gaspacho|Cold soup|€/kg
+# ===== 20 beverages
+T|20_BOISSONS_EAUX|Eau de source|Spring water|€/L
+T|20_BOISSONS_EAUX|Eau minérale|Mineral water|€/L
+T|20_BOISSONS_EAUX|Eau pétillante naturelle|Sparkling natural water|€/L
+T|20_BOISSONS_EAUX|Eau de coco|Coconut water|€/L
+T|20_BOISSONS_EAUX|Eau vitaminée et eau fonctionnelle|Functional water|€/L
+T|20_BOISSONS_EAUX|Eau non précisée|Unspecified water|€/L
+T|20_BOISSONS_SODAS|Soda aux fruits et boisson gazeuse non précisée|Fruit soda|€/L
+T|20_BOISSONS_SODAS|Boisson gazeuse à base de thé ou de plantes|Tea soda|€/L
+T|20_BOISSONS_SODAS|Limonade artisanale|Craft lemonade|€/L
+T|20_BOISSONS_SODAS|Boisson au citron et citronnade|Lemonade|€/L
+T|20_BOISSONS_SODAS|Boisson à la menthe, à la grenadine, sirop prêt à boire|Syrup drink|€/L
+T|20_BOISSONS_SODAS|Boisson non gazeuse sucrée|Sweet still drink|€/L
+T|20_BOISSONS_SODAS|Boisson light et zéro|Zero sugar soft drink|€/L
+T|20_BOISSONS_SODAS|Boisson à la framboise, à la cerise ou à la grenadine|Berry soft drink|€/L
+T|20_BOISSONS_SODAS|Boisson au cola non précisée|Unspecified cola|€/L
+T|20_BOISSONS_SODAS|Boisson aux plantes|Herbal drink|€/L
+T|20_BOISSONS_ENERGIE_SPORT|Boisson énergisante non précisée|Energy drink|€/L
+T|20_BOISSONS_ENERGIE_SPORT|Boisson isotonique et de l’effort|Isotonic|€/L
+T|20_BOISSONS_ENERGIE_SPORT|Boisson protéinée|Protein drink|€/L
+T|20_BOISSONS_ENERGIE_SPORT|Shot énergétique|Energy shot|€/L
+T|20_BOISSONS_JUS|Jus de fruits non précisé|Unspecified juice|€/L
+T|20_BOISSONS_JUS|Jus d’ananas|Pineapple juice|€/L
+T|20_BOISSONS_JUS|Jus de fruits rouges, cranberry et grenade|Berry juice|€/L
+T|20_BOISSONS_JUS|Jus exotique (mangue, goyave, passion)|Exotic juice|€/L
+T|20_BOISSONS_JUS|Jus de carotte et jus de légumes pressé|Vegetable juice|€/L
+T|20_BOISSONS_JUS|Jus de fruits pour enfants|Kids juice|€/L
+T|20_BOISSONS_JUS|Jus d’abricot, de pêche et de poire|Stone fruit juice|€/L
+T|20_BOISSONS_JUS|Jus de pomme-fruits mélangé|Apple blend juice|€/L
+T|20_BOISSONS_JUS|Jus de citron vert et boisson citronnée|Lime juice|€/L
+T|20_BOISSONS_JUS|Jus d’orange frais pressé|Fresh orange juice|€/L
+T|20_BOISSONS_JUS|Boisson aux fruits non précisée|Unspecified fruit drink|€/L
+T|20_BOISSONS_JUS|Jus de pamplemousse et d’agrumes|Citrus juice|€/L
+T|20_BOISSONS_JUS|Concentré de jus et jus à diluer|Juice concentrate|€/L
+T|20_BOISSONS_JUS|Jus de fruits sans sucre ajouté|Pure juice|€/L
+T|20_BOISSONS_CAFES_THES|Café non précisé|Unspecified coffee|€/kg
+T|20_BOISSONS_CAFES_THES|Café décaféiné|Decaf coffee|€/kg
+T|20_BOISSONS_CAFES_THES|Café moulu pour filtre|Filter coffee|€/kg
+T|20_BOISSONS_CAFES_THES|Café en dosettes pour cafetière|Coffee pods|€/kg
+T|20_BOISSONS_CAFES_THES|Café au lait et latte prêt à boire|Iced latte|€/L
+T|20_BOISSONS_CAFES_THES|Boisson café instantanée cappuccino|Instant cappuccino|€/kg
+T|20_BOISSONS_CAFES_THES|Thé non précisé|Unspecified tea|€/kg
+T|20_BOISSONS_CAFES_THES|Thé en sachets|Tea bags|€/kg
+T|20_BOISSONS_CAFES_THES|Thé en vrac|Loose tea|€/kg
+T|20_BOISSONS_CAFES_THES|Thé Earl Grey, jasmin, menthe|Flavoured tea|€/kg
+T|20_BOISSONS_CAFES_THES|Infusion non précisée|Unspecified herbal tea|€/kg
+T|20_BOISSONS_CAFES_THES|Infusion fruitée ou de saison|Fruit infusion|€/kg
+T|20_BOISSONS_CAFES_THES|Infusion bien-être et tisane|Wellness tisane|€/kg
+T|20_BOISSONS_CAFES_THES|Rooibos et maté|Rooibos|€/kg
+T|20_BOISSONS_CAFES_THES|Chai et thé épicé|Chai|€/kg
+T|20_BOISSONS_CAFES_THES|Orge soluble et succédané de café|Barley coffee|€/kg
+T|20_BOISSONS_LAIT_VEGETAL_AROMATISE|Boisson lactée non précisée|Dairy drink|€/L
+T|20_BOISSONS_LAIT_VEGETAL_AROMATISE|Lait fermenté à boire|Drinking fermented milk|€/L
+T|20_BOISSONS_LAIT_VEGETAL_AROMATISE|Lait de poule et boisson au lait chaude|Milk drink hot|€/L
+T|20_BOISSONS_LAIT_VEGETAL_AROMATISE|Boisson chocolatée prête à boire|Ready chocolate drink|€/L
+T|20_BOISSONS_ALCOOL_ZERO|Aperitif sans alcool|Alcohol-free aperitif|€/L
+T|20_BOISSONS_ALCOOL_ZERO|Cidre sans alcool|Alcohol-free cider|€/L
+T|20_BOISSONS_ALCOOL_ZERO|Cocktail sans alcool|Mocktail|€/L
+T|20_BOISSONS_AUTRES_BOISSONS|Boisson non précisée|Unspecified beverage|€/L
+T|20_BOISSONS_AUTRES_BOISSONS|Boisson végétale non précisée|Unspecified plant drink|€/L
+T|20_BOISSONS_AUTRES_BOISSONS|Boisson fonctionnelle bien-être|Functional drink|€/L
+T|20_BOISSONS_AUTRES_BOISSONS|Boisson aux protéines de lait|Milk protein drink|€/L
+T|20_BOISSONS_AUTRES_BOISSONS|Boisson de céréales (orge, malt, chicorée)|Cereal beverage|€/L
+T|20_BOISSONS_AUTRES_BOISSONS|Boisson prête à boire non précisée|Ready drink|€/L
+T|20_BOISSONS_AUTRES_BOISSONS|Sirop non précisé|Unspecified syrup|€/L
+T|20_BOISSONS_AUTRES_BOISSONS|Poudre pour boisson|Drink powder|€/kg
+T|20_BOISSONS_AUTRES_BOISSONS|Cacao et chocolat chaud en poudre|Hot chocolate|€/kg
+# ===== 21 baking / pantry
+T|21_AIDES_CUISINE_PATISSERIE_PREPARATIONS|Préparation pour gâteau ou muffins|Cake mix|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_PREPARATIONS|Préparation pour sauce et soupe déshydratée|Sauce mix|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_PREPARATIONS|Préparation pour purée|Mash mix|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_PREPARATIONS|Préparation pour dessert (flan, mousse)|Dessert mix|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_PREPARATIONS|Préparation pour pâtes et plats cuisinés|Meal kit|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_PREPARATIONS|Préparation pour pâte à pizza ou pain|Bread mix|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_CONDIMENTS_SECS|Cube de bouillon|Stock cube|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_CONDIMENTS_SECS|Fond de volaille, de veau ou de poisson|Fond|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_CONDIMENTS_SECS|Bouillon en poudre ou en granulés|Bouillon powder|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_CONDIMENTS_SECS|Bouillon liquide en brique|Liquid stock|€/L
+T|21_AIDES_CUISINE_PATISSERIE_CAPSULES_CAFE|Capsules Nespresso compatibles|Nespresso capsules|€/unité
+T|21_AIDES_CUISINE_PATISSERIE_CAPSULES_CAFE|Capsules Dolce Gusto|Dolce Gusto|€/unité
+T|21_AIDES_CUISINE_PATISSERIE_CAPSULES_CAFE|Dosettes Senseo|Senseo pods|€/unité
+T|21_AIDES_CUISINE_PATISSERIE_CAPSULES_CAFE|Capsules Tassimo et autres|Other capsules|€/unité
+T|21_AIDES_CUISINE_PATISSERIE_INGREDIENTS|Autres ingrédients de pâtisserie|Other baking ingredient|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_INGREDIENTS|Colorants et décorations alimentaires|Food colouring|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_INGREDIENTS|Chocolat à fondre et chocolat pâtissier|Baking chocolate|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_INGREDIENTS|Amandes et noisettes en poudre|Nut flour|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_SUCRES|Sucre non précisé|Unspecified sugar|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_SUCRES|Sucre en morceaux|Sugar cubes|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_SUCRES|Sucre complet et rapadura|Whole cane sugar|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_SUCRES|Sirop et sucre liquide|Liquid sugar|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_FARINES|Farine non précisée|Unspecified flour|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_FARINES|Farine de châtaigne ou de lupin|Specialty flour|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_FARINES|Farine d’amande ou de coco|Nut flour|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_FARINES|Farine à gâteaux et farine fluide|Cake flour|€/kg
+T|21_AIDES_CUISINE_PATISSERIE_FARINES|Semoule de maïs|Corn semolina|€/kg
+# ===== 22 frozen
+T|22_SURGELES_FRITES_POMMES_TERRE|Pommes de terre sautées ou rissolées surgelées|Frozen roast potato|€/kg
+T|22_SURGELES_FRITES_POMMES_TERRE|Purée surgelée|Frozen mash|€/kg
+T|22_SURGELES_FRITES_POMMES_TERRE|Galette et croquette de pomme de terre surgelées|Frozen hash brown|€/kg
+T|22_SURGELES_PAINS_PATISSERIES|Viennoiseries à cuire surgelées|Frozen pastry|€/kg
+T|22_SURGELES_PAINS_PATISSERIES|Pain surgelé|Frozen bread|€/kg
+T|22_SURGELES_PAINS_PATISSERIES|Pâte surgelée|Frozen dough|€/kg
+T|22_SURGELES_PAINS_PATISSERIES|Dessert et gâteau surgelé|Frozen cake|€/kg
+T|22_SURGELES_PIZZAS_SNACKS|Pizza surgelée fine ou épaisse|Frozen pizza|€/kg
+T|22_SURGELES_PIZZAS_SNACKS|Bouchées, nems et beignets surgelés|Frozen snacks|€/kg
+T|22_SURGELES_PIZZAS_SNACKS|Burgers, nuggets et panés surgelés|Frozen breaded|€/kg
+T|22_SURGELES_PIZZAS_SNACKS|Quiches, tartes et feuilletés surgelés|Frozen quiche|€/kg
+T|22_SURGELES_PIZZAS_SNACKS|Plat cuisiné surgelé non précisé|Unspecified frozen meal|€/kg
+T|22_SURGELES_FRUITS_LEGUMES|Fruits surgelés pour smoothie|Smoothie fruit|€/kg
+T|22_SURGELES_FRUITS_LEGUMES|Herbes et aromates surgelés|Frozen herbs|€/kg
+T|22_SURGELES_FRUITS_LEGUMES|Mélange de légumes pour wok|Wok mix|€/kg
+T|22_SURGELES_POISSONS_VIANDES|Poisson surgelé non précisé|Frozen fish|€/kg
+T|22_SURGELES_POISSONS_VIANDES|Fruits de mer surgelés non précisés|Frozen seafood|€/kg
+T|22_SURGELES_POISSONS_VIANDES|Viande surgelée non précisée|Frozen meat|€/kg
+T|22_SURGELES_GLACES|Glace non précisée|Unspecified ice cream|€/L
+T|22_SURGELES_GLACES|Glace à la fraise ou aux fruits|Fruit ice cream|€/L
+T|22_SURGELES_GLACES|Glace caramel, pistache, café|Flavoured ice cream|€/L
+T|22_SURGELES_GLACES|Glace végétale|Plant ice cream|€/L
+T|22_SURGELES_GLACES|Bûche et vacherin glacés|Ice cream cake|€/L
+T|22_SURGELES_GLACES|Esquimau et barre glacée|Ice cream bar|€/unité
+T|22_SURGELES_GLACES|Mini glaces et bouchées glacées|Mini ice cream|€/unité
+T|22_SURGELES_GLACES|Glace à l’eau|Water ice|€/unité
+# ===== 23 specialised
+T|23_ALIMENTS_SPECIALISES_COMPLEMENTS|Vitamines et minéraux|Vitamins and minerals|€/unité
+T|23_ALIMENTS_SPECIALISES_COMPLEMENTS|Oméga 3 et huile de poisson|Omega 3|€/unité
+T|23_ALIMENTS_SPECIALISES_COMPLEMENTS|Probiotiques et ferments lactiques|Probiotics|€/unité
+T|23_ALIMENTS_SPECIALISES_COMPLEMENTS|Plantes et extraits de plantes en gélules|Herbal supplements|€/unité
+T|23_ALIMENTS_SPECIALISES_COMPLEMENTS|Spiruline et super-aliments en poudre|Superfood powder|€/kg
+T|23_ALIMENTS_SPECIALISES_COMPLEMENTS|Collagène et compléments beauté|Collagen|€/unité
+T|23_ALIMENTS_SPECIALISES_COMPLEMENTS|Complément alimentaire non précisé|Unspecified supplement|€/unité
+T|23_ALIMENTS_SPECIALISES_COMPLEMENTS|Gommes et compléments à croquer|Gummy supplements|€/unité
+T|23_ALIMENTS_SPECIALISES_SPORT|Whey et protéines en poudre|Whey protein|€/kg
+T|23_ALIMENTS_SPECIALISES_SPORT|Créatine, BCAA et acides aminés|Creatine and BCAA|€/kg
+T|23_ALIMENTS_SPECIALISES_SPORT|Gainer et poudre énergétique|Gainer|€/kg
+T|23_ALIMENTS_SPECIALISES_SPORT|Gel et barre énergétiques de l’effort|Energy gel|€/unité
+T|23_ALIMENTS_SPECIALISES_SPORT|Boisson de l’effort en poudre|Sports drink powder|€/kg
+T|23_ALIMENTS_SPECIALISES_REGIMES_SPECIAUX|Produit sans lactose|Lactose-free product|€/kg
+T|23_ALIMENTS_SPECIALISES_REGIMES_SPECIAUX|Produit sans gluten non précisé|Gluten-free product|€/kg
+T|23_ALIMENTS_SPECIALISES_REGIMES_SPECIAUX|Produit diététique pour diabétique|Diabetic product|€/kg
+T|23_ALIMENTS_SPECIALISES_REGIMES_SPECIAUX|Produit cétogène ou low-carb|Keto product|€/kg
+T|23_ALIMENTS_SPECIALISES_REGIMES_SPECIAUX|Substitut de repas minceur|Diet meal replacement|€/kg
+T|23_ALIMENTS_SPECIALISES_REGIMES_SPECIAUX|Édulcorant de table|Table sweetener|€/kg
+T|23_ALIMENTS_SPECIALISES_FOOD_FOR_SPECIAL|Nutrition orale complète|Oral nutrition|€/L
+T|23_ALIMENTS_SPECIALISES_FOOD_FOR_SPECIAL|Épaississant et produit pour dysphagie|Thickener|€/kg
+T|23_ALIMENTS_SPECIALISES_BEBE|Biscuit et goûter bébé|Baby snack|€/kg
+T|23_ALIMENTS_SPECIALISES_BEBE|Lait infantile non précisé|Unspecified infant formula|€/kg
+T|23_ALIMENTS_SPECIALISES_BEBE|Lait infantile 3e âge et croissance|Growing-up milk|€/kg
+T|23_ALIMENTS_SPECIALISES_BEBE|Yaourt et dessert lacté bébé|Baby dairy|€/kg
+T|23_ALIMENTS_SPECIALISES_BEBE|Jus et boisson bébé|Baby drink|€/L
+T|23_ALIMENTS_SPECIALISES_BEBE|Produit bébé non précisé|Unspecified baby food|€/kg
+# ===== 24 world foods
+T|24_ALIMENTS_MONDE_ITALIEN|Antipasti italiens et charcuterie italienne|Italian antipasti|€/kg
+T|24_ALIMENTS_MONDE_ITALIEN|Sauce et pesto italiens|Italian sauce|€/kg
+T|24_ALIMENTS_MONDE_ITALIEN|Pâtes et gnocchi italiens spéciaux|Italian pasta specialty|€/kg
+T|24_ALIMENTS_MONDE_ITALIEN|Biscuits et dolci italiens|Italian sweets|€/kg
+T|24_ALIMENTS_MONDE_ESPAGNOL|Chorizo, jamón et charcuterie espagnole|Spanish cured meat|€/kg
+T|24_ALIMENTS_MONDE_ESPAGNOL|Conserves et produits espagnols|Spanish pantry|€/kg
+T|24_ALIMENTS_MONDE_ESPAGNOL|Turrón et douceurs espagnoles|Turrón|€/kg
+T|24_ALIMENTS_MONDE_ALLEMAND_NORD|Spécialités allemandes et nordiques|German and Nordic|€/kg
+T|24_ALIMENTS_MONDE_ALLEMAND_NORD|Biscuits et confiseries d’Europe du Nord|Nordic sweets|€/kg
+T|24_ALIMENTS_MONDE_ALLEMAND_NORD|Spécialités d’Europe de l’Est|Eastern European|€/kg
+T|24_ALIMENTS_MONDE_ALLEMAND_NORD|Spécialités britanniques|British|€/kg
+T|24_ALIMENTS_MONDE_INDIEN|Épices et mélanges indiens|Indian spices|€/kg
+T|24_ALIMENTS_MONDE_INDIEN|Chutneys, pickles et condiments indiens|Indian condiments|€/kg
+T|24_ALIMENTS_MONDE_INDIEN|Dals, lentilles et riz indiens|Indian pulses|€/kg
+T|24_ALIMENTS_MONDE_INDIEN|Snacks et biscuits indiens|Indian snacks|€/kg
+T|24_ALIMENTS_MONDE_AFRICAIN|Produits africains et antillais|African and Caribbean|€/kg
+T|24_ALIMENTS_MONDE_AFRICAIN|Produits du Maghreb|Maghreb|€/kg
+T|24_ALIMENTS_MONDE_AFRICAIN|Sauces et condiments africains|African sauce|€/kg
+T|24_ALIMENTS_MONDE_AFRICAIN|Farines et semoules africaines|African flour|€/kg
+T|24_ALIMENTS_MONDE_AFRICAIN|Pâtisseries orientales|Oriental pastry|€/kg
+T|24_ALIMENTS_MONDE_AMERICAIN|Beurre de cacahuète américain et pancakes|American pantry|€/kg
+T|24_ALIMENTS_MONDE_AMERICAIN|Céréales et snacks américains|American snacks|€/kg
+T|24_ALIMENTS_MONDE_AMERICAIN|Sauces américaines (BBQ, ranch)|American sauces|€/kg
+T|24_ALIMENTS_MONDE_AMERICAIN|Confiseries américaines|American sweets|€/kg
+T|24_ALIMENTS_MONDE_ASIATIQUES|Sauces et pâtes asiatiques non précisées|Asian sauces|€/kg
+T|24_ALIMENTS_MONDE_ASIATIQUES|Snacks et biscuits asiatiques|Asian snacks|€/kg
+T|24_ALIMENTS_MONDE_ASIATIQUES|Riz et préparations asiatiques|Asian rice|€/kg
+T|24_ALIMENTS_MONDE_ASIATIQUES|Boissons et thés asiatiques|Asian drinks|€/L
+T|24_ALIMENTS_MONDE_ASIATIQUES|Produits de la mer asiatiques|Asian seafood|€/kg
+T|24_ALIMENTS_MONDE_ORIENTAUX|Mezzés et spécialités orientales|Mezze|€/kg
+T|24_ALIMENTS_MONDE_ORIENTAUX|Halva et douceurs orientales|Halva|€/kg
+T|24_ALIMENTS_MONDE_LATINO|Tortilla chips, sauces mexicaines|Mexican pantry|€/kg
+T|24_ALIMENTS_MONDE_LATINO|Produits latino-américains|Latin American|€/kg
