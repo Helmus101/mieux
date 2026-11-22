@@ -13,7 +13,7 @@ import SaveButton from '../SaveButton';
 import Where from '../Where';
 import DesktopQRBanner from '../DesktopQRBanner';
 import { countScan } from '../account';
-import { prefetchAlternatives } from '../alternatives';
+import { fetchAlternatives, hasAlternatives } from '../alternatives';
 import { PRODUCT_CACHE_MS, prodKey, readCache, writeCache } from '../swr';
 import { getStrict } from '@shared/config';
 
@@ -57,7 +57,10 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
   // make, so that screen opens with the list ready and the server has already stored the prices it found.
   useEffect(() => {
     if (!barcode) return;
-    prefetchAlternatives(barcode);
+    let gone = false; setNoAlts(false);
+    // No button when there is nothing to show: an empty answer is asked once more (a slow moment is not "none") before the button is hidden.
+    fetchAlternatives(barcode).then((x: any) => (hasAlternatives(x) ? x : fetchAlternatives(barcode))).then((x: any) => { if (!gone && !hasAlternatives(x)) setNoAlts(true); }).catch(() => undefined);
+    return () => { gone = true; };
   }, [barcode]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
   const inCompare = useProfile((s) => !!d?.product && s.compare.includes(d.product.id));   // a hook: it must run before the early returns below, on every render
@@ -68,6 +71,7 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
     document.title = `${pageName} · mieux.`;
     return () => { document.title = prev; };
   }, [pageName]);
+  const [noAlts, setNoAlts] = useState(false);
   const [webP, setWebP] = useState<any>(null), [webPriceLoading, setWebPriceLoading] = useState(false);       // hooks stay above every early return
   // The scores wait for the price: they appear together once it is found, once the search ends without one, or after PRICE_WAIT_MS at most.
   // Both markers hold the barcode they belong to, so opening another product starts waiting again in the same render (no flash of the scores).
@@ -165,7 +169,7 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
           </ul>
         </>) : <Muted>{t('score.na')}</Muted>}
       </section>
-      <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>
+      {!noAlts && <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>}
 
       {p.score && (() => {
         const s = p.score, dims = ((s.dimensions ?? []) as any[]).filter((d) => d.relevant !== false && d.key !== 'micro' && !d.missing && d.score != null);

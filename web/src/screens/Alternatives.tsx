@@ -26,7 +26,7 @@ export default function Alternatives() {
   const prios = (() => { const q = saved.filter((k) => k !== 'budget' && k !== 'value'); return q.length ? q : ['overall']; })();
   const [tries, setTry] = useState(0); const radius = NEAR_KM, [diffBy] = useState<'kg' | 'pack'>('kg'), sameSize = false, subMax = 2, [hidden, setHidden] = useState<string[]>([]); const mode = 'similar', pc = 'any'; const rk = 'value'; const [showMore, setShowMore] = useState(false); const [chain, setChain] = useState<string | null>(null);
   // One recommendation score, weighted by what the shopper says matters (budget first by default). Changing it re-asks the API.
-  const vp = useProfile((s) => s.valueProfile) ?? 'budget', setVp = useProfile((s) => s.setValueProfile);
+  const vpSel = useProfile((s) => s.valueProfile) ?? 'budget', vp = vpSel, setVp = useProfile((s) => s.setValueProfile);
   const [r, setR] = useState<any>(null), [busyRaw, setBusy] = useState(true), [rCode, setRCode] = useState<string | undefined>(undefined), [err, setErr] = useState<{ title: string; why: string } | null>(null);
   const busy = busyRaw || rCode !== barcode;   // loading (never the empty message) until the answer for THIS product is here
   const [note, setNote] = useState<string | null>(null), autoRetry = useRef(0);
@@ -81,7 +81,7 @@ export default function Alternatives() {
   });
   // The backend ranks by one value score (affordability, nutrition and efficiency, weighted by the chosen profile).
   // Every profile is ranked by the server in the same answer: pick the chosen profile's score and order, no new request.
-  const sourceRows = (k: string): any[] => {
+  const sourceRows = (k: string, vp: string = vpSel): any[] => {
     let rows = (r?.rankings?.[k] ?? []) as any[];
     // The value ranking can legitimately be empty (every candidate's price too old or unverifiable) while the
     // match list still has real alternatives: show those rather than claiming there is nothing.
@@ -98,9 +98,9 @@ export default function Alternatives() {
     return rows.filter((e) => per.has(e.product?.barcode)).map((e) => ({ ...e, value_score: per.get(e.product.barcode).value_score, why: per.get(e.product.barcode).why }))
       .sort((a, b) => b.value_score - a.value_score);
   };
-  const listOf = (k: string, ignoreChain = false) => {
+  const listOf = (k: string, ignoreChain = false, prof: string = vpSel) => {
     const seen = new Set<string>();
-    return sourceRows(k).map(rowOf).filter((e: any) => {
+    return sourceRows(k, prof).map(rowOf).filter((e: any) => {
       if (hidden.includes(e.product.id)) return false;
       if (!ignoreChain && chain && !(e.product.chains ?? []).includes(chain)) return false;
       if (myChains.length && !e.product.chains?.some((c: string) => myChains.includes(c))) return false;
@@ -126,7 +126,14 @@ export default function Alternatives() {
     return chainsFor(country).map((c) => c.id).filter((id) => pool.some((e: any) => (e.product.chains ?? []).includes(id)));
   })();
   const none = !!r && !busy && !err && listOf('value', true).length === 0;
-  const profileOptions = (['budget', 'balanced', 'nutrition'] as const).map((k) => ({ key: k, label: t(`alt.profile_${k}`) }));
+  // A profile with no alternatives at all is hidden (the chosen one stays, so the screen never loses its own tab).
+  const profileOptions = (['budget', 'balanced', 'nutrition'] as const).filter((k) => k === vp || !r || listOf('value', false, k).length > 0).map((k) => ({ key: k, label: t(`alt.profile_${k}`) }));
+  // The chosen profile has nothing but another one does: move to the first that has something.
+  useEffect(() => {
+    if (!r || busy || listOf('value', false, vp).length) return;
+    const other = (['budget', 'balanced', 'nutrition'] as const).find((k) => k !== vp && listOf('value', false, k).length > 0);
+    if (other) setVp(other);
+  }, [r, busy, vp]);
   useEffect(() => { setShowMore(false); }, [barcode, vp]);
   useEffect(() => { setChain(null); }, [barcode]);
   useEffect(() => { if (chain && !chainOptions.includes(chain)) setChain(null); }, [chain, chainOptions.join()]);
