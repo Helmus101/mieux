@@ -2103,13 +2103,14 @@ def _mieux_gate(orig: Dict[str, Any], kept: List[Dict[str, Any]]) -> Optional[Li
     if fn is None or not kept:
         return None
     o = taxo1000.classify(orig.get("name"), None, orig.get("brand"), orig.get("categories"))
-    if o.get("level") != 3 or not o.get("type"):
+    if o.get("level") not in (2, 3) or not o.get("category"):
         return None
     places = fn([c["barcode"] for c in kept])
     if not places:
         return None
     in_cat = [c for c in kept if (places.get(c["barcode"]) or {}).get("level") == 3 and places[c["barcode"]]["category"] == o["category"]]
-    same_type = [c for c in in_cat if places[c["barcode"]]["type"] == o["type"]]
+    same_type = [c for c in in_cat if o.get("type") and places[c["barcode"]]["type"] == o["type"]]
+    # no (or too few) same-type products: widen to the whole category
     pool = same_type if len(same_type) >= MIN_SAME_MIEUX_TYPE else in_cat
     if o.get("source") == "name" or len(pool) >= 3:
         return pool
@@ -2196,20 +2197,27 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         rejected = {r.alt_id for r in s.query(db.ProductSubstitution).filter_by(user_id=uid, original_id=orig["id"], verdict="not_comparable").all()}
         # learning from everyone: a pair that two different people flagged "not comparable" is hidden for all
         rejected |= {a for (a,) in s.query(db.ProductSubstitution.alt_id).filter_by(original_id=orig["id"], verdict="not_comparable").group_by(db.ProductSubstitution.alt_id).having(func.count(func.distinct(db.ProductSubstitution.user_id)) >= 2).all()}
-        kept = []
-        for c in peers:
-            sub = taxonomy.substitution(orig, c)
-            if sub is None or sub["level"] > body.substitution_max or c["id"] in rejected:
-                continue
-            kept.append({**c, "substitution": sub})
-        # The same thing first: when enough products are the very same type (level 1), neighbouring types are not offered at all.
-        # Maple syrup leads to maple syrups, not to fruit syrups; a neighbour only appears when the type itself is thin.
-        same_type = [c for c in kept if c["substitution"]["level"] == 1]
-        peers = same_type if len(same_type) >= engine.MIN_SAME_TYPE else kept
+        # The Mieux type is the authority when the scanned product has one: its category/type gate picks the candidates, and the
+        # older substitution gate only grades them (it is far narrower and would leave a bar with a handful of look-alikes).
         gated = _mieux_gate(orig, peers)
+        kept = []
         if gated is not None:
             stages["before_mieux_type"] = len(peers)
-            peers = gated
+            for c in gated:
+                if c["id"] in rejected:
+                    continue
+                sub = taxonomy.substitution(orig, c) or {"level": 2, "reasons": ["same Mieux type/category"]}
+                kept.append({**c, "substitution": {**sub, "level": min(sub["level"], 2)}})
+            peers = kept
+        else:
+            for c in peers:
+                sub = taxonomy.substitution(orig, c)
+                if sub is None or sub["level"] > body.substitution_max or c["id"] in rejected:
+                    continue
+                kept.append({**c, "substitution": sub})
+            # The same thing first: when enough products are the very same type (level 1), neighbouring types are not offered.
+            same_type = [c for c in kept if c["substitution"]["level"] == 1]
+            peers = same_type if len(same_type) >= engine.MIN_SAME_TYPE else kept
     stages["comparable"] = len(peers)
 
     # Strict additive rescoring is the expensive part of preparing a candidate (full score recompute), so it runs
