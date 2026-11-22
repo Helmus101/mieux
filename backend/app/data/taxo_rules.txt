@@ -25,7 +25,9 @@ Baba ganoush	\b(baba ghanou[cs]h?|baba ganou[cs]h?|moutabal|mutabal)\b	baba gano
 Houmous	\b(houmous|hummus|humus)\b	houmous|dips|hummus|houmous	-
 Salade de fruits fraîche	\bsalades? de fruits?\b(?! (au sirop|en jus|en conserve))	-	-
 Fruits au sirop	\b(salades? de fruits?|fruits?|poires?|peches?|abricots?|ananas|litchis?|cocktail de fruits)\b.{0,12}\b(au sirop|en jus|au jus|sirop leger|dans (son|leur) jus)\b	-	-
-Purée de fruits en gourde	^(puree|compote) (de |d )?(pommes?|cassis|pruneaux|mirabelles?|fruits|poires?|peches?|abricots?|fraises?|bananes?|mangues?|framboises?)\b	-	-
+Purée de fruits en gourde	^(puree|compote) (de |d )?(pommes?|cassis|pruneaux|mirabelles?|fruits|poires?|peches?|abricots?|fraises?|bananes?|mangues?|framboises?)\b	-	\bpommes? de terre\b
+Purée d’amandes	\bpuree\b.{0,12}\b(amandes?|noisettes?|cajou|noix|pistaches?|sesame|oleagineux)\b|\bpuree d amandes?\b	-	-
+Purée de cacahuètes	\bpuree\b.{0,12}\b(cacahuetes?|arachides?)\b	-	-
 Purée de légumes	^(puree|mouline)s?\b|\b(puree|mouline) (de |d |aux? )?(legumes?|carottes?|pommes? de terre|celeri|brocolis?|potiron|patate douce|haricots?|petits pois|panais|courges?|epinards?)\b	-	-
 Champignons séchés	\b(morilles?|cepes?|bolets?|boletus|girolles? (sechees?|seches?)|trompettes? de la mort|shiitake secs?|pleurotes? secs?|champignons? (secs?|seches?|sechés|deshydrates?|noirs?|parfumes?)|dried mushrooms?|funghi secchi|porcini)\b	dried mushrooms|dried-mushrooms	\b(poularde|sauces?|farcie?s?|polenta|polente|risotto|pates|ravioli|foie gras|volaille|poulet|saucisse|jambon|veloute|soupe)\b
 Chocolat pâtissier au lait	\b(tablette|chocolat)\b.{0,8}\bdessert\b.{0,10}\b(lait)\b|\bdessert (au )?lait\b	-	-
