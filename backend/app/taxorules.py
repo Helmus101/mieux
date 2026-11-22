@@ -82,6 +82,7 @@ _DISH_DEPTS = {"D_26_NON_ALIMENTAIRE_ET_HORS_PERIMETRE", "D_18_PLATS_PREPARES", 
 _NOT_ALCOHOL = re.compile(r"\b(terrines?|pates?|patees?|sauces?|gateaux?|chocolats?|biscuits?|saucissons?|foie gras|confitures?|moutardes?|bonbons?|glaces?|cakes?|truffes?|cremes?|jambons?|fromages?|vinaigres?|vinaigrettes?|marinades?|moules?|gelees?|aromes?|arome|saveur|parfum|cuisine|cuisson|filet|epices?|brioches?|yaourts?|dessert|tartes?|poulet|boeuf|porc|lapin|canard|veau|sorbets?|barres?|cafe|the|infusion|lait|creme|boisson|jus|sirop|nougat|pralines?|madeleines?|baba|savarin|bouchees?|pain|crepes?|chips|lentilles?|poires?|pommes?|venison|slow cooked|braised|stew|roast|soup|dressing|cooked|marinated)\b")
 _ALCOHOL_FOODWORD_OK = {"D_25_BOISSONS_ALCOOLISEES"}
 _CV = re.compile(r"\b(cereales?|biscuits?|cookies?|cremes?|desserts?|glaces?|gateaux?|cakes?|brioches?|gaufres?|crepes?|muesli|granola|barres?|batonnets?|bonbons?|muffins?|pains?|galettes?|mousses?|boissons?|yaourts?|fromages?|coulants?|fondants?|sticks?|moelleux|tartiner|petit pot|nappes?|enrobes?|cafe|the|pate|sauces?|chantilly|ice cream|dragees?|noisettes? chocolat|tuiles?|crepe|petit dejeuner|lait chocolat|lait au chocolat|cacao pret|spread|pudding|riz|quinoa|ble|mais|fourres?|fourrees?|flocons?|choco ?balls?|pops?|wafers?|gaufrettes?|tablette biscuit)\b")
+_BAR_OF_CHOC = re.compile(r"\bbarres?\s+(?:de|d|au|aux)?\s*(?=chocolat)")
 _CHOC_TYPES = ("Tablette chocolat noir", "Tablette chocolat au lait", "Tablette chocolat blanc", "Chocolat noir 70 % cacao", "Chocolat noir 85 % cacao", "Chocolat noir aux fruits ou éclats", "Chocolat au lait aux noisettes", "Tablette de chocolat aux noix", "Chocolat fourré", "Chocolat praliné", "Chocolat au lait fourré", "Chocolat non précisé", "Pépites de chocolat", "Chocolat de couverture")
 
 
@@ -136,7 +137,7 @@ def match(name: Optional[str], generic_name: Optional[str] = None, tags: Optiona
             ch = ch or _chain(tid, L["nodes"])
             if ch["department"] == "D_25_BOISSONS_ALCOOLISEES" and (ch["category"] != "C_25_BOISSONS_ALCOOLISEES_BIERES" or hit.start() > 0) and _NOT_ALCOHOL.search(nt):
                 hit = None
-            elif L["nodes"][tid]["name_fr"] in _CHOC_TYPES and _CV.search(nt):
+            elif L["nodes"][tid]["name_fr"] in _CHOC_TYPES and _CV.search(_BAR_OF_CHOC.sub("chocolat", nt)):
                 hit = None
             elif ch["category"] and ch["category"].endswith(_INGREDIENT_CATS) and _FORM.search(nt):
                 hit = None
