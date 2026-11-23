@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "test:a11y": "node e2e/a11y.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
@@ -24,6 +25,8 @@
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.0",
+    "axe-core": "^4.10.2",
+    "playwright": "^1.49.1",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.3.0",
     "typescript": "^5.3.0",
