@@ -5,6 +5,7 @@ import Root from './Root';
 import { setApiBase, setStrict } from '@shared/config';
 import { installErrorReporting } from './report';
 import { registerServiceWorker } from './sw-client';
+import { watchCanonical } from './canonical';
 // index.css is imported by App: the landing page has its own stylesheet and no app CSS.
 
 const envBase = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_BASE_URL;
@@ -26,6 +27,7 @@ if (/iPhone|iPod|Android/i.test(navigator.userAgent) || window.location.pathname
   });
 }
 
+watchCanonical();
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Root />

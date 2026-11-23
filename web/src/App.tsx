@@ -3,7 +3,6 @@ import { lazy as reactLazy, Suspense, useEffect, type ComponentType } from 'reac
 import { api } from '@shared/api/client';
 import { t, setLocale } from '@shared/i18n';
 import { useProfile, useHistory, apiPrefs } from '@shared/stores';
-import { setCanonical } from './canonical';
 import { Loader, Screen, haptic } from './ui';
 import { routes, savedTabScroll, useNav } from './nav';
 import ErrorBoundary from './ErrorBoundary';
@@ -83,7 +82,6 @@ function Shell() {
   const { pathname } = useLocation();
   const { back } = useNav();
   const scanCount = useHistory((st) => st.scans.length);
-  useEffect(() => { setCanonical(pathname); }, [pathname]);
   const { onboarded, priorities, diet, allergens, language } = profile;
   useEdgeSwipeBack(back, sectionOf(pathname) !== 'scan');  // the scanner is full screen: no gesture there
   // Set locale on app load

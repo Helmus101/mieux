@@ -8,3 +8,14 @@ export function setCanonical(pathname: string) {
     l.href = SITE + (p || '/');
   } catch { /* no document (tests) */ }
 }
+
+/** Keeps the canonical link in step with the address for the whole life of the page, whichever router moved it (pushState, replaceState, back). */
+export function watchCanonical() {
+  const sync = () => setCanonical(window.location.pathname);
+  for (const k of ['pushState', 'replaceState'] as const) {
+    const orig = history[k];
+    history[k] = function (this: History, ...a: Parameters<History['pushState']>) { const r = orig.apply(this, a); sync(); return r; };
+  }
+  window.addEventListener('popstate', sync);
+  sync();
+}
