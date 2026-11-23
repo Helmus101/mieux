@@ -22,10 +22,12 @@ function Summary({ products }: { products: any[] }) {
     <>
       <div className="cmp-cards">{products.map((p) => (
         <div key={p.id} className="cmp-card">
+          <span className="cmp-tags">{c?.id === p.id && <span className="cmp-tag">{t('compare.cheapest')}</span>}{q?.id === p.id && <span className="cmp-tag q">{t('compare.bestRated')}</span>}</span>
           {p.imageUrl && <img src={p.imageUrl} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
-          <small>{short(p)}</small>
-          <b className="cmp-score">{typeof p.score === 'number' ? p.score : '—'}<i>/100</i></b>
-          <span className="mut sm">{p.price ? formatCents(Math.round(p.price.per100_cents * 10)) + ' ' + t('compare.perKgShort') : t('compare.noPrice')}{p.price?.source === 'estimate' && ' · ' + t('est.pill')}</span>
+          {p.price ? <b className="cmp-price">{formatCents(Math.round(p.price.per100_cents * 10))}<i>{t('compare.perKgShort')}</i></b> : <b className="cmp-price none">{t('compare.noPrice')}</b>}
+          {p.price?.source === 'estimate' && <span className="mut sm">{t('est.pill')}</span>}
+          <span className="cmp-score">{typeof p.score === 'number' ? p.score : '—'}<i>/100</i></span>
+          <small>{[p.brand, short(p)].filter(Boolean).join(' · ')}</small>
         </div>
       ))}</div>
       <Card>
