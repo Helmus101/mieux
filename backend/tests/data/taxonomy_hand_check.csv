@@ -1,0 +1,161 @@
+code,name,brand,department,level,chosen,source,correct,right_type
+3286010049186,12 Vitamines + 9 minéraux Vitarmonyl,Vitarmonyl,Aliments spécialisés,3,Aliments spécialisés > Compléments alimentaires > Vitamines et minéraux,alias,y,
+6132502914043,Boisson aux fruits,Ramy,Boissons,3,Boissons > Jus et boissons aux fruits > Boisson aux fruits,alias,y,
+3027030009534,Mon flan pâtissier au chocolat,Ancel,Boulangerie et pains,3,Boulangerie et pains > Pâtisseries de boulangerie > Flan pâtissier,alias,y,
+26039015,Mini barres chocolatées,Selection Mini,Chocolats et confiseries,3,Chocolats et confiseries > Confiseries > Barres chocolatées,alias,y,
+8718885744309,Quinoa Nuts and Dark Chocolate,Paul's Finest,Chocolats et confiseries,3,Chocolats et confiseries > Chocolats > Tablette de chocolat aux noix,alias,y,
+3422440006607,La purée à la provençale,Florette,Fruits et légumes,2,Fruits et légumes > Fruits et légumes transformés,tag,y,
+3354111171102,Pâte feuilletée à dérouler 250g,Biscuiterie Husson,Fruits et légumes,2,Fruits et légumes > Fruits et légumes transformés,tag,n,pâte feuilletée
+3760032003888,Rissolées du sud ouest,Pom Bistro,Fruits et légumes,3,Fruits et légumes > Légumes frais > Pomme de terre,tag,y,
+8720600091100,Rotkohl,"HAK   NUTRI-SCORE A, Hak, NUTRI-SCORE A   HAK   ALDI",Fruits et légumes,3,Fruits et légumes > Légumes frais > Chou rouge,tag,y,
+5415191100234,Kiwi,Zespri,Fruits et légumes,3,Fruits et légumes > Fruits frais > Kiwi,name,y,
+3339720411665,Saucisson sec supérieur,"Montagne Noire, Sans marque",Viandes et volailles,3,Viandes et volailles > Charcuterie > Saucisson sec,name,y,
+3560070411405,Jamón Serrano,Carrefour,Viandes et volailles,3,Viandes et volailles > Charcuterie > Jambon Serrano,name,y,
+3298081501388,Diots De Savoie Au Beaufort,Terroir Savoie,Viandes et volailles,3,Viandes et volailles > Saucisses et viandes préparées > Saucisse fraîche de porc,tag,y,
+2431628020206,Filets de poulet rôti,Le Gaulois,Viandes et volailles,3,Viandes et volailles > Volailles > Blanc de poulet,name,y,
+27067345,Bloc de foie gras de canard avec morceaux,,Viandes et volailles,3,"Viandes et volailles > Foie gras et produits festifs > Bloc, médaillon et mousse de foie gras",name,y,
+3664335051204,Paves de saumon,L'Atelier Poissonnerie,Poissons et fruits de mer,3,Poissons et fruits de mer > Poissons frais > Saumon frais,tag,y,
+4260046741077,Sockeye Wildlachs geräuchert,,Poissons et fruits de mer,3,Poissons et fruits de mer > Poissons frais > Poisson frais non précisé,tag,n,saumon fumé
+3276558186542,Duo ananas et carottes au surimi Filet jus de citron,Carrefour,Poissons et fruits de mer,3,Poissons et fruits de mer > Poissons transformés > Surimi,tag,n,salade/plat au surimi
+3560070319909,Saumon au naturel,Carrefour Extra,Poissons et fruits de mer,3,Poissons et fruits de mer > Poissons transformés > Saumon en conserve,name,y,
+8054729870378,Filetti di sgombro affumicati all'olio di oliva,Mareblu,Poissons et fruits de mer,3,Poissons et fruits de mer > Poissons transformés > Maquereaux en conserve,tag,y,
+20368906,Yaourt cerise,Milbona,Produits laitiers et œufs,3,Produits laitiers et œufs > Yaourts et laits fermentés > Yaourt aux fruits en pot,name,y,
+20945626,6 huevos frescos ecológicos,Bio Organic,Produits laitiers et œufs,3,Produits laitiers et œufs > Œufs > Œufs frais,tag,y,
+3330261010225,Yaourt Danone sucré,Danone,Produits laitiers et œufs,3,Produits laitiers et œufs > Yaourts et laits fermentés > Yaourt non précisé,name,y,
+3560070842599,Yaourt nature,Carrefour,Produits laitiers et œufs,3,Produits laitiers et œufs > Yaourts et laits fermentés > Yaourt nature,name,y,
+3564706590298,Mozzarella rapée,"Marque Repère, Les Croisés",Produits laitiers et œufs,3,Produits laitiers et œufs > Fromages > Mozzarella en boule,name,n,mozzarella râpée
+7613036021265,nuggets soja,Garden gourmet,Alternatives végétales,3,Alternatives végétales > Alternatives végétales à la viande > Nuggets végétaux,name,y,
+3396410220426,Cordon blé & soja,Evernat,Alternatives végétales,3,Alternatives végétales > Alternatives végétales à la viande > Escalope végétale,tag,y,
+3259011124824,"Croc tofou chèvre, épinards et graines de pavot",Soy,Alternatives végétales,3,Alternatives végétales > Alternatives végétales à la viande > Tofu nature,tag,n,tofu aromatisé
+8422584315769,Boisson au Soja Bio,ECOCESTA,Alternatives végétales,3,Alternatives végétales > Boissons végétales > Boisson soja nature,name,y,
+0085696608099,Silken Tofu Extra Firm,Morinaga,Alternatives végétales,3,Alternatives végétales > Alternatives végétales à la viande > Tofu nature,tag,y,
+2665432000394,Baguette francesa,,Boulangerie et pains,3,Boulangerie et pains > Pains > Baguette,name,y,
+3248288136913,Batard Nordique,Neuhauser,Boulangerie et pains,3,Boulangerie et pains > Pains > Baguette,name,y,
+3564700885819,Spe mie longue conservation,"Marque Repère, Epi d'Or",Boulangerie et pains,3,Boulangerie et pains > Pains > Pain de mie nature tranché,tag,y,
+3760049798692,Seigle et graines,La Boulangère,Boulangerie et pains,3,Boulangerie et pains > Pains > Pain de seigle,name,y,
+5010092736614,THE CHAMPION WHOLEMEAL,ALLINSON'S,Boulangerie et pains,3,Boulangerie et pains > Pains > Pain de mie nature tranché,tag,y,
+3182180000630,Les grillettines au blé complet,Pasquier,Céréales et petit-déjeuner,3,Céréales et petit-déjeuner > Céréales > Céréales petit-déjeuner non précisées,tag,n,biscottes / pain grillé
+8710398516947,Cruesli 4 Nuts,Quaker,Céréales et petit-déjeuner,3,Céréales et petit-déjeuner > Céréales > Muesli nature,tag,y,
+8410076601940,Crunchy Chocolat 🍫 au Lait 🥛🐄,Nature Valley,Céréales et petit-déjeuner,3,Céréales et petit-déjeuner > Céréales > Céréales chocolatées,name,n,barre de céréales
+3421557502477,Krounchy chocolat avoine sans gluten,Grillon d'Or,Céréales et petit-déjeuner,3,Céréales et petit-déjeuner > Céréales > Céréales chocolatées,tag,y,
+8606012183797,Rice Cake - Natural brown rice,Benilan foods,Céréales et petit-déjeuner,3,Céréales et petit-déjeuner > Produits de tartinage du petit-déjeuner > Galettes de riz,name,y,
+4022381104180,Dinkel,Spielberger Mühle,"Pâtes, riz et céréales",3,"Pâtes, riz et céréales > Céréales et graines à cuire > Épeautre",name,y,
+5201193208838,Spaghetti with spinach,Melissa,"Pâtes, riz et céréales",3,"Pâtes, riz et céréales > Pâtes > Spaghetti",name,y,
+3266140059828,Ravioles à Poêler Fromage Frais Basilic,Saint jean,"Pâtes, riz et céréales",3,"Pâtes, riz et céréales > Pâtes > Ravioli frais",name,y,
+3564700282700,Cheveux d'ange,"Marque Repère, Turini","Pâtes, riz et céréales",3,"Pâtes, riz et céréales > Pâtes > Pâtes en nid ou longues (vermicelles, cheveux d’ange)",name,y,
+8003740125318,Penne Rigate Complètes,"Arrighi, Berruto, Pasta Berruto","Pâtes, riz et céréales",3,"Pâtes, riz et céréales > Pâtes > Pâtes complètes penne",name,y,
+4002015003119,Kichererbsen,Krini,Légumineuses,3,Légumineuses > Légumineuses sèches > Pois chiches secs,name,y,
+3560070658053,Haricots beurre Extra-fins,Carrefour,Légumineuses,3,Légumineuses > Légumineuses cuites et conserves > Haricots blancs cuits en conserve,tag,n,haricots verts/beurre
+8017596000620,Fagioli borlotti,Eurospin,Légumineuses,2,Légumineuses > Légumineuses sèches,tag,y,
+4024297016137,"Lupin Coffee, Instant",Naturata,Légumineuses,3,Légumineuses > Légumineuses sèches > Pois lupin secs,name,n,succédané de café
+3700483800797,Haricots blancs,Mosaïque,Légumineuses,3,Légumineuses > Légumineuses sèches > Haricots blancs secs,name,y,
+3412290011098,Paysan Breton - Petits beurres doux,Paysan Breton,Huiles et matières grasses,3,Huiles et matières grasses > Matières grasses à tartiner et cuisson > Beurre doux,tag,n,biscuits petit beurre
+3256761107329,La Vache De Paris Butter Ghee,Flechard,Huiles et matières grasses,3,Huiles et matières grasses > Matières grasses à tartiner et cuisson > Ghee,name,y,
+3294587097554,Beurre de Savoie (82% MG),"Fromageries Pochat et fils, Pochat et fils",Huiles et matières grasses,3,Huiles et matières grasses > Beurre et produits barattés > Beurre non précisé,name,y,
+3257980381941,Beurre d'Isigny,Patrimoine Gourmand,Huiles et matières grasses,3,Huiles et matières grasses > Beurre et produits barattés > Beurre AOP,name,y,
+9310047202796,Margarine,Olive Grove,Huiles et matières grasses,3,Huiles et matières grasses > Huiles supplémentaires > Huile non précisée,tag,n,margarine
+4061458004190,Rotebete in Scheiben süß-sauer eingelegt,"Aldi, Gut Bio",Sauces et condiments,3,Sauces et condiments > Condiments > Cornichons,tag,n,betterave
+3234750030391,Mélange Pain D'épices,,Sauces et condiments,3,Sauces et condiments > Condiments > Mélange pour assaisonnement,name,n,préparation pain d'épices
+4005514081626,Pesto,Tartex,Sauces et condiments,3,Sauces et condiments > Sauces de cuisine > Pesto vert,name,y,
+3263850669514,Pesto vert bio,Leader Price,Sauces et condiments,3,Sauces et condiments > Sauces de cuisine > Pesto vert,name,y,
+8728200404009,Sambal Oelek,"Windmill, Windmill Oriental Foods",Sauces et condiments,3,Sauces et condiments > Sauces du monde > Sauce sriracha et sauce pimentée asiatique,name,y,
+3564700371282,POIVRE NOIR MOULU 50G,Rustica,Épices et herbes,3,Épices et herbes > Épices > Poivre noir,name,y,
+5060401970260,Mr basil,The London Juice Company,Épices et herbes,3,Épices et herbes > Herbes aromatiques > Basilic frais,name,n,jus/boisson
+5060170800294,Grains de poivre noir Fellicherry,Jamie Oliver,Épices et herbes,3,Épices et herbes > Épices > Poivre noir,name,y,
+3259011010769,Grinioc riz petits légumes & safran,Soy,Épices et herbes,3,Épices et herbes > Épices > Safran,name,n,riz cuisiné
+7610800034704,Gewürzzubereitung Fleisch,COOP,Épices et herbes,3,Épices et herbes > Épices > Épices non précisées,tag,y,
+30200005,Amandes grillees,,"Noix, graines et fruits secs",3,"Noix, graines et fruits secs > Fruits à coque transformés > Amandes grillées ou salées",name,y,
+3276650120833,Arachide G.S. Blanche,"Haudecoeur, Profruit","Noix, graines et fruits secs",3,"Noix, graines et fruits secs > Fruits à coque transformés > Cacahuètes grillées salées",name,y,
+3335880005898,Caviar d'aubergines grillées,Prosain,"Noix, graines et fruits secs",3,"Noix, graines et fruits secs > Olives et amuse-bouches > Tapenade",name,n,caviar d'aubergine
+3580281280881,Raisin Corinthe B &S Sachet,Bedros et Savino,"Noix, graines et fruits secs",3,"Noix, graines et fruits secs > Fruits secs > Raisins secs",name,y,
+3336972009022,Natur'&bon amandes noix de cajou pistaches,VICO,"Noix, graines et fruits secs",3,"Noix, graines et fruits secs > Noix et graines > Amandes",name,n,mélange de fruits secs
+3222475325960,sans sucres grenadine,Casino,"Confitures, miels et pâtes à tartiner",2,"Confitures, miels et pâtes à tartiner > Miels et sirops",tag,y,
+3164060731803,Tartinable de thon,Simon,"Confitures, miels et pâtes à tartiner",3,"Confitures, miels et pâtes à tartiner > Pâtes à tartiner > Pâte à tartiner salée ou végétale",name,y,
+3347436003234,Beurre de cacahuète crunchy,Naturaline,"Confitures, miels et pâtes à tartiner",3,"Confitures, miels et pâtes à tartiner > Pâtes à tartiner > Beurre de cacahuète",name,y,
+3760250320309,Miel de Bretagne,,"Confitures, miels et pâtes à tartiner",3,"Confitures, miels et pâtes à tartiner > Miels et sirops > Miel non précisé",name,y,
+3045320002539,Confiture cerises,Bonne Maman,"Confitures, miels et pâtes à tartiner",3,"Confitures, miels et pâtes à tartiner > Confitures et gelées > Confiture de cerises",name,y,
+0041420016233,Sour Brite Crawlers,Trolli,Chocolats et confiseries,3,Chocolats et confiseries > Confiseries > Bonbons acidulés,name,y,
+3173289213304,Petit ourson guimauve,Cémoi,Chocolats et confiseries,3,Chocolats et confiseries > Chocolats > Bouchée et bille chocolatée,tag,y,
+5901588067032,E. Wedel Vanilla Flavour Sesame Halva 50 G,,Chocolats et confiseries,3,Chocolats et confiseries > Confiseries > Bonbons durs,tag,n,halva
+3174332023444,Ricola Eucalyptus,Ricola,Chocolats et confiseries,3,Chocolats et confiseries > Confiseries > Pastilles pour la gorge,name,y,
+4008400935225,Kinder bueno,Kinder,Chocolats et confiseries,3,Chocolats et confiseries > Chocolats > Barre chocolatée fourrée,name,y,
+3472860003496,Les Palets de La Mère Poulard,La Mère Poulard,"Biscuits, gâteaux et desserts",3,"Biscuits, gâteaux et desserts > Biscuits > Sablés",tag,y,
+8410180106515,Galletas Con Chocolate.,Lu,"Biscuits, gâteaux et desserts",3,"Biscuits, gâteaux et desserts > Biscuits > Biscuits non précisés",name,y,
+8410376021400,Active soja,Gullón,"Biscuits, gâteaux et desserts",3,"Biscuits, gâteaux et desserts > Biscuits > Biscuits non précisés",tag,y,
+8423915007094,Tarte aux pommes,,"Biscuits, gâteaux et desserts",3,"Biscuits, gâteaux et desserts > Pâtisseries et viennoiseries industrielles > Tarte et tartelette emballées",name,y,
+3449610272204,Cookies aux eclats de caramel,LA MAISON DU BISCUIT,"Biscuits, gâteaux et desserts",3,"Biscuits, gâteaux et desserts > Biscuits > Cookies",name,y,
+0015000045944,Puffs souffles,Gerber,Snacks salés,3,Snacks salés > Biscuits et feuilletés apéritifs > Soufflés apéritifs de maïs ou de pomme de terre,name,y,
+4047247005821,Mini grissini,Sun Snacks,Snacks salés,3,Snacks salés > Biscuits et feuilletés apéritifs > Mini crackers et gressins,tag,y,
+4104420056046,Knabber Igel,"Alnatura, Alnatura GmbH",Snacks salés,3,Snacks salés > Biscuits apéritifs et snacks > Snack salé non précisé,name,y,
+27041789,Tortilla chips sweet chili,Pirato,Snacks salés,3,Snacks salés > Chips et snacks de pommes de terre > Chips de maïs et de tortilla,name,y,
+8003899181500,Granforno Grissini Pesto,Granforno,Snacks salés,3,Snacks salés > Biscuits et feuilletés apéritifs > Mini crackers et gressins,tag,y,
+5400501722671,Lasagne Bolognaise,Cactus,Plats préparés et produits traiteur,3,Plats préparés et produits traiteur > Plats préparés frais > Lasagnes à la viande,name,y,
+3700009276266,Salade Snacking Bol XL 4 Fromages 330g MIX,"MIX, Mix buffet",Plats préparés et produits traiteur,3,Plats préparés et produits traiteur > Traiteur frais > Salade composée traiteur,name,y,
+3329710002959,Taboulé oriental,Traiteur de la Touques,Plats préparés et produits traiteur,3,Plats préparés et produits traiteur > Plats préparés frais > Taboulé préparé,name,y,
+3760092216488,Mix salade,Biothentic,Plats préparés et produits traiteur,3,Plats préparés et produits traiteur > Traiteur frais > Salade composée traiteur,name,n,salade verte
+20712372,Salade à l'Italienne,"Chef Select, Select&Go",Plats préparés et produits traiteur,3,Plats préparés et produits traiteur > Traiteur frais > Salade composée traiteur,name,y,
+3260112181180,Soupe a l’oignon,Tidélice,Soupes et conserves,3,Soupes et conserves > Soupes > Soupe de légumes,name,y,
+3254474018246,Maïs doux,Géant Vert,Soupes et conserves,3,Soupes et conserves > Conserves salées > Maïs doux en conserve,name,y,
+3760054380325,Sardines de saint Gué,Belle Bretagne,Soupes et conserves,3,Soupes et conserves > Conserves de poisson > Sardines non précisées,name,y,
+3439497018743,Petits pois à l etuvee,Rochambeau,Soupes et conserves,3,Soupes et conserves > Conserves salées > Petits pois en conserve,name,y,
+3036811460365,Velouté 6 légumes bio,Liebig,Soupes et conserves,3,Soupes et conserves > Soupes > Velouté de légumes,name,y,
+8436042307159,Jugo de coco light,Tiger Khan,Boissons,3,Boissons > Autres boissons > Boisson végétale non précisée,tag,n,eau de coco
+4972842330026,Limonade Ramune,Kimura,Boissons,3,Boissons > Sodas et boissons gazeuses > Limonade,name,y,
+3257980698131,Cola,Cora,Boissons,3,Boissons > Sodas et boissons gazeuses > Cola,name,y,
+0070177084769,Twinings Vanille,Twinings,Boissons,3,"Boissons > Café, thé et infusions > Thé non précisé",tag,y,
+8714242970015,Appelaere Apple Juice Without Added Sugars,De Appelaere,Boissons,3,Boissons > Jus et boissons aux fruits > Jus de pomme,tag,y,
+3174660031913,Extra fin Béghin-Say®,"Béghin Say®,Tereos,Coopérative agricole TEREOS",Aides culinaires et pâtisserie,3,Aides culinaires et pâtisserie > Sucres et édulcorants > Sucre blanc,tag,y,
+3222473039951,Levure de boulangerie,Casino,Aides culinaires et pâtisserie,3,Aides culinaires et pâtisserie > Ingrédients de pâtisserie > Autres ingrédients de pâtisserie,tag,y,
+3256228970497,Café Capsules espresso leggero MAX HAVELAAR - compatible NESPRESSO - x10,U,Aides culinaires et pâtisserie,3,Aides culinaires et pâtisserie > Capsules et dosettes de café > Capsules Tassimo et autres,name,y,
+3350031903106,Cèpes séchés noblesse des saveurs ceuillis à la main,Monoprix,Aides culinaires et pâtisserie,3,Aides culinaires et pâtisserie > Ingrédients culinaires conservés > Champignons séchés,name,y,
+3329757004244,Sugarly,Canderel,Aides culinaires et pâtisserie,3,Aides culinaires et pâtisserie > Sucres et édulcorants > Édulcorant en poudre,tag,y,
+3270160646166,9 mini pizzas jambon fromage,Picard,Produits surgelés,3,Produits surgelés > Pizzas et snacks surgelés > Pizza surgelée fine ou épaisse,tag,y,
+0032134227008,Warheads juniors extreme sour candy,Warheads,Produits surgelés,3,Produits surgelés > Glaces et desserts glacés > Esquimau et barre glacée,name,n,bonbon acidulé
+3270160457427,Huit kidcups,Picard,Produits surgelés,3,Produits surgelés > Glaces et desserts glacés > Bûche et vacherin glacés,tag,n,glace en pot
+20928599,Pizza au chèvre cuite au feu de bois,trattoria Alfredo,Produits surgelés,3,Produits surgelés > Pizzas et snacks surgelés > Pizza surgelée fine ou épaisse,name,y,
+3274664258689,Norvégienne meringue vanille noisettes amandes,Nestlé,Produits surgelés,3,Produits surgelés > Glaces et desserts glacés > Bûche et vacherin glacés,tag,y,
+4250031354207,Cleanbar Cookie Dough,Allstars,Aliments spécialisés,3,Aliments spécialisés > Compléments alimentaires > Vitamines et minéraux,tag,n,barre protéinée
+8594073177377,DELUXE jahodový cheesecake,Nutrend,Aliments spécialisés,3,Aliments spécialisés > Compléments alimentaires > Vitamines et minéraux,tag,n,dessert protéiné
+3492270072004,Phytoceutic Ginseng Rouge Bio,Phytoceutic,Aliments spécialisés,3,Aliments spécialisés > Compléments alimentaires > Vitamines et minéraux,tag,y,
+5410063022317,Complément alimentaire à l'huile de carotte,Céréal,Aliments spécialisés,3,Aliments spécialisés > Compléments alimentaires > Complément alimentaire non précisé,name,y,
+3564700090374,Lait de croissance,"Délisse, Marque Repère",Aliments spécialisés,3,Aliments spécialisés > Alimentation infantile > Lait de croissance,name,y,
+6921555509869,Nouilles instantanées goût crevette,JML,Produits du monde,3,Produits du monde > Produits asiatiques > Nouilles instantanées,name,y,
+3456300004106,Tortillas Paprika,Jardin bio,Produits du monde,3,Produits du monde > Produits latino-américains > Tortillas de blé,name,y,
+8712429361106,Demae Ramen Spicy,demae ramen,Produits du monde,3,Produits du monde > Produits asiatiques > Nouilles instantanées,tag,y,
+2006050056675,Ramen bouillon shoyu et nouilles aux légumes,Asia green garden,Produits du monde,3,Produits du monde > Produits asiatiques > Nouilles instantanées,name,y,
+8414807544049,Salsa cocktail,Consum,Produits du monde,3,Produits du monde > Produits latino-américains > Salsa,name,y,
+5410228263531,Jupiler 355 ml,Jupiler,Boissons alcoolisées,3,Boissons alcoolisées > Bières > Bière blonde,name,y,
+3564700536377,Bourbon whiskey 40° vol.,"Marque Repère, John Davon's",Boissons alcoolisées,3,Boissons alcoolisées > Spiritueux et liqueurs > Whisky,name,y,
+8002230350582,Aperol,Aperol,Boissons alcoolisées,3,Boissons alcoolisées > Apéritifs et vins aromatisés > Apéritif amer et spritz,name,y,
+5410228258698,Leffe,Leffe,Boissons alcoolisées,3,Boissons alcoolisées > Bières > Bière d’abbaye et de spécialité,name,y,
+3760010130636,Sant Erwann Blonde (7%),Britt,Boissons alcoolisées,3,Boissons alcoolisées > Bières > Bière blonde,tag,y,
+4251347601405,True beauty,Natural Mojo,Non alimentaire et hors périmètre,3,"Non alimentaire et hors périmètre > Hygiène et beauté > Soin, cosmétique et hygiène",name,y,
+9780201379679,True barbakiu,,Non alimentaire et hors périmètre,3,Non alimentaire et hors périmètre > Autres produits non alimentaires > Produit non alimentaire non précisé,tag,,
+9556089885201,PVC-Free,,Non alimentaire et hors périmètre,3,Non alimentaire et hors périmètre > Autres produits non alimentaires > Produit non alimentaire non précisé,tag,,
+8008285095126,TEST-YUKA atelier poisson aux herbes,Findus,Non alimentaire et hors périmètre,3,Non alimentaire et hors périmètre > Autres produits non alimentaires > Produit non alimentaire non précisé,name,n,plat cuisiné poisson
+9782701197289,Manuel mathématique,Delta,Non alimentaire et hors périmètre,3,Non alimentaire et hors périmètre > Autres produits non alimentaires > Produit non alimentaire non précisé,tag,y,
+26086125,Pomme de terre - Nouvelle récolte à chair ferme CHERIE,,Fruits et légumes,3,Fruits et légumes > Pommes de terre et tubercules > Pomme de terre nouvelle,alias,y,
+27061480,Pomme De Terre 2 kg,,Fruits et légumes,3,Fruits et légumes > Légumes frais > Pomme de terre,alias,y,
+7036480016746,Pago citron citron vert,Pago,Fruits et légumes,3,Fruits et légumes > Fruits frais > Citron vert,alias,n,boisson aux agrumes
+50412037,Fruit Blend Orange & Passion Fruit,J2O,Fruits et légumes,3,Fruits et légumes > Fruits frais > Fruit de la passion,alias,n,boisson aux fruits
+3288131501673,Assiette  butternut et pomme de terre,Babybio,Fruits et légumes,3,Fruits et légumes > Légumes frais > Pomme de terre,alias,n,petit pot bébé
+4792038411908,Creme De Coco 200G,Renuka,Huiles et matières grasses,3,Huiles et matières grasses > Matières grasses à tartiner et cuisson > Crème de coco,alias,y,
+3323561205118,Beurre moulé demi-sel,Franprix,Huiles et matières grasses,3,Huiles et matières grasses > Matières grasses à tartiner et cuisson > Beurre demi-sel,alias,y,
+3700569023515,"Mix Eclat Graines de Tournesol, Raisins, Noisettes, Ananas - SANS GLUTEN",,"Noix, graines et fruits secs",3,"Noix, graines et fruits secs > Noix et graines > Graines de tournesol",alias,n,mélange de graines
+3456700230389,"Empanadas au saumon fumé, creme et ciboulette",,Poissons et fruits de mer,3,Poissons et fruits de mer > Poissons transformés > Saumon fumé,alias,n,empanadas
+6132092000010,Feuilles de brick,,Produits du monde,3,Produits du monde > Produits moyen-orientaux et méditerranéens > Feuilles de brick,alias,y,
+3760042990215,Feuilles de Brick Rouleaux 3M,Mil brick,Produits du monde,3,Produits du monde > Produits moyen-orientaux et méditerranéens > Feuilles de brick,alias,y,
+5000354164705,Smash Instant Mash Potato 280g,"Batchelors, Smash","Pâtes, riz et céréales",3,"Pâtes, riz et céréales > Pommes de terre transformées > Purée de pomme de terre déshydratée",alias,y,
+0020717270121,Chili Sauce,Koon chun,Sauces et condiments,3,Sauces et condiments > Sauces de cuisine > Sauce chili,alias,y,
+2006050039562,Sardines sauce tomate piquante,,Sauces et condiments,3,Sauces et condiments > Sauces de cuisine > Sauce piquante,alias,n,sardines sauce tomate
+8710605020724,"Chili-sauce, Go Tan",Go-Tan,Sauces et condiments,3,Sauces et condiments > Sauces de cuisine > Sauce chili,alias,y,
+6130760002342,Dialna,Soummam,UNCLASSIFIED,0,,,,
+3266191097640,Dans les bras de Morphée,la vie claire,UNCLASSIFIED,0,,,,
+4260618520994,Freche freunde,Freche Freunde,UNCLASSIFIED,0,,,,
+3800151108290,S’hampion,,UNCLASSIFIED,0,,,,
+6130720000203,Toudja,,UNCLASSIFIED,0,,,,
+2228585022561,Jambon superieur cuit au bouillon,,Viandes et volailles,3,Viandes et volailles > Charcuterie > Jambon supérieur,alias,y,
+3266110068898,Boulettes de bœuf à la sauce marocaine,,Viandes et volailles,3,Viandes et volailles > Bœuf > Boulettes de bœuf,alias,y,
+3598960067821,Mijotée de volaille et sa sauce fine au foie gras et morilles,Valette,Viandes et volailles,3,Viandes et volailles > Volailles > Foie de volaille,alias,n,plat cuisiné volaille
+3661112055431,Boulettes au boeuf à la provençale,"Marque Repère, Férial",Viandes et volailles,3,Viandes et volailles > Bœuf > Boulettes de bœuf,alias,y,
+3181238965907,Haché au boeuf spécial Burger,Charal,Viandes et volailles,3,Viandes et volailles > Bœuf > Bœuf haché,alias,y,

@@ -119,6 +119,8 @@ export const fr = {
     closest: 'Équivalents', closestSub: 'Les produits qui remplacent le mieux le vôtre : même type, même usage.',
     noClosest: 'Aucun équivalent trouvé', byPrefs: 'Classé selon vos préférences : {x}.', budget: 'Par prix', value: 'Valeur', match: 'Qualité', budgetSub: 'Tous les produits comparables, du moins cher au plus cher.', valueSub: 'Classés par note prix-qualité : la note nutritionnelle comparée au prix au kilo, par type de produit.', matchSub: 'Classés par note nutritionnelle, du meilleur au moins bon. Le prix ne compte pas.', empty: 'Aucun produit comparable avec un prix daté dans cette catégorie. Mieux n\'invente pas de prix.', coverage: 'Comparaison fiable seulement si les produits ont une taille de paquet et un prix daté.', saving: 'Économie par paquet', cost10: 'Coût de 10 g de protéines', perEuro: 'par euro' },
   errs: {
+    unavailable: { title: 'Le service redémarre', why: 'Le serveur démarre ou se met à jour. Patientez quelques secondes, puis réessayez.' },
+    invalid: { title: 'Demande non valide', why: 'Ce code ou cette demande n\'est pas valide. Vérifiez le code-barres, puis réessayez.' },
     network: { title: 'Pas de connexion', why: 'Impossible de joindre le serveur. Vérifiez votre connexion internet, puis réessayez.' },
     busy: { title: 'Trop de demandes', why: 'Vous avez fait beaucoup de recherches en peu de temps. Patientez une minute, puis réessayez.' },
     server: { title: 'Le service ne répond pas', why: 'Le serveur rencontre un problème. Ce n\'est pas de votre faute : réessayez dans un instant.' },

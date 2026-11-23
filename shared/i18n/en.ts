@@ -120,6 +120,8 @@ export const en = {
     closest: 'Substitutes', closestSub: 'Products that best replace yours: same type, same use.',
     noClosest: 'No substitute found', byPrefs: 'Ranked by your preferences: {x}.', budget: 'By price', value: 'Value', match: 'Quality', budgetSub: 'All comparable products, cheapest first.', valueSub: 'Ranked by price-quality score: the nutrition score against the price per kilo, within each product type.', matchSub: 'Ranked by nutrition score, best first. Price does not count.', empty: 'No comparable product with dated price in this category. Mieux doesn\'t invent prices.', coverage: 'Reliable comparison only if products have pack size and dated price.', saving: 'Savings per pack', cost10: 'Cost of 10g protein', perEuro: 'per euro' },
   errs: {
+    unavailable: { title: 'The service is restarting', why: 'The server is starting or updating. Wait a few seconds, then try again.' },
+    invalid: { title: 'Invalid request', why: 'This code or request is not valid. Check the barcode, then try again.' },
     network: { title: 'No connection', why: 'Can\'t reach the server. Check your internet, then retry.' },
     busy: { title: 'Too many requests', why: 'You made lots of searches in short time. Wait a minute, then retry.' },
     server: { title: 'Service not responding', why: 'The server is having trouble. It\'s not your fault: try again shortly.' },
