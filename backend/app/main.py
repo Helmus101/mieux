@@ -2097,6 +2097,7 @@ def _index_pool(s: Session, uid: str, orig: Dict[str, Any], body: "AltReq", alle
     return peers, orig_price, prices, points, shops
 
 
+MIN_ALT_QUALITY = 50   # an alternative must score above this on quality to be offered at all
 MIN_SAME_MIEUX_TYPE = 12   # with at least this many same-type candidates, sibling types of the category are not offered
 
 
@@ -2231,6 +2232,9 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     # Strict additive rescoring is the expensive part of preparing a candidate (full score recompute), so it runs
     # only now, on the comparable pool - not on every retrieved product that the filters above will drop anyway.
     peers = [_scored(c, body.strict_additives) for c in peers]
+    # Only alternatives with a good quality score are offered (above 50); an unknown score is unverified, not good.
+    peers = [c for c in peers if isinstance((c.get("score") or {}).get("total"), (int, float)) and c["score"]["total"] > MIN_ALT_QUALITY]
+    stages["quality_above_min"] = len(peers)
 
     # 5. RANK the whole eligible pool. The tabs are cut to their display size at the very end, after the "only if it is
     # really better" rules, so a tab - or a store filter - still has its rows.
