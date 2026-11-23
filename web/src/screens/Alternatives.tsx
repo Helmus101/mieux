@@ -111,8 +111,7 @@ export default function Alternatives() {
       return true;
     });
   };
-  // A store filter that would leave a single row (or none) is not applied: the whole list stays, rather than one lonely product.
-  const ranked = (() => { const f = listOf(rk); return chain && f.length < 2 ? listOf(rk, true) : f; })();
+  const ranked = listOf(rk);
   const shown = ranked.slice(0, showMore ? 10 : 3);
   // Store list on Valeur and Qualité
   const chainOptions = (() => {
@@ -124,12 +123,12 @@ export default function Alternatives() {
     return chainsFor(country).map((c) => c.id).filter((id) => pool.some((e: any) => (e.product.chains ?? []).includes(id)));
   })();
   const none = !!r && !busy && !err && listOf('value', true).length === 0;
-  // A profile with no alternatives at all is hidden (the chosen one stays, so the screen never loses its own tab).
-  const profileOptions = (['budget', 'balanced', 'nutrition'] as const).filter((k) => k === vp || !r || listOf('value', false, k).length > 0).map((k) => ({ key: k, label: t(`alt.profile_${k}`) }));
+  // A profile with no alternatives at all is hidden (the chosen one stays, so the screen never loses its own tab). The store filter never hides a tab: it only narrows the list below.
+  const profileOptions = (['budget', 'balanced', 'nutrition'] as const).filter((k) => k === vp || !r || listOf('value', true, k).length > 0).map((k) => ({ key: k, label: t(`alt.profile_${k}`) }));
   // The chosen profile has nothing but another one does: move to the first that has something.
   useEffect(() => {
-    if (!r || busy || listOf('value', false, vp).length) return;
-    const other = (['budget', 'balanced', 'nutrition'] as const).find((k) => k !== vp && listOf('value', false, k).length > 0);
+    if (!r || busy || listOf('value', true, vp).length) return;
+    const other = (['budget', 'balanced', 'nutrition'] as const).find((k) => k !== vp && listOf('value', true, k).length > 0);
     if (other) setVp(other);
   }, [r, busy, vp]);
   useEffect(() => { setShowMore(false); }, [barcode, vp]);
