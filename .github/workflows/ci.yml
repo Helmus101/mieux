@@ -56,6 +56,13 @@ jobs:
         npx tsc --noEmit
         npx vitest run
         npm run build
+    - name: Accessibility gate (axe on every data-free screen)
+      working-directory: ./web
+      run: |
+        npx playwright install --with-deps chromium
+        npx vite preview --port 4173 --host 127.0.0.1 &
+        npx --yes wait-on http://127.0.0.1:4173 --timeout 60000
+        npm run test:a11y
 
   deploy-backend:
     needs: test
