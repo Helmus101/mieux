@@ -189,6 +189,8 @@ export default function Alternatives() {
         const os = r?.original?.score?.total;
         const m = chain ? { title: t('alt.noChainTitle', { c: chainName(chain) }), why: t('alt.noChainWhy'), action: <Button small onPress={() => setChain(null)}>{t('alt.allChains')}</Button> }
           : r?.already_great ? { title: t('emptyAlt.greatTitle'), why: t('emptyAlt.greatWhy') }
+          : r?.empty_reason === 'low_quality' ? { title: t('emptyAlt.lowQualTitle'), why: t('emptyAlt.lowQualWhy') }
+          : r?.empty_reason === 'no_peers' ? { title: t('emptyAlt.noPeersTitle'), why: t('emptyAlt.noPeersWhy') }
           : nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : { title: t('emptyAlt.valueNoneTitle'), why: t('emptyAlt.valueNoneWhy') };
         void os;
