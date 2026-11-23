@@ -3,7 +3,15 @@
 export interface KV { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem(k: string): void; keys?(): string[] }
 let kv: KV = {
   getItem: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
-  setItem: (k, v) => { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
+  // Storage full (the browser allows ~5 MB and the product/alternatives cache is big): the cache is disposable, the person's
+  // history and settings are not. Drop every cache entry and try again, so what matters is always saved.
+  setItem: (k, v) => {
+    try { localStorage.setItem(k, v); return; } catch { /* full or private mode: make room below */ }
+    try {
+      Object.keys(localStorage).filter((x) => x.startsWith('mx_swr_')).forEach((x) => localStorage.removeItem(x));
+      localStorage.setItem(k, v);
+    } catch { /* still not possible (private mode): the app keeps working for this session */ }
+  },
   removeItem: (k) => { try { localStorage.removeItem(k); } catch { /* ignore */ } },
   keys: () => { try { return Object.keys(localStorage); } catch { return []; } },
 };
