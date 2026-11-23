@@ -749,3 +749,26 @@ p.mut{font-size:14.5px; line-height:1.5}
 .stats-page .stats-row{grid-template-columns:repeat(2,1fr)}
 @media(min-width:640px){.stats-page .stats-row{grid-template-columns:repeat(4,1fr)}}
 .stats-page .stats-card.hi .stats-num{font-size:52px}
+
+/* Alternatives: listing cards in the Airbnb manner (big rounded photo, quiet text, bold price underneath) */
+.agrid{display:grid; grid-template-columns:1fr; gap:28px 20px; margin:18px 0 8px}
+@media(min-width:640px){.agrid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:960px){.agrid{grid-template-columns:repeat(3,1fr)}}
+.acard{cursor:pointer; border-radius:20px; outline-offset:6px; min-width:0}
+.aphoto{position:relative; aspect-ratio:4/3; border-radius:20px; background:var(--card); overflow:hidden; display:flex; align-items:center; justify-content:center}
+.aphoto>img{width:100%; height:100%; object-fit:contain; padding:14px; mix-blend-mode:multiply; transition:transform .5s var(--ease-out)}
+@media(hover:hover){.acard:hover .aphoto>img{transform:scale(1.04)}}
+.acard:active .aphoto>img{transform:scale(.98)}
+.aphoto>.noimg{width:64px; height:64px; border-radius:16px; background:var(--line); border:0}
+.abadge{position:absolute; top:12px; left:12px; padding:6px 12px; border-radius:999px; background:#fff; color:var(--ink); font-size:13px; font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.abadge.g{color:var(--accent)} .abadge.w{color:var(--warn)} .abadge.b{color:var(--bad)}
+.aphoto .flagbtn{position:absolute; top:4px; right:4px; width:44px; height:44px; opacity:1; color:var(--ink); font-size:17px; text-shadow:0 0 6px #fff}
+.atext{padding:12px 2px 0; display:grid; gap:2px}
+.atop{display:flex; justify-content:space-between; align-items:baseline; gap:12px}
+.acard .aname{font-size:15px; font-weight:600; line-height:1.3}
+.acard .aq{flex:none; font-size:14px; color:var(--ink); font-weight:400}
+.acard .abrand{font-size:14px; color:var(--mut); margin:0}
+.acard .aprice{flex-direction:row; align-items:baseline; justify-content:flex-start; gap:10px; margin-top:6px; text-align:left}
+.acard .aprice b{font-size:16px; font-weight:600; text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px}
+.acard .aprice b small{font-size:inherit; font-weight:400; color:var(--ink)}
+.acard .adiff{font-size:14px}
