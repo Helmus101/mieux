@@ -137,6 +137,11 @@ export class MieuxAPI {
     return response.data;
   }
 
+  /** +1 on the single "Get started" total (no user, no device is recorded). Never throws. */
+  async countOnboarding() {
+    try { await this.client.post('/usage/onboarding'); } catch { /* best effort */ }
+  }
+
   async flagCategory(barcode: string, suggested_type?: string) {
     const response = await this.client.post(`/products/${barcode}/category-flag`, { suggested_type: suggested_type ?? null });
     return response.data;
