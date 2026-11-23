@@ -2405,6 +2405,13 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
                 res["rankings"][_k] = []
         res["already_great"] = True
         res["no_recommendation_reason"] = tr(lang, "already_great")
+    if not res["alternatives"] and not res.get("already_great"):
+        # Why the list is empty, so the screen can say so instead of one generic message.
+        _d = res.get("diagnostics") or {}
+        if _d.get("comparable", 0) > 0 and _d.get("quality_above_min") == 0:
+            res["empty_reason"] = "low_quality"
+        elif _d.get("comparable", 0) == 0:
+            res["empty_reason"] = "no_peers"
     res["original_price"] = None if orig_price is None else {"per100_cents": round(orig_price, 1), "pack_cents": round(orig_price * oq["amount"] / 100) if oq else None, "source": points.get(orig["barcode"])}
     if orig_price is None:
         note = tr(lang, "price_note_none")
