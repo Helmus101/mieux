@@ -533,6 +533,14 @@ def usage_visit(request: Request, body: VisitIn, s: Session = Depends(get_db)):
     return {"ok": True}
 
 
+@app.post("/v1/usage/onboarding")
+@limiter.limit("10/minute")
+def usage_onboarding(request: Request, bg: BackgroundTasks):
+    """+1 on the single "Get started" total in Supabase. No body, no user, no device is recorded."""
+    bg.add_task(supabase_sync.push_onboarding)
+    return {"ok": True}
+
+
 @app.get("/v1/usage/stats")
 @limiter.limit("60/minute")
 def usage_stats(request: Request, days: int = 30, s: Session = Depends(get_db)):

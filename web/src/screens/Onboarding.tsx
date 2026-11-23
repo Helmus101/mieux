@@ -2,6 +2,7 @@ import { t, setLocale } from '@shared/i18n';
 import { useProfile } from '@shared/stores';
 import { routes, useNav } from '../nav';
 import { Button, Brand, Segmented } from '../ui';
+import { countOnboarding } from '../usage';
 import { COUNTRIES, type Country } from '@shared/chains';
 
 export default function Onboarding() {
@@ -14,7 +15,7 @@ export default function Onboarding() {
         <Brand size={52} big /><p className="mut" style={{ margin: '6px 0 18px' }}>{t('brand.tagline')}</p><h1 style={{ fontSize: 34 }}>{t('welcome.title')}</h1><ul className="ob-points"><li>{t('welcome.p1')}</li><li>{t('welcome.p2')}</li><li>{t('welcome.p3')}</li></ul>
       </div>
       {COUNTRIES.length > 1 && <Segmented value={p.country ?? 'FR'} onChange={(k) => p.setCountry(k as Country)} options={COUNTRIES.map((c) => ({ key: c, label: t('country.' + c) }))} />}
-      <Button primary onPress={() => { if (!p.priorities.length) p.setPriorities(['value']); p.finish(); go(routes.scan); }}>{t('welcome.start')}</Button>
+      <Button primary onPress={() => { if (!p.priorities.length) p.setPriorities(['value']); p.finish(); countOnboarding(); go(routes.scan); }}>{t('welcome.start')}</Button>
     </div>
   );
 }

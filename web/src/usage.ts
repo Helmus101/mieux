@@ -70,3 +70,11 @@ export function trackVisit(surface: Surface): void {
     }).catch(() => undefined);
   } catch { /* offline or blocked */ }
 }
+
+/** Counts one press of "Get started" (a single total on the server; nothing about the person is sent). Never blocks onboarding. */
+export function countOnboarding(): void {
+  try {
+    if (countingOff()) return;
+    void fetch(`${getApiBase()}/usage/onboarding`, { method: 'POST', keepalive: true }).catch(() => undefined);
+  } catch { /* offline or blocked */ }
+}
