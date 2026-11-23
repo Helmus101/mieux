@@ -27,6 +27,7 @@ export default function DesktopQRBanner() {
       qr.addData(getAppUrl());
       qr.make();
       containerRef.current.innerHTML = qr.createImgTag(5);
+      containerRef.current.querySelector('img')?.setAttribute('alt', '');   // decorative: the sentence above says what the code is for
     } catch (e) {
       console.error('Failed to generate QR code:', e);
     }
@@ -47,7 +48,7 @@ export default function DesktopQRBanner() {
     return (
       <aside className="mobile-web-banner" aria-label={t('home.mobileWebTitle')}>
         <button className="mobile-web-close" onClick={dismiss} aria-label={t('home.mobileWebClose')}>×</button>
-        <h3>{t('home.mobileWebTitle')}</h3>
+        <h3 aria-level={2}>{t('home.mobileWebTitle')}</h3>
         <p>{t('home.mobileWebSub')}</p>
         <p className="mobile-web-steps">{t('home.mobileWebSteps')}</p>
       </aside>
@@ -59,7 +60,7 @@ export default function DesktopQRBanner() {
       <button className="mobile-web-close" onClick={dismiss} aria-label={t('home.mobileClose')}>×</button>
       <div className="qr-content">
         <div className="qr-left">
-          <h3>{t('home.mobileTitle')}</h3>
+          <h3 aria-level={2}>{t('home.mobileTitle')}</h3>
           <p>{t('home.mobileSub')}</p>
         </div>
         <div ref={containerRef} />

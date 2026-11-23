@@ -49,7 +49,7 @@ export default function Scan() {
   };
   const close = () => { haptic('tap'); stop(); go(forCompare ? routes.compare : routes.list); };
   return (
-    <div className="cam">
+    <main className="cam">
       <video ref={video} muted playsInline />
       <div className="cam-mask"><div className="cam-frame" ref={frame} /></div>
       <div className="cam-top">
@@ -62,6 +62,6 @@ export default function Scan() {
         {!on && !starting && <button className="cam-main" onClick={start}>{t('scan.open')}</button>}
         <label className="cam-link">{t('scan.gallery')}<input type="file" accept="image/*" hidden onChange={(e) => fromPhoto(e.target.files?.[0])} /></label>
       </div>
-    </div>
+    </main>
   );
 }

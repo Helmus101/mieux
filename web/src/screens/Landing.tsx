@@ -19,7 +19,7 @@ const VERSUS = ['vs1', 'vs2', 'vs3', 'vs4'] as const;
 function Qr({ url }: { url: string }) {
   const q = qrcode(0, 'M');
   q.addData(url); q.make();
-  return <div className="lp-qr" aria-label={url} dangerouslySetInnerHTML={{ __html: q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }) }} />;
+  return <div className="lp-qr" role="img" aria-label={url} dangerouslySetInnerHTML={{ __html: q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }) }} />;
 }
 
 /** Price difference against the scanned product, per kilo: the one number a shopper wants to see first. */
