@@ -2387,11 +2387,12 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         a["price_source"] = _with_confidence(points.get(a["product"]["barcode"]))
         a["stores"] = shops.get(a["product"]["barcode"], [])
     oq = orig.get("quantity")
-    # Nothing is offered only when the product is above 90 on BOTH value (budget) and quality (nutrition); one high score alone
-    # still leaves a list worth showing. The web app applies the same rule.
-    _sc = (res.get("rankings") or {}).get("original_value_scores") or {}
-    _two = [_sc.get("budget"), _sc.get("nutrition")]
-    ovs_ = min(_two) if all(isinstance(v, (int, float)) for v in _two) else None
+    # Nothing is offered only when the product is above 90 on BOTH numbers the shopper sees on its page: the price-quality
+    # "Valeur" (value_index) and the quality score. One high number alone still leaves a list worth showing; a missing one
+    # (no price, no score) never counts as high.
+    _vi = value_index.value_index(taxonomy.classify(orig).get("type"), (orig.get("score") or {}).get("total"), orig_price) if orig_price else None
+    _q = (orig.get("score") or {}).get("total")
+    ovs_ = min(_vi["value_score"], _q) if (_vi and isinstance(_q, (int, float))) else None
     if ovs_ is not None and ovs_ > engine.GREAT_ALREADY:
         # The scanned product already scores above 90 for this shopper's profile: no alternative beats that by enough to be worth showing.
         res["alternatives"] = []

@@ -87,9 +87,6 @@ export default function Alternatives() {
     // match list still has real alternatives: show those rather than claiming there is nothing.
     const fallback = !rows.length && k === 'value';
     if (fallback) rows = ((r?.rankings?.match ?? r?.alternatives ?? []) as any[]);
-    // The scanned product already scores above 90 on value for this profile: nothing is worth suggesting instead.
-    const sc = r?.rankings?.original_value_scores;
-    if (typeof sc?.budget === 'number' && sc.budget > 90 && typeof sc?.nutrition === 'number' && sc.nutrition > 90) return [];   // great on value AND quality: nothing to suggest
     const per = new Map<string, any>(((r?.rankings?.profiles?.[vp] ?? []) as any[]).map((x) => [x.code, x]));
     // On the Nutrition profile an alternative is only worth showing if its quality score beats the scanned product's.
     const oq = r?.original?.score?.total;
@@ -114,7 +111,8 @@ export default function Alternatives() {
       return true;
     });
   };
-  const ranked = listOf(rk);
+  // A store filter that would leave a single row (or none) is not applied: the whole list stays, rather than one lonely product.
+  const ranked = (() => { const f = listOf(rk); return chain && f.length < 2 ? listOf(rk, true) : f; })();
   const shown = ranked.slice(0, showMore ? 10 : 3);
   // Store list on Valeur and Qualité
   const chainOptions = (() => {
@@ -191,7 +189,7 @@ export default function Alternatives() {
       {r && !busy && !none && !shown.length && (() => {
         const os = r?.original?.score?.total;
         const m = chain ? { title: t('alt.noChainTitle', { c: chainName(chain) }), why: t('alt.noChainWhy'), action: <Button small onPress={() => setChain(null)}>{t('alt.allChains')}</Button> }
-          : Math.min(r?.rankings?.original_value_scores?.budget ?? 0, r?.rankings?.original_value_scores?.nutrition ?? 0) > 90 ? { title: t('emptyAlt.greatTitle'), why: t('emptyAlt.greatWhy') }
+          : r?.already_great ? { title: t('emptyAlt.greatTitle'), why: t('emptyAlt.greatWhy') }
           : nothingNear ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: radius }), action: <Button small onPress={() => go(routes.profile)}>{t('emptyAlt.nearAction')}</Button> }
           : { title: t('emptyAlt.valueNoneTitle'), why: t('emptyAlt.valueNoneWhy') };
         void os;
