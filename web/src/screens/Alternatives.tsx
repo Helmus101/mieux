@@ -214,7 +214,7 @@ export default function Alternatives() {
             <div className="atext">
               <div className="atop">
                 <div className="aname">{e.product.name}</div>
-                {e.q != null && <span className="aq" title={t('alt.qualityTip')}>★ {Math.max(0, Math.min(100, Math.round(e.q)))}</span>}
+                {e.q != null && <span className="aq" title={t('alt.qualityTip')}>{t('alt.quality')} {Math.max(0, Math.min(100, Math.round(e.q)))}</span>}
               </div>
               <div className="abrand" title={cs.map(chainName).join(', ')}>{[e.product.brand, at].filter(Boolean).join(' · ')}</div>
               <div className="aprice">
@@ -225,7 +225,7 @@ export default function Alternatives() {
             </div>
           </article>);
       })}</div>}
-      {r && !busy && !showMore && ranked.length > 3 && <Button small plain onPress={() => { haptic('tap'); setShowMore(true); }}>{t('alt.showMore')}</Button>}
+      {r && !busy && !showMore && ranked.length > 3 && <Button small onPress={() => { haptic('tap'); setShowMore(true); }}>{t('alt.showMore')}</Button>}
       <Toast text={note} />
     </Screen>
   );
