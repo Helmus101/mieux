@@ -612,7 +612,7 @@ Chocolat de couverture	\bcouverture\b	couverture chocolates	-
 Chewing-gum sans sucre	\b(chewing ?gum|gum|hollywood|freedent|airwaves|trident|extra gum|orbit|malabar|carefree)\b	chewing gums|chewing-gums|gums|sugar free chewing gums	-
 Pastilles pour la gorge au miel	\b(pastilles?|bonbons?)\b.{0,14}\bgorge\b.{0,14}\bmiel\b|\bmiel\b.{0,14}\bpastilles?\b.{0,8}\bgorge\b	-	-
 Pastilles pour la gorge au menthol	\b(pastilles?|bonbons?)\b.{0,12}\b(gorge)\b.{0,12}\b(menthol|eucalyptus)\b|\b(menthol|eucalyptus)\b.{0,12}\b(pastilles?)\b.{0,10}\bgorge\b	-	-
-Pastilles pour la gorge	\b(pastilles?|bonbons?)\b.{0,12}\b(gorge|menthol|eucalyptus|toux|propolis|miel citron)\b|\b(ricola|halls|vicks|lutti gorge|fisherman|strepsils|dropsa|pulmoll|grether|juvamine|nin|carefree gorge)\b	throat lozenges|cough drops|throat sweets	-
+Pastilles pour la gorge	\b(pastilles?|bonbons?)\b.{0,12}\b(gorge|menthol|eucalyptus|toux|propolis|miel citron)\b|\b(throat|cough) (drops?|lozenges?|sweets?)\b|\bcough suppressant\b|\b(ricola|halls|vicks|lutti gorge|fisherman|strepsils|dropsa|pulmoll|grether|carefree gorge)\b	throat lozenges|cough drops|throat sweets	-
 Bonbons à la menthe	\b(menthe|mint|mints|polo|tic ?tac|smint|mentos|pastilles? (a la )?menthe|bonbons? (a la )?menthe|extra strong|altoids|vichy pastilles|pastilles de vichy|boules de gomme|trebor)\b	mints|mint candies|breath mints|menthe candies|peppermint	-
 Réglisse	\b(reglisse|licorice|liquorice|lakritz|haribo (reglisse|lakritz)|carensac|zan|lakrids|dropjes|salmiak|dropjes)\b|\bbatonnets? de reglisse\b|\bsucre de reglisse\b|\bcarambar.{0,0}	licorices|liquorices|licorice candies	-
 Guimauves	\b(guimauves?|marshmallows?|chamallows?|chamallow|oursons? guimauve|schaumzucker|mallows)\b	marshmallows|guimauves	-

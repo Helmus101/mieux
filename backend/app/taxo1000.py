@@ -60,6 +60,9 @@ def _load() -> Dict[str, Any]:
     return {"index": index, "types": types}
 
 
+_LOZENGE_BRANDS = ('ricola', 'fisherman', 'strepsils', 'pulmoll', 'grether')
+
+
 def classify(name: Optional[str], generic_name: Optional[str] = None, brand: Optional[str] = None, categories: Optional[List[str]] = None) -> Dict[str, Any]:
     """Placement of one product in the Mieux taxonomy: department > category > product type.
 
@@ -69,6 +72,12 @@ def classify(name: Optional[str], generic_name: Optional[str] = None, brand: Opt
     rather than forced into a wrong box. Returns type id, all matching type ids, substitution groups, category and department ids."""
     from . import taxorules
     hit = taxorules.match(name, generic_name, categories)
+    # A few brands make one kind of product only (throat lozenges): when the name alone does not already say so ("Bonbons aux plantes"),
+    # the brand decides. A name that already finds a lozenge type (honey, menthol) keeps that more exact type.
+    if any(b in (brand or '').lower() for b in _LOZENGE_BRANDS):
+        nodes = taxorules.load()["nodes"]
+        if not (hit and hit.get("type") and str((nodes.get(hit["type"]) or {}).get("name_fr", "")).startswith("Pastilles pour la gorge")):
+            hit = taxorules.match(f"{brand} {name}", generic_name, categories) or hit
     idx = _load()
     if hit:
         t = idx["types"].get(hit["type"]) if hit["type"] else None

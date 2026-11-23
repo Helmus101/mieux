@@ -839,3 +839,18 @@ h1,.large-title{font-weight:800; letter-spacing:-.03em; line-height:.98}
 .listrow .listprice{font-family:var(--display); font-stretch:76%; font-variation-settings:"wdth" 76; font-weight:800; font-size:22px; letter-spacing:-.02em; line-height:1; white-space:nowrap; display:flex; align-items:baseline; gap:2px}
 .listrow .listprice i{font-family:var(--font-body,inherit); font-stretch:100%; font-variation-settings:normal; font-size:12px; font-style:normal; font-weight:600; color:var(--mut); letter-spacing:0}
 .listrow .grow .listprice{margin-top:4px; font-size:24px}
+
+/* Phones: an alternative is a compact row (88px photo on the left), so three fit on one screen; wider screens keep the photo grid */
+@media (max-width:639px){
+  .agrid{gap:10px; margin-top:12px}
+  .acard{position:relative; display:flex; flex-direction:row; align-items:flex-start; gap:14px; padding:12px; background:var(--surface); border-radius:20px}
+  .acard .aphoto{position:static; flex:none; width:88px; height:88px; aspect-ratio:auto; border-radius:14px}
+  .acard .aphoto>img{padding:6px}
+  .acard .abadge{top:calc(12px + 88px - 28px); left:18px; padding:3px 8px; font-size:11px; box-shadow:0 1px 2px rgba(0,0,0,.16)}
+  .acard .aphoto .flagbtn{top:2px; right:2px; width:44px; height:44px}
+  .acard .atext{padding:0; flex:1; min-width:0}
+  .acard .atop{padding-right:36px; flex-direction:column; gap:2px; align-items:flex-start}
+  .acard .aq{font-size:13px; color:var(--mut)}
+  .acard .aname{font-size:16px}
+  .acard .aprice{padding-top:4px}
+}
