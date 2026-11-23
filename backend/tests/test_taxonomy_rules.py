@@ -93,3 +93,13 @@ def test_mieux_gate_does_not_apply_to_an_unplaced_product(monkeypatch):
     from app import main
     monkeypatch.setattr(main.app.state, "off", _FakeOff({"a": {"type": "P1", "category": "C_x", "department": "D_x", "level": 3, "source": "name"}}), raising=False)
     assert main._mieux_gate({"name": "Qwerty Zxcv", "brand": "", "categories": []}, [_cand("a")]) is None
+
+
+def test_throat_lozenge_brands_decide_when_the_name_is_vague_and_vitamin_brands_do_not():
+    from app import taxo1000
+    name = lambda n, b=None: ((taxo1000.classify(n, None, b, None).get("primary") or {}).get("name"))
+    assert name("Bonbons aux plantes", "Ricola") == "Pastilles pour la gorge"              # the brand decides
+    assert name("mountain herb Cough suppressant throat drops") == "Pastilles pour la gorge"   # English wording
+    assert name("Pastilles gorge miel", "Ricola") == "Pastilles pour la gorge au miel"      # a name that already says more keeps it
+    assert name("Bonbons aux plantes") == "Bonbons durs"                                    # no brand: an ordinary candy
+    assert name("Juvamine Phyto - Radis Noir", "Juvamine") != "Pastilles pour la gorge"     # a supplement brand is not a lozenge
