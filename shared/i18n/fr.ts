@@ -177,7 +177,7 @@ export const fr = {
     vs2t: 'Des alternatives qui tiennent compte du prix', vs2n: 'Une seule note', vs2d: 'Moins cher, meilleure qualité ou meilleur rapport : chaque alternative montre ce que vous économisez.',
     vs3t: 'Allergènes = exclusions', vs3n: 'Pas de profil allergènes', vs3d: 'Un allergène déclaré élimine le produit.',
     vs4t: 'Prix sourcés', vs4n: 'Rien à sourcer', vs4d: 'Prix Open Prices et ceux de vos tickets, jamais inventés.',
-    vsNote: 'Comparaison limitée à ces quatre points.',
+    vsNote: 'Comparaison limitée à ces trois points.',
     eyebrow: 'Qualité ET prix, au même endroit', openFree: 'Ouvrir Mieux · gratuit', ctaNote: 'Sans installation. Un compte gratuit : vos données restent sur votre téléphone.',
     ex: { qualityPriced: 'Meilleure qualité avec prix', noPrice: 'prix non relevé', real: 'Exemple réel, relevé le {d}.', label: 'Exemple', scanned: 'Vous scannez', name: 'Pâte à tartiner noisette', price: '3,49 €', unit: 'les 400 g', cheap: 'Le moins cher', cheapName: 'Pâte à tartiner cacao', cheapNote: '−1,80 €', quality: 'Meilleure qualité', qualityName: 'Purée de noisettes 100 %', qualityNote: 'sans additif', value: 'Meilleur rapport', valueName: 'Pâte à tartiner bio, sans huile de palme', valueNote: 'qualité/prix' },
     uvpTitle: 'Trois alternatives, trois façons de choisir', uvpSub: 'Une note ne dit pas quoi acheter. Mieux compare aussi les prix.',
