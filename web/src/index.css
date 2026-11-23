@@ -786,3 +786,33 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .acard .atext{display:flex; flex-direction:column; flex:1; gap:2px}
 .acard .aprice{margin-top:auto; padding-top:6px}
 input[type=text],input[type=search],input[type=email],input:not([type]),textarea{min-height:44px}
+
+
+/* ===== Top-design pass: one display voice, a score you can feel, a choreographed arrival ===== */
+:root{--display:"Archivo",-apple-system,"SF Pro Display",system-ui,sans-serif}
+/* The landing's condensed Archivo becomes the app's display voice: titles, scores, prices. Body stays on the system face. */
+h1,.large-title,.pname h1,.twoscores .stile,.pprice b,.abadge,.acard .aprice b,.ob h1,.altcta b{font-family:var(--display); font-stretch:76%; font-variation-settings:"wdth" 76}
+h1,.large-title{font-weight:800; letter-spacing:-.03em; line-height:.98}
+.pname h1{font-size:clamp(32px,9.4vw,44px); line-height:.96; font-weight:800; letter-spacing:-.03em; text-wrap:balance}
+.pid{align-items:flex-end; gap:16px}
+.pid img{width:112px; height:112px; border-radius:20px}
+.pbrand{font-size:13px; font-weight:600; letter-spacing:.06em; text-transform:uppercase}
+.pprice b{font-size:28px; font-weight:800; letter-spacing:-.02em}
+/* the two scores: 96px against 13px captions */
+.twoscores .stile{font-size:clamp(76px,24vw,104px); font-weight:800; letter-spacing:-.04em; line-height:.86; align-items:baseline; gap:4px}
+.twoscores .stile small{font-family:var(--font-body,inherit); font-stretch:100%; font-variation-settings:normal; font-size:14px; font-weight:600; letter-spacing:0; margin-top:0}
+.twoscores{padding:22px 4px 20px; border-radius:20px}
+.twoscores .scorecap{letter-spacing:.1em}
+.acard .aprice b{font-weight:800; font-size:20px; letter-spacing:-.01em}
+.abadge{font-weight:800; letter-spacing:.01em}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+/* arrival: structure first, then the figures, then the details; transform and opacity only */
+@keyframes rise{from{opacity:0; transform:translate3d(0,14px,0)}}
+@media (prefers-reduced-motion:no-preference){
+  .phead{animation:rise .6s var(--ease-out) both}
+  .twoscores{animation:rise .7s var(--ease-out) .12s both}
+  .twoscores+.fl,.twoscores~.fl{animation:rise .6s var(--ease-out) .26s both}
+  .altcta{animation:rise .6s var(--ease-out) .36s both}
+  .agrid>.acard{animation:rise .6s var(--ease-out) both}
+  .agrid>.acard:nth-child(2){animation-delay:.07s}.agrid>.acard:nth-child(3){animation-delay:.14s}.agrid>.acard:nth-child(n+4){animation-delay:.2s}
+}

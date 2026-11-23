@@ -22,7 +22,7 @@ Quiet, Apple-adjacent utility: neutral surfaces, one deep green accent, large ti
 Score tones: g, g2, y, w, b map to accent, olive, clay, warn, bad. The app is light mode only (no dark theme).
 
 ## Typography
-System stack (SF Pro / Segoe / Roboto), tabular numerals. Landing H1 `clamp(44px, 6vw, 68px)` desktop, `clamp(36px, 10.4vw, 44px)` phone, weight 700, tracking -.045em; H2 `clamp(30px, 5.4vw, 56px)`; body 17px; small print 12-13px. App h2 16px/600, h3 17px/600.
+Two voices. Display: Archivo at 76% width, weight 800, tracking -.03 to -.04em, for titles, scores and prices (the landing's face, loaded without blocking first paint). Body: system stack (SF Pro / Segoe / Roboto), tabular numerals. Scores are set at 76-104px against 13px captions. Landing H1 `clamp(44px, 6vw, 68px)` desktop, `clamp(36px, 10.4vw, 44px)` phone, weight 700, tracking -.045em; H2 `clamp(30px, 5.4vw, 56px)`; body 17px; small print 12-13px. App h2 16px/600, h3 17px/600.
 
 ## Shape and space
 Radius 8 / 12 (app), 14-28 (landing cards), pills 999px for buttons. Landing page gutter `max(clamp(20px,5vw,40px), (100% - 1040px)/2)`; sections 64-128px vertical.
@@ -35,6 +35,7 @@ Radius 8 / 12 (app), 14-28 (landing cards), pills 999px for buttons. Landing pag
 - Inputs: tinted fill, 12px radius, 3px tint focus ring; focus-visible 2px outline.
 
 ## Motion
+Arrival is choreographed on the product and alternatives screens: header, then scores (which count up over 900ms, quart ease-out, the second 140ms after the first), then details, then the call to action, each a 14px rise on transform and opacity only. Cards on the alternatives screen stagger by 70ms. All of it is off under `prefers-reduced-motion` (figures show their final value at once).
 Hero entrance only (12px rise, .5s, ease `cubic-bezier(.32,.72,0,1)`); landing sections fade in on scroll. Nothing loops. All motion off under `prefers-reduced-motion`; blur off under `prefers-reduced-transparency`.
 
 ## Rules
