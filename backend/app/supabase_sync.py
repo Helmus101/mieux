@@ -23,6 +23,17 @@ cannot update rows, so it calls a function that only adds 1:
     grant execute on function increment_scans() to anon;
     -- the total:  select total from scan_total;
 
+Onboarding total: the same kind of single row, +1 each time someone presses "Get started" (no user, no device):
+
+    create table if not exists onboarding_total (id int primary key default 1 check (id = 1), total bigint not null default 0, updated_at timestamptz default now());
+    insert into onboarding_total (id, total) values (1, 0) on conflict (id) do nothing;
+    alter table onboarding_total enable row level security;
+    create or replace function increment_onboarding() returns void language sql security definer set search_path = public
+      as $$ update onboarding_total set total = total + 1, updated_at = now() where id = 1 $$;
+    revoke all on function increment_onboarding() from public;
+    grant execute on function increment_onboarding() to anon;
+    -- the total:  select total from onboarding_total;
+
 Deleting an address in Supabase is then done from the dashboard (the publishable key is not allowed to delete).
 """
 import json
@@ -98,4 +109,16 @@ def push_scan(transport=None) -> bool:
         return True
     except Exception as e:  # noqa: BLE001 - best effort, never slows or breaks a scan
         log.warning("supabase scan count failed: %s", type(e).__name__)
+        return False
+
+
+def push_onboarding(transport=None) -> bool:
+    """Adds 1 to the single "Get started" total in Supabase. Nothing about the person is sent."""
+    if not enabled():
+        return False
+    try:
+        _call("POST", "rpc/increment_onboarding", {}, prefer="return=minimal", transport=transport)
+        return True
+    except Exception as e:  # noqa: BLE001 - best effort, never breaks onboarding
+        log.warning("supabase onboarding count failed: %s", type(e).__name__)
         return False
