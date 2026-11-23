@@ -128,7 +128,7 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
   const sItem = sheet ? ((p.score?.additives?.items ?? []) as any[]).find((x) => x.code === sheet) : null;
   return (
     <Screen>
-      <NavBar onBack={back} title={p.name} right={<SaveButton product={p} />} />
+      <NavBar onBack={back} title={p.name} right={<SaveButton product={head.kind !== 'none' && head.perKgCents ? { ...p, savedPrice: { perKgCents: head.perKgCents, liquid: isLiquid(p), estimate: head.kind === 'estimate' } } : p} />} />
       {offline && <Pill tone="w">{t('history.offline')}</Pill>}
       {p.soldInFrance !== true && <Card><Pill tone="w">{p.soldInFrance === false ? t(country === 'US' ? 'simple.notUs' : 'simple.notFr') : t(country === 'US' ? 'simple.usUnknown' : 'simple.frUnknown')}</Pill></Card>}
 

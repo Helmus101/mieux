@@ -834,3 +834,8 @@ h1,.large-title{font-weight:800; letter-spacing:-.03em; line-height:.98}
 .cmp-price.none{min-height:30px; justify-content:flex-end}
 .cmp-tag{font-size:11px; letter-spacing:.02em; padding:3px 8px}
 .cmp-price.none{font-size:14px; line-height:1.15}
+
+/* Saved products: the price per kilo they were saved at, as the figure to look at */
+.listrow .listprice{font-family:var(--display); font-stretch:76%; font-variation-settings:"wdth" 76; font-weight:800; font-size:22px; letter-spacing:-.02em; line-height:1; white-space:nowrap; display:flex; align-items:baseline; gap:2px}
+.listrow .listprice i{font-family:var(--font-body,inherit); font-stretch:100%; font-variation-settings:normal; font-size:12px; font-style:normal; font-weight:600; color:var(--mut); letter-spacing:0}
+.listrow .grow .listprice{margin-top:4px; font-size:24px}
