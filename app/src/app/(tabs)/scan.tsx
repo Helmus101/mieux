@@ -14,11 +14,9 @@ const TYPES = ['ean13', 'ean8', 'upc_a', 'upc_e'] as const;
 /** UPC-E / short codes are left as read; 12-digit UPC-A is what the backend expects for US products. */
 const clean = (c: string) => c.replace(/\D/g, '');
 
-/** Live barcode scanner. Opened from Compare (?compare=1) it adds the product there instead of opening it. */
+/** Live barcode scanner. */
 export default function Scan() {
   const r = useRouter();
-  const forCompare = useLocalSearchParams<{ compare?: string }>().compare === '1';
-  const addCompare = useProfile((s) => s.addCompare);
   const [perm, ask] = useCameraPermissions();
   const [peek, setPeek] = useState<string | null>(null), [active, setActive] = useState(false), [torch, setTorch] = useState(false), [err, setErr] = useState('');
   const last = useRef({ code: '', at: 0 });
@@ -29,8 +27,7 @@ export default function Scan() {
 
   const open = (code: string) => {
     haptic('heavy');
-    if (forCompare) { api.getProduct(code).catch(() => undefined); api.getWebPriceQuick(code).catch(() => undefined); addCompare(code); r.replace('/compare'); }
-    else setPeek(code);   // the camera keeps running; the card shows the product, as on the web
+    setPeek(code);   // the camera keeps running; the card shows the product, as on the web
   };
   const onScan = ({ data }: { data: string }) => {
     if (locked.current) return;
@@ -46,7 +43,7 @@ export default function Scan() {
     if (res.canceled || !res.assets[0]) return;
     const found = await Camera.scanFromURLAsync(res.assets[0].uri, [...TYPES]).catch(() => []);
     const code = found.map((f) => clean(f.data)).find(validBarcode);
-    if (code) { if (forCompare) open(code); else { api.getWebPriceQuick(code).catch(() => undefined); haptic('heavy'); r.push(`/product/${code}`); } } else { haptic('error'); setErr(t('scan.noCode')); }
+    if (code) { api.getWebPriceQuick(code).catch(() => undefined); haptic('heavy'); r.push(`/product/${code}`); } else { haptic('error'); setErr(t('scan.noCode')); }
   };
 
   if (!perm) return <View style={s.fill} />;
@@ -63,12 +60,12 @@ export default function Scan() {
       {active && <CameraView style={StyleSheet.absoluteFill} facing="back" enableTorch={torch} barcodeScannerSettings={{ barcodeTypes: [...TYPES] }} onBarcodeScanned={onScan} />}
       <View style={s.mask} pointerEvents="none"><View style={s.frame} /></View>
       <View style={s.top}>
-        {forCompare ? <Pressable style={s.btn} onPress={() => r.back()} accessibilityLabel={t('common.back')}><Text style={s.btnTxt}>✕</Text></Pressable> : <View />}
+        <View />
         <Pressable style={[s.btn, torch && { backgroundColor: '#fff' }]} onPress={() => { haptic(); setTorch(!torch); }} accessibilityLabel={t('scan.torch')}><Text style={[s.btnTxt, torch && { color: '#000' }]}>⚡︎</Text></Pressable>
       </View>
-      {peek && !forCompare && <ScanPeek code={peek} onClose={() => { locked.current = false; setPeek(null); }} onExpandedChange={(v) => { locked.current = v; }} />}
+      {peek && <ScanPeek code={peek} onClose={() => { locked.current = false; setPeek(null); }} onExpandedChange={(v) => { locked.current = v; }} />}
       <View style={s.bottom}>
-        <Text style={s.msg}>{err || (forCompare ? t('compare.scanForCompare') : t('scan.point'))}</Text>
+        <Text style={s.msg}>{err || t('scan.point')}</Text>
         <Pressable onPress={fromPhoto}><Text style={s.link}>{t('scan.gallery')}</Text></Pressable>
       </View>
     </View>

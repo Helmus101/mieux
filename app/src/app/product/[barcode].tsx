@@ -63,7 +63,6 @@ export default function ProductRoute() {
 export function ProductView({ barcode }: { barcode?: string }) {
   const r = useRouter(), c = useTheme();
   const estimates = useProfile((s) => s.estimates), country = useProfile((s) => s.country);
-  const addCompare = useProfile((s) => s.addCompare), removeCompare = useProfile((s) => s.removeCompare);
   const hist = useHistory();
   const [d, setD] = useState<any>(() => (barcode ? readCache(prodKey(barcode, estimates), PRODUCT_CACHE_MS) : null));
   const [err, setErr] = useState<Err | null>(null), [attempt, setAttempt] = useState(0), [sheet, setSheet] = useState<string | null>(null);
@@ -107,7 +106,6 @@ export function ProductView({ barcode }: { barcode?: string }) {
     }
     return () => { live = false; if (giveUp) clearTimeout(giveUp); };
   }, [barcode, d?.product?.id, headKind]);
-  const inCompare = useProfile((s) => !!d?.product && s.compare.includes(d.product.id));
 
   if (err) return (
     <Screen>
@@ -256,8 +254,6 @@ export function ProductView({ barcode }: { barcode?: string }) {
         <Pressable onPress={() => Linking.openURL(`https://world.openfoodfacts.org/product/${p.id}`)}><Body style={{ color: c.accent, marginTop: 8 }}>{t('product.correct')}</Body></Pressable>
       </Collapsible>
       </Group>
-
-      <Button onPress={() => { if (inCompare) removeCompare(p.id); else { addCompare(p.id); r.push('/compare'); } }}>{inCompare ? t('compare.remove') : t('product.compare')}</Button>
       <View style={{ alignItems: 'center', gap: 2, marginTop: 8 }}><Brand size={18} /><Muted small>{t('brand.tagline')}</Muted></View>
 
       <Sheet open={!!sheet} onClose={() => setSheet(null)} title={sheet ? sheet.toUpperCase() + (info ? ' · ' + info.name : sItem?.name ? ' · ' + sItem.name : '') : ''}>

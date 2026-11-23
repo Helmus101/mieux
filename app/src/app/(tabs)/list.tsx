@@ -7,12 +7,11 @@ import { useHistory, useProfile } from '@shared/stores';
 import { DisplayText, Body, Button, Cell, Confirm, Group, LargeTitle, Muted, Screen } from '@/components/ui';
 import { useTheme } from '@/lib/theme';
 
-/** Saved products, plus the compare and history tools. */
+/** Saved products, plus the history tool. */
 export default function List() {
   const r = useRouter(), c = useTheme();
   useProfile((s) => s.language);
   const saved = useHistory((s) => s.saved), remove = useHistory((s) => s.removeSaved), clearSaved = useHistory((s) => s.clearSaved);
-  const queued = useProfile((s) => s.compare.length);
   const [ask, setAsk] = useState(false);
   return (
     <Screen title={t('tabs.list')} bottom={110}>
@@ -30,7 +29,6 @@ export default function List() {
         <Confirm open={ask} onClose={() => setAsk(false)} onConfirm={clearSaved} title={t('list.clear')} action={t('common.delete')}>{t('list.clearConfirm')}</Confirm>
       </> : <View style={{ gap: 12, paddingVertical: 24 }}><Muted>{t('list.empty')}</Muted><Button primary onPress={() => r.push('/scan')}>{t('tabs.scan')}</Button></View>}
       <Group>
-        <Cell chevron onPress={() => r.push('/compare')}><View><Body bold>{t('list.compareTool')}</Body>{queued > 0 && <Muted small>{t('list.compareQueued', { n: queued })}</Muted>}</View></Cell>
         <Cell chevron onPress={() => r.push('/history')}><Body bold>{t('list.historyTool')}</Body></Cell>
       </Group>
     </Screen>
