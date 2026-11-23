@@ -52,12 +52,12 @@ export default function Profile() {
         <Group>
           <Cell onPress={exp} chevron>{t('profile.export')}</Cell>
           <Cell onPress={() => setAskErase(true)}><span style={{ color: 'var(--bad)' }}>{t('profile.erase')}</span></Cell>
-          <Cell onPress={() => { setCounting(countingOff()); location.reload(); }}>{countingOff() ? 'Autoriser le comptage anonyme des visites' : 'Ne pas me compter dans les visites'}</Cell>
-          <Cell onPress={() => setNews((v) => !v)} chevron>{newsState() ? 'Nouveautés par e-mail : inscrit ✓' : 'Recevoir les nouveautés de Mieux'}</Cell>
-          <Cell onPress={() => { location.href = '/confidentialite'; }} chevron>Confidentialité</Cell>
-          <Cell onPress={() => { location.href = '/cgu'; }} chevron>Conditions d'utilisation</Cell>
-          <Cell onPress={() => { location.href = '/mentions-legales'; }} chevron>Mentions légales</Cell>
-          <Cell><span style={{ fontSize: 12, opacity: 0.7 }}>© {new Date().getFullYear()} Mieux. Tous droits réservés.</span></Cell>
+          <Cell onPress={() => { setCounting(countingOff()); location.reload(); }}>{t(countingOff() ? 'profile.countOn' : 'profile.countOff')}</Cell>
+          <Cell onPress={() => setNews((v) => !v)} chevron>{t(newsState() ? 'profile.newsOn' : 'profile.newsOff')}</Cell>
+          <Cell onPress={() => { location.href = '/confidentialite'; }} chevron>{t('profile.privacy')}</Cell>
+          <Cell onPress={() => { location.href = '/cgu'; }} chevron>{t('profile.terms')}</Cell>
+          <Cell onPress={() => { location.href = '/mentions-legales'; }} chevron>{t('profile.legal')}</Cell>
+          <Cell><span style={{ fontSize: 12, opacity: 0.7 }}>{t('profile.rights', { y: new Date().getFullYear() })}</span></Cell>
         </Group>
       </Section>
       {news && <NewsModal onClose={() => setNews(false)} />}

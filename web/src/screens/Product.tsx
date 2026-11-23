@@ -171,7 +171,6 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
         </>) : <Muted>{t('score.na')}</Muted>}
       </section>
       {!noAlts && <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>}
-      <p className="mut sm" style={{ textAlign: 'center', margin: '10px 0 0' }}><a href="#" onClick={(e) => { e.preventDefault(); haptic('tap'); api.flagCategory(p.id).then(() => toast(t('flagcat.thanks'))).catch(() => undefined); }}>{t('flagcat.btn')}</a></p>
 
       {p.score && (() => {
         const s = p.score, dims = ((s.dimensions ?? []) as any[]).filter((d) => d.relevant !== false && d.key !== 'micro' && !d.missing && d.score != null);
@@ -243,6 +242,7 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
         <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('product.correct')}</a>
       </Collapsible>
       <Button plain onPress={() => { if (inCompare) { removeCompare(p.id); } else { addCompare(p.id); go(routes.compare); } }}>{inCompare ? t('compare.remove') : t('product.compare')}</Button>
+      <p className="mut sm" style={{ textAlign: 'center', margin: '4px 0 0' }}><a href="#" onClick={(e) => { e.preventDefault(); haptic('tap'); api.flagCategory(p.id).then(() => toast(t('flagcat.thanks'))).catch(() => undefined); }}>{t('flagcat.btn')}</a></p>
 
       <p className="brandsign"><Brand size={18} /><span>{t('brand.tagline')}</span></p>
 

@@ -591,12 +591,12 @@ h3{font-size:20px; font-weight:600; letter-spacing:.38px}
 .btn.primary,.btn.pri{background:var(--accent); color:var(--accent-ink)}
 .btn:active{transform:none; opacity:.55; transition:opacity 0s}   /* iOS buttons dim on touch instead of shrinking */
 .btn{transition:transform .16s var(--ease-out),opacity .25s ease}
-.chip{border:0; background:var(--fill); font-size:15px; min-height:36px; padding:7px 14px}
+.chip{border:0; background:var(--fill); font-size:15px; min-height:44px; padding:10px 16px}
 .chip.on{background:var(--accent); color:var(--accent-ink)}
 .chip:active{transform:none; opacity:.6}
 .seg{background:var(--fill); border-radius:9px; padding:2px}
 .seg .thumb{border-radius:7px; box-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04); transition:transform .35s var(--ease)}
-.seg button{font-size:13px; font-weight:500; min-height:32px; padding:6px 4px}
+.seg button{font-size:13px; font-weight:500; min-height:44px; padding:8px 4px}
 input[type=text],input[type=search],input[type=email],input[type=password],input:not([type]),textarea{background:var(--fill); border-radius:10px; font-size:17px; padding:10px 12px}
 input:focus,textarea:focus{box-shadow:none}
 input[type=search]{border-radius:10px}
@@ -772,3 +772,17 @@ p.mut{font-size:14.5px; line-height:1.5}
 .acard .aprice b{font-size:16px; font-weight:600; text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px}
 .acard .aprice b small{font-size:inherit; font-weight:400; color:var(--ink)}
 .acard .adiff{font-size:14px}
+
+
+/* ===== Polish pass: the browser surfaces nobody drew, and the alternatives cards' alignment ===== */
+::selection{background:color-mix(in srgb,var(--accent) 22%,transparent); color:inherit}
+input,textarea{caret-color:var(--accent)}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role=button]:focus-visible{outline-color:var(--accent)}
+/* a row that scrolls sideways says so: its right edge fades, and the last chip can still be scrolled clear of the fade */
+.chainfilter{padding-right:24px; -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent); mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
+/* cards in one row share a baseline: the price always sits at the bottom, whatever the name's length */
+.acard{display:flex; flex-direction:column}
+.acard .atext{display:flex; flex-direction:column; flex:1; gap:2px}
+.acard .aprice{margin-top:auto; padding-top:6px}
+input[type=text],input[type=search],input[type=email],input:not([type]),textarea{min-height:44px}

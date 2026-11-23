@@ -226,6 +226,9 @@ export const fr = {
   brand: { tagline: 'Mieux manger. Mieux acheter.', credit: 'Données : Open Food Facts (ODbL), Open Prices. Les notes sont une information, pas un conseil médical.' },
   country: { FR: 'France', US: 'États-Unis', usNote: 'Version test : les prix et les enseignes américaines sont encore très partiels.' },
   profile: {
+    countOn: 'Autoriser le comptage anonyme des visites', countOff: 'Ne pas me compter dans les visites',
+    newsOn: 'Nouveautés par e-mail : inscrit ✓', newsOff: 'Recevoir les nouveautés de Mieux',
+    privacy: 'Confidentialité', terms: 'Conditions d\'utilisation', legal: 'Mentions légales', rights: '© {y} Mieux. Tous droits réservés.',
     country: 'Pays',
     title: 'Profil', priorities: 'Mes priorités (2 maximum)', diet: 'Régime', restrictions: 'Restrictions', language: 'Langue', localTitle: 'Données locales', contactTitle: 'Contact', contact: 'Nous écrire', contactSub: 'Une question, un problème, une idée ?', contactSubject: 'Mieux : message', localText: 'Vos scans, vos tickets et vos prix restent sur cet appareil. Votre prénom et votre ville sont enregistrés sans compte ni e-mail, pour savoir qui utilise Mieux. Rien n\'est vendu ni partagé.',
     leaves: 'Ce qui quitte l\'appareil : uniquement les codes-barres, pour retrouver un produit (Open Food Facts) et ses prix communautaires (Open Prices). Jamais vos tickets, ni votre profil.', export: 'Exporter mes données', erase: 'Tout supprimer', eraseConfirm: 'Supprimer tous vos scans, tickets et préférences ?', how: 'Comment Mieux fonctionne',

@@ -66,6 +66,7 @@ const persist = (s: Profile) => {
 export const useProfile = create<State>((set, get) => {
   const loaded = load<Profile>('fiq_profile', init); if (loaded.country && !COUNTRIES.includes(loaded.country)) loaded.country = 'FR';
   api.setCountry(loaded.country ?? 'FR'); setMoneyCountry(loaded.country);
+  setLocale(loaded.language ?? 'fr');   // before the first render: every string of the first screen is drawn in the saved language
   return {
     ...loaded,
     estimates: load<boolean>('fiq_estimates', false), // real data only unless the user opts in
@@ -109,6 +110,7 @@ export const apiPrefs = (p: Pick<Profile, 'priorities' | 'diet' | 'allergens'>) 
 export const hydrateProfile = () => {
   const p = load<Profile>('fiq_profile', init);
   setStrict(true);
+  setLocale(p.language ?? 'fr');
   useProfile.setState({
     ...p,
     zone: load<Zone | null>('fiq_zone', PARIS_DEFAULT),
