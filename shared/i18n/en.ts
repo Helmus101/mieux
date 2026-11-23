@@ -227,6 +227,9 @@ export const en = {
   brand: { tagline: 'Eat better. Buy better.', credit: 'Data: Open Food Facts (ODbL), Open Prices. Scores are information, not medical advice.' },
   country: { FR: 'France', US: 'United States', usNote: 'Test version: US prices and stores are still very incomplete.' },
   profile: {
+    countOn: 'Allow anonymous visit counting', countOff: 'Do not count me in visits',
+    newsOn: 'Email updates: subscribed ✓', newsOff: 'Get Mieux news by email',
+    privacy: 'Privacy', terms: 'Terms of use', legal: 'Legal notice', rights: '© {y} Mieux. All rights reserved.',
     country: 'Country',
     title: 'Profile', priorities: 'My priorities (2 max)', diet: 'Diet', restrictions: 'Restrictions', language: 'Language', contactTitle: 'Contact', contact: 'Email us', contactSub: 'A question, a problem, an idea?', contactSubject: 'Mieux: message', localTitle: 'Local data', localText: 'Your scans, receipts and prices stay on this device. Your first name and city are recorded, no account or email, to know who uses Mieux. Nothing is sold or shared.',
     leaves: 'What leaves the device: only barcodes, to find a product (Open Food Facts) and its community prices (Open Prices). Never your receipts or profile.', export: 'Export my data', erase: 'Delete everything', eraseConfirm: 'Delete all your scans, receipts and preferences?', how: 'How Mieux works',
