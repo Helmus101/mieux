@@ -9,7 +9,7 @@ import { t } from '@shared/i18n';
 import { formatCents, isLiquid } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
 import { priceHeadline } from '@shared/verdict';
-import { Bar, Body, Brand, Button, Card, Collapsible, H, Loader, Muted, NavBar, Group, Pill, Press, Row, Screen, ScoreTile, Sheet, Skeleton, haptic } from '@/components/ui';
+import { DisplayText, Bar, Body, Brand, Button, Card, Collapsible, H, Loader, Muted, NavBar, Group, Pill, Press, Row, Screen, ScoreTile, Sheet, Skeleton, haptic } from '@/components/ui';
 import PqExplain from '@/components/PqExplain';
 import SaveButton from '@/components/SaveButton';
 import Where from '@/components/Where';
@@ -166,7 +166,7 @@ export function ProductView({ barcode }: { barcode?: string }) {
 
   return (
     <Screen>
-      <NavBar title={p.name} right={<SaveButton product={p} />} />
+      <NavBar title={p.name} right={<SaveButton product={head.kind !== 'none' && head.perKgCents ? { ...p, savedPrice: { perKgCents: head.perKgCents, liquid: isLiquid(p), estimate: head.kind === 'estimate' } } : p} />} />
       {d.offline && <Pill tone="w">{t('history.offline')}</Pill>}
       {p.soldInFrance !== true && !d.offline && <Card><Pill tone="w">{p.soldInFrance === false ? t(country === 'US' ? 'simple.notUs' : 'simple.notFr') : t(country === 'US' ? 'simple.usUnknown' : 'simple.frUnknown')}</Pill></Card>}
 
@@ -183,20 +183,20 @@ export function ProductView({ barcode }: { barcode?: string }) {
       <Row style={{ alignItems: 'flex-start', gap: 14 }}>
         {p.imageUrl ? <Image source={{ uri: p.imageUrl }} style={{ width: 96, height: 96, borderRadius: 12, backgroundColor: '#fff' }} contentFit="contain" priority="high" /> : null}
         <View style={{ flex: 1, gap: 2 }}>
-          {p.brand && p.brand.toLowerCase() !== (p.name || '').toLowerCase() && <Muted small>{p.brand}</Muted>}
-          <Text style={{ color: c.ink, fontSize: 22, fontWeight: '700' }}>{p.name}</Text>
+          {p.brand && p.brand.toLowerCase() !== (p.name || '').toLowerCase() && <Text style={{ color: c.mut, fontSize: 13, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' }}>{p.brand}</Text>}
+          <DisplayText size={34}>{p.name}</DisplayText>
           {p.quantityText ? <Muted small>{p.quantityText}</Muted> : null}
         </View>
       </Row>
 
       {head.kind !== 'none'
-        ? <Row wrap><Body bold>{t(perUnit, { p: formatCents(head.perKgCents!) })}</Body>{head.kind === 'estimate' && <Pill tone="w">{t('est.pill')}</Pill>}</Row>
-        : webPerKg != null ? <Row wrap><Body bold>~ {t(perUnit, { p: formatCents(webPerKg) })}</Body><Pill tone="w">{t('est.pill')}</Pill></Row> : null}
+        ? <Row wrap><DisplayText size={28}>{t(perUnit, { p: formatCents(head.perKgCents!) })}</DisplayText>{head.kind === 'estimate' && <Pill tone="w">{t('est.pill')}</Pill>}</Row>
+        : webPerKg != null ? <Row wrap><DisplayText size={28}>~ {t(perUnit, { p: formatCents(webPerKg) })}</DisplayText><Pill tone="w">{t('est.pill')}</Pill></Row> : null}
 
       {s && pricePending ? <Row><Skeleton h={64} w={110} /><Skeleton h={64} w={110} /></Row> : s ? <Card style={{ gap: 12 }}>
         <Row style={{ alignItems: 'flex-start', gap: 28 }}>
           <View style={{ gap: 2 }}><Muted small>{t('score.quality')}</Muted><ScoreTile value={s.total} tone={s.tone === 'b' ? 'b' : s.tone === 'w' ? 'w' : 'g'} /><Body bold>{t('score.' + s.band)}</Body></View>
-          {pc?.value && <View style={{ gap: 2 }}><Row style={{ gap: 0 }}><Muted small>{t('score.value')}</Muted><PqExplain /></Row><ScoreTile value={pc.value.value_score} tone={pc.value.value_score >= 65 ? 'g' : pc.value.value_score >= 40 ? 'w' : 'b'} /><Body bold>{pc.value.value_score >= 65 ? t('score.good') : pc.value.value_score >= 40 ? t('score.average') : t('score.poor')}</Body></View>}
+          {pc?.value && <View style={{ gap: 2 }}><Row style={{ gap: 0 }}><Muted small>{t('score.value')}</Muted><PqExplain /></Row><ScoreTile delay={140} value={pc.value.value_score} tone={pc.value.value_score >= 65 ? 'g' : pc.value.value_score >= 40 ? 'w' : 'b'} /><Body bold>{pc.value.value_score >= 65 ? t('score.good') : pc.value.value_score >= 40 ? t('score.average') : t('score.poor')}</Body></View>}
         </Row>
         <View style={{ gap: 4 }}>
           {(s.flags ?? []).slice(0, 3).map((f: any) => <Text key={f.key} style={{ color: f.level === 'bad' ? c.bad : c.warn, fontWeight: '600', fontSize: 15 }}>• {t('flag.' + f.key)}</Text>)}

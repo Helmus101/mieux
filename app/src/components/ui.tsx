@@ -8,7 +8,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { t } from '@shared/i18n';
 import { nutriScoreColors, novaColors } from '@shared/theme';
-import { radius, space, toneColor, useTheme } from '@/lib/theme';
+import { DISPLAY, radius, space, toneColor, useTheme } from '@/lib/theme';
+import { AccessibilityInfo } from 'react-native';
 import { LOGOS } from '@/lib/logos';
 
 if (Platform.OS === 'android') UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -258,10 +259,39 @@ export const NutriScore = ({ grade }: { grade?: string | null }) => {
 export const NovaBadge = ({ group }: { group?: number | null }) =>
   group && novaColors[group] ? <View style={[s.badge, { backgroundColor: novaColors[group] }]}><Text style={s.badgeTxt}>{group}</Text></View> : <Text>—</Text>;
 
-/** Score numeral set in the tone colour (no filled badge: filled tiles read as alarms), tabular figures. */
-export const ScoreTile = ({ value, tone }: { value: number | string; tone?: string }) => {
+/** A number that counts up to its value (quart ease-out, 900 ms), then settles with a light tap. Shows the final value at once with reduced motion. */
+function useCountUp(target: number | null, delay = 0) {
+  const [v, setV] = useState<number | null>(target == null ? null : 0);
+  useEffect(() => {
+    if (target == null) { setV(null); return; }
+    let raf = 0, t0 = 0, off = false;
+    AccessibilityInfo.isReduceMotionEnabled().then((still) => {
+      if (off) return;
+      if (still) { setV(target); return; }
+      const tick = (now: number) => {
+        if (!t0) t0 = now + delay;
+        const k = Math.max(0, Math.min(1, (now - t0) / 900));
+        setV(Math.round(target * (1 - Math.pow(1 - k, 4))));
+        if (k < 1) raf = requestAnimationFrame(tick); else haptic('tap');
+      };
+      raf = requestAnimationFrame(tick);
+    });
+    return () => { off = true; cancelAnimationFrame(raf); };
+  }, [target, delay]);
+  return v;
+}
+
+/** Score numeral set in the display face and the tone colour (no filled badge: filled tiles read as alarms); it counts up when it arrives. */
+export const ScoreTile = ({ value, tone, delay = 0 }: { value: number | string; tone?: string; delay?: number }) => {
   const c = useTheme();
-  return <View style={{ flexDirection: 'row', alignItems: 'baseline' }}><Text style={{ color: toneColor(tone, c.dark), fontSize: 44, fontWeight: '700', letterSpacing: -1.5, fontVariant: ['tabular-nums'] }}>{value}</Text><Text style={{ color: c.mut, fontSize: 15, fontWeight: '500' }}>{t('score.outOf')}</Text></View>;
+  const shown = useCountUp(typeof value === 'number' ? value : null, delay);
+  return <View accessible accessibilityLabel={`${value} / 100`} style={{ flexDirection: 'row', alignItems: 'baseline' }}><Text style={{ color: toneColor(tone, c.dark), fontFamily: DISPLAY, fontSize: 80, lineHeight: 80, letterSpacing: -2, fontVariant: ['tabular-nums'] }}>{shown ?? value}</Text><Text style={{ color: c.mut, fontSize: 14, fontWeight: '600', marginLeft: 4 }}>/100</Text></View>;
+};
+
+/** Figures that lead a screen (a price per kilo, a product name): the display face. */
+export const DisplayText = ({ children, size = 28, color, style }: { children: ReactNode; size?: number; color?: string; style?: object }) => {
+  const c = useTheme();
+  return <Text style={[{ fontFamily: DISPLAY, fontSize: size, lineHeight: size * 1.02, letterSpacing: -size * 0.02, color: color ?? c.ink }, style]}>{children}</Text>;
 };
 
 export const Brand = ({ size = 22 }: { size?: number }) => <Text style={{ color: useTheme().accent, fontSize: size, fontWeight: '800', letterSpacing: -size * 0.04 }}>mieux.</Text>;

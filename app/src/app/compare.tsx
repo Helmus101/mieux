@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { api } from '@shared/api/client';
 import { t } from '@shared/i18n';
 import { formatCents } from '@shared/utils/format';
 import { useHistory, useProfile } from '@shared/stores';
-import { Body, Button, Card, Cell, Group, H, LargeTitle, Loader, Muted, NavBar, NovaBadge, NutriScore, Pill, Screen, Section, Thumb } from '@/components/ui';
+import { DisplayText, Body, Button, Card, Cell, Group, H, LargeTitle, Loader, Muted, NavBar, NovaBadge, NutriScore, Pill, Screen, Section, Thumb } from '@/components/ui';
 import { toneColor, useTheme } from '@/lib/theme';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -22,11 +22,17 @@ function Summary({ products }: { products: any[] }) {
   const q = top && !tied(scored, (p) => p.score, top) ? top : null, ch = cheap && !tied(priced, (p) => p.price.per100_cents, cheap) ? cheap : null;
   return <>
     <View style={{ flexDirection: 'row', gap: 10 }}>{products.map((p) => (
-      <View key={p.id} style={{ flex: 1, backgroundColor: c.card, borderRadius: 16, padding: 10, alignItems: 'center', gap: 4 }}>
+      <View key={p.id} style={{ flex: 1, backgroundColor: c.card, borderRadius: 16, padding: 10, gap: 6 }}>
+        <View style={{ minHeight: 22, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+          {ch?.id === p.id && <Text style={{ fontSize: 11, fontWeight: '700', color: c.accentInk, backgroundColor: c.accent, borderRadius: 999, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 3 }}>{t('compare.cheapest')}</Text>}
+          {q?.id === p.id && <Text style={{ fontSize: 11, fontWeight: '700', color: c.accent, backgroundColor: c.tint, borderRadius: 999, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 3 }}>{t('compare.bestRated')}</Text>}
+        </View>
         <Thumb uri={p.imageUrl} size={56} />
-        <Muted small style={{ textAlign: 'center' }}>{short(p)}</Muted>
-        <Body bold style={{ fontSize: 24, color: typeof p.score === 'number' ? toneColor(p.score >= 65 ? 'g' : p.score >= 40 ? 'w' : 'b', c.dark) : c.mut }}>{typeof p.score === 'number' ? p.score : '—'}</Body>
-        <Muted small>{p.price ? formatCents(Math.round(p.price.per100_cents * 10)) + ' ' + t('compare.perKgShort') : t('compare.noPrice')}{p.price?.source === 'estimate' ? ' · ' + t('est.pill') : ''}</Muted>
+        {p.price
+          ? <View><DisplayText size={28}>{formatCents(Math.round(p.price.per100_cents * 10))}</DisplayText><Muted small>{t('compare.perKgShort')}{p.price?.source === 'estimate' ? ' · ' + t('est.pill') : ''}</Muted></View>
+          : <Body bold style={{ color: c.mut }}>{t('compare.noPrice')}</Body>}
+        <Body bold style={{ fontSize: 16, color: typeof p.score === 'number' ? toneColor(p.score >= 65 ? 'g' : p.score >= 40 ? 'w' : 'b', c.dark) : c.mut }}>{typeof p.score === 'number' ? p.score : '—'}<Text style={{ fontSize: 12, fontWeight: '500', color: c.mut }}>/100</Text></Body>
+        <Muted small>{[p.brand, short(p)].filter(Boolean).join(' · ')}</Muted>
       </View>
     ))}</View>
     <Card>
