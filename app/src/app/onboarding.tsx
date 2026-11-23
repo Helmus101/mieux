@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Animated, Dimensions, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { api } from '@shared/api/client';
 import { setLocale } from '@shared/i18n';
 import { useProfile } from '@shared/stores';
 import { Brand, Button, Segmented, haptic } from '@/components/ui';
@@ -38,7 +39,7 @@ export default function Onboarding() {
   const [i, setI] = useState(0);
   const last = i === copy.slides.length - 1;
   const go = (n: number) => { setI(n); haptic("select"); list.current?.scrollTo({ x: n * W, animated: true }); };
-  const finish = () => { haptic('heavy'); if (!p.priorities.length) p.setPriorities(['value']); p.finish(); };
+  const finish = () => { haptic('success'); if (!p.priorities.length) p.setPriorities(['value']); p.finish(); void api.countOnboarding(); };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>

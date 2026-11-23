@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { api } from '@shared/api/client';
@@ -13,7 +13,7 @@ import { Bar, Body, Brand, Button, Card, Collapsible, H, Loader, Muted, NavBar, 
 import PqExplain from '@/components/PqExplain';
 import SaveButton from '@/components/SaveButton';
 import Where from '@/components/Where';
-import { prefetchAlternatives } from '@/lib/alternatives';
+import { fetchAlternatives, hasAlternatives } from '@/lib/alternatives';
 import { readCache, writeCache } from '@/lib/cache';
 import { toneColor, useTheme } from '@/lib/theme';
 
@@ -88,7 +88,14 @@ export function ProductView({ barcode }: { barcode?: string }) {
     return () => { cancelled = true; if (retry) clearTimeout(retry); };
   }, [barcode, estimates, attempt]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
-  useEffect(() => { if (barcode) prefetchAlternatives(barcode); }, [barcode]);
+  // The alternatives search starts now; with nothing to show the button is hidden (an empty answer is asked once more first).
+  const [noAlts, setNoAlts] = useState(false);
+  useEffect(() => {
+    if (!barcode) return;
+    let gone = false; setNoAlts(false);
+    fetchAlternatives(barcode).then((x: any) => (hasAlternatives(x) ? x : fetchAlternatives(barcode))).then((x: any) => { if (!gone && !hasAlternatives(x)) setNoAlts(true); }).catch(() => undefined);
+    return () => { gone = true; };
+  }, [barcode]);
 
   const headKind = d ? priceHeadline(d.price_context).kind : null;
   useEffect(() => {   // no observed price: one search for an approximate web price
@@ -198,10 +205,11 @@ export function ProductView({ barcode }: { barcode?: string }) {
         </View>
       </Card> : <Muted>{t('score.na')}</Muted>}
 
-      <Press feedback="heavy" onPress={() => r.push(`/alternatives/${p.id}`)} style={{ backgroundColor: c.accent, borderRadius: 12, paddingVertical: 18, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flex: 1 }}><Text style={{ color: c.accentInk, fontWeight: '700', fontSize: 17 }}>{t('simple.findBetter')}</Text><Text style={{ color: c.accentInk, opacity: 0.85 }}>{t('simple.findBetterSub')}</Text></View>
-        <Text style={{ color: c.accentInk, fontSize: 26 }}>→</Text>
-      </Press>
+      {!noAlts && (      <Press feedback="heavy" onPress={() => r.push(`/alternatives/${p.id}`)} style={{ backgroundColor: c.accent, borderRadius: 12, paddingVertical: 18, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}><Text style={{ color: c.accentInk, fontWeight: '700', fontSize: 17 }}>{t('simple.findBetter')}</Text><Text style={{ color: c.accentInk, opacity: 0.85 }}>{t('simple.findBetterSub')}</Text></View>
+          <Text style={{ color: c.accentInk, fontSize: 26 }}>→</Text>
+        </Press>)}
+      <Pressable hitSlop={12} onPress={() => { haptic('select'); api.flagCategory(p.id).then(() => { haptic('success'); Alert.alert(t('flagcat.thanks')); }).catch(() => haptic('error')); }} style={{ alignSelf: 'center', paddingVertical: 10 }}><Muted small>{t('flagcat.btn')}</Muted></Pressable>
 
       <Group>
       {s && <Collapsible title={`${t('sdim.title')} · ${s.total}${t('score.outOf')}`}>

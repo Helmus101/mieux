@@ -7,7 +7,7 @@ import { t } from '@shared/i18n';
 import { useProfile } from '@shared/stores';
 import { chainsFor } from '@shared/chains';
 import { formatCents, isLiquid, unitPrice } from '@shared/utils/format';
-import { cachedAlternatives, fetchAlternatives, NEAR_KM } from '@/lib/alternatives';
+import { cachedAlternatives, fetchAlternatives, hasAlternatives, NEAR_KM } from '@/lib/alternatives';
 import { friendlyError } from '@/lib/errors';
 import { Body, Button, Card, ChainLogo, Chip, H, Loader, Muted, NavBar, Row, Screen, Segmented, Skeleton, Thumb, haptic } from '@/components/ui';
 import { useTheme } from '@/lib/theme';
@@ -33,7 +33,7 @@ export default function Alternatives() {
     setErr(null);
     let gone = false, retry: ReturnType<typeof setTimeout> | undefined;
     const stale = cachedAlternatives(barcode);
-    if (stale) { setRes(stale); setBusy(false); } else setBusy(true);
+    if (stale && hasAlternatives(stale)) { setRes(stale); setBusy(false); } else setBusy(true);
     fetchAlternatives(barcode)
       .then((x: any) => { if (!gone) setRes(x); })
       .catch((e: any) => {
@@ -45,17 +45,17 @@ export default function Alternatives() {
   }, [barcode, priorities.join(), estimates, home?.lat, home?.lon, myChains.join(), tries]);
 
   // Every profile's ranking comes in one answer: pick the chosen profile's order, no new request.
-  const sourceRows = (): any[] => {
+  const sourceRows = (prof: string = vp): any[] => {
     let rows = (res?.rankings?.value ?? []) as any[];
     const fallback = !rows.length;
     if (fallback) rows = (res?.rankings?.match ?? res?.alternatives ?? []) as any[];
-    const per = new Map<string, any>(((res?.rankings?.profiles?.[vp] ?? []) as any[]).map((x) => [x.code, x]));
+    const per = new Map<string, any>(((res?.rankings?.profiles?.[prof] ?? []) as any[]).map((x) => [x.code, x]));
     if (!per.size || fallback) return rows;
     return rows.filter((e) => per.has(e.product?.barcode)).map((e) => ({ ...e, value_score: per.get(e.product.barcode).value_score, why: per.get(e.product.barcode).why })).sort((a, b) => b.value_score - a.value_score);
   };
-  const list = (ignoreChain = false) => {
+  const list = (ignoreChain = false, prof: string = vp) => {
     const seen = new Set<string>();
-    return sourceRows().filter((e) => {
+    return sourceRows(prof).filter((e) => {
       if (hidden.includes(e.product.id)) return false;
       if (!ignoreChain && chain && !(e.product.chains ?? []).includes(chain)) return false;
       if (myChains.length && !e.product.chains?.some((x: string) => myChains.includes(x))) return false;
@@ -66,6 +66,17 @@ export default function Alternatives() {
   };
   const ranked = list(), shown = ranked.slice(0, more ? 10 : 3);
   const none = !!res && !busy && !err && list(true).length === 0;
+  // The chosen profile has nothing but another one does: move to the first that has something.
+  useEffect(() => {
+    if (!res || busy || list(true, vp).length) return;
+    const other = (['budget', 'balanced', 'nutrition'] as const).find((k) => k !== vp && list(true, k).length > 0);
+    if (other) setVp(other);
+  }, [res, busy, vp]);
+  // Feedback for what the screen just decided: results arrived, nothing to show, or something went wrong.
+  const gotRows = !busy && !err && !!res && shown.length > 0, gotNone = !busy && !err && !!res && shown.length === 0;
+  useEffect(() => { if (gotRows) haptic('success'); }, [gotRows, barcode]);
+  useEffect(() => { if (gotNone) haptic('warning'); }, [gotNone, barcode]);
+  useEffect(() => { if (err) haptic('error'); }, [err]);
   const chainOptions = myChains.length ? myChains : chainsFor(country).map((x) => x.id).filter((id) => ((res?.rankings?.value ?? []) as any[]).some((e) => (e.product.chains ?? []).includes(id)));
   const o = res?.original, ou = o ? unitPrice(res.original_price?.per100_cents, res.original_size, res.original_size?.unit === 'ml') : null;
 
@@ -84,7 +95,7 @@ export default function Alternatives() {
       <NavBar />
       <Text style={{ color: c.ink, fontSize: 34, fontWeight: '700', letterSpacing: -0.9 }}>{t('alt.title')}</Text>
       {o && <Muted><Text style={{ fontWeight: '600' }}>{t('alt.replacing')}</Text> {o.name}{o.brand && o.brand.toLowerCase() !== o.name.toLowerCase() ? ' · ' + o.brand : ''}{o.score?.total != null ? ` · ${t('alt.quality')} ${Math.round(o.score.total)}` : ''}{ou ? ` · ${formatCents(ou.perUnitCents)}/${ou.unit}` : ''}</Muted>}
-      {!err && <Segmented value={vp} onChange={(k) => setVp(k as 'budget' | 'balanced' | 'nutrition')} options={(['budget', 'balanced', 'nutrition'] as const).map((k) => ({ key: k, label: t(`alt.profile_${k}`) }))} />}
+      {!err && <Segmented value={vp} onChange={(k) => setVp(k as 'budget' | 'balanced' | 'nutrition')} options={(['budget', 'balanced', 'nutrition'] as const).filter((k) => k === vp || !res || list(true, k).length > 0).map((k) => ({ key: k, label: t(`alt.profile_${k}`) }))} />}
       {!err && <Muted small>{t('alt.profileSub_' + vp)}</Muted>}
       {!none && chainOptions.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: 'center' }}>
         <Chip on={chain == null} onPress={() => setChain(null)}>{t('alt.allChains')}</Chip>
@@ -94,6 +105,9 @@ export default function Alternatives() {
       {err && <Card><H>{err.title}</H><Muted>{err.why}</Muted><Button small onPress={() => setTry((n) => n + 1)}>{t('errs.retry')}</Button></Card>}
       {!busy && !err && (none || !res || !shown.length) && (() => {
         const m = chain ? { title: t('alt.noChainTitle', { c: chainName(chain) }), why: t('alt.noChainWhy'), label: t('alt.allChains'), act: () => setChain(null) }
+          : res?.already_great ? { title: t('emptyAlt.greatTitle'), why: t('emptyAlt.greatWhy'), label: t('common.back'), act: () => r.back() }
+          : res?.empty_reason === 'low_quality' ? { title: t('emptyAlt.lowQualTitle'), why: t('emptyAlt.lowQualWhy'), label: t('common.back'), act: () => r.back() }
+          : res?.empty_reason === 'no_peers' ? { title: t('emptyAlt.noPeersTitle'), why: t('emptyAlt.noPeersWhy'), label: t('common.back'), act: () => r.back() }
           : hasHome && res && !(res.rankings?.value?.length) ? { title: t('emptyAlt.nearTitle'), why: t('emptyAlt.nearWhy', { r: NEAR_KM }), label: t('emptyAlt.nearAction'), act: () => r.push('/profile') }
           : none || !res ? { title: t('emptyAlt.noneTitle'), why: t('emptyAlt.noneWhy'), label: t('product.nf.scanAgain'), act: () => r.replace('/scan') }
           : { title: t('emptyAlt.valueNoneTitle'), why: t('emptyAlt.valueNoneWhy'), label: t('common.back'), act: () => r.back() };
