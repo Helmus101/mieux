@@ -182,7 +182,7 @@ def test_french_by_default():
     txt = " ".join(r["alternatives"][0]["improvements"] + r["alternatives"][0]["tradeoffs"])
     assert "protéines" in txt and "en plus" in txt
     r = c.post("/v1/products/4/alternatives", headers={"X-Session-Id": "fr-user-001"}, json={"category_mode": "any", "priorities": ["protein"]}).json()
-    assert r["no_recommendation_reason"].startswith("Aucune alternative")
+    assert "aucune alternative" in r["no_recommendation_reason"].lower()   # French: either "no alternative found" or "already great"
 
 
 def test_value_ranking_and_price_comparison_always_present():

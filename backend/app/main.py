@@ -38,7 +38,7 @@ def _load_dotenv() -> None:
 
 
 _load_dotenv()
-from . import altindex, chains as _chains, taxo1000, supabase_sync, webprice, value_index, valuescore, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
+from . import alt_gates, altindex, chains as _chains, taxo1000, supabase_sync, webprice, value_index, valuescore, budget as bud, db, engine, estimate, explain as exp, market, receipts, retail, score, taxonomy, value
 from .i18n import tr
 from concurrent.futures import ThreadPoolExecutor
 from .off import OFFClient, OFFError, NotFoodError
@@ -49,6 +49,16 @@ import logging
 import time
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+SWALLOWED: Dict[str, int] = {}   # how many times each deliberately-ignored failure happened since the start (shown by /health/ready)
+
+
+def _swallowed(where: str) -> None:
+    """For `except Exception:` blocks that keep going on purpose: never silent. Logs the first occurrence of each place with its
+    traceback, then every 100th, and counts them all."""
+    n = SWALLOWED[where] = SWALLOWED.get(where, 0) + 1
+    if n == 1 or n % 100 == 0:
+        logger.warning("ignored failure in %s (%d so far)", where, n, exc_info=True)
 
 # Simple LRU cache for product data (reduce DB hits)
 from collections import OrderedDict
@@ -208,6 +218,7 @@ async def log_requests(request: Request, call_next):
         try:
             REQ_PREFS.set(Prefs(**json.loads(urllib.parse.unquote(raw))))
         except Exception:
+            _swallowed("prefs cookie")
             pass
     response = await call_next(request)
     duration = (time.time() - start) * 1000  # milliseconds
@@ -259,11 +270,13 @@ def _warm_candidate_taxonomy() -> None:
             try:
                 codes = alt.codes_by_scans(8000)
             except Exception:
+                _swallowed("alt codes")
                 continue
             for i in range(0, len(codes), 400):
                 try:
                     raws = app.state.off.quick_products(codes[i:i + 400])
                 except Exception:
+                    _swallowed("quick products")
                     continue
                 for r in raws:
                     cats = [c for c in (r.get("categories_tags") or []) if c.startswith("en:") and c == c.lower()]
@@ -700,6 +713,7 @@ def _web_price_for(s: Session, barcode: str, max_seconds: Optional[float] = None
         try:
             w = f.result(timeout=max_seconds or 25.0)
         except Exception:
+            _swallowed("web price wait")
             w = None
     if w is None:
         w = webprice.lookup(p, deadline=(time.time() + max_seconds) if max_seconds else None, force=force)
@@ -833,6 +847,7 @@ def _record_web_chains(s: Session, barcode: str, w: Dict[str, Any]) -> None:
     try:
         s.commit()
     except Exception:
+        _swallowed("store web price")
         s.rollback()
 
 
@@ -1281,6 +1296,24 @@ def substitution_verdict(request: Request, barcode: str, body: SubReq, uid: str 
     return {"original": o["id"], "alt": a["id"], "verdict": row.verdict}
 
 
+class CategoryFlagReq(BaseModel):
+    suggested_type: Optional[str] = Field(None, pattern=r"^P\d{4}$")
+
+
+@app.post("/v1/products/{barcode}/category-flag")
+@limiter.limit("30/minute")
+def category_flag(request: Request, barcode: str, body: CategoryFlagReq, uid: str = Depends(user), s: Session = Depends(get_db)):
+    """"Wrong category": remembers the placement this person saw (and the type they suggest) for review. Changes nothing for anyone
+    else by itself: a person reads the flags and fixes a rule."""
+    p = load_product(s, barcode)
+    c = taxo1000.classify(p.get("name"), None, p.get("brand"), p.get("categories"))
+    row = s.query(db.CategoryFlag).filter_by(user_id=uid, product_id=p["id"]).first() or db.CategoryFlag(user_id=uid, product_id=p["id"])
+    row.name, row.placed_type, row.placed_category, row.suggested_type = (p.get("name") or "")[:200], c.get("type"), c.get("category"), body.suggested_type
+    s.add(row)
+    s.commit()
+    return {"ok": True}
+
+
 class ListingReq(BaseModel):
     chain_id: str
     url: Optional[str] = Field(None, max_length=500)
@@ -1470,6 +1503,7 @@ def _warm_stores(chains: List[str], lat: float, lon: float) -> None:
             try:
                 retail.nearest(s2, c, lat, lon, 15, k=1)
             except Exception:
+                _swallowed("nearest store")
                 continue
 
 
@@ -1633,6 +1667,7 @@ def _search_any(orig: Dict[str, Any]) -> List[Dict[str, Any]]:
     try:
         return fn(terms)
     except Exception:
+        _swallowed("search a")
         return []
 
 
@@ -1644,6 +1679,7 @@ def _name_any(terms: List[str]) -> List[Dict[str, Any]]:
     try:
         return fn(terms)
     except Exception:
+        _swallowed("search b")
         return []
 
 
@@ -1767,6 +1803,7 @@ def _peers(s: Session, orig: Dict[str, Any], mode: str, priorities: Optional[Lis
             # and sorted below, with no further slice imposed here.
             raw = app.state.off.categories(tags[:4])
         except Exception:  # a missing or unreadable local copy must never break a scan
+            _swallowed("off categories")
             raw = []
         raws = sorted([r for r in raw if _raw_candidate(r, prio, alg, orig)], key=_raw_relevance(orig, engine._tok(orig["name"], orig["brand"])))
     pool: Dict[str, Dict[str, Any]] = {}
@@ -1890,6 +1927,7 @@ def _search_once(c: Dict[str, Any], persist: bool = True, force: bool = False, m
                                     _record_web_price(s2, prod, w_)
                                 s2.commit()
                         except Exception:
+                            _swallowed("price callback")
                             pass
             f.add_done_callback(done_cb)
         return f
@@ -2097,33 +2135,12 @@ def _index_pool(s: Session, uid: str, orig: Dict[str, Any], body: "AltReq", alle
     return peers, orig_price, prices, points, shops
 
 
-MIN_ALT_QUALITY = 50   # an alternative must score above this on quality to be offered at all
-MIN_SAME_MIEUX_TYPE = 12   # with at least this many same-type candidates, sibling types of the category are not offered
+MIN_ALT_QUALITY = alt_gates.MIN_ALT_QUALITY
+MIN_SAME_MIEUX_TYPE = alt_gates.MIN_SAME_MIEUX_TYPE
 
 
 def _mieux_gate(orig: Dict[str, Any], kept: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
-    """The Mieux taxonomy gate. Only products placed at a specific type take part: a candidate must be in the scanned product's
-    category, and in its exact type whenever enough of those exist. Returns None when the gate does not apply (the scanned
-    product is not placed at a specific type, or the index is missing): the older gates alone decide then.
-
-    A placement made from the product's own name is trusted: a thin category then simply yields few or no alternatives rather than
-    wrong ones. A placement made only from tags is a softer gate: it is used when it leaves at least 3 candidates."""
-    fn = getattr(app.state.off, "taxo_places", None)
-    if fn is None or not kept:
-        return None
-    o = taxo1000.classify(orig.get("name"), None, orig.get("brand"), orig.get("categories"))
-    if o.get("level") not in (2, 3) or not o.get("category"):
-        return None
-    places = fn([c["barcode"] for c in kept])
-    if not places:
-        return None
-    in_cat = [c for c in kept if (places.get(c["barcode"]) or {}).get("level") == 3 and places[c["barcode"]]["category"] == o["category"]]
-    same_type = [c for c in in_cat if o.get("type") and places[c["barcode"]]["type"] == o["type"]]
-    # no (or too few) same-type products: widen to the whole category
-    pool = same_type if len(same_type) >= MIN_SAME_MIEUX_TYPE else in_cat
-    if o.get("source") == "name" or len(pool) >= 3:
-        return pool
-    return None
+    return alt_gates.mieux_gate(app.state.off, orig, kept)
 
 
 @app.post("/v1/products/{barcode}/alternatives")
@@ -2233,7 +2250,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     # only now, on the comparable pool - not on every retrieved product that the filters above will drop anyway.
     peers = [_scored(c, body.strict_additives) for c in peers]
     # Only alternatives with a good quality score are offered (above 50); an unknown score is unverified, not good.
-    peers = [c for c in peers if isinstance((c.get("score") or {}).get("total"), (int, float)) and c["score"]["total"] > MIN_ALT_QUALITY]
+    peers = alt_gates.quality_floor(peers)
     stages["quality_above_min"] = len(peers)
 
     # 5. RANK the whole eligible pool. The tabs are cut to their display size at the very end, after the "only if it is
@@ -2391,13 +2408,8 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
         a["price_source"] = _with_confidence(points.get(a["product"]["barcode"]))
         a["stores"] = shops.get(a["product"]["barcode"], [])
     oq = orig.get("quantity")
-    # Nothing is offered only when the product is above 90 on BOTH numbers the shopper sees on its page: the price-quality
-    # "Valeur" (value_index) and the quality score. One high number alone still leaves a list worth showing; a missing one
-    # (no price, no score) never counts as high.
-    _vi = value_index.value_index(taxonomy.classify(orig).get("type"), (orig.get("score") or {}).get("total"), orig_price) if orig_price else None
-    _q = (orig.get("score") or {}).get("total")
-    ovs_ = min(_vi["value_score"], _q) if (_vi and isinstance(_q, (int, float))) else None
-    if ovs_ is not None and ovs_ > engine.GREAT_ALREADY:
+    # Nothing is offered when the product is above 90 on both its Valeur and its quality score (see alt_gates.is_great_already).
+    if alt_gates.is_great_already(orig, orig_price):
         # The scanned product already scores above 90 for this shopper's profile: no alternative beats that by enough to be worth showing.
         res["alternatives"] = []
         for _k, _v in list((res.get("rankings") or {}).items()):
