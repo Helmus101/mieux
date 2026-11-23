@@ -4,7 +4,8 @@ import { useProfile } from '@shared/stores';
  * Kept in localStorage so a recently opened product is on screen the moment the app reopens (and opens offline too); the
  * oldest entries are dropped first so the cache can never fill the browser's storage. */
 const PREFIX = 'mx_swr_';
-const MAX_ENTRIES = 60;
+const MAX_ENTRIES = 30;
+const MAX_ENTRY_CHARS = 150_000;   // a huge answer would crowd out the person's own history in the 5 MB the browser allows
 const store = (): Storage | null => { try { return localStorage; } catch { return null; } };
 
 export function readCache<T>(key: string, maxAgeMs = 30 * 60_000): T | null {
@@ -33,6 +34,7 @@ export function writeCache(key: string, v: unknown) {
   const s = store();
   if (!s) return;
   const val = JSON.stringify({ at: Date.now(), v });
+  if (val.length > MAX_ENTRY_CHARS) return;
   try { s.setItem(PREFIX + key, val); } catch {
     // Storage full: make room by dropping the oldest half, then try once more; no cache is better than an error.
     try { prune(s, Math.floor(MAX_ENTRIES / 2)); s.setItem(PREFIX + key, val); } catch { /* give up quietly */ }
