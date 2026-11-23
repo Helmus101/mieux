@@ -62,10 +62,8 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       <section className="lp-hero">
         <div className="lp-hero-copy">
           <h1 className="lp-h1">{t('land.h1a')} <span className="lp-h1-tail">{t('land.h1b')}</span></h1>
-          <p className="lp-sub">{t('land.lead')}</p>
           <div className="lp-cta">
             <button className="lp-btn lp-btn-lg" onClick={onEnter}>{t('land.cta')}</button>
-            <a className="lp-more" href="#how">{t('land.howTitle')} <span aria-hidden>›</span></a>
             <p className="lp-trust">{t('land.ctaFree')}</p>
           </div>
         </div>
@@ -104,7 +102,6 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
 
       <section className="lp-sec" id="difference">
         <h2>{t('land.yukaTitle')}</h2>
-        <p className="lp-lead">{t('land.yukaLead')}</p>
         <dl className="lp-vs">
           {VERSUS.map((k) => (
             <div className="lp-vs-row" key={k}>
