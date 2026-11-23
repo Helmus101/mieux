@@ -178,7 +178,7 @@ export const en = {
     vs2t: 'Alternatives that take price into account', vs2n: 'One score only', vs2d: 'Cheapest, best quality or best value: each alternative shows how much you save.',
     vs3t: 'Allergens = exclusions', vs3n: 'No allergen profile', vs3d: 'Declared allergen eliminates product.',
     vs4t: 'Sourced prices', vs4n: 'Nothing to source', vs4d: 'Open Prices and your receipt prices, never invented.',
-    vsNote: 'Comparison limited to these four points.',
+    vsNote: 'Comparison limited to these three points.',
     eyebrow: 'Quality AND price, in one place', openFree: 'Open Mieux · free', ctaNote: 'No install needed. A free account: your data stays on your phone.',
     ex: { qualityPriced: 'Best quality with a price', noPrice: 'no price found', real: 'Real example, captured {d}.', label: 'Example', scanned: 'You scan', name: 'Hazelnut spread', price: '€3.49', unit: 'per 400 g', cheap: 'Cheapest', cheapName: 'Cocoa spread', cheapNote: '−€1.80', quality: 'Best quality', qualityName: '100% hazelnut butter', qualityNote: 'no additives', value: 'Best value', valueName: 'Organic spread, no palm oil', valueNote: 'quality/price' },
     uvpTitle: 'Three alternatives, three ways to choose', uvpSub: 'A score does not tell you what to buy. Mieux compares prices too.',
