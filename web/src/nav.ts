@@ -2,7 +2,7 @@
 // The app lives under /app, so the root is free for the landing page.
 import { useNavigate } from 'react-router-dom';
 export const routes = {
-  home: '/app/scan', scan: '/app/scan', compare: '/app/compare', profile: '/app/profile',
+  home: '/app/scan', scan: '/app/scan', profile: '/app/profile',
   product: (code: string) => `/app/product/${code}`, alternatives: (code: string) => `/app/alternatives/${code}`,
   history: '/app/history', list: '/app/list',
   blog: '/blog',
@@ -18,7 +18,7 @@ const withTransition = (f: () => void, dir: 'push' | 'pop' | 'tab') => {
   const clear = () => { delete root.dataset.nav; };
   d.startViewTransition(f).finished.then(clear, clear);
 };
-const TABS = [routes.list, routes.scan, routes.profile, routes.compare];
+const TABS = [routes.list, routes.scan, routes.profile];
 /** Where each top-level tab was scrolled to when the user left it, so coming back lands on the same spot like a native tab bar. */
 const tabScroll = new Map<string, number>();
 export const savedTabScroll = (path: string) => (TABS.includes(path) ? tabScroll.get(path) ?? 0 : 0);

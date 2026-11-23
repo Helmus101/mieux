@@ -41,7 +41,7 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
   const barcode = barcodeProp ?? params.barcode;
   const { go, back: navBack } = useNav();
   const back = onBack ?? navBack;
-  const estimates = useProfile((s) => s.estimates), addCompare = useProfile((s) => s.addCompare), removeCompare = useProfile((s) => s.removeCompare);
+  const estimates = useProfile((s) => s.estimates);
   const country = useProfile((s) => s.country);
   const hist = useHistory();
   const [d, setD] = useState<any>(() => (barcode ? readCache(prodKey(barcode, estimates, getStrict()), PRODUCT_CACHE_MS) : null)), [err, setErr] = useState<{ kind: 'notfound' | 'notfood' | 'invalid' | 'server' | 'network' | 'rate' | 'auth'; msg: string } | null>(null), [attempt, setAttempt] = useState(0), [offline, setOffline] = useState(false), [sheet, setSheet] = useState<string | null>(null), autoTries = useRef(0);
@@ -64,7 +64,6 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
     return () => { gone = true; };
   }, [barcode]);
   useEffect(() => { autoTries.current = 0; }, [barcode]);
-  const inCompare = useProfile((s) => !!d?.product && s.compare.includes(d.product.id));   // a hook: it must run before the early returns below, on every render
   const pageName: string | undefined = d?.product?.name;
   useEffect(() => {   // the browser tab, history and shares carry the product and the brand
     if (!pageName) return;
@@ -241,7 +240,6 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
         })()}
         <a target="_blank" rel="noreferrer" href={`https://world.openfoodfacts.org/product/${p.id}`}>{t('product.correct')}</a>
       </Collapsible>
-      <Button plain onPress={() => { if (inCompare) { removeCompare(p.id); } else { addCompare(p.id); go(routes.compare); } }}>{inCompare ? t('compare.remove') : t('product.compare')}</Button>
       <p className="mut sm" style={{ textAlign: 'center', margin: '4px 0 0' }}><a href="#" onClick={(e) => { e.preventDefault(); haptic('tap'); api.flagCategory(p.id).then(() => toast(t('flagcat.thanks'))).catch(() => undefined); }}>{t('flagcat.btn')}</a></p>
 
       <p className="brandsign"><Brand size={18} /><span>{t('brand.tagline')}</span></p>

@@ -25,7 +25,6 @@ const Onboarding = lazy(() => import('./screens/Onboarding'));
 const Scan = lazy(() => import('./screens/Scan'));
 const Product = lazy(() => import('./screens/Product'));
 const Alternatives = lazy(() => import('./screens/Alternatives'));
-const Compare = lazy(() => import('./screens/Compare'));
 const Profile = lazy(() => import('./screens/Profile'));
 const History = lazy(() => import('./screens/History'));
 const List = lazy(() => import('./screens/List'));
@@ -99,7 +98,7 @@ function Shell() {
           <Route path="scan" element={<Scan />} />
           <Route path="product/:barcode" element={<Product />} />
           <Route path="alternatives/:barcode" element={<Alternatives />} />
-          <Route path="compare" element={<Compare />} />
+          <Route path="compare" element={<Navigate to="/app/scan" replace />} />
           <Route path="profile" element={<Profile />} />
           <Route path="history" element={<History />} />
           <Route path="list" element={<List />} />
