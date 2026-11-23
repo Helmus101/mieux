@@ -82,14 +82,17 @@ export function NutriScore({ grade }: { grade: string | null }) {
 }
 
 /** Animated number: counts up from the previous value (Expo: use Reanimated's useSharedValue + withTiming). */
-export function CountUp({ value, format }: { value: number; format: (v: number) => string }) {
-  const [v, setV] = useState(0), from = useRef(0);
+export function CountUp({ value, format, plain = false, delay = 0 }: { value: number; format: (v: number) => string; plain?: boolean; delay?: number }) {
+  const still = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const [v, setV] = useState(still ? value : 0), from = useRef(still ? value : 0);
   useEffect(() => {
-    const a = from.current, t0 = performance.now(), D = 800; let raf = 0;
-    const tick = (n: number) => { const k = Math.min(1, (n - t0) / D), e = 1 - Math.pow(1 - k, 3); setV(a + (value - a) * e); if (k < 1) raf = requestAnimationFrame(tick); else from.current = value; };
+    if (still) { setV(value); from.current = value; return; }
+    const a = from.current, D = 900; let raf = 0, t0 = 0;
+    const tick = (n: number) => { if (!t0) t0 = n + delay; const k = Math.max(0, Math.min(1, (n - t0) / D)), e = 1 - Math.pow(1 - k, 4); setV(a + (value - a) * e); if (k < 1) raf = requestAnimationFrame(tick); else from.current = value; };   // quart ease-out: fast start, long settle
     raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf);
-  }, [value]);
-  return <span className="big">{format(v)}</span>;
+  }, [value, still, delay]);
+  // Screen readers get the final figure once, not 50 frames of it.
+  return <><span className="sr">{format(value)}</span><span className={plain ? undefined : 'big'} aria-hidden>{format(v)}</span></>;
 }
 
 /**
