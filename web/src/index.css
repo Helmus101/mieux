@@ -32,7 +32,7 @@ body,.score,.scorebig,.mut,.cell,.card,td,th,input{font-variant-numeric:tabular-
 h1,h2,h3,.large-title,.hero h1{text-wrap:balance}
 p{margin:14px 0; line-height:1.6; text-wrap:pretty}
 button,.chip,.tab,.iconbtn,.seg button,[role=button]{min-height:44px; min-width:44px; touch-action:manipulation}
-img.blur-in{background:linear-gradient(135deg,rgba(118,118,128,.14),rgba(118,118,128,.26)); opacity:0; filter:blur(8px); transition:opacity .25s ease,filter .35s ease}
+img.blur-in{background:linear-gradient(135deg,rgba(118,118,128,.14),rgba(118,118,128,.26)); opacity:0; filter:blur(8px); transition:opacity .25s var(--ease-out),filter .35s var(--ease-out)}
 img.blur-in.ready{opacity:1; filter:none}
 body.kb .tabbar{display:none}
 .netbar{position:sticky; top:0; z-index:25; margin:0 -20px; padding:calc(env(safe-area-inset-top) + 8px) 20px 8px; background:var(--card); color:var(--mut); font-size:13px; font-weight:600; text-align:center; border-bottom:1px solid var(--line); animation:enter .3s var(--ease)}
@@ -259,7 +259,7 @@ html,body{margin:0; background:var(--bg); color:var(--ink); font:18px/1.4 -apple
 /* ===== 9. Scanner ===== */
 .viewfinder{position:relative}
 .viewfinder::after{content:""; position:absolute; inset:18% 12%; border:3px solid rgba(255,255,255,.85); border-radius:12px; box-shadow:0 0 0 999px rgba(0,0,0,.35); pointer-events:none}
-.viewfinder i{position:absolute; left:14%; right:14%; top:50%; height:2px; background:var(--accent); box-shadow:0 0 12px var(--accent); animation:scanline 2s ease-in-out infinite; z-index:2}
+.viewfinder i{position:absolute; left:14%; right:14%; top:50%; height:2px; background:var(--accent); box-shadow:0 0 12px var(--accent); animation:scanline 2s cubic-bezier(.87,0,.13,1) infinite; z-index:2}
 .cam{position:fixed; inset:0; height:100dvh; z-index:100; background:#000; color:#fff; overflow:hidden}
 .cam video{position:absolute; inset:0; width:100%; height:100%; max-height:none; border-radius:0; object-fit:cover}
 .cam-mask{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none}
@@ -452,7 +452,7 @@ td .nova{padding:4px 8px}
 .cmp-score{font-size:34px; letter-spacing:-1px; line-height:1}
 .cmp-score i{font-size:14px; font-style:normal; color:var(--mut); font-weight:500}
 @keyframes toastin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.cmdk-back{position:fixed; inset:0; background:rgba(0,0,0,.35); animation:fade .2s ease both; z-index:80; display:flex; justify-content:center; align-items:flex-start; padding-top:14vh}
+.cmdk-back{position:fixed; inset:0; background:rgba(0,0,0,.35); animation:fade .2s var(--ease-out) both; z-index:80; display:flex; justify-content:center; align-items:flex-start; padding-top:14vh}
 .cmdk{width:min(520px,92vw); background:var(--glass); backdrop-filter:saturate(180%) blur(30px); -webkit-backdrop-filter:saturate(180%) blur(30px); transform-origin:50% 0; animation:fade .12s var(--ease-out) both; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.3); overflow:hidden}
 .cmdk input{width:100%; border:0; outline:0; padding:16px 18px; font-size:17px; background:transparent; color:var(--ink); border-bottom:1px solid var(--line)}
 .cmdk button{display:flex; justify-content:space-between; align-items:center; width:100%; border:0; background:none; padding:12px 18px; font-size:16px; color:var(--ink); cursor:pointer; text-align:left}
@@ -558,7 +558,7 @@ h1,.big,.scorebig,.stats-num{font-optical-sizing:auto}
 .sheet{box-shadow:0 -12px 48px rgba(0,0,0,.18); border-top:.5px solid rgba(255,255,255,.4)}
 .toast2{backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%)}
 /* Reduced motion keeps the feedback (cross-fade) and drops the vestibular parts. */
-@media (prefers-reduced-motion:reduce){.cmdk,.peek,.toast2{animation:fade .15s ease both!important;filter:none!important}}
+@media (prefers-reduced-motion:reduce){.cmdk,.peek,.toast2{animation:fade .15s var(--ease-out) both!important;filter:none!important}}
 @media(prefers-reduced-transparency:reduce){.cmdk,.toast2,.sheet{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none}.toast2{background:#1e1e1e}}
 @media(prefers-contrast:more){.sheet,.cmdk,.peek{border:1px solid var(--line)}.sheet .grab{background:var(--mut)}}
 
@@ -590,7 +590,7 @@ h3{font-size:20px; font-weight:600; letter-spacing:.38px}
 .btn{min-height:50px; border-radius:14px; font-size:17px; font-weight:600; letter-spacing:-.022em; border:0; box-shadow:none}
 .btn.primary,.btn.pri{background:var(--accent); color:var(--accent-ink)}
 .btn:active{transform:none; opacity:.55; transition:opacity 0s}   /* iOS buttons dim on touch instead of shrinking */
-.btn{transition:transform .16s var(--ease-out),opacity .25s ease}
+.btn{transition:transform .16s var(--ease-out),opacity .25s var(--ease-out)}
 .chip{border:0; background:var(--fill); font-size:15px; min-height:44px; padding:10px 16px}
 .chip.on{background:var(--accent); color:var(--accent-ink)}
 .chip:active{transform:none; opacity:.6}
@@ -627,7 +627,7 @@ input[type=search]{border-radius:10px}
   html[data-nav=pop]::view-transition-old(root){animation:.4s var(--ease) both ios-pop-out; z-index:2}
   html[data-nav=pop]::view-transition-new(root){animation:.4s var(--ease) both ios-pop-in}
 }
-@media (prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:fade .15s ease both}}
+@media (prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:fade .15s var(--ease-out) both}}
 @media(prefers-contrast:more){:root{--sep:rgba(60,60,67,.6)}}
 
 /* Alternatives: anchor line, visible reason, labelled score */
@@ -721,7 +721,7 @@ p.mut{font-size:14.5px; line-height:1.5}
 .brandsign .brand{font-size:17px}
 
 /* Native-style press feedback on the product page's main actions */
-.altcta{transition:transform .12s var(--ease-out,ease)}
+.altcta{transition:transform .12s var(--ease-out)}
 .altcta:active{transform:scale(.985)}
 .coll summary:active{background:var(--card)}
 
