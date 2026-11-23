@@ -29,7 +29,7 @@ function Summary({ products }: { products: any[] }) {
         </div>
       ))}</div>
       <Card>
-        <h3>{t('compare.diffTitle')}</h3>
+        <h3 aria-level={2}>{t('compare.diffTitle')}</h3>
         {q && <p>{t('compare.winQuality', { n: short(q) })}</p>}
         {c && <p>{t('compare.winPrice', { n: short(c) })}</p>}
         {q && c && q.id !== c.id && <p className="mut sm">{t('compare.tradeoff')}</p>}
@@ -71,7 +71,7 @@ export default function Compare() {
               ))}
             </tbody></table>
           </div>
-          {r.micro.length > 0 && <><h3 style={{ marginTop: 14 }}>{t('micro.title')}</h3><div style={{ overflowX: 'auto' }}><table><tbody>
+          {r.micro.length > 0 && <><h3 aria-level={2} style={{ marginTop: 14 }}>{t('micro.title')}</h3><div style={{ overflowX: 'auto' }}><table><tbody>
             {r.micro.map((m: any) => <tr key={m.key}><td>{t('micro.' + m.key)}</td>{m.values.map((v: number | null, i: number) => <td key={i} className={m.favourable[i] ? 'best' : ''}>{v == null ? '—' : `${v} ${m.unit} (${m.nrv_pct[i]}%)`}</td>)}</tr>)}
           </tbody></table></div><p className="mut sm">{t('micro.note')}</p></>}
           <p className="mut sm">{t('compare.note')}</p>

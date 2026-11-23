@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { APP_PATH, wantsLanding } from './install';
 import { t } from '@shared/i18n';
 import { trackVisit } from './usage';
+import { setCanonical } from './canonical';
 import { Loader } from './ui';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -34,6 +35,7 @@ export default function Root() {
   // One anonymous count per person per day for the landing page and for the app; the server does the deduplicating.
   // The stats page is not counted: it is the owner reading the numbers, not a new person.
   useEffect(() => { if (!stats) trackVisit(landing ? 'landing' : 'app'); }, [landing, stats]);
+  useEffect(() => { if (landing) setCanonical('/'); }, [landing]);
   // Back from /app must show the landing page again, not leave the app sitting on the root URL.
   useEffect(() => {
     const sync = () => { setStats(atStats()); setLanding(wantsLanding()); };

@@ -60,7 +60,7 @@ export default function Usage({ onBack }: { onBack: () => void }) {
           </div>
         </section>
 
-        {failed && <Card tint><h3>{t('usage.fail')}</h3><Muted>{t('usage.offline')}</Muted></Card>}
+        {failed && <Card tint><h3 aria-level={2}>{t('usage.fail')}</h3><Muted>{t('usage.offline')}</Muted></Card>}
         {!failed && !month && <Card><Muted>{t('common.loading')}</Muted></Card>}
 
         <section className="stats-block">

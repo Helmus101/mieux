@@ -11,7 +11,7 @@ import { t } from '@shared/i18n';
 import { haptic } from '../haptics';
 export { haptic };
 
-export function Screen({ children }: { children: ReactNode }) { return <div className="screen">{children}</div>; }
+export function Screen({ children }: { children: ReactNode }) { return <main className="screen">{children}</main>; }
 
 export function NavBar({ title, onBack, right }: { title?: string; onBack?: () => void; right?: ReactNode }) {
   const [s, setS] = useState(false);
@@ -125,7 +125,7 @@ function SheetBody({ open, onClose, onGone, title, children }: { open: boolean; 
     <div ref={scrim} className="scrim" onClick={onClose} style={{ opacity: 0, pointerEvents: open ? undefined : 'none' }} />
     <div ref={ref} className="sheet" role="dialog" aria-modal="true" aria-label={title}>
       <div className="grabzone"><div className="grab" /></div>
-      {title && <h3 style={{ marginBottom: 8 }}>{title}</h3>}{children}
+      {title && <h3 aria-level={2} style={{ marginBottom: 8 }}>{title}</h3>}{children}
     </div>
   </>;
 }
@@ -212,6 +212,6 @@ const CHAIN_LOOK: Record<string, [string, string, string]> = {
 export function ChainLogo({ id, name, size = 34 }: { id: string; name?: string; size?: number }) {
   const [broken, setBroken] = useState(false);
   const [bg, fg, tx] = CHAIN_LOOK[id] ?? ['#888', '#fff', (name ?? '?').slice(0, 1)];
-  if (!broken) return <img src={`/logos/${id}.png`} alt={name ?? id} width={size} height={size} style={{ borderRadius: 8, objectFit: 'contain', background: '#fff' }} onError={() => setBroken(true)} />;
-  return <span className="chainmark" style={{ width: size, height: size, background: bg, color: fg, fontSize: tx.length > 2 ? size * 0.3 : tx.length > 1 ? size * 0.36 : size * 0.5 }} aria-label={name ?? id}>{tx}</span>;
+  if (!broken) return <img src={`/logos/${id}.png`} alt="" width={size} height={size} style={{ borderRadius: 8, objectFit: 'contain', background: '#fff' }} onError={() => setBroken(true)} />;
+  return <span className="chainmark" style={{ width: size, height: size, background: bg, color: fg, fontSize: tx.length > 2 ? size * 0.3 : tx.length > 1 ? size * 0.36 : size * 0.5 }} aria-hidden>{tx}</span>;
 }

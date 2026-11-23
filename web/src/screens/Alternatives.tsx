@@ -203,9 +203,7 @@ export default function Alternatives() {
         const at = cs.length ? `${t('alt.seenAt')} ${cs.slice(0, 2).map(chainName).join(' · ')}${cs.length > 2 ? ` +${cs.length - 2}` : ''}` : t('alt.chainUnknown');
         const open = () => { haptic('tap'); go(routes.product(e.product.id)); };
         return (
-          <article key={e.product.id} className="acard" role="button" tabIndex={0} aria-label={e.product.name}
-            onClick={open}
-            onKeyDown={(ev) => { if (ev.target === ev.currentTarget && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); open(); } }}>
+          <article key={e.product.id} className="acard" onClick={open}>
             <div className="aphoto">
               {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading={i < 4 ? 'eager' : 'lazy'} decoding="async" /> : <span className="noimg" />}
               {e.vs != null && <span className={'abadge ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')} title={e.why}>{e.vs} {t('alt.valueShort')}</span>}
@@ -213,7 +211,7 @@ export default function Alternatives() {
             </div>
             <div className="atext">
               <div className="atop">
-                <div className="aname">{e.product.name}</div>
+                <a className="aname" href={routes.product(e.product.id)} style={{ color: 'inherit' }} onClick={(ev) => { ev.preventDefault(); ev.stopPropagation(); open(); }}>{e.product.name}</a>
                 {e.q != null && <span className="aq" title={t('alt.qualityTip')}>{t('alt.quality')} {Math.max(0, Math.min(100, Math.round(e.q)))}</span>}
               </div>
               <div className="abrand" title={cs.map(chainName).join(', ')}>{[e.product.brand, at].filter(Boolean).join(' · ')}</div>

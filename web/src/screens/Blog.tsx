@@ -65,7 +65,7 @@ export default function Blog() {
         <Link key={post.slug} to={routes.blogPost(post.slug)} style={{ textDecoration: 'none' }}>
           <Card>
             <span className="mut sm">{post.category} · {post.date}</span>
-            <h3 style={{ margin: '8px 0' }}>{post.title}</h3>
+            <h3 aria-level={2} style={{ margin: '8px 0' }}>{post.title}</h3>
             <Muted>{post.excerpt}</Muted>
           </Card>
         </Link>
