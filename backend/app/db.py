@@ -297,6 +297,21 @@ class ProductSubstitution(Base):
     created_at = Column(DateTime, default=now)
 
 
+class CategoryFlag(Base):
+    """"This product is in the wrong category", sent from the product page. Stores the Mieux placement the person saw, so every flag
+    can be reviewed and turned into a golden test case (scripts/review_category_flags.py). One flag per person and product."""
+    __tablename__ = "category_flags"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String, nullable=False)
+    product_id = Column(String, index=True, nullable=False)
+    name = Column(String)
+    placed_type = Column(String)        # Mieux type id the product was placed at (None when unclassified)
+    placed_category = Column(String)
+    suggested_type = Column(String)     # optional: the type the person says it belongs to
+    created_at = Column(DateTime, default=now)
+    __table_args__ = (UniqueConstraint("user_id", "product_id", name="uq_category_flag_user_product"),)
+
+
 class ProductOverride(Base):
     """Data the user added for a product whose database record is missing it (ingredients, vegetable share, protein, fibre...). Stays in this user's data only."""
     __tablename__ = "product_overrides"

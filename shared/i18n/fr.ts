@@ -128,6 +128,7 @@ export const fr = {
     retry: 'Réessayer',
   },
   avail: { observed: 'Relevé chez {s}, le {d}', chain: 'Chez {c}', listed: 'Vendu en France, magasin non vérifié', unknown: 'Disponibilité non vérifiée' },
+  flagcat: { btn: 'Mauvaise catégorie ?', thanks: 'Merci, nous allons vérifier la catégorie de ce produit.' },
   emptyAlt: {
     qualityTitle: 'Rien de meilleure qualité', qualityWhy: 'Votre produit a déjà {s}/100 : aucun produit comparable en vente près de chez vous n\'a une meilleure note.', qualityWhyNoScore: 'Aucun produit comparable en vente près de chez vous n\'a une meilleure note que le vôtre.',
     noneTitle: 'Pas d\'alternative', noneWhy: 'Nous n\'avons trouvé aucun produit comparable, ni moins cher, ni meilleur, ni de meilleur rapport qualité-prix, vendu en supermarché en France. Si vous en connaissez un, scannez-le.',

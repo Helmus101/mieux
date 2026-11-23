@@ -137,6 +137,11 @@ export class MieuxAPI {
     return response.data;
   }
 
+  async flagCategory(barcode: string, suggested_type?: string) {
+    const response = await this.client.post(`/products/${barcode}/category-flag`, { suggested_type: suggested_type ?? null });
+    return response.data;
+  }
+
   async contribute(barcode: string, data: Record<string, unknown>) {
     const response = await this.client.post(`/products/${barcode}/contribute`, data);
     return response.data;

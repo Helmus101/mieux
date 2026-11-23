@@ -129,6 +129,7 @@ export const en = {
     retry: 'Retry',
   },
   avail: { observed: 'Observed at {s} on {d}', chain: 'At {c}', listed: 'Listed in France, shop unverified', unknown: 'Availability not verified' },
+  flagcat: { btn: 'Wrong category?', thanks: 'Thanks, we will check this product\'s category.' },
   emptyAlt: {
     qualityTitle: 'Nothing better quality', qualityWhy: 'Your product is {s}/100: no comparable product sold near you has a better score.', qualityWhyNoScore: 'No comparable product sold near you has a better score than yours.',
     noneTitle: 'No alternative', noneWhy: 'We found no comparable product sold in a French supermarket that is cheaper, better, or better value. If you know one, scan it.',

@@ -10,6 +10,7 @@ import PqExplain from '../PqExplain';
 import { Bar, Brand, Button, Card, Collapsible, haptic, Muted, Pill, Row, Screen, NavBar, Sheet, Skeleton, Loader, ChainLogo } from '../ui';
 import { routes, useNav } from '../nav';
 import SaveButton from '../SaveButton';
+import { toast } from '../toast';
 import Where from '../Where';
 import DesktopQRBanner from '../DesktopQRBanner';
 import { countScan } from '../account';
@@ -170,6 +171,7 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
         </>) : <Muted>{t('score.na')}</Muted>}
       </section>
       {!noAlts && <button className="altcta" onClick={() => { haptic('tap'); go(routes.alternatives(p.id)); }}><span><b>{t('simple.findBetter')}</b><small>{t('simple.findBetterSub')}</small></span><i aria-hidden>→</i></button>}
+      <p className="mut sm" style={{ textAlign: 'center', margin: '10px 0 0' }}><a href="#" onClick={(e) => { e.preventDefault(); haptic('tap'); api.flagCategory(p.id).then(() => toast(t('flagcat.thanks'))).catch(() => undefined); }}>{t('flagcat.btn')}</a></p>
 
       {p.score && (() => {
         const s = p.score, dims = ((s.dimensions ?? []) as any[]).filter((d) => d.relevant !== false && d.key !== 'micro' && !d.missing && d.score != null);
