@@ -75,11 +75,8 @@ def test_no_recommendation():
     assert r["alternatives"] == [] and r["no_recommendation_reason"]
 
 
-def test_compare_same_basis():
-    r = c.post("/v1/comparisons", headers=H, json={"product_ids": ["1", "2"]}).json()
-    assert r["basis"].startswith("per 100")
-    prot = next(x for x in r["rows"] if x["field"] == "protein100g")
-    assert prot["favourable"] == [False, True]
+def test_comparison_is_switched_off():
+    assert c.post("/v1/comparisons", headers=H, json={"product_ids": ["1", "2"]}).status_code in (404, 405)   # no route: not reachable
 
 
 SAMPLE = [{"text": t, "confidence": .97, "position": i} for i, t in enumerate(
@@ -332,8 +329,6 @@ def test_price_constraint_compare_prices_and_receipt_name_search():
     assert ids == ["2"]                                     # 3 costs more, 5 has no price: neither passes "cheaper"
     r = c.post("/v1/products/1/alternatives", headers=Hk, json={**base, "price_constraint": "any"}).json()
     assert {"2", "3"} <= {a["product_id"] for a in r["alternatives"]}
-    cmpr = c.post("/v1/comparisons", headers=Hk, json={"product_ids": ["1", "2"]}).json()
-    assert cmpr["products"][0]["price"]["per100_cents"] == 50.0 and cmpr["products"][1]["price"]["pack_cents"] == 120
     # receipt line with no scanned match is looked up by name; it is only a candidate
     pv = c.post("/v1/receipts/preview", headers=Hk, json={"lines": [{"text": "YAOURT GREC 1,59", "position": 0}, {"text": "TOTAL 1,59", "position": 1}]}).json()
     cand = pv["items"][0]["match_candidate"]

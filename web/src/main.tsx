@@ -23,7 +23,7 @@ if (/iPhone|iPod|Android/i.test(navigator.userAgent) || window.location.pathname
   idle(() => {
     void import('./screens/Scan'); void import('./scanner').then((m) => m.preloadDecoder());
     // The other tabs too, so tapping Profil never waits on (or fails to download) a script.
-    void import('./screens/Profile'); void import('./screens/Product'); void import('./screens/Alternatives'); void import('./screens/Compare'); void import('./screens/History');
+    void import('./screens/Profile'); void import('./screens/Product'); void import('./screens/Alternatives'); void import('./screens/History');
   });
 }
 

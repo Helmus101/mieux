@@ -2441,8 +2441,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     return res
 
 
-@app.post("/v1/comparisons")
-@limiter.limit("20/minute")
+# Comparison is switched off (hidden in the apps, no route): the function stays for now, unrouted.
 def comparisons(request: Request, body: CmpReq, uid: str = Depends(user), s: Session = Depends(get_db)):
     P = [load_product(s, b) for b in body.product_ids]
     if not is_account(s, uid):

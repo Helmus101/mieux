@@ -8,7 +8,7 @@ const BASE = process.argv[2] || 'http://127.0.0.1:4173';
 const axeSrc = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
 const PROFILE = { onboarded: true, priorities: ['value'], diet: 'omnivore', allergens: [], name: '', place: null, chains: [], strictAdditives: true, country: 'FR', language: 'fr' };
 // The screens that need no data from the API. The API is stubbed (empty answers), so the run needs no backend and counts no visit.
-const SCREENS = [['landing', '/', false], ['onboarding', '/app', false], ['scan', '/app/scan', true], ['compare', '/app/compare', true], ['list', '/app/list', true], ['history', '/app/history', true], ['profile', '/app/profile', true], ['blog', '/blog', false]];
+const SCREENS = [['landing', '/', false], ['onboarding', '/app', false], ['scan', '/app/scan', true], ['list', '/app/list', true], ['history', '/app/history', true], ['profile', '/app/profile', true], ['blog', '/blog', false]];
 
 const browser = await chromium.launch();
 let failed = 0;

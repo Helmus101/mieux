@@ -1,5 +1,5 @@
 import { t } from '@shared/i18n';
-import { useHistory, useProfile } from '@shared/stores';
+import { useHistory } from '@shared/stores';
 import { useState } from 'react';
 import { formatCents } from '@shared/utils/format';
 import { Screen, NavBar, LargeTitle, Button, Muted, Group, Cell, Confirm } from '../ui';
@@ -9,7 +9,6 @@ import { routes, useNav } from '../nav';
 export default function List() {
   const { go } = useNav();
   const saved = useHistory((s) => s.saved), remove = useHistory((s) => s.removeSaved), clearSaved = useHistory((s) => s.clearSaved);
-  const queued = useProfile((s) => s.compare.length);   // products waiting in the comparison
   const [ask, setAsk] = useState(false);
   return (
     <Screen>
@@ -27,7 +26,6 @@ export default function List() {
         <Confirm open={ask} onClose={() => setAsk(false)} onConfirm={clearSaved} title={t('list.clear')} action={t('common.delete')}>{t('list.clearConfirm')}</Confirm>
       </> : <div className="empty"><p>{t('list.empty')}</p><Button primary onPress={() => go(routes.scan)}>{t('tabs.scan')}</Button></div>}
       <Group>
-        <Cell chevron onPress={() => go(routes.compare)}><div className="listrow"><div className="grow"><b>{t('list.compareTool')}</b>{queued > 0 && <Muted>{t('list.compareQueued', { n: queued })}</Muted>}</div></div></Cell>
         <Cell chevron onPress={() => go(routes.history)}><b>{t('list.historyTool')}</b></Cell>
       </Group>
     </Screen>

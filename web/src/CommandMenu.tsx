@@ -12,7 +12,6 @@ export default function CommandMenu() {
     { label: t('tabs.scan'), hint: 'G S', run: () => go(routes.scan) },
     { label: t('tabs.list'), hint: 'G L', run: () => go(routes.list) },
     { label: t('tabs.profile'), hint: 'G P', run: () => go(routes.profile) },
-    { label: t('tabs.compare'), hint: 'G C', run: () => go(routes.compare) },
     { label: t('history.title') || 'Historique', hint: 'G H', run: () => go(routes.history) },
   ], [go]);
   const shown = cmds.filter((c) => c.label.toLowerCase().includes(q.toLowerCase()));
@@ -26,7 +25,7 @@ export default function CommandMenu() {
       if (e.key === '/') { e.preventDefault(); setOpen(true); setQ(''); setI(0); return; }
       if (e.key === 'Escape') { setOpen(false); return; }
       if (g && Date.now() - g < 900) {        // "g" then a letter: go to a screen
-        const m = { s: routes.scan, l: routes.list, p: routes.profile, c: routes.compare, h: routes.history }[e.key.toLowerCase()];
+        const m = { s: routes.scan, l: routes.list, p: routes.profile, h: routes.history }[e.key.toLowerCase()];
         g = 0; if (m) go(m); return;
       }
       if (e.key.toLowerCase() === 'g') g = Date.now();

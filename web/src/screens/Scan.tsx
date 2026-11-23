@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { api } from '@shared/api/client';
-import { useProfile } from '@shared/stores';
 import { t } from '@shared/i18n';
 import { haptic } from '../ui';
 import { scanClick } from '../haptics';
@@ -12,9 +10,7 @@ import { Cancelled, closeCamera, decodeImage, openCamera, preloadDecoder, scanBa
 // Products are identified by their barcode only: from the live camera or from a photo of the barcode. No typed codes, no name search.
 export default function Scan() {
   const { go } = useNav();
-  const forCompare = !!(useLocation().state as { compare?: boolean } | null)?.compare;  // opened from Compare: add the scanned product there instead of opening it
-  const addCompare = useProfile((st) => st.addCompare);
-  const open = (c: string) => { if (forCompare) { addCompare(c); go(routes.compare); } else go(routes.product(c)); };
+  const open = (c: string) => go(routes.product(c));
   const video = useRef<HTMLVideoElement>(null), frame = useRef<HTMLDivElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const stopScan = useRef<(() => void) | null>(null);
@@ -34,8 +30,8 @@ export default function Scan() {
       const stopper = await scanBarcodes(video.current!, (c) => {
         if (locked.current) return;
         scanClick(); haptic('success');
-        if (forCompare) { api.getProduct(c).catch(() => undefined); api.getWebPriceQuick(c); stop(); open(c); } else setPeek(c);     // keep the camera running; the card shows the product
-      }, frame.current, !forCompare);
+        setPeek(c);     // keep the camera running; the card shows the product
+      }, frame.current, true);
       if (id !== run.current) { stopper(); return; }
       stopScan.current = stopper;
     } catch (e) { if (id === run.current) setStarting(false); if (!(e instanceof Cancelled)) haptic('error'); if (!(e instanceof Cancelled)) setErr(t((e as Error).name === 'NotAllowedError' ? 'scan.camDenied' : (e as Error).name === 'NotFoundError' ? 'scan.camNone' : 'scan.camFail', { e: (e as Error).message })); }
@@ -47,7 +43,7 @@ export default function Scan() {
     const c = await decodeImage(f).catch(() => null);
     if (c) { scanClick(); haptic('success'); api.getWebPriceQuick(c); stop(); open(c); } else { haptic('error'); setErr(t('scan.noCode')); }
   };
-  const close = () => { haptic('tap'); stop(); go(forCompare ? routes.compare : routes.list); };
+  const close = () => { haptic('tap'); stop(); go(routes.list); };
   return (
     <main className="cam">
       <video ref={video} muted playsInline />
@@ -56,9 +52,9 @@ export default function Scan() {
         <button className="cam-btn" onClick={close} aria-label={t('common.back')}><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
         {canTorch && on && <button className={'cam-btn' + (torch ? ' lit' : '')} onClick={flip} aria-label={t('scan.torch')}><svg viewBox="0 0 24 24"><path d="M7 3h10l-2 7v3l-3 3-3-3v-3zM12 16v5" /></svg></button>}
       </div>
-      {peek && !forCompare && <ScanPeek code={peek} onClose={() => { locked.current = false; setPeek(null); }} onExpandedChange={(v) => { locked.current = v; }} />}
+      {peek && <ScanPeek code={peek} onClose={() => { locked.current = false; setPeek(null); }} onExpandedChange={(v) => { locked.current = v; }} />}
       <div className="cam-bottom">
-        {err ? <p className="cam-err">{err}</p> : <p>{on ? (forCompare ? t('compare.scanForCompare') : t('scan.point')) : starting ? t('scan.opening') : t('simple.camNeeded')}</p>}
+        {err ? <p className="cam-err">{err}</p> : <p>{on ? t('scan.point') : starting ? t('scan.opening') : t('simple.camNeeded')}</p>}
         {!on && !starting && <button className="cam-main" onClick={start}>{t('scan.open')}</button>}
         <label className="cam-link">{t('scan.gallery')}<input type="file" accept="image/*" hidden onChange={(e) => fromPhoto(e.target.files?.[0])} /></label>
       </div>
