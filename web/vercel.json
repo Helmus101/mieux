@@ -13,7 +13,7 @@
       "destination": "https://mieux-api.fly.dev/v1/:path*"
     },
     {
-      "source": "/((?!assets/|logos/|sitemap\\.xml|robots\\.txt|sw\\.js|manifest\\.webmanifest|google.*\\.html).*)",
+      "source": "/(app|blog|stats|mentions-legales|confidentialite|cgu)(/.*)?",
       "destination": "/index.html"
     }
   ],
