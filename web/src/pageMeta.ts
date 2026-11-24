@@ -11,3 +11,13 @@ export function usePageMeta(title: string, description?: string) {
     return () => { document.title = prevTitle; if (el && prevDesc != null) el.content = prevDesc; };
   }, [title, description]);
 }
+
+/** An address with nothing behind it (unknown article): the page says so to crawlers, since a single-page app cannot answer 404. */
+export function useNoindex(on: boolean) {
+  useEffect(() => {
+    if (!on) return;
+    const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex';
+    document.head.appendChild(m);
+    return () => { m.remove(); };
+  }, [on]);
+}

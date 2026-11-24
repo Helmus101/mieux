@@ -2,7 +2,7 @@ import { useParams } from 'react-router-dom';
 import { NavBar, Screen, Card, Muted } from '../ui';
 import { useNav } from '../nav';
 import { BLOG } from '../blogMeta';
-import { usePageMeta } from '../pageMeta';
+import { usePageMeta, useNoindex } from '../pageMeta';
 
 const posts: Record<string, { title: string; content: string; date: string; category: string }> = {
   'yuka-ou-mieux': {
@@ -502,6 +502,7 @@ export default function BlogPost() {
   const { back } = useNav();
   const post = posts[slug || ''];
   const meta = BLOG.find((b) => b.slug === slug);
+  useNoindex(!post);
   usePageMeta(meta ? `${meta.title} · Mieux` : 'Mieux', meta?.excerpt);
 
   if (!post) {
