@@ -214,7 +214,7 @@ export default function Alternatives() {
                 <a className="aname" href={routes.product(e.product.id)} style={{ color: 'inherit' }} onClick={(ev) => { ev.preventDefault(); ev.stopPropagation(); open(); }}>{e.product.name}</a>
                 {e.q != null && <span className="aq" title={t('alt.qualityTip')}>{t('alt.quality')} {Math.max(0, Math.min(100, Math.round(e.q)))}</span>}
               </div>
-              <div className="abrand" title={cs.map(chainName).join(', ')}>{[e.product.brand, at].filter(Boolean).join(' · ')}</div>
+              <div className="abrand" title={cs.map(chainName).join(', ')}>{[e.product.brand && !cs.some((id: string) => chainName(id).toLowerCase() === String(e.product.brand).toLowerCase()) ? e.product.brand : '', at].filter(Boolean).join(' · ')}</div>
               <div className="aprice">
                 {u ? <b>{e.ps_web ? '~ ' : ''}{formatCents(u.perUnitCents)}<small> /{u.unit}</small></b>
                   : e.pack != null ? <b>{e.ps_web ? '~ ' : ''}{formatCents(e.pack)}</b> : <span className="mut sm">{t('alt.noPrice')}</span>}
