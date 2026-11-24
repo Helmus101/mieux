@@ -16,7 +16,7 @@ from typing import Any, Dict, Iterator, List, Optional
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import delete
 from sqlalchemy import func
@@ -176,6 +176,20 @@ app.add_middleware(GZipMiddleware, minimum_size=800)
 
 
 _IDEM: Dict[str, Any] = {}   # (session, path, key) -> (expires, status, body, content-type)
+
+
+MAX_BODY_BYTES = int(os.getenv("MAX_BODY_BYTES", str(1_000_000)))   # JSON only (no file uploads): 1 MB is far above any real request
+
+
+@app.middleware("http")
+async def _limit_body(request: Request, call_next):
+    try:
+        too_big = int(request.headers.get("content-length") or 0) > MAX_BODY_BYTES
+    except ValueError:
+        too_big = True
+    if too_big:
+        return JSONResponse({"detail": "payload_too_large"}, status_code=413)
+    return await call_next(request)
 
 
 @app.middleware("http")
