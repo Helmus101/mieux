@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 def _load_dotenv() -> None:
     """Tiny .env reader (KEY=value lines) so secrets live in backend/.env, never in client code. Real env vars win."""
@@ -163,9 +164,12 @@ def client_ip(request: Request) -> str:
     return request.headers.get("fly-client-ip") or get_remote_address(request) or (request.headers.get("x-forwarded-for") or "").split(",")[-1].strip() or "unknown"
 
 
-limiter = Limiter(key_func=client_ip)
+# Every route has a ceiling per client address (the explicit @limiter.limit decorators below are stricter); anonymous
+# sessions are free to create, so without this the write routes were unbounded. Health checks are exempt.
+limiter = Limiter(key_func=client_ip, default_limits=[os.getenv("DEFAULT_RATE_LIMIT", "300/minute")])
 app = FastAPI(title="Mieux API", version="0.2")
 app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(GZipMiddleware, minimum_size=800)
@@ -475,6 +479,7 @@ def prefs_of(s: Session, uid: str) -> Prefs:
 
 
 # ---- endpoints
+@limiter.exempt
 @app.get("/v1/health")
 def health():
     return {"ok": True}
