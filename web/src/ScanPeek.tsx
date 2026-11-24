@@ -57,7 +57,7 @@ export default function ScanPeek({ code, onExpandedChange, onClose }: { code: st
       onClick={() => { if (p && performance.now() - lastDrag.current > 200) expand(); }} onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && p) { e.preventDefault(); expand(); } }}>
       {failed ? <span className="mut">{t('scan.peekFailed')}</span> : !p ? <><Skeleton h={18} w="60%" /><Skeleton h={14} w="35%" /></> : <>
         <div className="peek-top">
-          {p.imageUrl && <img src={p.imageUrl} alt="" />}
+          {p.imageUrl && <img src={p.imageUrl} alt="" width={56} height={56} />}
           <div className="peek-main"><b>{p.name}</b>{p.brand && p.brand.toLowerCase() !== (p.name ?? '').toLowerCase() && <span className="mut sm">{p.brand}</span>}</div>
         </div>
         <div className="peek-scores">

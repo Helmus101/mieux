@@ -205,7 +205,7 @@ export default function Alternatives() {
         return (
           <article key={e.product.id} className="acard" onClick={open}>
             <div className="aphoto">
-              {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" loading={i < 4 ? 'eager' : 'lazy'} decoding="async" /> : <span className="noimg" />}
+              {e.product.imageUrl ? <img src={e.product.imageUrl} alt="" width={160} height={120} loading={i < 4 ? 'eager' : 'lazy'} decoding="async" /> : <span className="noimg" />}
               {e.vs != null && <span className={'abadge ' + (e.vs >= 65 ? 'g' : e.vs >= 40 ? 'w' : 'b')} title={e.why}>{e.vs} {t('alt.valueShort')}</span>}
               <button className="flagbtn" aria-label={t('sub.notComparable')} title={t('sub.notComparable')} onClick={async (ev) => { ev.stopPropagation(); try { await api.substitutionVerdict(barcode!, e.product.id, 'not_comparable'); haptic('warning'); setHidden((h) => [...h, e.product.id]); setNote(t('sub.thanks')); setTimeout(() => setNote(null), 2000); } catch { /* offline: keep it */ } }}>⚑</button>
             </div>
