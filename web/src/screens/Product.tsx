@@ -164,7 +164,7 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
           </div>
           <ul className="fl">
             {(p.score.flags ?? []).slice(0, 3).map((f: any) => <li key={f.key} className={f.level === 'bad' ? 'b' : 'w'}>{t('flag.' + f.key)}</li>)}
-            {((p.score.additives?.items ?? []) as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 3).map((x) => <li key={x.code} className={x.level === 'D' ? 'b' : 'w'} onClick={() => setSheet(x.code)} style={{ cursor: 'pointer' }}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</li>)}
+            {((p.score.additives?.items ?? []) as any[]).filter((x) => x.level === 'C' || x.level === 'D').slice(0, 3).map((x) => <li key={x.code} className={x.level === 'D' ? 'b' : 'w'} role="button" tabIndex={0} onClick={() => setSheet(x.code)} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSheet(x.code); } }} style={{ cursor: 'pointer' }}>{x.code.toUpperCase()}{x.name ? ' · ' + x.name.split(' (')[0] : ''}</li>)}
             {p.score.incomplete && <li className="g">{t('sdim.incomplete')}</li>}
           </ul>
         </>) : <Muted>{t('score.na')}</Muted>}
@@ -212,7 +212,7 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
           {items.map((a: any) => {
             const hi = a.level === 'C' || a.level === 'D';
             const nm = a.name || additiveInfo(a.code)?.name || '';
-            return <div className="risk" key={a.code} onClick={() => { haptic('tap'); setSheet(a.code); }} style={{ cursor: 'pointer' }}>
+            return <div className="risk" key={a.code} role="button" tabIndex={0} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); setSheet(a.code); } }} onClick={() => { haptic('tap'); setSheet(a.code); }} style={{ cursor: 'pointer' }}>
               <div className="addhead"><span className={'dot ' + (a.level === 'D' ? 'b' : a.level === 'C' ? 'w' : 'g')} /><b>{a.code.toUpperCase()}</b><span className="addname">{nm}</span><span className="chev">›</span></div>
               {hi && a.note && <p className="mut sm">{a.note}</p>}
             </div>;

@@ -11,7 +11,7 @@ import { t } from '@shared/i18n';
 import { haptic } from '../haptics';
 export { haptic };
 
-export function Screen({ children }: { children: ReactNode }) { return <main className="screen">{children}</main>; }
+export function Screen({ children }: { children: ReactNode }) { return <><a className="skip" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus(); }}>{t('common.skipMain')}</a><main id="main" tabIndex={-1} className="screen">{children}</main></>; }
 
 export function NavBar({ title, onBack, right }: { title?: string; onBack?: () => void; right?: ReactNode }) {
   const [s, setS] = useState(false);
