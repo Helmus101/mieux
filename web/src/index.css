@@ -854,3 +854,34 @@ h1,.large-title{font-weight:800; letter-spacing:-.03em; line-height:.98}
   .acard .aname{font-size:16px}
   .acard .aprice{padding-top:4px}
 }
+
+/* ===== Calm pass: fewer containers, quieter labels, more air. Last on purpose. ===== */
+.screen{padding-left:max(20px,env(safe-area-inset-left)); padding-right:max(20px,env(safe-area-inset-right))}
+.phead{margin-top:8px}
+.pid{gap:20px}
+.pid img{border-radius:16px}
+.pbrand{letter-spacing:0; text-transform:none; font-weight:500; color:var(--mut); font-size:14px}
+.pprice{margin:14px 0 0}
+.twoscores{margin:28px 0 8px; padding:28px 4px 24px; border-radius:20px}
+.twoscores .scorecap{letter-spacing:0; text-transform:none; font-size:14px; font-weight:500; color:var(--mut)}
+.fl{margin:20px 4px 0; gap:10px; font-size:14px; color:var(--mut)}
+.altcta{margin:28px 0 12px; padding:22px 22px; box-shadow:none}
+.altcta small{opacity:.8}
+.coll{padding:0 20px}
+.coll>summary{min-height:60px; font-weight:500}
+.coll:not(.coll+.coll):not(:has(~ .coll)){margin-top:20px}
+.coll:not(.coll+.coll){margin-top:20px}
+.brandsign{margin:48px 0 20px}
+.atitle{margin-top:20px}
+.agrid{gap:16px; margin-top:20px}
+.acard{box-shadow:none}
+.acard .aprice b{text-decoration:none; font-size:20px}
+.acard .aq{color:var(--mut)}
+.abadge{box-shadow:none; background:rgba(255,255,255,.92); font-weight:700}
+.aphoto .flagbtn{opacity:.45; text-shadow:none}
+@media (hover:hover){.acard:hover .flagbtn{opacity:.9}}
+.card,.cell{box-shadow:none}
+h2{margin-top:36px}
+@media (max-width:639px){.agrid{gap:12px}.acard{padding:14px; gap:16px}}
+.pprice:empty{display:none}
+.pprice.mut:has(.mini-ring){display:none}
