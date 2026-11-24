@@ -1,5 +1,20 @@
 # AGENTS.md
 
+## Rules every skill and agent must follow
+
+These apply to every task and every skill (design, backend, data, deploy). They override a skill's own instructions where they conflict.
+
+1. Never modify working functionality without understanding its dependencies (callers, tests, stored data, the web and Expo clients that share `shared/`).
+2. Never introduce a dependency without justifying it (what it replaces, its size and licence, why the platform or an existing package is not enough).
+3. Never fabricate product, price or nutritional information. Missing stays null or "unknown"; examples shown to users must be real, dated data.
+4. Never deploy without passing the relevant tests (backend pytest, web tsc + vitest + build, `npm run test:a11y` for UI changes).
+5. Never mark a task complete without verifying its actual behaviour: run it, look at the result, and say what was not checked.
+6. Never expose API keys or sensitive user data: no secrets in git, logs, URLs or third-party requests; session ids and purchases stay private.
+7. Never make destructive database changes without a migration and a recovery strategy (backup or the timestamped index copies, and a tested way back).
+8. Never sacrifice accessibility or mobile usability for visual appearance: 44 px targets, contrast, labels, reduced motion, no horizontal scroll at 390 px.
+9. Always consider performance, security and maintainability when implementing features.
+10. Always document important architectural decisions (in this file, `DESIGN.md` or `docs/`), with the reason, not only the result.
+
 This file contains learned information about the Mieux project for AI agents.
 
 ## Project Overview
