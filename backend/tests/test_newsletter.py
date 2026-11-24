@@ -39,6 +39,8 @@ def test_supabase_sync_sends_the_row_and_survives_failures(monkeypatch):
     assert sb.push_subscriber("a@b.fr", "fr", "FR", transport=dup) is True   # already subscribed
     def boom(*a, **k): raise OSError("down")
     assert sb.push_subscriber("a@b.fr", "fr", "FR", transport=boom) is False
+    assert sb.delete_subscriber("a+b@c.fr", transport=ok) is False   # publishable key cannot delete: never claim it did
+    monkeypatch.setenv("SUPABASE_SECRET_KEY", "sb_secret_x")
     assert sb.delete_subscriber("a+b@c.fr", transport=ok) is True and seen["url"].endswith("email=eq.a%2Bb%40c.fr")
 
 

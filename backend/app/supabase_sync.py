@@ -34,7 +34,7 @@ Onboarding total: the same kind of single row, +1 each time someone presses "Get
     grant execute on function increment_onboarding() to anon;
     -- the total:  select total from onboarding_total;
 
-Deleting an address in Supabase is then done from the dashboard (the publishable key is not allowed to delete).
+Removing an address on unsubscribe needs SUPABASE_SECRET_KEY (server only); with the publishable key alone the address stays in Supabase and must be deleted from the dashboard.
 """
 import json
 import logging
@@ -91,6 +91,10 @@ def push_subscriber(email: str, lang: Optional[str], country: Optional[str], tra
 
 def delete_subscriber(email: str, transport=None) -> bool:
     if not enabled():
+        return False
+    if not os.environ.get("SUPABASE_SECRET_KEY"):
+        # The publishable key may not delete: Supabase would answer 204 and remove nothing, which must not read as "deleted".
+        log.warning("supabase subscriber delete skipped: set SUPABASE_SECRET_KEY so unsubscribes also remove the address there")
         return False
     try:
         _call("DELETE", "subscribers?email=eq." + urllib.parse.quote(email, safe=""), transport=transport)
