@@ -248,6 +248,7 @@ body:has(.landing){margin:0}   /* the landing does not load the app stylesheet: 
 .lp-diff,.lp-diff.down,.lp-diff.up{background:none;padding:0;border-radius:0;font-size:13px;font-weight:500;color:var(--soft)}
 .lp-diff.down{color:var(--ok)}
 .lp-score{background:none;color:var(--warn);padding:0}
+.lp-score small{opacity:1}
 .lp-score b{color:var(--warn);font-size:40px}.lp-score small{color:var(--soft)}
 #how,#phone,#uvp,#difference{background:transparent}
 .lp-sec{padding-block:clamp(72px,10vw,140px)}

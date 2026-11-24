@@ -2,7 +2,8 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { execSync } from 'child_process';
-import { readFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { BLOG, BLOG_DESC } from './src/blogMeta';
 
 const here = (p: string) => path.resolve(__dirname, p);
 
@@ -21,15 +22,21 @@ function appVersion(): string {
 function seo(siteUrl: string) {
   const base = siteUrl.replace(/\/+$/, '');
   const abs = (p: string) => (base ? base + p : p);
-  const blogPosts = [
-    { slug: 'yuka-ou-mieux', title: 'Yuka ou Mieux : ce qui change vraiment', date: '2026-11-05' },
-    { slug: 'aliments-sains-qui-ne-le-sont-pas', title: 'Ces aliments "sains" qui cachent des additifs préoccupants', date: '2026-11-02' },
-    { slug: 'comprendre-additifs-alimentaires', title: 'Comprendre les additifs alimentaires: guide complet', date: '2026-11-01' },
-    { slug: 'nutri-score-explique', title: 'Le Nutri-Score expliqué: comment ça marche?', date: '2026-10-28' },
-    { slug: 'produits-ultra-transformes', title: 'Produits ultra-transformés: risques et alternatives', date: '2026-10-25' },
-    { slug: 'manger-mieux-budget', title: 'Comment manger mieux avec un petit budget', date: '2026-10-20' },
-    { slug: 'eviter-additifs-dangereux', title: 'Les additifs à éviter dans votre alimentation', date: '2026-10-15' },
-  ];
+  const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  const ld = (o: unknown) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`;
+  const ORG = { '@type': 'Organization', name: 'Mieux', url: abs('/'), logo: abs('/icon-512.png') };
+  /** The shell with one page's own head: what a crawler reads before any script runs. */
+  const pageHtml = (html: string, o: { title: string; desc: string; path: string; type: string; ld: unknown }) => html
+    .replace(/<title>[^<]*<\/title>/, `<title>${esc(o.title)}</title>`)
+    .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(o.desc)}$2`)
+    .replace(/<link rel="canonical" href="[^"]*" \/>/, `<link rel="canonical" href="${abs(o.path)}" />`)
+    .replace(/<meta property="og:url" content="[^"]*" \/>/, `<meta property="og:url" content="${abs(o.path)}" />`)
+    .replace(/<meta property="og:type" content="[^"]*" \/>/, `<meta property="og:type" content="${o.type}" />`)
+    .replace(/(<meta (?:property="og:title"|name="twitter:title") content=")[^"]*(")/g, `$1${esc(o.title)}$2`)
+    .replace(/(<meta (?:property="og:description"|name="twitter:description") content=")[^"]*(")/g, `$1${esc(o.desc)}$2`)
+    .replace('</head>', `${ld(o.ld)}\n  </head>`);
+  const blogPosts = BLOG;
+
   return {
     name: 'mieux-seo',
     transformIndexHtml(html: string) {
@@ -37,15 +44,21 @@ function seo(siteUrl: string) {
         `<link rel="canonical" href="${abs('/')}" />`,
         `<meta property="og:url" content="${abs('/')}" />`,
       ].join('\n    ');
-      return html.replace('%SEO_TAGS%', tags).replace(/%OG_IMAGE%/g, abs('/og-image.png'));
+      const home = ld({ '@context': 'https://schema.org', '@graph': [
+        { '@type': 'WebSite', name: 'Mieux', url: abs('/'), inLanguage: 'fr' },
+        { ...ORG },
+        { '@type': 'SoftwareApplication', name: 'Mieux', applicationCategory: 'LifestyleApplication', operatingSystem: 'Web', url: abs('/'), offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' } },
+      ] });
+      return html.replace('%SEO_TAGS%', tags + '\n    ' + home).replace(/%OG_IMAGE%/g, abs('/og-image.png'));
     },
     generateBundle() {
       if (!base) return;
+
       const urls = [
-        `<url><loc>${base}/</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
-        `<url><loc>${base}/blog</loc><lastmod>${new Date().toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
+        `<url><loc>${base}/</loc><lastmod>${blogPosts[0].iso}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>`,
+        `<url><loc>${base}/blog</loc><lastmod>${blogPosts[0].iso}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`,
         ...['mentions-legales', 'confidentialite', 'cgu'].map(s => `<url><loc>${base}/${s}</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>`),
-        ...blogPosts.map(post => `<url><loc>${base}/blog/${post.slug}</loc><lastmod>${post.date}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`),
+        ...blogPosts.map(post => `<url><loc>${base}/blog/${post.slug}</loc><lastmod>${post.iso}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`),
       ];
       this.emitFile({
         type: 'asset',
@@ -56,6 +69,17 @@ ${urls.join('\n  ')}
 </urlset>
 `,
       });
+    },
+    closeBundle() {
+      if (!base) return;
+      const shellPath = here('dist/index.html');
+      if (!existsSync(shellPath)) return;
+      const shell = readFileSync(shellPath, 'utf8');
+      const emit = (rel: string, source: string) => { const f = here('dist/' + rel); mkdirSync(path.dirname(f), { recursive: true }); writeFileSync(f, source); };
+      emit('blog/index.html', pageHtml(shell, { title: 'Blog · Mieux', desc: BLOG_DESC, path: '/blog', type: 'website', ld: { '@context': 'https://schema.org', '@type': 'Blog', name: 'Blog Mieux', url: abs('/blog'), inLanguage: 'fr', publisher: ORG } }));
+      for (const b of blogPosts) {
+        emit(`blog/${b.slug}/index.html`, pageHtml(shell, { title: `${b.title} · Mieux`, desc: b.excerpt, path: `/blog/${b.slug}`, type: 'article', ld: { '@context': 'https://schema.org', '@type': 'BlogPosting', headline: b.title, description: b.excerpt, datePublished: b.iso, dateModified: b.iso, inLanguage: 'fr', mainEntityOfPage: abs(`/blog/${b.slug}`), image: abs('/og-image.png'), author: ORG, publisher: ORG } }));
+      }
     },
   };
 }
