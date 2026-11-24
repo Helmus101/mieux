@@ -129,7 +129,7 @@ export default function Alternatives() {
             <Thumb uri={e.product.imageUrl} size={60} />
             <View style={{ flex: 1, gap: 3 }}>
               <Body bold>{e.product.name}</Body>
-              {e.product.brand ? <Muted small>{e.product.brand}</Muted> : null}
+              {e.product.brand && !cs.some((id: string) => chainName(id).toLowerCase() === String(e.product.brand).toLowerCase()) ? <Muted small>{e.product.brand}</Muted> : null}
               {cs.length > 0 && <Row wrap style={{ gap: 6 }}>{cs.slice(0, 4).map((id: string) => <ChainLogo key={id} id={id} name={chainName(id)} size={22} />)}{cs.length > 4 && <Muted small>+{cs.length - 4}</Muted>}</Row>}
               <Row wrap style={{ gap: 8 }}>
                 {vs != null && <Text style={{ color: vs >= 65 ? c.accent : vs >= 40 ? c.warn : c.bad, fontWeight: '700' }}>{vs} {t('alt.valueShort')}</Text>}

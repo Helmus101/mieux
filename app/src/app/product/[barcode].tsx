@@ -181,7 +181,7 @@ export function ProductView({ barcode }: { barcode?: string }) {
       <Row style={{ alignItems: 'flex-start', gap: 14 }}>
         {p.imageUrl ? <Image source={{ uri: p.imageUrl }} style={{ width: 96, height: 96, borderRadius: 12, backgroundColor: '#fff' }} contentFit="contain" priority="high" /> : null}
         <View style={{ flex: 1, gap: 2 }}>
-          {p.brand && p.brand.toLowerCase() !== (p.name || '').toLowerCase() && <Text style={{ color: c.mut, fontSize: 13, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase' }}>{p.brand}</Text>}
+          {p.brand && p.brand.toLowerCase() !== (p.name || '').toLowerCase() && <Text style={{ color: c.mut, fontSize: 14, fontWeight: '500' }}>{p.brand}</Text>}
           <DisplayText size={34}>{p.name}</DisplayText>
           {p.quantityText ? <Muted small>{p.quantityText}</Muted> : null}
         </View>

@@ -107,7 +107,7 @@ export const Row = ({ children, spread, wrap, style }: { children: ReactNode; sp
 
 export const Section = ({ title, children }: { title?: string; children: ReactNode }) => {
   const c = useTheme();
-  return <View style={{ gap: 8 }}>{title ? <Text style={{ color: c.mut, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>{title}</Text> : null}{children}</View>;
+  return <View style={{ gap: 8 }}>{title ? <Text style={{ color: c.mut, fontSize: 14, fontWeight: '500' }}>{title}</Text> : null}{children}</View>;
 };
 
 /** Grouped list: hairline above, below and between rows, no card fill (the web's .group). */
