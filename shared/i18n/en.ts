@@ -152,7 +152,7 @@ export const en = {
     ios1: 'Open this page in Safari (iPhone\'s blue browser).', ios2a: 'Tap the Share button', ios2b: 'at the bottom of the screen. On some iPhones, first tap the ☰ or ⋯ menu (next to the address bar), then "Share".', ios3: 'Scroll the menu, then tap "Add to Home Screen".', ios4: 'Tap "Add" at top right. Mieux icon appears on your home screen.',
     and1: 'Open this page in Chrome (or Edge, Firefox, Samsung Internet).', and2: 'Tap the ⋮ (three dots) menu, at the top right or bottom of the screen depending on your phone.', and3: 'Choose "Install app"; otherwise "Add to home screen". If you only see "Add to", tap it, then "Home screen".', and4: 'Confirm with "Install" or "Add". The Mieux icon appears on your home screen, sometimes in the app drawer.',
     installNow: 'Install now', iosNote: 'On iPhone, only Safari allows this for a web app; with another browser, open this link in Safari first.', andNote: 'On Samsung Internet: menu ≡ then "Add page to" then "Home screen".', profile: 'Add to home screen' },
-  land: {
+  land: { budgetTitle: 'Made for tight budgets', b1t: 'Price per kilo, not per pack', b1d: 'Packs of different sizes become comparable: Mieux shows the price per kilo or litre when it is known.', b2t: 'The cheapest first', b2d: 'For each product, the cheapest alternative in its category, with what you save.', b3t: 'Free, no account', b3d: 'No subscription, no sign-up. Your scans stay on your phone.', b4t: 'Prices you can check', b4d: 'Prices seen in shops (Open Prices) and on your receipts. When a price is unknown, Mieux says so.', cityTitle: 'Town halls, community centres, charities', cityLead: 'Mieux is free and can support your budget and food workshops. Write to us.', cityCta: 'Write to us',
     open: 'Open app', navFeatures: 'Features', navTry: 'Simulator', navPhone: 'On mobile',
     kicker: 'Eat better, product by product', t1: 'Scan.', t2: 'Compare.', t3: 'Pay less, eat better.',
     sub: 'Mieux scores the product out of 100, then shows the cheapest, the best and the best-value alternative near you.',
@@ -185,10 +185,10 @@ export const en = {
     u1t: 'The cheapest', u1d: 'Same category, lowest price per 100g, with what you save.',
     u2t: 'The best quality', u2d: 'The highest score, with no high-risk additive: eat better without compromise.',
     u3t: 'The best value', u3d: 'The right balance: a very good score at a fair price.',
-    howTitle: 'Three taps, ten seconds', s1t: 'Scan', s1d: 'The barcode, with your camera.', s2t: 'Understand', s2d: 'Score out of 100, sugar, salt, additives: explained.', s3t: 'Choose', s3d: 'Cheapest, best or best value, near you.',
+    howTitle: 'Three taps, ten seconds', s1t: 'Scan', s1d: 'The barcode, with your camera.', s2t: 'Understand', s2d: 'Score out of 100, sugar, salt, additives: explained.', s3t: 'Choose', s3d: 'The cheapest first, near you.',
     finalTitle: 'Scan your next product.', finalSub: 'A few seconds to know whether it is worth its price.',
     // landing page, current version
-    h1a: 'Scan a product in the supermarket.', h1b: 'Is it worth the price? And what should you buy instead?',
+    h1a: 'Every euro counts at the supermarket.', h1b: 'Scan a product: see its price per kilo and the cheapest alternative.',
     lead: 'A score out of 100, the price per kilo and three alternatives from the same shelf: the cheapest, the best scored, the best value. When a price is unknown, we say so.',
     cta: 'Open Mieux', ctaFree: 'Free, no account, nothing to install. Your scans stay on your phone.',
     save: '−{p}% per kg', more: '+{p}% per kg',

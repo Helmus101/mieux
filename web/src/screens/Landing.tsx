@@ -14,7 +14,6 @@ const eur = (c: number) => (c / 100).toFixed(2).replace('.', ',') + ' €';
 const CONTACT = 'bonjourmieuxmanger@gmail.com';
 
 // What a score-only scanner does not do: the four things the app adds.
-const VERSUS = ['vs1', 'vs2', 'vs4'] as const;   // three rows: the price, the alternatives, the sources
 
 function Qr({ url }: { url: string }) {
   const q = qrcode(0, 'M');
@@ -100,18 +99,22 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         </ol>
       </section>
 
-      <section className="lp-sec" id="difference">
-        <h2>{t('land.yukaTitle')}</h2>
+      <section className="lp-sec" id="budget">
+        <h2>{t('land.budgetTitle')}</h2>
         <dl className="lp-vs">
-          {VERSUS.map((k) => (
+          {(['b1', 'b2', 'b3', 'b4'] as const).map((k) => (
             <div className="lp-vs-row" key={k}>
               <dt>{t('land.' + k + 't')}</dt>
-              <dd className="lp-them"><span>{t('land.vsCol1')}</span>{t('land.' + k + 'n')}</dd>
-              <dd className="lp-us"><span>{t('land.vsCol2')}</span>{t('land.' + k + 'd')}</dd>
+              <dd className="lp-us">{t('land.' + k + 'd')}</dd>
             </div>
           ))}
         </dl>
-        <p className="lp-note">{t('land.vsNote')}</p>
+      </section>
+
+      <section className="lp-sec" id="mairies">
+        <h2>{t('land.cityTitle')}</h2>
+        <p className="lp-lead">{t('land.cityLead')}</p>
+        <div className="lp-cta"><a className="lp-btn lp-btn-lg" href={`mailto:${CONTACT}`}>{t('land.cityCta')}</a><p className="lp-trust">{CONTACT}</p></div>
       </section>
 
       {desktop && (

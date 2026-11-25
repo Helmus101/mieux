@@ -179,7 +179,7 @@ export default function Alternatives() {
       {busy && <>
         <div className="skel-seg" aria-hidden><Skeleton h={44} /></div>
         <div className="agrid" aria-hidden>{[0, 1, 2, 3].map((n) => (
-          <div key={n} className="acard"><Skeleton h={200} /><div className="atext"><Skeleton h={16} w="70%" /><Skeleton h={13} w="50%" /><Skeleton h={18} w="30%" /></div></div>
+          <div key={n} className="acard"><div className="aphoto"><div className="skel" style={{ width: '100%', height: '100%', borderRadius: 0 }} /></div><div className="atext"><Skeleton h={16} w="70%" /><Skeleton h={13} w="50%" /><Skeleton h={18} w="30%" /></div></div>
         ))}</div>
         <Loader quiet slowAfter={30000} steps={t('common.stepsAlt').split('|')} onRetry={() => setTry((n) => n + 1)} />
       </>}

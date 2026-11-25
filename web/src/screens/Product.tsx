@@ -110,8 +110,9 @@ export default function Product({ barcode: barcodeProp, onBack }: { barcode?: st
   if (!d) return (
     <Screen>
       <NavBar onBack={back} />
-      <div className="skel-prod" aria-hidden><Skeleton h={96} w={96} /><div><Skeleton h={14} w="40%" /><Skeleton h={22} w="85%" /><Skeleton h={22} w="60%" /></div></div>
-      <div className="skel-two" aria-hidden><Skeleton h={64} w={90} /><Skeleton h={64} w={90} /></div>
+      <div className="skel-prod" aria-hidden><div className="skel skel-img" /><div><Skeleton h={14} w="35%" /><Skeleton h={30} w="90%" /><Skeleton h={30} w="55%" /></div></div>
+      <div className="skel-card" aria-hidden><div><Skeleton h={14} w="40%" /><Skeleton h={72} w="70%" /><Skeleton h={14} w="55%" /></div><div><Skeleton h={14} w="40%" /><Skeleton h={72} w="70%" /><Skeleton h={14} w="55%" /></div></div>
+      <div className="skel skel-cta" aria-hidden />
       <Loader quiet steps={t('common.stepsProduct').split('|')} onRetry={() => setAttempt((n) => n + 1)} />
     </Screen>
   );
