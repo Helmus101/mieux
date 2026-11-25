@@ -263,3 +263,5 @@ body:has(.landing){margin:0}   /* the landing does not load the app stylesheet: 
 .lp-final .lp-btn{background:var(--bg);color:var(--ink)}
 .lp-foot{padding-top:40px}
 @media (max-width:860px){.lp-sec{padding-block:64px}.lp-hero{padding-top:36px}.lp-demo{padding-inline:18px}}
+#mairies .lp-btn{text-decoration:none}
+#budget .lp-vs-row{grid-template-columns:1fr 1.5fr}

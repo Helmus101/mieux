@@ -151,7 +151,7 @@ export const fr = {
     ios1: 'Ouvrez cette page dans Safari (le navigateur bleu de l\'iPhone).', ios2a: 'Touchez le bouton Partager', ios2b: 'en bas de l\'écran. Sur certains iPhone, touchez d\'abord le menu ☰ ou ⋯ (à droite de la barre d\'adresse), puis « Partager ».', ios3: 'Faites défiler le menu, puis touchez « Sur l\'écran d\'accueil ».', ios4: 'Touchez « Ajouter » en haut à droite. L\'icône Mieux apparaît sur votre écran d\'accueil.',
     and1: 'Ouvrez cette page dans Chrome (ou Edge, Firefox, Samsung Internet).', and2: 'Touchez le menu ⋮ (trois points), en haut à droite ou en bas de l\'écran selon votre téléphone.', and3: 'Choisissez « Installer l\'application » ; sinon « Ajouter à l\'écran d\'accueil ». Si vous voyez seulement « Ajouter à », touchez-le puis « Écran d\'accueil ».', and4: 'Confirmez avec « Installer » ou « Ajouter ». L\'icône Mieux apparaît sur votre écran d\'accueil, parfois dans le tiroir d\'applications.',
     installNow: 'Installer maintenant', iosNote: 'Sur iPhone, seul Safari permet cet ajout pour une application web ; avec un autre navigateur, ouvrez d\'abord ce lien dans Safari.', andNote: 'Sur Samsung Internet : menu ≡ puis « Ajouter la page à » puis « Écran d\'accueil ».', profile: 'Ajouter à l\'écran d\'accueil' },
-  land: {
+  land: { budgetTitle: 'Pensé pour les petits budgets', b1t: 'Le prix au kilo, pas celui du paquet', b1d: 'Deux paquets de tailles différentes se comparent enfin : Mieux affiche le prix au kilo ou au litre quand il est connu.', b2t: 'La moins chère en premier', b2d: 'Pour chaque produit, l\'alternative la moins chère de sa catégorie, avec ce que vous économisez.', b3t: 'Gratuit, sans compte', b3d: 'Ni abonnement ni inscription. Vos scans restent sur votre téléphone.', b4t: 'Des prix vérifiables', b4d: 'Prix relevés en magasin (Open Prices) et sur vos tickets. Quand un prix est inconnu, Mieux le dit.', cityTitle: 'Mairies, centres sociaux, associations', cityLead: 'Mieux est gratuit et peut accompagner vos ateliers budget et alimentation. Écrivez-nous.', cityCta: 'Nous écrire',
     open: 'Ouvrir l\'application', navFeatures: 'Fonctions', navTry: 'Simulateur', navPhone: 'Sur mobile',
     kicker: 'Manger mieux, produit par produit', t1: 'Scannez.', t2: 'Comparez.', t3: 'Payez moins, mangez mieux.',
     sub: 'Mieux note le produit sur 100, puis vous montre l\'alternative la moins chère, la meilleure et la plus avantageuse près de chez vous.',
@@ -184,10 +184,10 @@ export const fr = {
     u1t: 'Le moins cher', u1d: 'Même catégorie, prix au 100 g le plus bas, avec ce que vous économisez.',
     u2t: 'La meilleure qualité', u2d: 'La note la plus haute, sans additif à risque : manger mieux sans compromis.',
     u3t: 'Le meilleur rapport qualité-prix', u3d: 'Le bon équilibre : une très bonne note pour un prix raisonnable.',
-    howTitle: 'Trois gestes, dix secondes', s1t: 'Scannez', s1d: 'Le code-barres, avec l\'appareil photo.', s2t: 'Comprenez', s2d: 'Note sur 100, sucre, sel, additifs : expliqués.', s3t: 'Choisissez', s3d: 'Moins cher, meilleur ou meilleur rapport, près de chez vous.',
+    howTitle: 'Trois gestes, dix secondes', s1t: 'Scannez', s1d: 'Le code-barres, avec l\'appareil photo.', s2t: 'Comprenez', s2d: 'Note sur 100, sucre, sel, additifs : expliqués.', s3t: 'Choisissez', s3d: 'La moins chère d\'abord, près de chez vous.',
     finalTitle: 'Scannez votre prochain produit.', finalSub: 'Quelques secondes pour savoir s\'il vaut son prix.',
     // landing page, current version
-    h1a: 'Scannez un produit au supermarché.', h1b: 'Est-ce que ça vaut son prix\u00A0? Et que prendre à la place\u00A0?',
+    h1a: 'Chaque euro compte au supermarché.', h1b: 'Scannez un produit : voyez son prix au kilo et l\'alternative la moins chère.',
     lead: 'Une note sur 100, le prix au kilo et trois alternatives du même rayon : la moins chère, la mieux notée, le meilleur rapport qualité-prix. Quand un prix est inconnu, on vous le dit.',
     cta: 'Ouvrir Mieux', ctaFree: 'Gratuit, sans compte ni installation. Vos scans restent sur votre téléphone.',
     save: '−{p} % au kilo', more: '+{p} % au kilo',
