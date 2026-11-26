@@ -525,20 +525,27 @@ export default function BlogPost() {
   return (
     <Screen>
       <NavBar onBack={back} title="Blog" />
-      <article className="blog-article">
+      <div className="blog-progress" aria-hidden="true" />
+      <article className="blog-article blog-enter">
         <p className="blog-meta"><span className="blog-chip">{post.category}</span> {post.date} · {readMin(post.content)} min de lecture</p>
         <h1 className="blog-title">{post.title}</h1>
         <div className="blog-content" dangerouslySetInnerHTML={{ __html: post.content }} />
       </article>
+      <aside className="blog-cta" aria-label="Retourner dans l’application">
+        <p className="blog-cta-title">Scannez un produit et comparez-le au 100 g.</p>
+        <Link to={routes.home} className="blog-cta-btn">Ouvrir Mieux</Link>
+      </aside>
       <h2 className="blog-related-h">À lire aussi</h2>
-      <div className="blog-grid">
+      <ol className="blog-list">
         {related.map((r) => (
-          <Link key={r.slug} to={routes.blogPost(r.slug)} className="blog-card">
-            <span className="blog-meta"><span className="blog-chip">{r.category}</span></span>
-            <span className="blog-card-title">{r.title}</span>
-          </Link>
+          <li key={r.slug} className="blog-row">
+            <Link to={routes.blogPost(r.slug)}>
+              <span className="blog-row-title">{r.title}</span>
+              <span className="blog-row-meta">{r.category} · {r.date}</span>
+            </Link>
+          </li>
         ))}
-      </div>
+      </ol>
     </Screen>
   );
 }

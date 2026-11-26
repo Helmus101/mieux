@@ -16,8 +16,10 @@ export default function Blog() {
   return (
     <Screen>
       <NavBar onBack={back} title="Blog" />
-      <h1>Blog</h1>
-      <p className="mut">{BLOG_DESC}</p>
+      <header className="blog-masthead blog-enter">
+        <h1>Blog</h1>
+        <p className="mut">{BLOG_DESC}</p>
+      </header>
       <div className="blog-filters" role="group" aria-label="Filtrer par catégorie">
         {[null, ...categories].map((c) => (
           <button key={c ?? 'all'} type="button" className="blog-filter" aria-pressed={cat === c} onClick={() => setCat(c)}>
@@ -26,21 +28,23 @@ export default function Blog() {
         ))}
       </div>
       {first && (
-        <Link to={routes.blogPost(first.slug)} className="blog-card blog-featured">
-          <span className="blog-meta"><span className="blog-chip">{first.category}</span> {first.date}</span>
-          <span className="blog-card-title">{first.title}</span>
-          <span className="mut">{first.excerpt}</span>
+        <Link to={routes.blogPost(first.slug)} className="blog-feature">
+          <span className="blog-feature-title">{first.title}</span>
+          <p className="blog-feature-ex">{first.excerpt}</p>
+          <span className="blog-feature-go">Lire l’article</span>
         </Link>
       )}
-      <div className="blog-grid">
+      <ol className="blog-list">
         {rest.map((post) => (
-          <Link key={post.slug} to={routes.blogPost(post.slug)} className="blog-card">
-            <span className="blog-meta"><span className="blog-chip">{post.category}</span> {post.date}</span>
-            <span className="blog-card-title">{post.title}</span>
-            <span className="mut sm">{post.excerpt}</span>
-          </Link>
+          <li key={post.slug} className="blog-row">
+            <Link to={routes.blogPost(post.slug)}>
+              <span className="blog-row-title">{post.title}</span>
+              <span className="blog-row-ex">{post.excerpt}</span>
+              <span className="blog-row-meta">{post.category} · {post.date}</span>
+            </Link>
+          </li>
         ))}
-      </div>
+      </ol>
     </Screen>
   );
 }
