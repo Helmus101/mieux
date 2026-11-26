@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mieux — Reel 16 s</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+<style>
+/* 9:16 reel, 1080x1920, 16 s loop. Sound off: every beat is readable. Record the screen (Cmd+Shift+5) or open with ?rec to hide the hint. */
+:root{--bg:#F1F3EF;--paper:#FBFBF8;--ink:#0E2A1F;--soft:#53625A;--tag:#F4D21F;--line:rgba(14,42,31,.16);--ease:cubic-bezier(.16,1,.3,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0b130f;overflow:hidden;font-family:"Archivo",system-ui,sans-serif;color:var(--ink)}
+#fit{position:fixed;inset:0;overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1080px;height:1920px;background:var(--bg);overflow:hidden;transform-origin:center}
+.sc{position:absolute;inset:0;padding:150px 80px;opacity:0;pointer-events:none;transition:opacity .35s var(--ease)}
+.sc.on{opacity:1}
+.big{font-stretch:68%;font-variation-settings:"wdth" 68;font-weight:800;line-height:.9;letter-spacing:-.01em}
+.rise{opacity:0;transform:translateY(60px);transition:opacity .5s var(--ease),transform .7s var(--ease)}
+.on .rise{opacity:1;transform:none}
+.on .rise.d1{transition-delay:.25s}.on .rise.d2{transition-delay:.5s}.on .rise.d3{transition-delay:.75s}
+.tag{display:inline-block;background:var(--tag);padding:10px 34px 4px;border-radius:12px}
+/* S1 hook */
+#s1{display:flex;flex-direction:column;justify-content:center;gap:34px}
+#s1 .big{font-size:300px}
+#s1 .q{font-size:54px;font-weight:600;color:var(--soft);line-height:1.15;max-width:760px}
+/* S2 scan */
+#s2{display:flex;flex-direction:column;justify-content:center;gap:50px}
+.lbl{font-size:48px;font-weight:700;color:var(--soft)}
+.card{background:var(--paper);border-radius:28px;box-shadow:0 0 0 2px var(--line),0 60px 120px -60px rgba(14,42,31,.5);padding:44px;display:flex;gap:40px;align-items:center;position:relative;overflow:hidden}
+.card img{width:230px;height:230px;object-fit:contain;border-radius:16px;background:#fff}
+.card .nm{font-size:60px;font-weight:700;line-height:1.08}
+.card .br{font-size:42px;color:var(--soft);margin-top:10px}
+.beam{position:absolute;left:0;right:0;top:0;height:10px;background:var(--tag);box-shadow:0 0 60px 20px rgba(244,210,31,.55);opacity:0}
+.on .beam{animation:beam 1.5s var(--ease) .4s both}
+@keyframes beam{0%{top:0;opacity:1}85%{opacity:1}100%{top:calc(100% - 10px);opacity:0}}
+.score{display:flex;align-items:baseline;gap:8px;background:var(--ink);color:var(--bg);border-radius:24px;padding:26px 44px;align-self:flex-start}
+.score b{font-stretch:68%;font-variation-settings:"wdth" 68;font-size:230px;line-height:.85;font-weight:800}
+.score span{font-size:60px;font-weight:600;opacity:.8}
+/* S3 alternatives */
+#s3{display:flex;flex-direction:column;justify-content:center;gap:34px}
+.alt{background:var(--paper);border-radius:28px;box-shadow:0 0 0 2px var(--line);padding:34px 40px;display:grid;grid-template-columns:150px 1fr auto;gap:34px;align-items:center;opacity:0;transform:translateX(120px);transition:opacity .5s var(--ease),transform .7s var(--ease)}
+.alt.on{opacity:1;transform:none}
+.alt img{width:150px;height:150px;object-fit:contain;border-radius:12px;background:#fff}
+.alt .k{font-size:36px;font-weight:700;color:var(--ink)}
+.alt .n{font-size:46px;font-weight:700;line-height:1.1;margin-top:4px}
+.alt .m{font-size:34px;color:var(--soft);margin-top:6px}
+.alt .p{font-stretch:68%;font-variation-settings:"wdth" 68;font-weight:800;font-size:92px;line-height:1;background:var(--tag);padding:10px 22px 4px;border-radius:12px;text-align:right}
+.alt .p small{font-size:40px;font-weight:600;font-stretch:100%;font-variation-settings:"wdth" 100}
+.alt .d{font-size:36px;font-weight:700;margin-top:10px;text-align:right}
+/* S4 honesty */
+#s4{display:flex;flex-direction:column;justify-content:center;gap:40px}
+#s4 .big{font-size:250px}
+#s4 .q{font-size:56px;font-weight:600;color:var(--soft);line-height:1.2;max-width:820px}
+/* S5 end */
+#s5{background:var(--ink);color:var(--bg);display:flex;flex-direction:column;justify-content:center;gap:44px}
+#s5 .big{font-size:340px}
+#s5 .q{font-size:60px;font-weight:500;opacity:.85;line-height:1.2}
+#s5 .url{display:inline-block;align-self:flex-start;background:var(--tag);color:var(--ink);font-size:64px;font-weight:800;padding:22px 40px;border-radius:18px}
+#s5 img{width:130px;height:130px;border-radius:30px}
+.src{position:absolute;left:80px;right:80px;bottom:90px;font-size:32px;color:var(--soft);z-index:5;transition:color .3s}
+.dark .src{color:rgba(241,243,239,.6)}
+#hint{position:fixed;bottom:12px;left:0;right:0;text-align:center;color:#9fb3a8;font:14px system-ui}
+.rec #hint{display:none}
+@media (prefers-reduced-motion:reduce){.rise,.alt{transition:none}.on .beam{animation:none}}
+</style>
+</head>
+<body>
+<div id="fit"><div id="stage">
+
+  <section class="sc" id="s1" data-t="0" data-e="2.8">
+    <div class="big rise"><span>Même rayon.</span></div>
+    <div class="big rise d1"><span class="tag">−39 % au kilo.</span></div>
+    <p class="q rise d2">Le chocolat noir que vous achetez peut-être trop cher.</p>
+  </section>
+
+  <section class="sc" id="s2" data-t="2.8" data-e="6.2">
+    <p class="lbl rise">Vous scannez</p>
+    <div class="card rise d1">
+      <img src="https://images.openfoodfacts.org/images/products/304/692/002/2651/front_en.159.200.jpg" alt="">
+      <div><div class="nm">Excellence 70&nbsp;% cacao noir intense</div><div class="br">Lindt · 24,35&nbsp;€/kg</div></div>
+      <div class="beam"></div>
+    </div>
+    <div class="score rise d2"><b id="sc">0</b><span>/100</span></div>
+    <p class="lbl rise d3">Note, prix au kilo, alternatives du même rayon.</p>
+  </section>
+
+  <section class="sc" id="s3" data-t="6.2" data-e="11.6">
+    <p class="lbl">Trois alternatives, même rayon</p>
+    <div class="alt" data-t="6.5" data-e="11.6">
+      <img src="https://images.openfoodfacts.org/images/products/325/039/010/2625/front_fr.85.200.jpg" alt="">
+      <div><div class="k">Le moins cher</div><div class="n">L'envoûtant chocolat noir 72&nbsp;%</div><div class="m">Intermarché · 45/100</div></div>
+      <div><div class="p">14,80&nbsp;€<small>/kg</small></div><div class="d">−39&nbsp;% au kilo</div></div>
+    </div>
+    <div class="alt" data-t="8.0" data-e="11.6">
+      <img src="https://images.openfoodfacts.org/images/products/761/003/601/1845/front_fr.11.200.jpg" alt="">
+      <div><div class="k">Meilleure qualité avec prix</div><div class="n">Chocolat noir cognac de France</div><div class="m">Villars · 54/100</div></div>
+      <div><div class="p">31,20&nbsp;€<small>/kg</small></div><div class="d">+28&nbsp;% au kilo</div></div>
+    </div>
+    <div class="alt" data-t="9.5" data-e="11.6">
+      <img src="https://images.openfoodfacts.org/images/products/356/470/714/2700/front_fr.94.200.jpg" alt="">
+      <div><div class="k">Meilleur rapport</div><div class="n">Chocolat noir dégustation 85&nbsp;% bio</div><div class="m">Bio Village · 49/100</div></div>
+      <div><div class="p">18,70&nbsp;€<small>/kg</small></div><div class="d">−23&nbsp;% au kilo</div></div>
+    </div>
+  </section>
+
+  <section class="sc" id="s4" data-t="11.6" data-e="13.9">
+    <div class="big rise">Pas de prix&nbsp;?</div>
+    <div class="big rise d1"><span class="tag">On vous le dit.</span></div>
+    <p class="q rise d2">Jamais de prix inventé : si personne ne l'a relevé, Mieux l'écrit.</p>
+  </section>
+
+  <section class="sc" id="s5" data-t="13.9" data-e="16.2">
+    <img class="rise" src="../logo-512.png" alt="">
+    <div class="big rise d1">mieux</div>
+    <p class="q rise d2">Scannez. Comparez. Choisissez mieux.<br>Gratuit, sans compte.</p>
+    <div class="url rise d3">mieuxmanger.vercel.app</div>
+  </section>
+
+  <p class="src" id="src">Exemple réel relevé le 9 novembre 2026 (Open Food Facts, Open Prices).</p>
+</div></div>
+<p id="hint">Cliquer = relancer · 16 s en boucle · ajoutez <b>?rec</b> à l'adresse pour masquer cette ligne</p>
+
+<script>
+(function(){
+  if (location.search.includes('rec')) document.documentElement.classList.add('rec');
+  var stage=document.getElementById('stage');
+  function fit(){var s=Math.min(innerWidth/1080,innerHeight/1920);stage.style.transform='translate(-50%,-50%) scale('+s+')';}
+  addEventListener('resize',fit);fit();
+  var secs=[].slice.call(document.querySelectorAll('.sc')),alts=[].slice.call(document.querySelectorAll('.alt')),
+      score=document.getElementById('sc'),src=document.getElementById('src'),T=16.2,t0=0,raf=0;
+  function reduce(){return matchMedia('(prefers-reduced-motion: reduce)').matches;}
+  function frame(now){
+    var t=((now-t0)/1000);
+    if(t>=T){t0=now;t=0;}
+    secs.forEach(function(e){var on=t>=+e.dataset.t&&t<+e.dataset.e;if(e.classList.contains('on')!==on)e.classList.toggle('on',on);});
+    alts.forEach(function(e){var on=t>=+e.dataset.t&&t<+e.dataset.e;if(e.classList.contains('on')!==on)e.classList.toggle('on',on);});
+    // score counts up 0 -> 43 between 3.4 s and 4.6 s
+    var k=Math.max(0,Math.min(1,(t-3.4)/1.2));score.textContent=reduce()?43:Math.round(43*(1-Math.pow(1-k,3)));
+    stage.classList.toggle('dark',t>=13.9);
+    raf=requestAnimationFrame(frame);
+  }
+  var off=parseFloat((location.search.match(/[?&]t=([\d.]+)/)||[])[1])||0;
+  function start(){cancelAnimationFrame(raf);t0=performance.now()-off*1000;off=0;raf=requestAnimationFrame(frame);}
+  document.addEventListener('click',start);
+  (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(start);
+})();
+</script>
+</body>
+</html>

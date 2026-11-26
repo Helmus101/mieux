@@ -97,6 +97,10 @@ web/dist/
 *.db-wal
 *.db-journal
 
+# Agent skills (installed locally, some are their own git repos)
+.claude/skills/
+.windsurf/skills/
+
 # Audit artifacts
 .production-readiness/
 brag-output/

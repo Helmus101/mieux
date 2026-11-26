@@ -52,7 +52,7 @@
       "typedRoutes": false
     },
     "extra": {
-      "apiUrl": "http://localhost:8010/v1",
+      "apiUrl": "https://mieux-api.fly.dev/v1",
       "apiPort": 8010
     }
   }
