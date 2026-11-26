@@ -1,10 +1,11 @@
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { NavBar, Screen, Card, Muted } from '../ui';
-import { useNav } from '../nav';
+import { routes, useNav } from '../nav';
 import { BLOG } from '../blogMeta';
+import { EXTRA_POSTS } from '../blogExtra';
 import { usePageMeta, useNoindex } from '../pageMeta';
 
-const posts: Record<string, { title: string; content: string; date: string; category: string }> = {
+const BASE_POSTS: Record<string, { title: string; content: string; date: string; category: string }> = {
   'yuka-ou-mieux': {
     title: 'Yuka ou Mieux : ce qui change vraiment',
     date: '5 novembre 2026',
@@ -496,6 +497,9 @@ const posts: Record<string, { title: string; content: string; date: string; cate
     `,
   },
 };
+const posts = { ...BASE_POSTS, ...EXTRA_POSTS };
+
+const readMin = (html: string) => Math.max(1, Math.round(html.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length / 200));
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -517,20 +521,24 @@ export default function BlogPost() {
     );
   }
 
+  const related = BLOG.filter((b) => b.slug !== slug).sort((a, b) => Number(b.category === post.category) - Number(a.category === post.category)).slice(0, 3);
   return (
     <Screen>
       <NavBar onBack={back} title="Blog" />
-      <span className="mut sm">{post.category} · {post.date}</span>
-      <h1>{post.title}</h1>
-      <Card>
-        <div
-          className="blog-content"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-          style={{
-            lineHeight: 1.7,
-          }}
-        />
-      </Card>
+      <article className="blog-article">
+        <p className="blog-meta"><span className="blog-chip">{post.category}</span> {post.date} · {readMin(post.content)} min de lecture</p>
+        <h1 className="blog-title">{post.title}</h1>
+        <div className="blog-content" dangerouslySetInnerHTML={{ __html: post.content }} />
+      </article>
+      <h2 className="blog-related-h">À lire aussi</h2>
+      <div className="blog-grid">
+        {related.map((r) => (
+          <Link key={r.slug} to={routes.blogPost(r.slug)} className="blog-card">
+            <span className="blog-meta"><span className="blog-chip">{r.category}</span></span>
+            <span className="blog-card-title">{r.title}</span>
+          </Link>
+        ))}
+      </div>
     </Screen>
   );
 }
