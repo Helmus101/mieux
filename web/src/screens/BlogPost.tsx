@@ -501,6 +501,9 @@ const posts = { ...BASE_POSTS, ...EXTRA_POSTS };
 
 const readMin = (html: string) => Math.max(1, Math.round(html.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length / 200));
 
+/** French typography: no line break before : ? ! ; */
+const fr = (t: string) => t.replace(/ ([:?!;])/g, '\u00a0$1');
+
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const { back } = useNav();
@@ -525,23 +528,23 @@ export default function BlogPost() {
   return (
     <Screen>
       <NavBar onBack={back} title="Blog" />
-      <div className="blog-progress" aria-hidden="true" />
-      <article className="blog-article blog-enter">
-        <p className="blog-meta"><span className="blog-chip">{post.category}</span> {post.date} · {readMin(post.content)} min de lecture</p>
-        <h1 className="blog-title">{post.title}</h1>
-        <div className="blog-content" dangerouslySetInnerHTML={{ __html: post.content }} />
+      <div className="bl-progress" aria-hidden="true" />
+      <article className="bl-article bl-enter">
+        <p className="bl-meta"><span className="bl-chip">{post.category}</span> {post.date} · {readMin(post.content)} min de lecture</p>
+        <h1 className="bl-title">{fr(post.title)}</h1>
+        <div className="bl-content" dangerouslySetInnerHTML={{ __html: post.content }} />
       </article>
-      <aside className="blog-cta" aria-label="Retourner dans l’application">
-        <p className="blog-cta-title">Scannez un produit et comparez-le au 100 g.</p>
-        <Link to={routes.home} className="blog-cta-btn">Ouvrir Mieux</Link>
+      <aside className="bl-cta" aria-label="Retourner dans l’application">
+        <p className="bl-cta-title">Scannez un produit et comparez-le au 100 g.</p>
+        <Link to={routes.home} className="bl-cta-btn">Ouvrir Mieux</Link>
       </aside>
-      <h2 className="blog-related-h">À lire aussi</h2>
-      <ol className="blog-list">
+      <h2 className="bl-related-h">À lire aussi</h2>
+      <ol className="bl-list">
         {related.map((r) => (
-          <li key={r.slug} className="blog-row">
+          <li key={r.slug} className="bl-row">
             <Link to={routes.blogPost(r.slug)}>
-              <span className="blog-row-title">{r.title}</span>
-              <span className="blog-row-meta">{r.category} · {r.date}</span>
+              <span className="bl-row-title">{fr(r.title)}</span>
+              <span className="bl-row-meta">{r.category} · {r.date}</span>
             </Link>
           </li>
         ))}
