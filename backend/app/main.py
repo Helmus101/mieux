@@ -2269,7 +2269,7 @@ def alternatives(request: Request, background: BackgroundTasks, barcode: str, bo
     # only now, on the comparable pool - not on every retrieved product that the filters above will drop anyway.
     peers = [_scored(c, body.strict_additives) for c in peers]
     # Only alternatives with a good quality score are offered (above 50); an unknown score is unverified, not good.
-    peers = alt_gates.quality_floor(peers)
+    peers = alt_gates.quality_floor(peers, (orig.get("score") or {}).get("total"))
     stages["quality_above_min"] = len(peers)
 
     # 5. RANK the whole eligible pool. The tabs are cut to their display size at the very end, after the "only if it is

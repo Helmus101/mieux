@@ -24,3 +24,12 @@ def test_mieux_gate_does_not_apply_without_an_index():
     class NoIndex:  # an Open Food Facts client that has no taxonomy index
         pass
     assert alt_gates.mieux_gate(NoIndex(), {"name": "Cola"}, [_c(60)]) is None
+
+
+def test_quality_floor_relaxes_for_cap_bound_category():
+    """Smoked salmon: nearly all capped at 49. With the scanned product at 49 and fewer than THIN_POOL above 50, 49s stay."""
+    pool = [_c(49)] * 20 + [_c(92), _c(96)]
+    assert len(alt_gates.quality_floor(pool, 49)) == 22
+    assert len(alt_gates.quality_floor(pool, 20)) == 2      # a poor scanned product never relaxes it
+    assert len(alt_gates.quality_floor(pool, None)) == 2
+    assert len(alt_gates.quality_floor([_c(60)] * 8 + [_c(49)], 49)) == 8   # enough above the floor: strict
