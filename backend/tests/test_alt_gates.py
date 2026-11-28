@@ -5,9 +5,9 @@ def _c(score):
     return {"barcode": str(score), "score": {"total": score}}
 
 
-def test_quality_floor_keeps_only_scores_above_50_and_drops_unknown():
-    kept = alt_gates.quality_floor([_c(49), _c(50), _c(51), {"barcode": "x", "score": {}}, {"barcode": "y"}])
-    assert [c["barcode"] for c in kept] == ["51"]
+def test_no_quality_floor_only_unknown_scores_are_dropped():
+    kept = alt_gates.quality_floor([_c(10), _c(49), _c(50), _c(51), {"barcode": "x", "score": {}}, {"barcode": "y"}])
+    assert [c["barcode"] for c in kept] == ["10", "49", "50", "51"]
 
 
 def test_great_already_needs_both_numbers_above_90(monkeypatch):
@@ -24,12 +24,3 @@ def test_mieux_gate_does_not_apply_without_an_index():
     class NoIndex:  # an Open Food Facts client that has no taxonomy index
         pass
     assert alt_gates.mieux_gate(NoIndex(), {"name": "Cola"}, [_c(60)]) is None
-
-
-def test_quality_floor_relaxes_for_cap_bound_category():
-    """Smoked salmon: nearly all capped at 49. With the scanned product at 49 and fewer than THIN_POOL above 50, 49s stay."""
-    pool = [_c(49)] * 20 + [_c(92), _c(96)]
-    assert len(alt_gates.quality_floor(pool, 49)) == 22
-    assert len(alt_gates.quality_floor(pool, 20)) == 2      # a poor scanned product never relaxes it
-    assert len(alt_gates.quality_floor(pool, None)) == 2
-    assert len(alt_gates.quality_floor([_c(60)] * 8 + [_c(49)], 49)) == 8   # enough above the floor: strict

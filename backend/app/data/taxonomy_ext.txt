@@ -702,3 +702,5 @@ T|24_ALIMENTS_MONDE_ORIENTAUX|Halva et douceurs orientales|Halva|€/kg
 T|24_ALIMENTS_MONDE_LATINO|Tortilla chips, sauces mexicaines|Mexican pantry|€/kg
 T|24_ALIMENTS_MONDE_LATINO|Produits latino-américains|Latin American|€/kg
 T|03_POISSONS_FRUITS_MER_POISSONS_TRANSFORMES|Saumon fumé en morceaux|Smoked salmon pieces|€/kg
+T|22_SURGELES_FRUITS_LEGUMES|Légumes surgelés divers|Other frozen vegetables|€/kg
+T|22_SURGELES_FRUITS_LEGUMES|Fruits surgelés divers|Other frozen fruit|€/kg

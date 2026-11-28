@@ -227,10 +227,9 @@ def test_ricola_endpoint_keeps_only_comparable_french_supermarket_products(monke
 
     assert "quality" not in d["rankings"], "one ranked list: the value score, nutrition shown inside each row"
     rows = {x["product"]["barcode"]: x for x in d["rankings"]["value"]}
-    # In: priced, branded, at a supermarket, same kind of product, quality above 50. The cheap score-40 lozenge (005) is
-    # out: only alternatives with a quality score above 50 are offered.
-    assert {"003", "004"} <= set(rows)
-    assert "005" not in rows
+    # In: priced, branded, at a supermarket, same kind of product. There is no quality floor: the score-40 lozenge (005) is a
+    # valid same-type alternative and the ranking decides where it sits.
+    assert {"003", "004", "005"} <= set(rows)
     # Out: another kind of product (006), no supermarket evidence (009), no brand (010).
     assert {"006", "009", "010"} & set(rows) == set()
     assert all(x["product"].get("chains") and x["product"].get("imageUrl") for x in rows.values())
