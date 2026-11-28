@@ -289,6 +289,7 @@ Roquefort	\broquefort\b|\bsociete\b.{0,10}roquefort|\bpapillon\b.{0,10}roquefort
 Fromage de brebis	\b(fromage de brebis|brebis|ossau iraty|ossau-iraty|roquefort|manchego|pecorino|etorki|tome des pyrenees|sheep cheese|idiazabal|ewe)\b	sheep cheeses|ewe cheeses|sheeps cheeses	-
 Bleu d’Auvergne	\bbleu d auvergne\b|\bbleu des causses\b|\bbleu de bresse\b|\bbleu de gex\b	bleu d auvergne|bleu des causses	-
 Fourme d’Ambert	\bfourme d ambert\b|\bfourme de montbrison\b|\bfourme\b	fourme d ambert	-
+Gorgonzola, stilton et bleus étrangers	\b(gorgonzola|stilton|dolcelatte|cabrales|danish blue|blue stilton)\b	gorgonzolas?|stiltons?	-
 Fromage à pâte persillée	\b(gorgonzola|stilton|cabrales|saint agur|st agur|bleu|persille|danish blue|roquefort|blue cheese|dolcelatte|bleu d)\b	blue cheeses|bleus|gorgonzolas|stiltons|persille	-
 Camembert	\bcamembert\b|\bcamembert de normandie\b	camemberts?	-
 Brie	\bbrie\b|\bbrie de meaux\b|\bbrie de melun\b|\bbrie de nangis\b	bries?	-
@@ -369,7 +370,7 @@ Pâté de campagne	\bpatee (de campagne|pur porc|breton|basque|aux herbes|au poi
 Terrine de campagne	\bterrines?\b(?! (de (poisson|saumon|legumes|fruits|canard|volaille|gibier|lapin|foie)))	terrines|country terrines	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|boite|conserve|plat|cuisine|bio vegetal|vegetal|vegan|vegetarien|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte)\b
 Fromage de tête et charcuterie cuite	\b(fromage de tete|museau|cervelas|jambonneau|hure|langue|pied de porc|tete roulee|galantine|saucisson de volaille|jambon persille|andouille|mortadelle)\b	head cheeses|cooked cold cuts|cold cuts	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|boite|conserve|plat|cuisine|bio vegetal|vegetal|vegan|vegetarien|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte)\b
 Saucisse à tartiner et charcuterie à tartiner	\b(saucisse|chorizo|mortadelle) (a tartiner|spreadable)\b|\bsobrasada\b|\bnduja\b	spreadable sausages	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|boite|conserve|plat|cuisine|bio vegetal|vegetal|vegan|vegetarien|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte)\b
-Knacki et saucisse à réchauffer	\bknacki\b|\bknack\b|\bsaucisses? (de )?(cocktail|apero|a rechauffer|viennoise)\b|\bhot ?dogs?\b|\bsaucisses? cocktail\b|\bsaucisse(s)? (apéritif)\b|\bcocktail sausages\b|\bsaucisse en brioche\b	cocktail sausages|hot dog sausages|knacks|hot dogs	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|boite|conserve|plat|cuisine|bio vegetal|vegetal|vegan|vegetarien|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte)\b
+Knacki et saucisse à réchauffer	\bknacki\b|\bknacks?\b|\bsaucisses? (de )?(cocktail|apero|a rechauffer|viennoise)\b|\bhot ?dogs?\b|\bsaucisses? cocktail\b|\bsaucisse(s)? (apéritif)\b|\bcocktail sausages\b|\bsaucisse en brioche\b	cocktail sausages|hot dog sausages|knacks|hot dogs	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|boite|conserve|plat|cuisine|bio vegetal|vegetal|vegan|vegetarien|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte)\b
 Saucisse cuite type Strasbourg ou Francfort	\b(strasbourg|francfort|frankfurt|frankfurter|wiener|weisswurst|saucisse de (strasbourg|francfort)|bockwurst|bratwurst|knockwurst|saucisse cuite)\b	frankfurters|strasbourg sausages|frankfurter sausages|cooked sausages	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|boite|conserve|plat|cuisine|bio vegetal|vegetal|vegan|vegetarien|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte)\b
 Merguez	\bmerguez\b|\bmergez\b	merguez	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|boite|conserve|plat|cuisine|bio vegetal|vegetal|vegan|vegetarien|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte)\b
 Chipolata	\bchipolatas?\b	chipolatas?	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|boite|conserve|plat|cuisine|bio vegetal|vegetal|vegan|vegetarien|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte)\b
@@ -504,6 +505,97 @@ Café froid prêt à boire	\bcappuccino\b.{0,15}\b(pret|boire|froid|ice)\b|\blat
 Bâtonnet glacé	\bbarres? glacees?\b	-	-
 Lasagnes sèches et cannelloni	\bcannelloni\b	-	\b(ricotta|epinards?|surgele|viande|bolognaise|farcis?|gratin|frais|fromage)\b
 Saucisson sec	\bfuet\b	-	-
+Lait demi-écrémé	\b(semi skimmed|reduced fat|low fat|2 ?%) (cow s |cows )?milk\b	-	\b(chocolate|oat|almond|soy|soya|rice|coconut|hazelnut|pea|goat|sheep|strawberry|banana|coffee)\b
+Lait écrémé	\b(skimmed|skim|fat free|nonfat|non fat) (cow s |cows )?milk\b	-	\b(chocolate|oat|almond|soy|soya|rice|coconut|hazelnut|pea|goat|sheep|strawberry|banana|coffee)\b
+Lait sans lactose	\blactose free (whole |semi skimmed |skimmed )?milk\b	-	\b(chocolate|oat|almond|soy|soya|rice|coconut|hazelnut|pea|goat|sheep|strawberry|banana|coffee)\b
+Lait de vache bio	\borganic (whole |semi skimmed )?(cow s )?milk\b	-	\b(chocolate|oat|almond|soy|soya|rice|coconut|hazelnut|pea|goat|sheep|strawberry|banana|coffee)\b
+Lait de vache UHT	\buht (whole |semi skimmed |skimmed )?(cow s )?milk\b	-	\b(chocolate|oat|almond|soy|soya|rice|coconut|hazelnut|pea|goat|sheep|strawberry|banana|coffee)\b
+Lait entier	\b(whole|full fat|full cream) (cow s |cows )?milk\b	-	\b(chocolate|oat|almond|soy|soya|rice|coconut|hazelnut|pea|goat|sheep|strawberry|banana|coffee)\b
+Boisson à l’avoine	\b((chocolate|vanilla|barista|unsweetened|plain|original) )?oat (milk|drink|beverage)\b	-	-
+Boisson à l’amande	\b((chocolate|vanilla|unsweetened|plain|original) )?almond (milk|drink|beverage)\b	-	-
+Boisson au soja	\b((chocolate|vanilla|unsweetened|plain|original) )?(soy|soya|soybean) (milk|drink|beverage)\b	-	-
+Boisson au riz	\brice (milk|drink|beverage)\b	-	-
+Boisson à la noisette	\bhazelnut (milk|drink|beverage)\b	-	-
+Boisson à la coco	\bcoconut (milk )?drink\b|\bcoconut milk beverage\b	-	-
+Boisson aux pois	\bpea (milk|drink|protein milk)\b	-	-
+Lait de coco en conserve	\bcoconut milk\b	-	\b(drink|beverage|yogurt|yoghurt|ice cream)\b
+Lait aromatisé	\b(strawberry|chocolate|banana|coffee|vanilla) (flavou?red )?milk\b	-	\b(bar|tablet|powder|oat|almond|soy|soya|rice|coconut)\b
+Beurre demi-sel	\b(semi ?salted|half ?salted|lightly salted) butter\b	-	-
+Beurre salé	\bsalted butter\b	-	-
+Beurre doux	\b(unsalted|sweet cream|sweet|whipped) butter\b	-	-
+Beurre allégé	\b(light|lite|reduced fat|low fat) butter\b	-	-
+Beurre non précisé	\b(organic|clarified|grass fed) butter\b|\bghee\b	-	\b(peanut|almond|cashew|nut)\b
+Crème fraîche légère	\blight (creme fraiche|sour cream)\b	-	-
+Crème fraîche épaisse	\b(thick|full fat|double) creme fraiche\b|\bcreme fraiche\b	-	-
+Crème liquide légère	\b(single|light) cream\b|\bliquid single cream\b	-	-
+Crème liquide entière	\b(double|heavy|heavy whipping|whipping|liquid double) cream\b	-	-
+Crème dessert vanille	\b(vanilla|fresh) custard\b|\bpastry cream\b	-	\b(powder|mix)\b
+Crème dessert chocolat	\bchocolate (pudding|custard)\b	-	-
+Escalope de veau	\bveal (cutlets?|escalopes?)\b	-	-
+Veau haché	\bveal mince\b|\bground veal\b	-	-
+Burger et steak préparé	\b(beef|chicken|turkey|pork|lamb) burgers?\b	-	\b(bun|buns|sandwich|frozen|vegan|plant|veggie)\b
+Jambon cuit non précisé	\bsmoked ham\b	-	-
+Jambon de Parme	\bparma ham\b|\bprosciutto di parma\b	-	-
+Filet de saumon surgelé	\bfrozen\b.{0,30}\bsalmon\b	-	-
+Filet de cabillaud surgelé	\bfrozen\b.{0,30}\bcod\b	-	-
+Crevettes surgelées	\bfrozen\b.{0,30}\b(shrimps?|prawns?)\b	-	-
+Moules surgelées	\bfrozen\b.{0,30}\bmussels\b	-	-
+Petits pois surgelés	\bfrozen\b.{0,30}\b(green )?peas\b	-	-
+Haricots verts surgelés	\bfrozen\b.{0,30}\bgreen beans\b	-	-
+Brocoli surgelé	\bfrozen\b.{0,30}\bbroccoli\b	-	-
+Chou-fleur surgelé	\bfrozen\b.{0,30}\bcauliflower\b	-	-
+Épinards surgelés	\bfrozen\b.{0,30}\bspinach\b	-	-
+Carottes surgelées	\bfrozen\b.{0,30}\bcarrots\b	-	-
+Oignons émincés surgelés	\bfrozen\b.{0,30}\b(chopped )?onions\b	-	-
+Persil, ail, ciboulette surgelés	\bfrozen\b.{0,30}\bgarlic\b	-	-
+Fraises surgelées	\bfrozen\b.{0,30}\bstrawberries\b	-	-
+Framboises surgelées	\bfrozen\b.{0,30}\braspberries\b	-	-
+Mélange de fruits rouges surgelés	\bfrozen\b.{0,30}\bmixed berries\b	-	-
+Mangue surgelée en morceaux	\bfrozen\b.{0,30}\bmango\b	-	-
+Fruits surgelés divers	\bfrozen\b.{0,30}\b(blueberries|banana|berries|fruit)\b	-	-
+Légumes surgelés divers	\bfrozen\b.{0,30}\b(sweetcorn|sweet corn|corn|mixed vegetables|vegetable stir fry|stir fry|brussels sprouts|asparagus|mushrooms|ratatouille)\b	-	-
+Fruits de mer surgelés non précisés	\bfrozen\b.{0,30}\b(seafood mix|calamari|squid|seafood)\b	-	-
+Bâtonnets de poisson panés	\bfrozen\b.{0,30}\bfish fingers\b	-	-
+Poisson pané	\bfrozen\b.{0,30}\b(breaded fish|fish fillets)\b	-	-
+Nuggets de poulet surgelés	\bfrozen\b.{0,30}\bchicken nuggets\b	-	-
+Poulet surgelé en morceaux	\bfrozen\b.{0,30}\bchicken (wings|strips)\b	-	-
+Steak haché surgelé	\bfrozen\b.{0,30}\bbeef burgers\b	-	-
+Viande hachée surgelée	\bfrozen\b.{0,30}\bmeatballs\b	-	-
+Viande surgelée non précisée	\bfrozen\b.{0,30}\bsausages\b	-	-
+Pizza surgelée	\bfrozen\b.{0,30}\bpizza\b|\bfrozen (margherita|pepperoni)\b	-	-
+Lasagnes surgelées	\bfrozen\b.{0,30}\b(lasagne|lasagna|cannelloni)\b	-	-
+Plat individuel surgelé	\bfrozen\b.{0,30}\b(fish pie|shepherd s pie|cottage pie)\b	-	-
+Frites surgelées	\bfrozen\b.{0,30}\b(chips|fries|french fries|sweet potato fries)\b	-	-
+Pommes de terre sautées ou rissolées surgelées	\bfrozen\b.{0,30}\b(potato wedges|wedges|roast potatoes)\b	-	-
+Bouchées, nems et beignets surgelés	\bfrozen\b.{0,30}\b(onion rings|spring rolls|samosas|dumplings|falafel)\b	-	-
+Pomme	\b(granny smith|pink lady|golden delicious|gala|fuji|braeburn|golden) apples?\b	-	-
+Orange	\bblood oranges?\b	-	-
+Figue fraîche	^\s*figs?\s*$	-	-
+Noix de coco fraîche	\bfresh coconut\b|^\s*coconuts?\s*$	-	-
+Poivron	\b((red|green|yellow|orange) )?bell peppers?\b	-	\b(roasted|jar|jarred|stuffed)\b
+Oignon jaune	\b(yellow|white|brown) onions?\b	-	-
+Pois frais	^\s*(fresh |garden )?peas\s*$	-	-
+Thym frais	\bfresh thyme\b	-	-
+Champignon de Paris	\b(button|white|chestnut|cremini|crimini) mushrooms?\b	-	-
+Champignons frais divers (pleurote, shiitake)	\b(portobello|chanterelle|enoki|wild|shiitake|oyster|king oyster) mushrooms?\b	-	\b(dried|canned|frozen)\b
+Gingembre frais	\bfresh ginger\b	-	-
+Piment frais	\bfresh chill?i(es)?( peppers?)?\b|\bchill?i peppers?\b	-	-
+Asperges en conserve	\bcanned asparagus\b	-	-
+Petits pois en conserve	\b(canned|tinned) (green )?peas\b	-	-
+Piments jalapeños	\b(pickled )?jalapenos?\b	-	-
+Poivrons grillés en bocal	\broasted (red )?peppers\b	-	-
+Sardines en conserve	\bsardines?\b.{0,20}\btomato\b	-	-
+Lotte fraîche	\bmonkfish\b	-	-
+Palourdes	\bcockles?\b	-	-
+Compote de pommes	\bapple ?sauce\b|\bapple compote\b	-	-
+Barre aux fruits	\b(fruit and nut|fruit & nut|date) bars?\b	-	-
+Barre hyperprotéinée	\bprotein bars?\b	-	-
+Barre aux noix et graines	\b(coconut|sesame|nut|seed) bars?\b	-	-
+Salade composée traiteur	\b(greek|potato|egg) salad\b	-	-
+Gratin dauphinois	\bdauphinoise\b	-	-
+Eau minérale aromatisée	\b(flavou?red|flavou?red sparkling|sparkling flavou?red) (sparkling )?water\b	-	-
+Boisson énergisante	\benergy drinks?\b	-	-
+Sauce salade	\btartar(e)? sauce\b|\bthousand island\b	-	-
 Saumon fumé en morceaux	\b(saumon|salmon)\b.{0,25}\b(fume|fumee|smoked)\b.{0,25}\b(brisures?|chutes?|des|lardons?|eminces?|morceaux|miettes|cubes?|tronçons|coeur)\b|\b(brisures?|chutes?|des|lardons?|eminces?|morceaux|miettes|cubes?|coeur) (de |d )?(saumon|salmon)\b.{0,25}\b(fume|fumee|smoked)\b|\b(brisures?|chutes?|lardons?|eminces?) de saumon\b|\bcoeur de (filet (de )?)?saumon\b	smoked salmon (pieces|trimmings|offcuts)	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|cuisine|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte|rillettes?|terrine|pate|mousse|plat|vegetal|vegan|vegetarien)\b
 Saumon fumé tranché	\bsaumon\b.{0,12}\b(fume|fumé)\b.{0,12}(tranche|tranches|sl|sliced)|\b(smoked salmon)\b.{0,12}slices?|\btranches? de saumon fume\b	sliced smoked salmons|smoked salmon slices	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|cuisine|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte|rillettes?|terrine|pate|mousse|plat|vegetal|vegan|vegetarien)\b
 Saumon fumé	\bsaumon\b.{0,15}\b(fume|fumé|fumee|sauvage fume|smoked|gravlax)\b|\bsmoked salmon\b|\bsalmon smoked\b|(?<!paves de )(?<!pave de )(?<!filet de )(?<!filets de )(?<!dos de )(?<!darne de )\bsaumon d ecosse\b|\bsaumon de norvege fume\b|\bsaumon atlantique fume\b|\bgrav(lax|ad lax)\b|\blachs\b.{0,10}\b(rauch|geraeuchert)\b	smoked salmons|smoked-salmons	\b(sauce|soupe|pizza|salade|sandwich|burger|chips|chat|chien|croquettes?|bouillon|nouilles|riz|curry|wrap|tarte|quiche|gratin|saveur|arome|aromatise|cube|assaisonnement|epice|marinade|jus de|cuisine|parfum|flavou?r|flavored|ravioli|lasagne|pates|petit pot|bebe|nems?|samoussas?|beignets?|bouchees?|feuillete|friands?|tourte|rillettes?|terrine|pate|mousse|plat|vegetal|vegan|vegetarien)\b

@@ -8,8 +8,8 @@
   "2": "category",
   "3": "product_type"
  },
- "product_type_count": 1814,
- "total_node_count": 1974,
+ "product_type_count": 1815,
+ "total_node_count": 1975,
  "classification_policy": [
   "Assign one primary product_type to each product; use attributes for brand, flavour, recipe, size, packaging, organic status, dietary claims and nutrition claims.",
   "Do not infer a product type from brand alone.",
@@ -29629,6 +29629,21 @@
    "substitution_group": "SG_22_SURGELES_FRUITS_LEGUMES",
    "comparison_unit": "€/kg",
    "classification_rule": "Attribuer ce type si le produit est principalement un(e) fruits surgelés divers. Ne pas déduire la marque, la recette, le parfum ou le format à partir du seul nom."
+  },
+  {
+   "id": "P1815",
+   "parent_id": "C_04_PRODUITS_LAITIERS_OEUFS_FROMAGES",
+   "level": 3,
+   "node_type": "product_type",
+   "name_fr": "Gorgonzola, stilton et bleus étrangers",
+   "name_en": "Gorgonzola, stilton and foreign blues",
+   "path_fr": "Produits laitiers et œufs > Fromages > Gorgonzola, stilton et bleus étrangers",
+   "path_en": "Dairy and eggs > Cheese > Gorgonzola, stilton and foreign blues",
+   "description_fr": "Type de produit : gorgonzola, stilton et bleus étrangers.",
+   "examples": "Gorgonzola, stilton et bleus étrangers",
+   "substitution_group": "SG_04_PRODUITS_LAITIERS_OEUFS_FROMAGES",
+   "comparison_unit": "€/kg",
+   "classification_rule": "Attribuer ce type si le produit est principalement un(e) gorgonzola, stilton et bleus étrangers. Ne pas déduire la marque, la recette, le parfum ou le format à partir du seul nom."
   }
  ]
 }
